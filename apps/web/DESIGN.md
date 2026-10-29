@@ -265,6 +265,8 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 The board is a full-viewport Excalidraw canvas. A name card (mark, serif title, status) floats beside Excalidraw's menu button; presence, comment toggle, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer; preferences, theme and export live in its main menu. Phones get one bottom drawer instead. Excalidraw's islands are re-tokenised to the same radii, Inter, white surfaces and citrus selection.
 
+Keyboard: `c` (only while focus is on the board) enters comment mode and focuses the placement surface; arrows move a citrus reticle (Shift for larger steps), Enter places the pin, Escape backs out one step at a time (mention list, composer, mode). Opening the comments panel moves focus into it and closing returns focus to the control that opened it; below `md` the panel is a modal sheet that keeps Tab inside. Excalidraw's menu button is named "Board menu".
+
 ### Stickers
 
 Isometric slab stickers from the fun-isometric kit (vendored in `src/shared/ui/stickers`, MIT, Kelvin Adithya): flat fills, a 5-unit ink outline, an extruded side falling down-left, animated on After Effects keyframe presets on one shared canvas clock. `BrandSticker` fixes the palette to `brand("#ddec61", "#717453")`, so bodies are citrus and dark parts moss.

@@ -8,7 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil, Share2, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { Board } from "@/entities/board";
 import { useSession } from "@/entities/session";
@@ -33,6 +33,7 @@ import { openRenameBoardDialog } from "@/features/rename-board";
 import { openShareBoardDialog } from "@/features/share-board";
 import { UserMenu } from "@/features/user-menu";
 
+import { useCommentsSheet } from "../model/use-comments-sheet";
 import { BoardDrawer } from "./board-drawer";
 import { BoardIdentity } from "./board-identity";
 
@@ -123,8 +124,25 @@ export const BoardEditor = ({
     onDuplicate: pages.handleDuplicate,
   };
 
+  // Excalidraw's menu button ships without an accessible name; it remounts when the phone layout swaps in.
+  useEffect(() => {
+    if (api) {
+      document
+        .querySelector(".main-menu-trigger")
+        ?.setAttribute("aria-label", "Board menu");
+    }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- isPhone re-runs this after the remount
+  }, [api, isPhone]);
+
+  const { panelRef, sheetProps } = useCommentsSheet(panelOpen, () =>
+    setPanelOpen(false)
+  );
+
   return (
-    <div className="bg-background relative h-svh w-full overflow-hidden">
+    <div
+      data-board-canvas
+      className="bg-background relative h-svh w-full overflow-hidden"
+    >
       <Excalidraw
         theme={resolvedTheme === "dark" ? "dark" : "light"}
         viewModeEnabled={!canWrite}
@@ -227,7 +245,12 @@ export const BoardEditor = ({
         onSelect={selectThread}
       />
       {panelOpen ? (
-        <aside className="max-md:bg-background absolute inset-0 z-30 max-md:p-2.5 md:inset-x-auto md:top-[76px] md:right-3 md:bottom-3 md:w-96">
+        <aside
+          ref={panelRef}
+          tabIndex={-1}
+          {...sheetProps}
+          className="max-md:bg-background absolute inset-0 z-30 outline-none max-md:p-2.5 md:inset-x-auto md:top-[76px] md:right-3 md:bottom-3 md:w-96"
+        >
           <CommentsPanel
             env={env}
             pageId={pageId}

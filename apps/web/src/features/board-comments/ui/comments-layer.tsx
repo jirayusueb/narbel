@@ -1,8 +1,11 @@
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEventListener } from "@reactuses/core";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type {
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import { toast } from "sonner";
 
 import { UserAvatar } from "@/entities/user";
@@ -25,6 +28,25 @@ const isTyping = (target: EventTarget | null) => {
     (el.isContentEditable || /^(?:input|textarea|select)$/iu.test(el.tagName))
   );
 };
+
+// The "c" shortcut only works while focus is on the board, so it never fires from a dialog or another page.
+const onBoard = (target: EventTarget | null) =>
+  target === document.body ||
+  (target instanceof Element && target.closest("[data-board-canvas]") !== null);
+
+const AIM_STEP = 16;
+const AIM_STEP_LARGE = 64;
+const AIM_KEYS: Record<string, [number, number]> = {
+  ArrowDown: [0, 1],
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+};
+
+const centre = (el: HTMLElement) => ({
+  left: el.clientWidth / 2,
+  top: el.clientHeight / 2,
+});
 
 const Pin = ({
   comment,
@@ -77,6 +99,9 @@ export const CommentsLayer = ({
   const { create } = env.mutations;
   const [view, setView] = useState<View>({ scrollX: 0, scrollY: 0, zoom: 1 });
   const [draft, setDraft] = useState<{ x: number; y: number } | null>(null);
+  // Keyboard placement: a reticle the arrow keys move, in layer pixels.
+  const [aim, setAim] = useState<{ left: number; top: number } | null>(null);
+  const placer = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!api) {
@@ -89,11 +114,27 @@ export const CommentsLayer = ({
     return api.onScrollChange(sync);
   }, [api]);
 
+  // Entering comment mode moves focus onto the placement surface so arrows and Enter work; leaving it hands focus back.
+  useEffect(() => {
+    if (!(mode && canWrite)) {
+      return;
+    }
+    const back = document.activeElement as HTMLElement | null;
+    placer.current?.focus({ preventScroll: true });
+    return () => {
+      setAim(null);
+      // The surface is gone by now; only reclaim focus it dropped, never focus the user moved elsewhere.
+      if (document.activeElement === document.body) {
+        back?.focus({ preventScroll: true });
+      }
+    };
+  }, [mode, canWrite]);
+
   useEventListener("keydown", (e: KeyboardEvent) => {
     if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) {
       return;
     }
-    if (e.key === "c" && canWrite) {
+    if (e.key === "c" && canWrite && onBoard(e.target)) {
       onModeChange(!mode);
     } else if (e.key === "Escape") {
       setDraft(null);
@@ -107,14 +148,44 @@ export const CommentsLayer = ({
     top: (c.y + view.scrollY) * view.zoom,
   });
 
-  const place = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  const placeAt = (left: number, top: number) => {
     onSelect(null);
     setDraft({
-      x: (e.clientX - rect.left) / view.zoom - view.scrollX,
-      y: (e.clientY - rect.top) / view.zoom - view.scrollY,
+      x: left / view.zoom - view.scrollX,
+      y: top / view.zoom - view.scrollY,
     });
     onModeChange(false);
+  };
+
+  const place = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    placeAt(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const steer = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const el = e.currentTarget;
+    const current = aim ?? centre(el);
+    const direction = AIM_KEYS[e.key];
+    if (direction) {
+      const step = e.shiftKey ? AIM_STEP_LARGE : AIM_STEP;
+      setAim({
+        left: Math.min(
+          el.clientWidth,
+          Math.max(0, current.left + direction[0] * step)
+        ),
+        top: Math.min(
+          el.clientHeight,
+          Math.max(0, current.top + direction[1] * step)
+        ),
+      });
+    } else if (e.key === "Enter" || e.key === " ") {
+      placeAt(current.left, current.top);
+    } else {
+      return;
+    }
+    // Excalidraw also reads arrows and Enter from the document; they belong to the reticle here.
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const at = draft ? toScreen(draft) : null;
@@ -122,11 +193,29 @@ export const CommentsLayer = ({
   return (
     <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
       {mode && canWrite ? (
-        <div
-          role="presentation"
-          className="pointer-events-auto absolute inset-0 cursor-crosshair"
+        <button
+          ref={placer}
+          type="button"
+          aria-label="Place a comment. Arrow keys move the marker, Shift moves faster, Enter places it, Escape cancels."
+          className="pointer-events-auto absolute inset-0 cursor-crosshair outline-none"
           onPointerDown={place}
-        />
+          onKeyDown={steer}
+          onFocus={(e) => {
+            if (e.currentTarget.matches(":focus-visible")) {
+              // currentTarget is cleared once the handler returns, so measure before the updater runs.
+              const start = centre(e.currentTarget);
+              setAim((current) => current ?? start);
+            }
+          }}
+        >
+          {aim ? (
+            <span
+              aria-hidden="true"
+              className="border-foreground bg-citrus/40 absolute size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow-[0_0_0_4px_var(--background)]"
+              style={aim}
+            />
+          ) : null}
+        </button>
       ) : null}
       <AnimatePresence>
         {pins.map((c) => (
