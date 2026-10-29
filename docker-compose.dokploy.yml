@@ -47,6 +47,10 @@ services:
   s3-setup:
     image: amazon/aws-cli
     env_file: [.env.deploy]
+    environment:
+      # rustfs rejects aws-cli v2's checksum headers with SignatureDoesNotMatch
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
     depends_on:
       - s3
     entrypoint:
