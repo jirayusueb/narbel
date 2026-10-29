@@ -7,6 +7,10 @@ import { createAuthModule, createBetterAuthPlugin } from "../features/auth";
 import { createBoardModule } from "../features/board";
 import type { S3Config } from "../features/board/infrastructure/services/BunS3FileStorage";
 import { errorPlugin } from "../shared/presentation/plugins/errorPlugin";
+import { originGuard } from "../shared/presentation/plugins/originGuard";
+
+// Uploads cap at 10 MiB; reject bigger bodies before Bun buffers them (default 128 MiB).
+const MAX_REQUEST_BODY_BYTES = 11 * 1024 * 1024;
 
 export interface AppDeps {
   auth: Parameters<typeof createBetterAuthPlugin>[0];
@@ -17,7 +21,8 @@ export interface AppDeps {
 
 export const createApp = ({ auth, db, corsOrigin, s3 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
-  return new Elysia()
+  return new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BYTES } })
+    .use(originGuard(corsOrigin))
     .use(
       cors({
         origin: corsOrigin,

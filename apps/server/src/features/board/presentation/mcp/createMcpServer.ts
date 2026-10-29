@@ -23,15 +23,19 @@ const reply = <T>(result: Result<T, AppError>) =>
         ],
       };
 
+// bounds keep a runaway agent from bloating the shared doc every browser downloads
+const elementText = z.string().max(10_000);
+const elementColor = z.string().max(32);
+
 const shape = z.object({
   type: z.enum(SHAPE_TYPES),
   x: z.number(),
   y: z.number(),
   width: z.number().optional(),
   height: z.number().optional(),
-  text: z.string().optional(),
-  strokeColor: z.string().optional(),
-  backgroundColor: z.string().optional(),
+  text: elementText.optional(),
+  strokeColor: elementColor.optional(),
+  backgroundColor: elementColor.optional(),
 });
 
 const patch = z
@@ -41,9 +45,9 @@ const patch = z
     width: z.number(),
     height: z.number(),
     angle: z.number(),
-    text: z.string(),
-    strokeColor: z.string(),
-    backgroundColor: z.string(),
+    text: elementText,
+    strokeColor: elementColor,
+    backgroundColor: elementColor,
     opacity: z.number().min(0).max(100),
   })
   .partial();

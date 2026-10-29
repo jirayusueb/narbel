@@ -54,6 +54,9 @@ export const createBoardFileController = (
             "Content-Type": mimeType,
             "Content-Length": String(size),
             "Cache-Control": "private, max-age=31536000, immutable",
+            // the client only reads bytes via fetch; never let an uploaded SVG run as a page here
+            "Content-Security-Policy": "sandbox",
+            "X-Content-Type-Options": "nosniff",
           },
         });
       }

@@ -66,7 +66,11 @@ export const createBoardSyncController = (
         const bytes = toBytes(message);
         if (bytes) {
           const session = await sessions.get(ws.id);
-          session?.receive(bytes);
+          try {
+            session?.receive(bytes);
+          } catch {
+            ws.close(WS_POLICY_VIOLATION, "malformed message");
+          }
         }
       },
       async close(ws) {
