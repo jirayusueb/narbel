@@ -1,6 +1,6 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 
-import { Loader, NotFound } from "@/shared/ui";
+import { ErrorState, Loader, NotFound } from "@/shared/ui";
 
 import { routeTree } from "./routeTree.gen";
 
@@ -15,6 +15,7 @@ export const getRouter = () => {
     context: {},
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: () => <NotFound />,
+    defaultErrorComponent: ErrorState,
   });
 
   return router;

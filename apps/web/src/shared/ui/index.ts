@@ -1,3 +1,3 @@
 export { BrandMark, Wordmark } from "./brand";
 export { Loader } from "./loader";
-export { NotFound } from "./not-found";
+export { ErrorState, NotFound } from "./status-page";

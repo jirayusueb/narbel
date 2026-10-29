@@ -193,6 +193,7 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 ### Hierarchy
 
 - **Display** (400, 90px desktop / 72px tablet / 44px mobile, 0.95, -0.04em): landing hero only.
+- **Status word** (400, clamp(7rem, 24vw, 18rem), 1, -0.04em): the "404" and "Oops" words on the not-found and error pages only.
 - **Title** (400, 40px, 1, -0.035em): page titles ("Boards"), landing section headings on desktop.
 - **Headline** (400, 32px, 1, -0.035em): section headings, dialog titles, auth panel titles.
 - **Feature** (400, 24px, 1.05, -0.02em): board card titles, empty-state titles, card titles.
@@ -258,9 +259,13 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 - **Board tabs:** 32px tall, 10px radius; inactive muted ink with hover fill, active on a sheet with the surface shadow.
 - **Account pill:** full radius sheet with a citrus initials disc; its menu holds identity, the theme choice (System, Light, Dark), and sign out.
 
-### Board Window Bar
+### Board Canvas
 
-The board's top bar mirrors Intent's app window: mark as the way home, serif board title, status pill, presence avatars, one sheet island holding undo, redo, comment, and preferences, then a citrus Share for owners. Excalidraw's own islands are re-tokenised to the same radii, Inter, and citrus selection.
+The board is a full-viewport Excalidraw canvas. A name card (mark, serif title, status) floats beside Excalidraw's menu button; presence, comment toggle, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer; preferences, theme and export live in its main menu. Phones get one bottom drawer instead. Excalidraw's islands are re-tokenised to the same radii, Inter, white surfaces and citrus selection.
+
+### Status Pages
+
+Not-found and error pages show their status word as a shape selected on a dotted canvas: a 1.5px selection box with Excalidraw-style corner and rotation handles (moss for missing, alert for errors), and the agent's cursor at the bottom-right handle saying one line in an ink bubble. One CSS sequence (word rises, box snaps on, cursor arrives, bubble appears) that ends visible and is skipped under reduced motion. The error page offers Try again (resets the boundary and reloads route data), Back home, and collapsible error details in a mono well.
 
 ## Do's and Don'ts
 
