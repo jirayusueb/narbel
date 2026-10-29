@@ -41,5 +41,13 @@ export default defineConfig({
         "eslint/no-useless-return": "off",
       },
     },
+    {
+      // ops scripts drive remote APIs step by step; order and retries matter more than parallelism
+      files: ["scripts/**"],
+      rules: {
+        "eslint/no-await-in-loop": "off",
+        "unicorn/no-await-expression-member": "off",
+      },
+    },
   ],
 });
