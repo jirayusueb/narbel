@@ -3,7 +3,7 @@ import { cn } from "cn";
 import * as React from "react";
 
 const markerVariants = cva(
-  "group/marker text-muted-foreground [a]:hover:text-foreground relative flex min-h-4 w-full items-center gap-2 text-left text-xs [&_svg:not([class*='size-'])]:size-3.5 [a]:underline [a]:underline-offset-3",
+  "group/marker text-muted-foreground [a]:hover:text-foreground relative flex min-h-4 w-full items-center gap-2 text-left text-[13px] [&_svg:not([class*='size-'])]:size-3.5 [a]:underline [a]:underline-offset-3",
   {
     variants: {
       variant: {

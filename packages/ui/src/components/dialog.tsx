@@ -49,7 +49,7 @@ function DialogOverlay({
     <ModalOverlayPrimitive
       data-slot="dialog-overlay"
       className={cn(
-        "data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs",
+        "data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 ease-intent fixed inset-0 isolate z-50 bg-black/30 backdrop-blur-[2px] duration-200 motion-reduce:duration-0 dark:bg-black/50",
         className
       )}
       {...props}
@@ -76,7 +76,7 @@ function Dialog({
       <ModalPrimitive
         data-slot="dialog-content"
         className={cn(
-          "bg-popover text-popover-foreground ring-foreground/10 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-none p-4 text-xs/relaxed ring-1 duration-100 outline-none sm:max-w-sm",
+          "bg-popover text-popover-foreground shadow-elevated ring-border data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-[0.98] data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-[0.98] ease-intent fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[20px] p-6 text-sm ring-1 duration-200 outline-none motion-reduce:duration-0 sm:max-w-md sm:p-7",
           className
         )}
       >
@@ -88,7 +88,7 @@ function Dialog({
           {showCloseButton && (
             <DialogClose
               variant="ghost"
-              className="absolute top-2 right-2"
+              className="absolute top-3 right-3 rounded-[10px]"
               size="icon-sm"
             >
               <XIcon />
@@ -123,7 +123,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        "flex flex-col-reverse gap-2.5 *:w-full sm:flex-row sm:justify-end sm:*:w-auto",
         className
       )}
       {...props}
@@ -142,7 +142,7 @@ function DialogTitle({
     <Heading
       slot="title"
       data-slot="dialog-title"
-      className={cn("font-heading text-sm font-medium", className)}
+      className={cn("font-display text-headline font-normal", className)}
       {...props}
     />
   );
@@ -156,7 +156,7 @@ function DialogDescription({
     <div
       data-slot="dialog-description"
       className={cn(
-        "text-muted-foreground *:[a]:hover:text-foreground text-xs/relaxed *:[a]:underline *:[a]:underline-offset-3",
+        "text-muted-foreground *:[a]:hover:text-foreground text-sm *:[a]:underline *:[a]:underline-offset-3",
         className
       )}
       {...props}

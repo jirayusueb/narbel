@@ -1,4 +1,3 @@
-import { Badge } from "@narbel/ui/components/badge";
 import { Button } from "@narbel/ui/components/button";
 import {
   Dialog,
@@ -8,9 +7,9 @@ import {
   DialogTrigger,
 } from "@narbel/ui/components/dialog";
 import { Input } from "@narbel/ui/components/input";
-import { Separator } from "@narbel/ui/components/separator";
 import { Skeleton } from "@narbel/ui/components/skeleton";
-import { Copy, Share2, X } from "lucide-react";
+import { Copy, KeyRound, Link2, Lock, Share2, X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import type { ComponentProps } from "react";
 import { toast } from "sonner";
@@ -24,13 +23,39 @@ import {
 import type { Board, BoardAccess, Visibility } from "@/entities/board";
 
 const selectClass =
-  "h-8 rounded-none border border-input bg-transparent px-2 text-xs dark:bg-input/30";
+  "h-10 rounded-[10px] border border-input bg-card px-3 text-sm outline-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40";
 
 const Select = (props: ComponentProps<"select">) => (
   <select className={selectClass} {...props} />
 );
 
 const onError = (error: Error) => toast.error(error.message);
+
+const VISIBILITY_OPTIONS: {
+  value: Visibility;
+  label: string;
+  hint: string;
+  Icon: LucideIcon;
+}[] = [
+  {
+    value: "private",
+    label: "Private",
+    hint: "Only people you invite",
+    Icon: Lock,
+  },
+  {
+    value: "link",
+    label: "Anyone with the link",
+    hint: "Signed-in people with the link can view",
+    Icon: Link2,
+  },
+  {
+    value: "password",
+    label: "Password",
+    hint: "Signed-in people who know the password",
+    Icon: KeyRound,
+  },
+];
 
 const Section = ({
   title,
@@ -39,8 +64,8 @@ const Section = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <section className="flex flex-col gap-2">
-    <h3 className="text-xs font-medium">{title}</h3>
+  <section className="flex flex-col gap-3">
+    <h3 className="text-sm font-medium">{title}</h3>
     {children}
   </section>
 );
@@ -59,31 +84,55 @@ const VisibilitySection = ({
 
   return (
     <Section title="Who can open this board">
-      <Select
+      <fieldset
         aria-label="Visibility"
-        value={choice}
-        disabled={patch.isPending}
-        onChange={(e) => {
-          const next = e.target.value as Visibility;
-          setChoice(next);
-          if (next === "password" && !access.hasPassword) {
-            return;
-          }
-          patch.mutate(
-            { visibility: next },
-            {
-              onError: (error) => {
-                setChoice(access.visibility);
-                onError(error);
-              },
-            }
-          );
-        }}
+        className="bg-muted m-0 flex min-w-0 flex-col gap-1 rounded-[20px] border-0 p-1.5"
       >
-        <option value="private">Private, only invited people</option>
-        <option value="link">Anyone signed in with the link can view</option>
-        <option value="password">Anyone signed in with the password</option>
-      </Select>
+        {VISIBILITY_OPTIONS.map(({ value, label, hint, Icon }) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={choice === value}
+            aria-disabled={patch.isPending}
+            className={`focus-visible:outline-ring flex cursor-pointer items-center gap-3 rounded-[15px] p-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid aria-disabled:cursor-default aria-disabled:opacity-60 ${
+              choice === value ? "bg-card shadow-surface" : "hover:bg-card/60"
+            }`}
+            onClick={() => {
+              // Explicit press per choice: no save while the user is still moving between options.
+              if (patch.isPending || choice === value) {
+                return;
+              }
+              setChoice(value);
+              if (value === "password" && !access.hasPassword) {
+                return;
+              }
+              patch.mutate(
+                { visibility: value },
+                {
+                  onError: (error) => {
+                    setChoice(access.visibility);
+                    onError(error);
+                  },
+                }
+              );
+            }}
+          >
+            <span
+              className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] ${
+                choice === value
+                  ? "bg-citrus text-citrus-foreground"
+                  : "bg-background text-muted-foreground"
+              }`}
+            >
+              <Icon className="size-4" />
+            </span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-sm font-medium">{label}</span>
+              <span className="text-muted-foreground text-[13px]">{hint}</span>
+            </span>
+          </button>
+        ))}
+      </fieldset>
       {choice === "password" ? (
         <form
           className="flex gap-2"
@@ -140,10 +189,11 @@ const LinkSection = ({
 
   return (
     <Section title="Share link">
-      <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
+            className="accent-primary size-4"
             checked={enabled}
             disabled={patch.isPending}
             onChange={(e) =>
@@ -168,11 +218,16 @@ const LinkSection = ({
         </Select>
       </div>
       {enabled && share ? (
-        <div className="flex gap-2">
-          <Input readOnly aria-label="Share link" value={share.url} />
+        <div className="bg-muted flex items-center gap-2 rounded-[15px] p-1.5 pl-3">
+          <input
+            readOnly
+            aria-label="Share link"
+            value={share.url}
+            className="text-foreground min-w-0 flex-1 truncate bg-transparent font-mono text-[13px] outline-hidden"
+          />
           <Button
-            variant="outline"
-            size="icon"
+            variant="secondary"
+            size="icon-sm"
             aria-label="Copy link"
             onPress={async () => {
               await navigator.clipboard.writeText(share.url);
@@ -251,7 +306,7 @@ const MembersSection = ({
           {access.members.map((member) => (
             <li
               key={member.userId ?? member.email}
-              className="flex items-center justify-between gap-2"
+              className="flex items-center justify-between gap-2 text-sm"
             >
               <span className="min-w-0 truncate">
                 {member.name || member.email}
@@ -259,9 +314,13 @@ const MembersSection = ({
               </span>
               <span className="flex shrink-0 items-center gap-1">
                 {member.userId ? null : (
-                  <Badge variant="outline">pending</Badge>
+                  <span className="border-border-strong text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
+                    pending
+                  </span>
                 )}
-                <Badge variant="secondary">{member.role}</Badge>
+                <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs">
+                  {member.role}
+                </span>
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -288,25 +347,24 @@ export const ShareBoardDialog = ({ board }: { board: Board }) => {
 
   return (
     <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button variant="outline">
+      <Button variant="citrus" size="sm">
         <Share2 data-icon="inline-start" />
         Share
       </Button>
       <Dialog className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Share “{board.title}”</DialogTitle>
+          <DialogTitle className="font-display text-[24px] font-normal tracking-[-0.02em]">
+            Share “{board.title}”
+          </DialogTitle>
           <DialogDescription>
             People you share with need a Narbel account.
           </DialogDescription>
         </DialogHeader>
         {access ? (
-          <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+          <div className="flex max-h-[70vh] flex-col gap-8 overflow-y-auto px-1 py-1">
             <VisibilitySection boardId={board.id} access={access} />
-            <Separator />
             <LinkSection boardId={board.id} access={access} />
-            <Separator />
             <InviteSection boardId={board.id} />
-            <Separator />
             <MembersSection boardId={board.id} access={access} />
           </div>
         ) : (

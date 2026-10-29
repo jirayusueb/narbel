@@ -21,20 +21,22 @@ const Toaster = ({ ...props }: ToasterProps) => {
         success: <CheckCircleIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
         warning: <WarningIcon className="size-4" />,
-        error: <XCircleIcon className="size-4" />,
+        error: (
+          <XCircleIcon className="size-4 text-[#f0955a] dark:text-[#b8461a]" />
+        ),
         loading: <SpinnerIcon className="size-4 animate-spin" />,
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          "--normal-bg": "var(--primary)",
+          "--normal-text": "var(--primary-foreground)",
+          "--normal-border": "transparent",
+          "--border-radius": "15px",
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast: "cn-toast shadow-elevated px-4 py-3 text-sm",
         },
       }}
       {...props}

@@ -1,0 +1,130 @@
+@keyframes home-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes home-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes home-show {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
+@keyframes home-mai {
+  0% {
+    transform: translate(150px, 400px);
+  }
+  30%,
+  100% {
+    transform: translate(560px, 292px);
+  }
+}
+
+@keyframes home-agent {
+  0% {
+    transform: translate(890px, 420px);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  22% {
+    transform: translate(385px, 300px);
+  }
+  32% {
+    transform: translate(575px, 300px);
+  }
+  42% {
+    transform: translate(575px, 390px);
+  }
+  52% {
+    transform: translate(385px, 390px);
+  }
+  62% {
+    transform: translate(385px, 300px);
+  }
+  78%,
+  100% {
+    transform: translate(590px, 396px);
+    opacity: 1;
+  }
+}
+
+.home-marquee {
+  animation: home-marquee var(--duration, 70s) linear infinite;
+}
+
+.home-marquee[data-reverse] {
+  animation-direction: reverse;
+}
+
+.home-marquee-track:hover .home-marquee {
+  animation-play-state: paused;
+}
+
+.home-marquee-band[data-paused] .home-marquee {
+  animation-play-state: paused;
+}
+
+.home-rise {
+  animation: home-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* The stage plays once, the first time it scrolls into view. Before that it rests on its final frame for no-JS and reduced motion. */
+.home-stage[data-play="true"] .home-stage-draw {
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+  animation: home-draw var(--dur, 1.6s) cubic-bezier(0.6, 0, 0.1, 1) forwards;
+  animation-delay: var(--at);
+}
+
+.home-stage[data-play="true"] .home-stage-show {
+  animation: home-show 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--at);
+}
+
+.home-stage[data-play="true"] .home-stage-mai {
+  animation: home-mai 6s cubic-bezier(0.6, 0, 0.1, 1) both;
+}
+
+.home-stage[data-play="true"] .home-stage-agent {
+  animation: home-agent 6.5s cubic-bezier(0.45, 0, 0.2, 1) 1.6s both;
+}
+
+.home-stage-mai {
+  transform: translate(560px, 292px);
+}
+
+.home-stage-agent {
+  transform: translate(590px, 396px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-marquee,
+  .home-rise,
+  .home-stage[data-play="true"] .home-stage-draw,
+  .home-stage[data-play="true"] .home-stage-show,
+  .home-stage[data-play="true"] .home-stage-mai,
+  .home-stage[data-play="true"] .home-stage-agent {
+    animation: none;
+  }
+  .home-stage[data-play="true"] .home-stage-draw {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}

@@ -89,18 +89,23 @@ export const PagesBar = ({
 }) => (
   <nav
     aria-label="Pages"
-    className="flex items-center gap-1 overflow-x-auto border-b px-3 py-1"
+    className="bg-background flex h-11 shrink-0 [scrollbar-width:none] items-center gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,transparent,#000_12px,#000_calc(100%-12px),transparent)] px-3 [&::-webkit-scrollbar]:hidden"
   >
     {pages.map((page) => {
       const active = page.id === pageId;
       return (
         <div
           key={page.id}
-          className={`flex shrink-0 items-center gap-0.5 ${active ? "bg-muted" : ""}`}
+          className={`flex h-8 shrink-0 items-center gap-0.5 rounded-[10px] transition-colors duration-150 ${
+            active
+              ? "bg-card shadow-surface text-foreground pr-1 font-medium"
+              : "text-muted-foreground hover:bg-accent"
+          }`}
         >
           <Button
             variant="ghost"
             size="sm"
+            className="font-[inherit] text-[13px] text-inherit hover:bg-transparent"
             aria-current={active ? "page" : undefined}
             onPress={() => onSelect(page.id)}
           >
@@ -138,7 +143,7 @@ export const PagesBar = ({
     {readOnly ? null : (
       <Button
         variant="ghost"
-        size="icon-sm"
+        size="icon-xs"
         aria-label="Add page"
         onPress={onAdd}
       >

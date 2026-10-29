@@ -1,10 +1,11 @@
 import { Excalidraw } from "@excalidraw/excalidraw";
 
 import "@excalidraw/excalidraw/index.css";
-import { Badge } from "@narbel/ui/components/badge";
-import { Button } from "@narbel/ui/components/button";
+import "./excalidraw-theme.css";
+import { Button, buttonVariants } from "@narbel/ui/components/button";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Redo2, Undo2 } from "lucide-react";
+import { Redo2, Undo2 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useState } from "react";
 
 import type { Board } from "@/entities/board";
@@ -17,12 +18,21 @@ import { PagesBar, usePages } from "@/features/board-pages";
 import { PreferencesMenu, usePreferences } from "@/features/board-preferences";
 import { PresenceBar, usePresence } from "@/features/board-presence";
 import { ShareBoardDialog } from "@/features/share-board";
+import { UserMenu } from "@/features/user-menu";
+import { BrandMark } from "@/shared/ui";
 
 const STATUS_LABEL: Record<CollabStatus, string> = {
   connecting: "Connecting",
   syncing: "Syncing",
   live: "Live",
   offline: "Offline",
+};
+
+const STATUS_DOT: Record<CollabStatus, string> = {
+  connecting: "bg-subtle-foreground animate-pulse motion-reduce:animate-none",
+  syncing: "bg-subtle-foreground animate-pulse motion-reduce:animate-none",
+  live: "bg-citrus shadow-[0_0_0_3px_rgb(221_236_97/0.35)]",
+  offline: "bg-destructive",
 };
 
 const IS_MAC = /mac|iphone|ipad/iu.test(navigator.platform);
@@ -77,57 +87,75 @@ export const BoardEditor = ({
   });
   const presence = usePresence({ awareness, api, pageId, setPageId });
   const preferences = usePreferences({ userId, api });
+  const { resolvedTheme } = useTheme();
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-3 px-3 py-2">
+      <div className="bg-background flex h-14 shrink-0 items-center gap-2 px-3">
         <Link
           to="/dashboard"
           aria-label="Back to boards"
-          className="text-muted-foreground"
+          className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
         >
-          <ArrowLeft />
+          <BrandMark className="size-6" />
         </Link>
-        <h1 className="truncate text-sm font-medium">{board.title}</h1>
-        <Badge variant={status === "live" ? "default" : "secondary"}>
-          {STATUS_LABEL[status]}
-        </Badge>
-        {canWrite ? null : <Badge variant="outline">View only</Badge>}
-        <div className="ml-auto flex items-center gap-2">
+        <h1 className="font-display min-w-0 truncate text-[20px] font-normal tracking-[-0.02em]">
+          {board.title}
+        </h1>
+        <output className="bg-card shadow-surface flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs">
+          <span
+            className={`size-1.5 rounded-full ${STATUS_DOT[status]}`}
+            aria-hidden="true"
+          />
+          <span>{STATUS_LABEL[status]}</span>
+        </output>
+        {canWrite ? null : (
+          <span className="border-border-strong text-muted-foreground flex h-6 shrink-0 items-center rounded-full border px-2.5 text-xs">
+            View only
+          </span>
+        )}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <PresenceBar
             peers={presence.peers}
             followId={presence.followId}
             onFollow={presence.handleFollow}
           />
-          {canWrite ? (
-            <>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label="Undo"
-                onPress={() => replayUndo(false)}
-              >
-                <Undo2 />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label="Redo"
-                onPress={() => replayUndo(true)}
-              >
-                <Redo2 />
-              </Button>
-              <CommentModeToggle
-                active={commentMode}
-                onChange={setCommentMode}
-              />
-            </>
-          ) : null}
-          <PreferencesMenu
-            prefs={preferences.prefs}
-            onChange={preferences.handleChange}
-          />
+          <div className="bg-card shadow-surface flex gap-0.5 rounded-[15px] p-1">
+            {canWrite ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Undo"
+                  className="max-sm:hidden"
+                  onPress={() => replayUndo(false)}
+                >
+                  <Undo2 />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Redo"
+                  className="max-sm:hidden"
+                  onPress={() => replayUndo(true)}
+                >
+                  <Redo2 />
+                </Button>
+                <CommentModeToggle
+                  active={commentMode}
+                  onChange={setCommentMode}
+                />
+              </>
+            ) : null}
+            <PreferencesMenu
+              prefs={preferences.prefs}
+              onChange={preferences.handleChange}
+            />
+          </div>
           {board.role === "owner" ? <ShareBoardDialog board={board} /> : null}
+          <div className="max-sm:hidden">
+            <UserMenu />
+          </div>
         </div>
       </div>
       <PagesBar
@@ -142,7 +170,7 @@ export const BoardEditor = ({
       />
       <div className="relative min-h-0 flex-1">
         <Excalidraw
-          theme="dark"
+          theme={resolvedTheme === "dark" ? "dark" : "light"}
           viewModeEnabled={!canWrite}
           excalidrawAPI={bindApi}
           {...preferences.excalidrawProps}

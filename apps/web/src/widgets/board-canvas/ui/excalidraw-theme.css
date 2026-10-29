@@ -1,0 +1,71 @@
+/* Maps Excalidraw's UI tokens onto the Intent system. Canvas colours stay Excalidraw's own per theme. */
+.excalidraw {
+  --ui-font: "Inter Variable", system-ui, sans-serif;
+  --border-radius-md: 10px;
+  --border-radius-lg: 15px;
+  --island-bg-color: #ffffff;
+  --default-border-color: #f0f0eb;
+  --color-surface-high: #f0f0eb;
+  --color-surface-mid: #f0f0eb;
+  --color-surface-low: #e1e1de;
+  --color-on-surface: #080808;
+  --text-primary-color: #080808;
+  --shadow-island: 0 10px 20px rgb(0 0 0 / 0.08);
+  --color-primary: #080808;
+  --color-brand-hover: #272727;
+  --color-brand-active: #3d3d3c;
+  --color-primary-hover: #272727;
+  --color-primary-darker: #272727;
+  --color-primary-darkest: #3d3d3c;
+  --color-primary-light: #ddec61;
+  --color-primary-light-darker: #d3de5d;
+  --color-surface-primary-container: #ddec61;
+  --color-on-primary-container: #080808;
+  --focus-highlight-color: #ddec61;
+  --select-highlight-color: #979a73;
+}
+
+.excalidraw.theme--dark {
+  --island-bg-color: #272727;
+  --default-border-color: #3d3d3c;
+  --color-surface-high: #3d3d3c;
+  --color-surface-mid: #1a1a19;
+  --color-surface-low: #272727;
+  --color-on-surface: #f0f0eb;
+  --text-primary-color: #f0f0eb;
+  --shadow-island: 0 10px 20px rgb(0 0 0 / 0.4);
+  --color-primary: #ddec61;
+  --color-brand-hover: #d4e167;
+  --color-brand-active: #c0cc54;
+  --color-primary-hover: #d4e167;
+  --color-primary-darker: #c0cc54;
+  --color-primary-darkest: #c0cc54;
+  --color-primary-light: #ddec61;
+  --color-primary-light-darker: #d3de5d;
+  --color-surface-primary-container: #ddec61;
+  --color-on-primary-container: #080808;
+}
+
+.excalidraw .Island {
+  border-radius: 15px;
+}
+
+.excalidraw .ToolIcon__icon,
+.excalidraw .ToolIcon_type_button {
+  border-radius: 10px;
+}
+
+.excalidraw .ToolIcon .ToolIcon_type_radio:checked + .ToolIcon__icon,
+.excalidraw .ToolIcon .ToolIcon_type_checkbox:checked + .ToolIcon__icon {
+  background: #ddec61;
+  color: #080808;
+}
+
+.excalidraw .ToolIcon .ToolIcon_type_radio:checked + .ToolIcon__icon svg,
+.excalidraw .ToolIcon .ToolIcon_type_checkbox:checked + .ToolIcon__icon svg {
+  color: #080808;
+}
+
+.excalidraw .ToolIcon .ToolIcon_type_radio:checked + .ToolIcon__icon:hover {
+  background: #d3de5d;
+}

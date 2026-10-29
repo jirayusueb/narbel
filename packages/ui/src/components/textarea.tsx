@@ -14,7 +14,7 @@ function Textarea({
       data-slot="textarea"
       className={composeRenderProps(className, (className) =>
         cn(
-          "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 disabled:bg-input/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 flex field-sizing-content min-h-16 w-full rounded-none border bg-transparent px-2.5 py-2 text-xs transition-colors outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-1 md:text-xs",
+          "border-input placeholder:text-subtle-foreground bg-card disabled:bg-muted aria-invalid:outline-destructive focus-visible:outline-ring flex field-sizing-content min-h-20 w-full rounded-[10px] border px-3.5 py-2.5 text-sm outline-hidden transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:outline-2 aria-invalid:outline-offset-2 aria-invalid:outline-solid",
           className
         )
       )}

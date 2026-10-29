@@ -15,12 +15,12 @@ export const PresenceBar = ({
   return (
     <div data-presence className="flex items-center gap-2">
       {followed ? (
-        <span className="bg-primary text-primary-foreground px-2 py-0.5 text-xs">
+        <span className="bg-primary text-primary-foreground max-w-48 truncate rounded-full px-2.5 py-1 text-xs">
           Following {followed.name} · Esc to stop
         </span>
       ) : null}
       <ul
-        className="flex -space-x-1"
+        className="flex -space-x-2"
         aria-label={`${peers.length} others here`}
       >
         {peers.map((peer) => (
@@ -33,8 +33,10 @@ export const PresenceBar = ({
               onClick={() =>
                 onFollow(peer.clientId === followId ? null : peer.clientId)
               }
-              className={`grid size-7 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ${
-                peer.clientId === followId ? "ring-primary" : "ring-background"
+              className={`outline-ring grid size-8 cursor-pointer place-items-center rounded-full text-xs font-medium text-white ring-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid ${
+                peer.clientId === followId
+                  ? "ring-foreground dark:ring-citrus"
+                  : "ring-background"
               }`}
               style={{ backgroundColor: colorFromName(peer.name).background }}
             >
@@ -43,11 +45,6 @@ export const PresenceBar = ({
           </li>
         ))}
       </ul>
-      {peers.length > 0 ? (
-        <span className="text-muted-foreground text-xs">
-          {peers.length} other{peers.length === 1 ? "" : "s"} here
-        </span>
-      ) : null}
     </div>
   );
 };

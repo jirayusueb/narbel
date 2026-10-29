@@ -1,12 +1,5 @@
-import { Badge } from "@narbel/ui/components/badge";
-import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@narbel/ui/components/card";
 import { Link } from "@tanstack/react-router";
+import { Clock } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { Board } from "../model/types";
@@ -23,28 +16,36 @@ export const BoardCard = ({
   board: Board;
   actions?: ReactNode;
 }) => (
-  <Card size="sm">
-    <CardHeader>
-      <CardTitle className="truncate">
-        <Link
-          to="/boards/$boardId"
-          params={{ boardId: board.id }}
-          className="hover:underline focus-visible:underline"
-        >
-          {board.title}
-        </Link>
-      </CardTitle>
-      <CardDescription>
-        Updated {formatter.format(new Date(board.updatedAt))}
-      </CardDescription>
+  <div className="bg-card shadow-surface ease-intent hover:shadow-elevated group relative flex min-h-36 flex-col justify-between gap-6 rounded-[20px] p-5 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+    <h3 className="font-display text-feature line-clamp-2 pr-16 leading-tight font-normal break-words">
+      <Link
+        to="/boards/$boardId"
+        params={{ boardId: board.id }}
+        className="focus-visible:outline-ring rounded-[8px] after:absolute after:inset-0 after:rounded-[20px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
+      >
+        {board.title}
+      </Link>
+    </h3>
+    <p className="text-subtle-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+      <span className="flex items-center gap-1.5">
+        <Clock aria-hidden className="size-3.5" />
+        <span>
+          Updated{" "}
+          <time dateTime={board.updatedAt}>
+            {formatter.format(new Date(board.updatedAt))}
+          </time>
+        </span>
+      </span>
       {board.shared ? (
-        <CardAction>
-          <Badge variant="secondary">{board.role}</Badge>
-        </CardAction>
+        <span className="bg-muted text-muted-foreground rounded-[8px] px-2 py-0.5 text-xs font-medium capitalize">
+          {board.role}
+        </span>
       ) : null}
-      {actions ? (
-        <CardAction className="flex gap-1">{actions}</CardAction>
-      ) : null}
-    </CardHeader>
-  </Card>
+    </p>
+    {actions ? (
+      <div className="ease-intent absolute top-3 right-3 z-10 flex gap-0.5 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none [@media(hover:hover)]:opacity-0 [@media(hover:none)]:opacity-100">
+        {actions}
+      </div>
+    ) : null}
+  </div>
 );
