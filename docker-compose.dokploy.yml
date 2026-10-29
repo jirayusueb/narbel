@@ -12,16 +12,12 @@ x-healthcheck-fetch: &fetch-check
 
 services:
   postgres:
-    # pgrust: Postgres rebuilt in Rust, drop-in for the official image (same env vars)
-    image: malisper/pgrust:v0.4-beta
+    image: postgres:18
     env_file: [.env.deploy]
-    environment:
-      # pgrust's initdb defaults reject host TCP auth; this writes the pg_hba we need
-      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
-      - narbel_postgres_data:/var/lib/postgresql/data
+      - narbel_postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "psql -U postgres -d narbel -c 'select 1' >/dev/null"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d narbel"]
       interval: 10s
       timeout: 5s
       retries: 10
