@@ -7,9 +7,9 @@ import { Header } from "@/widgets/header";
 
 // The root hides the global header on board routes; states without the editor still need a way out.
 const WithHeader = ({ children }: { children: React.ReactNode }) => (
-  <div className="grid h-full grid-rows-[auto_minmax(0,1fr)]">
+  <div className="flex min-h-svh flex-col">
     <Header />
-    <div className="min-h-0 overflow-y-auto">{children}</div>
+    <div className="flex flex-1 flex-col">{children}</div>
   </div>
 );
 

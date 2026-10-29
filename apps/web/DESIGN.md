@@ -206,7 +206,9 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 
 ## Layout
 
-A 30px outer margin (20px on mobile) and 10px gutters, as on intentapp.dev. App pages sit in a centred `max-w-6xl` column; board grids are 1, 2, then 3 columns with 10px gaps. The header is an 80px three-column grid: links left, mark centred, account right. Board routes drop the header and use their own 56px window bar plus a 44px tab row, so the canvas gets the rest. Landing sections are separated by 112 to 160px of space, never by rules.
+A 30px outer margin (20px on mobile) and 10px gutters, as on intentapp.dev. App pages sit in a centred `max-w-6xl` column; board grids are 1, 2, then 3 columns with 10px gaps. The header is an 80px three-column grid: links left, mark centred, account right. Board routes drop the header and give the whole viewport to the canvas. Landing sections are separated by 112 to 160px of space, never by rules.
+
+**Scrolling.** Every page except the board scrolls the document itself (no inner scroll containers), so browser back restores position, phone address bars collapse, and keyboard paging works. The header is sticky: it gains a hairline once the page moves, tucks away when scrolling down past 120px, and returns on any scroll up. Hash links glide to their section (instant under reduced motion); navigation scroll resets stay instant. The landing's closing wordmark rises into place tied to scroll progress, settling exactly at the page's end. The board page never scrolls and disables overscroll so pull-to-refresh can't fire mid-drawing.
 
 ## Elevation & Depth
 

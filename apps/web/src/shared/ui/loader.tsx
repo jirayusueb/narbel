@@ -44,7 +44,7 @@ export const Loader = ({
 }) => (
   <div
     className={cn(
-      "flex h-full flex-col items-center justify-center gap-4 pb-10",
+      "flex min-h-[60svh] flex-1 flex-col items-center justify-center gap-4 pb-10",
       className
     )}
   >

@@ -103,7 +103,7 @@ const StatusPage = ({
   actions: ReactNode;
   children?: ReactNode;
 }) => (
-  <div className="relative flex min-h-full flex-col items-center justify-center overflow-x-hidden px-5 pt-16 pb-20">
+  <div className="relative flex flex-1 flex-col items-center justify-center overflow-x-clip px-5 pt-16 pb-20">
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 [background-image:radial-gradient(var(--border-strong)_1.2px,transparent_1.7px)] [mask-image:radial-gradient(ellipse_65%_55%_at_50%_40%,black,transparent)] [background-size:22px_22px]"

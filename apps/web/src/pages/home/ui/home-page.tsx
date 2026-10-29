@@ -6,7 +6,12 @@ import {
 } from "@reactuses/core";
 import { Link } from "@tanstack/react-router";
 import { Bot, Files, Pause, PenLine, Play, Plug } from "lucide-react";
-import { motion } from "motion/react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useRef } from "react";
 
@@ -475,6 +480,34 @@ const Cta = ({ signedIn }: { signedIn: boolean }) => (
 const rise = (delayMs: number) =>
   ({ "--delay": `${delayMs}ms` }) as CSSProperties;
 
+// The wordmark rises into place as the reader reaches the end of the page, tied to scroll so it settles exactly at the bottom.
+const FooterWordmark = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end end"],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], ["45%", "0%"]);
+  const tilt = useTransform(scrollYProgress, [0, 1], [-24, 0]);
+  return (
+    <div ref={ref} className="overflow-clip pt-[4vw]" aria-hidden="true">
+      <motion.div
+        className="flex items-end gap-[3vw]"
+        style={reduce ? undefined : { y }}
+      >
+        <motion.span
+          className="shrink-0"
+          style={reduce ? undefined : { rotate: tilt }}
+        >
+          <BrandMark className="size-[17.5vw]" />
+        </motion.span>
+        <Wordmark className="text-[24vw] leading-[0.74] tracking-[-0.04em]" />
+      </motion.div>
+    </div>
+  );
+};
+
 export const HomePage = () => {
   const { data: session } = useSession();
   const signedIn = Boolean(session);
@@ -483,7 +516,7 @@ export const HomePage = () => {
   const [bandVisible] = useElementVisibility(bandRef);
 
   return (
-    <div className="h-full overflow-x-hidden overflow-y-auto motion-safe:scroll-smooth">
+    <div className="flex-1 overflow-x-clip">
       <section className="flex flex-col items-center px-5 pt-16 pb-20 text-center md:px-[30px] md:pt-24 md:pb-28">
         <h1 className="font-display lg:text-display max-w-[13ch] text-[44px] leading-[0.95] font-normal tracking-[-0.04em] md:text-[72px]">
           {HERO_WORDS.map((word, index) => (
@@ -587,10 +620,7 @@ export const HomePage = () => {
             Agents
           </Link>
         </nav>
-        <div className="flex items-end gap-[3vw]" aria-hidden="true">
-          <BrandMark className="size-[17.5vw] shrink-0" />
-          <Wordmark className="text-[24vw] leading-[0.74] tracking-[-0.04em]" />
-        </div>
+        <FooterWordmark />
       </footer>
     </div>
   );

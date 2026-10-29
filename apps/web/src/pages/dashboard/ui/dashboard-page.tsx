@@ -92,7 +92,7 @@ export const DashboardPage = () => {
   const { data: shared } = useSharedBoards();
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="flex-1">
       <div className="mx-auto flex w-full max-w-6xl flex-col px-5 pt-10 pb-24 md:px-[30px] md:pt-16">
         <section className="flex flex-col gap-8">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
