@@ -12,7 +12,7 @@ x-healthcheck-fetch: &fetch-check
 
 services:
   postgres:
-    image: postgres:18
+    image: postgres:18-alpine
     env_file: [.env.deploy]
     volumes:
       - narbel_postgres_data:/var/lib/postgresql
