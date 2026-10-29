@@ -1,7 +1,7 @@
 import Avatar from "boring-avatars";
 import { useState } from "react";
 
-import { SERVER_URL } from "@/shared/config";
+import { PUBLIC_SERVER_URL } from "@/shared/config";
 
 import type { UserRef } from "../model/types";
 
@@ -13,7 +13,7 @@ const resolve = (user: UserRef) => {
     user.avatarUrl === undefined
       ? `/api/users/${user.id}/avatar`
       : user.avatarUrl;
-  return url?.startsWith("/") ? `${SERVER_URL}${url}` : url;
+  return url?.startsWith("/") ? `${PUBLIC_SERVER_URL}${url}` : url;
 };
 
 export const UserAvatar = ({

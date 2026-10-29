@@ -16,7 +16,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useRef } from "react";
 
 import { useSession } from "@/entities/session";
-import { SERVER_URL } from "@/shared/config";
+import { PUBLIC_SERVER_URL } from "@/shared/config";
 import {
   BrandMark,
   BrandSticker,
@@ -459,7 +459,7 @@ const McpSnippet = () => (
         POST
       </span>
       <code className="text-moss truncate font-mono text-[13px]">
-        {SERVER_URL}/mcp
+        {PUBLIC_SERVER_URL}/mcp
       </code>
     </div>
     <pre className="bg-muted text-muted-foreground mx-2 mb-2 rounded-[15px] px-4 py-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap">

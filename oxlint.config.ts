@@ -50,5 +50,24 @@ export default defineConfig({
         "unicorn/no-await-expression-member": "off",
       },
     },
+    {
+      // SERVER_URL is the internal API address during SSR; rendering it breaks hydration
+      files: ["apps/web/src/**/ui/**", "apps/web/src/routes/**"],
+      rules: {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            paths: [
+              {
+                name: "@/shared/config",
+                importNames: ["SERVER_URL"],
+                message:
+                  "Render PUBLIC_SERVER_URL; SERVER_URL is for requests only.",
+              },
+            ],
+          },
+        ],
+      },
+    },
   ],
 });

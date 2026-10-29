@@ -6,13 +6,13 @@ import { Check, Copy, KeyRound, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { SERVER_URL } from "@/shared/config";
+import { PUBLIC_SERVER_URL } from "@/shared/config";
 import { useCopy } from "@/shared/lib";
 import { BrandSticker, chat } from "@/shared/ui";
 
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../api/keys";
 
-const MCP_URL = `${SERVER_URL}/mcp`;
+const MCP_URL = `${PUBLIC_SERVER_URL}/mcp`;
 
 const clientConfig = (key: string) =>
   JSON.stringify(
