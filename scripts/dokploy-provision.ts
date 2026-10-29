@@ -1,5 +1,6 @@
 // Provisions narbel on Dokploy as split services via its API.
-// Usage: DOKPLOY_URL=... DOKPLOY_API_KEY=... RESEND_API_KEY=... bun scripts/dokploy-provision.ts <environmentId> <sshKeyId>
+// Usage: DOKPLOY_URL=... DOKPLOY_API_KEY=... RESEND_API_KEY=... BASE_DOMAIN=example.com bun scripts/dokploy-provision.ts <environmentId> <sshKeyId>
+// Hosts: <BASE_DOMAIN> (web), api.<BASE_DOMAIN>, store.<BASE_DOMAIN>, all https via Dokploy's Traefik + Let's Encrypt.
 // Writes generated secrets to .dokploy-state.json (gitignored) so reruns reuse them.
 import { randomBytes } from "node:crypto";
 
@@ -7,12 +8,20 @@ const [environmentId, sshKeyId] = process.argv.slice(2);
 const base = `${process.env.DOKPLOY_URL}/api`;
 const key = process.env.DOKPLOY_API_KEY;
 const resendKey = process.env.RESEND_API_KEY;
-if (!(environmentId && sshKeyId && key && resendKey)) {
+const baseDomain = process.env.BASE_DOMAIN;
+if (!(environmentId && sshKeyId && key && resendKey && baseDomain)) {
   throw new Error("usage: see header");
 }
 
-const HOST = new URL(process.env.DOKPLOY_URL ?? "").hostname;
-const PORTS = { api: 4000, web: 4001, store: 4002 };
+const HOSTS = {
+  web: baseDomain,
+  api: `api.${baseDomain}`,
+  store: `store.${baseDomain}`,
+};
+const webUrl = `https://${HOSTS.web}`;
+const apiUrl = `https://${HOSTS.api}`;
+// the browser PUTs to presigned URLs, so the store must be publicly reachable
+const storeUrl = `https://${HOSTS.store}`;
 const REPO = "git@github.com:jirayusueb/narbel.git";
 const BRANCH = process.env.BRANCH ?? "rebuild";
 
@@ -140,8 +149,6 @@ for (const [id, dockerfile, stage] of [
   });
 }
 
-const apiUrl = `http://${HOST}:${PORTS.api}`;
-const webUrl = `http://${HOST}:${PORTS.web}`;
 await call("application.saveEnvironment", {
   applicationId: apiId,
   env: env({
@@ -151,8 +158,7 @@ await call("application.saveEnvironment", {
     BETTER_AUTH_URL: apiUrl,
     CORS_ORIGIN: webUrl,
     WEB_ORIGIN: webUrl,
-    // the browser PUTs to presigned URLs, so the store endpoint must be publicly reachable
-    S3_ENDPOINT: `http://${HOST}:${PORTS.store}`,
+    S3_ENDPOINT: storeUrl,
     S3_REGION: "us-east-1",
     S3_BUCKET: "narbel",
     S3_ACCESS_KEY_ID: state.s3Key,
@@ -175,22 +181,27 @@ await call("application.saveEnvironment", {
   createEnvFile: false,
 });
 
-const existingPorts = async (applicationId: string) =>
-  (
-    (await call(`application.one?applicationId=${applicationId}`)).ports ?? []
-  ).map((p: { publishedPort: number }) => p.publishedPort);
-for (const [id, published, target] of [
-  [apiId, PORTS.api, 3000],
-  [webId, PORTS.web, 3001],
-  [storeId, PORTS.store, 9000],
+const appInfo = (applicationId: string) =>
+  call(`application.one?applicationId=${applicationId}`);
+for (const [id, host, port] of [
+  [webId, HOSTS.web, 3001],
+  [apiId, HOSTS.api, 3000],
+  [storeId, HOSTS.store, 9000],
 ] as const) {
-  if (!(await existingPorts(id)).includes(published)) {
-    await call("port.create", {
+  const info = await appInfo(id);
+  // traffic goes through Traefik on 443; directly published ports would bypass TLS
+  for (const published of info.ports ?? []) {
+    await call("port.delete", { portId: published.portId });
+  }
+  const domains: { host: string }[] = info.domains ?? [];
+  if (!domains.some((d) => d.host === host)) {
+    await call("domain.create", {
       applicationId: id,
-      publishedPort: published,
-      targetPort: target,
-      publishMode: "ingress",
-      protocol: "tcp",
+      host,
+      port,
+      https: true,
+      certificateType: "letsencrypt",
+      domainType: "application",
     });
   }
 }
@@ -217,8 +228,9 @@ await call("application.deploy", {
 // RustFS has no bootstrap-bucket env, and Bun's S3 client cannot create buckets, so aws-cli does it.
 // The CORS rule lets the web origin PUT to presigned URLs straight from the browser.
 const aws = (args: string[]) =>
-  Bun.$`docker run --rm -e AWS_ACCESS_KEY_ID=${state.s3Key} -e AWS_SECRET_ACCESS_KEY=${state.s3Secret} -e AWS_DEFAULT_REGION=us-east-1 -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required amazon/aws-cli --endpoint-url http://${HOST}:${PORTS.store} ${args}`.nothrow();
-for (let attempt = 0; attempt < 30; attempt += 1) {
+  Bun.$`docker run --rm -e AWS_ACCESS_KEY_ID=${state.s3Key} -e AWS_SECRET_ACCESS_KEY=${state.s3Secret} -e AWS_DEFAULT_REGION=us-east-1 -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required amazon/aws-cli --endpoint-url ${storeUrl} ${args}`.nothrow();
+// retries also cover the wait for the store's Let's Encrypt certificate
+for (let attempt = 0; attempt < 45; attempt += 1) {
   if (
     (await aws(["s3api", "head-bucket", "--bucket", "narbel"]).quiet())
       .exitCode === 0

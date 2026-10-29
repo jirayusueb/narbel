@@ -2,15 +2,17 @@
 
 Narbel runs on Dokploy as five services in the `narbel` project:
 
-| Service | Kind | What it runs | Published port |
+| Service | Kind | What it runs | Domain (https) |
 | --- | --- | --- | --- |
-| `narbel-web` | Application (git, Dockerfile `apps/web/Dockerfile`, stage `runner`) | TanStack Start web app | 4001 → 3001 |
-| `narbel-api` | Application (git, Dockerfile `apps/server/Dockerfile`, stage `runner`) | Elysia API, websockets (`/api/boards/sync/:id`), MCP (`/mcp`) | 4000 → 3000 |
-| `narbel-store` | Application (Docker image `rustfs/rustfs`, volume `narbel-store-data` on `/data`) | S3-compatible object store for board images | 4002 → 9000 |
+| `narbel-web` | Application (git, Dockerfile `apps/web/Dockerfile`, stage `runner`) | TanStack Start web app | `<BASE_DOMAIN>` → 3001 |
+| `narbel-api` | Application (git, Dockerfile `apps/server/Dockerfile`, stage `runner`) | Elysia API, websockets (`/api/boards/sync/:id`), MCP (`/mcp`) | `api.<BASE_DOMAIN>` → 3000 |
+| `narbel-store` | Application (Docker image `rustfs/rustfs`, volume `narbel-store-data` on `/data`) | S3-compatible object store for board images | `store.<BASE_DOMAIN>` → 9000 |
 | `narbel-db` | Postgres (`postgres:18-alpine`) | database | internal only |
 | `narbel-cache` | Redis (`redis:7-alpine`) | cache-aside and cross-instance websocket fan-out | internal only |
 
-Services reach each other on `dokploy-network` by their Dokploy app names (for example `narbel-db-exn7k3`). The store is published because browsers upload straight to it through presigned URLs.
+Current deployment: `BASE_DOMAIN=narbel.84-247-158-105.sslip.io` (sslip.io resolves the name to the embedded IP, so no DNS records are needed). Domains go through Dokploy's Traefik with Let's Encrypt certificates; no service publishes a host port.
+
+Services reach each other on `dokploy-network` by their Dokploy app names (for example `narbel-db-exn7k3`). The store has a public domain because browsers upload straight to it through presigned URLs.
 
 ## Provisioning
 
@@ -20,6 +22,7 @@ Services reach each other on `dokploy-network` by their Dokploy app names (for e
 DOKPLOY_URL=http://<dokploy-host>:3000 \
 DOKPLOY_API_KEY=<dokploy api key> \
 RESEND_API_KEY=<resend key> \
+BASE_DOMAIN=<domain whose name, api. and store. subdomains point at the server> \
 bun scripts/dokploy-provision.ts <environmentId> <sshKeyId>
 ```
 
@@ -27,7 +30,7 @@ bun scripts/dokploy-provision.ts <environmentId> <sshKeyId>
 - `sshKeyId`: a Dokploy SSH key whose public half is a read-only deploy key on the GitHub repo.
 - `BRANCH` (optional, default `rebuild`): the git branch to build.
 
-The script also creates the `narbel` bucket and its CORS rule (needs Docker locally for `aws-cli`).
+The script also creates the `narbel` bucket and its CORS rule for the web origin (needs Docker locally for `aws-cli`). To move to your own domain, add A records for `<domain>`, `api.<domain>` and `store.<domain>`, rerun the script with the new `BASE_DOMAIN`, and delete the old domains in Dokploy.
 
 ## Environment
 
@@ -37,9 +40,9 @@ The script also creates the `narbel` bucket and its CORS rule (needs Docker loca
 
 `narbel-store`: `RUSTFS_ACCESS_KEY`, `RUSTFS_SECRET_KEY` (same pair as the API's S3 keys).
 
-## Cookies and domains
+## Cookies
 
-Over plain http (IP and ports) web and API are the same site, so the session cookie is `SameSite=Lax` without `Secure`. When `BETTER_AUTH_URL` is https the cookie switches to `SameSite=None; Secure`, which cross-site https domains need. To move to domains, add them in Dokploy for `narbel-web` (port 3001), `narbel-api` (port 3000) and `narbel-store` (port 9000), then rerun the script after changing `HOST`/URLs in it, and redeploy `narbel-web` (the API URL is baked in at build time).
+With https URLs the session cookie is `SameSite=None; Secure`. If `BETTER_AUTH_URL` is plain http (an IP and port setup) it falls back to `SameSite=Lax` without `Secure`, which only works when web and API share a site.
 
 ## MCP
 
