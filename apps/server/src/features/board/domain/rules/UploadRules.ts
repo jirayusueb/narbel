@@ -14,11 +14,11 @@ export const ALLOWED_MIME_TYPES = [
 // fileId becomes part of the S3 key, so it must not be able to contain path separators.
 const FILE_ID = /^[A-Za-z0-9_-]{1,128}$/u;
 
-export function validateUpload(input: {
+export const validateUpload = (input: {
   fileId: string;
   mimeType: string;
   size: number;
-}): Result<void, AppError> {
+}): Result<void, AppError> => {
   if (!FILE_ID.test(input.fileId)) {
     return err(
       AppError.validation(
@@ -47,4 +47,4 @@ export function validateUpload(input: {
     );
   }
   return okEmpty();
-}
+};

@@ -102,10 +102,10 @@ export const SHAPES: Record<ShapeType, ShapeSpec> = {
   },
 };
 
-export function buildElement(
+export const buildElement = (
   shape: Shape,
   identity: ElementIdentity
-): SceneElement {
+): SceneElement => {
   const spec = SHAPES[shape.type];
   const size = spec.size(shape);
   return {
@@ -135,4 +135,4 @@ export function buildElement(
     locked: false,
     ...spec.extras(shape, size),
   };
-}
+};

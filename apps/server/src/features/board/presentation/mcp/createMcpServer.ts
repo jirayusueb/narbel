@@ -52,7 +52,10 @@ const boardId = z
   .string()
   .describe("Board id from list_boards or create_board");
 
-export function createMcpServer(uc: BoardUseCases, userId: string): McpServer {
+export const createMcpServer = (
+  uc: BoardUseCases,
+  userId: string
+): McpServer => {
   const server = new McpServer({ name: "narbel", version: "0.1.0" });
 
   server.registerTool(
@@ -127,4 +130,4 @@ export function createMcpServer(uc: BoardUseCases, userId: string): McpServer {
       )
   );
   return server;
-}
+};

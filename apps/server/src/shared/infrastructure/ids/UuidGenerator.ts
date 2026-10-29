@@ -5,6 +5,7 @@ export class UuidGenerator implements IIdGenerator {
     return crypto.randomUUID();
   }
   int() {
-    return crypto.getRandomValues(new Uint32Array(1))[0]! >>> 1;
+    const [value] = crypto.getRandomValues(new Uint32Array(1));
+    return Math.floor((value ?? 0) / 2);
   }
 }

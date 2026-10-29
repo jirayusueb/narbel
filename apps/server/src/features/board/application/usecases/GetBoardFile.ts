@@ -33,7 +33,7 @@ export class GetBoardFile {
     if (board.isErr()) {
       return err(board.error);
     }
-    const file = await this.files.find(input.boardId, input.fileId);
+    const file = await this.files.findById(input.boardId, input.fileId);
     if (!file) {
       return err(AppError.notFound("File"));
     }

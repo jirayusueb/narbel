@@ -4,10 +4,10 @@ export interface Versioned {
 }
 
 // Excalidraw's reconcile rule: higher version wins, equal versions break the tie on the lower nonce.
-export function shouldAcceptIncoming(
+export const shouldAcceptIncoming = (
   local: Versioned | undefined,
   incoming: Versioned
-): boolean {
+): boolean => {
   if (!local) {
     return true;
   }
@@ -16,4 +16,4 @@ export function shouldAcceptIncoming(
     (incoming.version === local.version &&
       incoming.versionNonce < local.versionNonce)
   );
-}
+};

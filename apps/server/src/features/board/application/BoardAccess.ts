@@ -5,14 +5,14 @@ import type { Board } from "../domain/entities/Board";
 import type { IBoardRepository } from "./ports/IBoardRepository";
 
 // Non-owners get the same NotFound as a missing board so existence never leaks.
-export async function loadOwnedBoard(
+export const loadOwnedBoard = async (
   boards: IBoardRepository,
   boardId: string,
   userId: string
-): Promise<Result<Board, AppError>> {
+): Promise<Result<Board, AppError>> => {
   const board = await boards.findById(boardId);
   if (!board?.isOwnedBy(userId)) {
     return err(AppError.notFound("Board"));
   }
   return ok(board);
-}
+};

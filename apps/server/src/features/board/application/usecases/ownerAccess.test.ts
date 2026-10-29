@@ -20,34 +20,55 @@ import { UploadBoardFile } from "./UploadBoardFile";
 
 let counter = 0;
 const ids: IIdGenerator = {
-  generate: () => `id${++counter}`,
-  int: () => ++counter,
+  generate: () => {
+    counter += 1;
+    return `id${counter}`;
+  },
+  int: () => {
+    counter += 1;
+    return counter;
+  },
 };
 
 class FakeBoards implements IBoardRepository {
   readonly rows = new Map<string, Board>();
-  findById = async (id: string) => this.rows.get(id) ?? null;
-  listByOwner = async (ownerId: string) =>
-    [...this.rows.values()].filter((b) => b.ownerId === ownerId);
-  save = async (board: Board) => void this.rows.set(board.id, board);
-  delete = async (id: string) => void this.rows.delete(id);
+  findById = (id: string) => Promise.resolve(this.rows.get(id) ?? null);
+  listByOwner = (ownerId: string) =>
+    Promise.resolve(
+      [...this.rows.values()].filter((b) => b.ownerId === ownerId)
+    );
+  save = (board: Board) => {
+    this.rows.set(board.id, board);
+    return Promise.resolve();
+  };
+  delete = (id: string) => {
+    this.rows.delete(id);
+    return Promise.resolve();
+  };
 }
 
 class FakeScenes implements IBoardScenes {
   readonly elements = new Map<string, SceneElement>();
   discarded: string[] = [];
-  transact = async <T>(
+  transact = <T>(
     _: string,
     fn: Parameters<IBoardScenes["transact"]>[1] extends (s: infer S) => unknown
       ? (s: S) => T
       : never
   ) =>
-    fn({
-      get: (id) => this.elements.get(id),
-      all: () => [...this.elements.values()],
-      put: (el) => void this.elements.set(el.id, el),
-    });
-  discard = async (id: string) => void this.discarded.push(id);
+    Promise.resolve(
+      fn({
+        get: (id) => this.elements.get(id),
+        all: () => [...this.elements.values()],
+        put: (el) => {
+          this.elements.set(el.id, el);
+        },
+      })
+    );
+  discard = (id: string) => {
+    this.discarded.push(id);
+    return Promise.resolve();
+  };
 }
 
 const setup = () => {
@@ -60,13 +81,22 @@ const setup = () => {
     { id: string; mimeType: string; size: number }
   >();
   const files: IBoardFileRepository = {
-    find: async (b, f) => fileRows.get(`${b}/${f}`) ?? null,
-    save: async (b, f) => void fileRows.set(`${b}/${f.id}`, f),
+    findById: (b, f) => Promise.resolve(fileRows.get(`${b}/${f}`) ?? null),
+    save: (b, f) => {
+      fileRows.set(`${b}/${f.id}`, f);
+      return Promise.resolve();
+    },
   };
   const storage: IFileStorage = {
-    put: async (key) => void stored.push(key),
+    put: (key) => {
+      stored.push(key);
+      return Promise.resolve();
+    },
     stream: () => new ReadableStream(),
-    deletePrefix: async (prefix) => void deleted.push(prefix),
+    deletePrefix: (prefix) => {
+      deleted.push(prefix);
+      return Promise.resolve();
+    },
   };
   boards.rows.set(
     "b1",
@@ -83,9 +113,8 @@ describe("owner access", () => {
   it("lets the owner read and hides the board from everyone else", async () => {
     const { boards } = setup();
     const get = new GetBoard(boards);
-    expect((await get.execute({ userId: "owner", boardId: "b1" })).isOk()).toBe(
-      true
-    );
+    const ownerView = await get.execute({ userId: "owner", boardId: "b1" });
+    expect(ownerView.isOk()).toBe(true);
     expect(
       notFound(await get.execute({ userId: "stranger", boardId: "b1" }))
     ).toBe(true);
@@ -118,7 +147,7 @@ describe("owner access", () => {
           fileId: "f",
           mimeType: "image/png",
           size: 1,
-          read: async () => new Uint8Array(1),
+          read: () => Promise.resolve(new Uint8Array(1)),
         })
       )
     ).toBe(true);
@@ -140,14 +169,11 @@ describe("owner access", () => {
 
   it("validates the title on create and rename", async () => {
     const { boards } = setup();
-    expect(
-      (
-        await new CreateBoard(boards, ids).execute({
-          userId: "owner",
-          title: "  ",
-        })
-      ).isErr()
-    ).toBe(true);
+    const blank = await new CreateBoard(boards, ids).execute({
+      userId: "owner",
+      title: "  ",
+    });
+    expect(blank.isErr()).toBe(true);
     const renamed = await new RenameBoard(boards).execute({
       userId: "owner",
       boardId: "b1",
@@ -176,11 +202,10 @@ describe("owner access", () => {
       boardId: "b1",
       fileId: "f1",
       size: 3,
-      read: async () => new Uint8Array(3),
+      read: () => Promise.resolve(new Uint8Array(3)),
     };
-    expect(
-      (await upload.execute({ ...base, mimeType: "text/plain" })).isErr()
-    ).toBe(true);
+    const wrongType = await upload.execute({ ...base, mimeType: "text/plain" });
+    expect(wrongType.isErr()).toBe(true);
     expect(stored).toEqual([]);
     await upload.execute({ ...base, mimeType: "image/png" });
     const again = await upload.execute({ ...base, mimeType: "image/png" });
@@ -201,7 +226,7 @@ describe("scene editing", () => {
       ...actor,
       shapes: [{ type: "text", x: 1, y: 2, text: "hi" }],
     });
-    const id = added.isOk() ? added.value.ids[0]! : "";
+    const id = (added.isOk() && added.value.ids[0]) || "";
     expect(scenes.elements.get(id)?.version).toBe(1);
 
     const update = new UpdateBoardElement(boards, scenes, ids);

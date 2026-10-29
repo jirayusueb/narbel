@@ -10,12 +10,12 @@ export interface AuthConfig {
   CORS_ORIGIN: string;
 }
 
-export function createAuth(
+export const createAuth = (
   env: AuthConfig,
   database: Database,
   desktopOrigins: readonly string[] = []
-) {
-  return betterAuth({
+) =>
+  betterAuth({
     database: drizzleAdapter(database, {
       provider: "pg",
       schema,
@@ -39,6 +39,5 @@ export function createAuth(
       }),
     ],
   });
-}
 
 export type Session = ReturnType<typeof createAuth>["$Infer"]["Session"];

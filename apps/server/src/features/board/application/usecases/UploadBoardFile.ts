@@ -36,7 +36,7 @@ export class UploadBoardFile {
     if (valid.isErr()) {
       return err(valid.error);
     }
-    const existing = await this.files.find(input.boardId, input.fileId);
+    const existing = await this.files.findById(input.boardId, input.fileId);
     if (existing) {
       return ok(existing);
     }

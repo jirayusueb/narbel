@@ -15,7 +15,7 @@ export interface AppDeps {
   s3: S3Config;
 }
 
-export function createApp({ auth, db, corsOrigin, s3 }: AppDeps) {
+export const createApp = ({ auth, db, corsOrigin, s3 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
   return new Elysia()
     .use(
@@ -31,6 +31,6 @@ export function createApp({ auth, db, corsOrigin, s3 }: AppDeps) {
     .get("/", () => "OK")
     .use(createAuthModule({ auth }))
     .use(createBoardModule({ db, s3, betterAuth }));
-}
+};
 
 export type App = ReturnType<typeof createApp>;

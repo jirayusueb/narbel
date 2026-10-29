@@ -51,8 +51,8 @@ export const BoardEditor = ({ board }: { board: Board }) => {
         <Excalidraw
           theme="dark"
           excalidrawAPI={bindApi}
-          onChange={(elements, _appState, files) => {
-            onChange(elements);
+          onChange={(elements, appState, files) => {
+            onChange(elements, appState);
             onFiles(files);
           }}
           onPointerUpdate={onPointerUpdate}

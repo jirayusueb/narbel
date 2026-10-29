@@ -43,30 +43,30 @@ export const createBoardSyncController = (
       },
       parse: (_ws, message) => message,
       open(ws) {
-        sessions.set(
-          ws.id,
-          uc.connectBoardSync
-            .execute({
-              userId: ws.user.id,
-              boardId: ws.params.id,
-              peer: {
-                send: (data) => void ws.send(data),
-                close: () => ws.close(),
+        const connect = async () => {
+          const result = await uc.connectBoardSync.execute({
+            userId: ws.user.id,
+            boardId: ws.params.id,
+            peer: {
+              send: (data) => {
+                ws.send(data);
               },
-            })
-            .then((result) => {
-              if (result.isErr()) {
-                ws.close(WS_POLICY_VIOLATION, "forbidden");
-                return;
-              }
-              return result.value;
-            })
-        );
+              close: () => ws.close(),
+            },
+          });
+          if (result.isErr()) {
+            ws.close(WS_POLICY_VIOLATION, "forbidden");
+            return;
+          }
+          return result.value;
+        };
+        sessions.set(ws.id, connect());
       },
       async message(ws, message) {
         const bytes = toBytes(message);
         if (bytes) {
-          (await sessions.get(ws.id))?.receive(bytes);
+          const session = await sessions.get(ws.id);
+          session?.receive(bytes);
         }
       },
       async close(ws) {

@@ -31,16 +31,13 @@ export class BunS3FileStorage implements IFileStorage {
     return this.client.file(key).stream();
   }
 
-  async deletePrefix(prefix: string) {
-    let continuationToken: string | undefined;
-    do {
-      const page = await this.client.list({ prefix, continuationToken });
-      await Promise.all(
-        (page.contents ?? []).map((object) => this.client.delete(object.key))
-      );
-      continuationToken = page.isTruncated
-        ? page.nextContinuationToken
-        : undefined;
-    } while (continuationToken);
+  async deletePrefix(prefix: string, continuationToken?: string) {
+    const page = await this.client.list({ prefix, continuationToken });
+    await Promise.all(
+      (page.contents ?? []).map((object) => this.client.delete(object.key))
+    );
+    if (page.isTruncated && page.nextContinuationToken) {
+      await this.deletePrefix(prefix, page.nextContinuationToken);
+    }
   }
 }

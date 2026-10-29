@@ -8,7 +8,7 @@ import type { IBoardFileRepository } from "../../application/ports/IBoardFileRep
 export class DrizzleBoardFileRepository implements IBoardFileRepository {
   constructor(private readonly db: Database) {}
 
-  async find(boardId: string, fileId: string) {
+  async findById(boardId: string, fileId: string) {
     const [row] = await this.db
       .select()
       .from(boardFile)

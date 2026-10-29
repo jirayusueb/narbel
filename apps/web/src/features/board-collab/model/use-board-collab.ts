@@ -1,6 +1,7 @@
 import { CaptureUpdateAction, restoreElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type {
+  AppState,
   Collaborator,
   ExcalidrawImperativeAPI,
   SocketId,
@@ -38,6 +39,9 @@ export const useBoardCollab = ({
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<CollabStatus>("connecting");
   const [peers, setPeers] = useState(0);
+  // Excalidraw replaces its scene when its own async initialization finishes, so remote
+  // elements are applied only after that, starting with one full reconcile.
+  const [sceneReady, setSceneReady] = useState(false);
   // id -> last version we wrote or received, so unchanged elements are not rewritten.
   const sentVersions = useRef(new Map<string, number>());
 
@@ -75,7 +79,7 @@ export const useBoardCollab = ({
   }, [session, userName]);
 
   useEffect(() => {
-    if (!(session && api)) {
+    if (!(session && api && sceneReady)) {
       return;
     }
     const { doc, provider } = session;
@@ -89,7 +93,7 @@ export const useBoardCollab = ({
       for (const key of keys) {
         const remote = elements.get(key);
         if (remote && shouldTakeIncoming(local.get(key), remote)) {
-          incoming.push(remote);
+          incoming.push({ ...remote });
         }
       }
       if (incoming.length === 0) {
@@ -139,11 +143,15 @@ export const useBoardCollab = ({
       elements.unobserve(onElements);
       awareness.off("change", onAwareness);
     };
-  }, [session, api]);
+  }, [session, api, sceneReady]);
 
   const onChange = useCallback(
-    (scene: readonly ExcalidrawElement[]) => {
-      if (!session) {
+    (scene: readonly ExcalidrawElement[], appState: AppState) => {
+      if (!session || appState.isLoading) {
+        return;
+      }
+      if (!sceneReady) {
+        setSceneReady(true);
         return;
       }
       const changed = scene.filter(
@@ -157,12 +165,14 @@ export const useBoardCollab = ({
         for (const el of changed) {
           sentVersions.current.set(el.id, el.version);
           if (shouldTakeIncoming(elements.get(el.id), el)) {
-            elements.set(el.id, el);
+            // Excalidraw mutates elements in place; storing the live object would let the
+            // map's copy change silently and make later versions look already-synced.
+            elements.set(el.id, { ...el });
           }
         }
       }, LOCAL_ORIGIN);
     },
-    [session]
+    [session, sceneReady]
   );
 
   const onPointerUpdate = useCallback(
@@ -174,7 +184,7 @@ export const useBoardCollab = ({
   );
 
   return {
-    api,
+    api: sceneReady ? api : null,
     bindApi: setApi,
     doc: session?.doc ?? null,
     status,

@@ -5,8 +5,13 @@ import tanstack from "ultracite/oxlint/tanstack";
 
 export default defineConfig({
   extends: [core, react, tanstack],
-  // shadcn components are vendored from the registry and updated with `shadcn add --diff`
-  ignorePatterns: [...core.ignorePatterns, "packages/ui/src/components/**"],
+  // shadcn components and agent skills are vendored and updated by their own CLIs
+  ignorePatterns: [
+    ...core.ignorePatterns,
+    "packages/ui/src/components/**",
+    ".agents/**",
+    ".claude/**",
+  ],
   overrides: [
     {
       // the server follows the clean-architecture gist: PascalCase class files,

@@ -126,9 +126,17 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     if (!pending) {
       pending = this.load(boardId);
       this.rooms.set(boardId, pending);
-      pending.catch(() => this.rooms.delete(boardId));
+      this.dropOnLoadFailure(boardId, pending);
     }
     return pending;
+  }
+
+  private async dropOnLoadFailure(boardId: string, pending: Promise<Room>) {
+    try {
+      await pending;
+    } catch {
+      this.rooms.delete(boardId);
+    }
   }
 
   private async load(boardId: string): Promise<Room> {
@@ -238,7 +246,7 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
 
   private schedulePersist(room: Room, delay = PERSIST_DEBOUNCE_MS) {
     clearTimeout(room.timer);
-    room.timer = setTimeout(() => void this.flush(room), delay);
+    room.timer = setTimeout(() => this.flush(room), delay);
   }
 
   private async flush(room: Room) {
@@ -246,13 +254,7 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     if (room.dirty) {
       room.dirty = false;
       const state = Y.encodeStateAsUpdate(room.doc);
-      room.saving = room.saving
-        .then(() => this.store.save(room.boardId, state))
-        .catch((error) => {
-          // keep the changes; the next update or disconnect retries
-          room.dirty = true;
-          console.error(`Failed to persist board ${room.boardId}`, error);
-        });
+      room.saving = this.persist(room, state);
     }
     if (room.peers.size === 0) {
       const done = room.saving;
@@ -265,6 +267,17 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
         console.error(`Board ${room.boardId} unloaded with unsaved changes`);
       }
       this.destroy(room);
+    }
+  }
+
+  private async persist(room: Room, state: Uint8Array) {
+    try {
+      await room.saving;
+      await this.store.save(room.boardId, state);
+    } catch (error) {
+      // keep the changes; the next update or disconnect retries
+      room.dirty = true;
+      console.error(`Failed to persist board ${room.boardId}`, error);
     }
   }
 
