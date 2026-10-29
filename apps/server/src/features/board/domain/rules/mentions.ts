@@ -17,8 +17,25 @@ export const extractMentions = (markdown: string): string[] => {
   return [...names];
 };
 
+// notifications and emails show the excerpt as plain text, so markdown syntax must not leak into it
+const MARKDOWN_SYNTAX: [RegExp, string][] = [
+  [/!?\[(?<text>[^\]]*)\]\([^)]*\)/gu, "$<text>"],
+  [/`{1,3}/gu, ""],
+  [/(?<marker>\*{1,3}|~~)(?<inner>\S(?:.*?\S)?)\k<marker>/gu, "$<inner>"],
+  // underscore emphasis never starts or ends inside a word, so snake_case and @user_names survive
+  [
+    /(?<![\p{L}\p{N}_])(?<marker>_{1,3})(?<inner>\S(?:.*?\S)?)\k<marker>(?![\p{L}\p{N}_])/gu,
+    "$<inner>",
+  ],
+  [/^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+|\d+\.\s+)/gmu, ""],
+];
+
 export const excerptOf = (body: string) => {
-  const flat = body.replaceAll(/\s+/gu, " ").trim();
+  let plain = body;
+  for (const [pattern, replacement] of MARKDOWN_SYNTAX) {
+    plain = plain.replaceAll(pattern, replacement);
+  }
+  const flat = plain.replaceAll(/\s+/gu, " ").trim();
   return flat.length > EXCERPT_LENGTH
     ? `${flat.slice(0, EXCERPT_LENGTH - 1)}…`
     : flat;

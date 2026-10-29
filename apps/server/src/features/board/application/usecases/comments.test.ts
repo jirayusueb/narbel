@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { newComment } from "../../domain/entities/Comment";
-import { extractMentions } from "../../domain/rules/mentions";
+import { excerptOf, extractMentions } from "../../domain/rules/mentions";
 import { parseReaction } from "../../domain/values/Reaction";
 import { AddComment } from "./AddComment";
 import { AssignComment } from "./AssignComment";
@@ -56,6 +56,14 @@ describe("mentions and reactions", () => {
     expect(
       extractMentions("hi @Bob and @bob, mail a@bob.io, @al, (@carol_9)!")
     ).toEqual(["bob", "carol_9"]);
+  });
+
+  it("turns markdown into plain-text excerpts and keeps @mentions and snake_case", () => {
+    expect(
+      excerptOf(
+        "## Plan\n- check the **API** and `cache`\n> see [the doc](https://x.y) @ada_l, ~~old~~ my_var"
+      )
+    ).toBe("Plan check the API and cache see the doc @ada_l, old my_var");
   });
 
   it("accepts the eight emoji with or without the variation selector", () => {
