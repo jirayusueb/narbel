@@ -62,10 +62,11 @@ describe.skipIf(!reachable)("DrizzleOutboxStore (postgres)", () => {
 
     const [a, b] = first;
     await store.markSent(a?.id ?? "", now);
-    await store.markFailed(b?.id ?? "", "boom", true);
+    await store.markFailed(b?.id ?? "", "boom", true, now);
     const rows = await db.select().from(outbox);
     expect(rows.map((r) => r.status).toSorted()).toEqual(["dead", "sent"]);
     expect(rows.find((r) => r.status === "dead")?.lastError).toBe("boom");
+    expect(rows.find((r) => r.status === "sent")?.payload).toEqual({});
 
     const later = new Date(now.getTime() + 3_600_000);
     expect(await store.claimDue(later, 10, lease(later))).toHaveLength(0);

@@ -230,6 +230,51 @@ describe("comment use cases", () => {
     ]);
   });
 
+  it("does not notify a removed member about replies or resolution", async () => {
+    const { add, reply, resolve, grants, notifications } = setup();
+    const root = idOf(await add.execute({ ...put, actor: ed }));
+    grants.members.splice(
+      grants.members.findIndex((m) => m.userId === "ed"),
+      1
+    );
+    await reply.execute({
+      actor: owner,
+      boardId: "b1",
+      commentId: root,
+      body: "still there?",
+    });
+    await resolve.execute({
+      actor: owner,
+      boardId: "b1",
+      commentId: root,
+      resolve: true,
+    });
+    expect(notifications.kinds("ed")).toEqual([]);
+  });
+
+  it("assigning from a stale read keeps a concurrent edit", async () => {
+    const { add, edit, assign, comments } = setup();
+    const root = idOf(await add.execute({ ...put, actor: ed }));
+    const stale = comments.rows.get(root);
+    await edit.execute({
+      actor: ed,
+      boardId: "b1",
+      commentId: root,
+      body: "edited",
+    });
+    comments.findById = () => Promise.resolve(stale ?? null);
+    await assign.execute({
+      actor: ed,
+      boardId: "b1",
+      commentId: root,
+      assigneeId: "vi",
+    });
+    expect(comments.rows.get(root)).toMatchObject({
+      body: "edited",
+      assigneeId: "vi",
+    });
+  });
+
   it("rejects a reply to an unknown comment", async () => {
     const { reply } = setup();
     const result = await reply.execute({

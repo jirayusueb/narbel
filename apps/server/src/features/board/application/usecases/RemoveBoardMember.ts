@@ -37,6 +37,7 @@ export class RemoveBoardMember {
       if (removed.userId) {
         await tx.comments.clearAssignee(input.boardId, removed.userId);
       }
+      await tx.outbox.forget(`invite:${input.boardId}:${removed.email}`);
       return okEmpty();
     });
   }

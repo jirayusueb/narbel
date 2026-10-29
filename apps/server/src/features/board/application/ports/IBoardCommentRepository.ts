@@ -45,7 +45,19 @@ export interface IBoardCommentRepository {
     limit: number;
     viewerId?: string;
   }): Promise<CommentView[]>;
+  /** Inserts a new comment. */
   save(comment: Comment): Promise<void>;
+  /** Writes only the given columns, so concurrent edits of other columns survive. */
+  update(
+    boardId: string,
+    id: string,
+    patch: Partial<
+      Pick<
+        Comment,
+        "body" | "editedAt" | "resolvedAt" | "resolvedById" | "assigneeId"
+      >
+    >
+  ): Promise<void>;
   delete(boardId: string, id: string): Promise<void>;
   addReaction(commentId: string, userId: string, emoji: string): Promise<void>;
   removeReaction(

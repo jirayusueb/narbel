@@ -18,6 +18,11 @@ export interface IOutboxStore {
     leaseUntil: (attemptsBefore: number) => Date
   ): Promise<ClaimedMessage[]>;
   markSent(id: string, at: Date): Promise<void>;
-  /** Records the failure; `dead` stops all further attempts. */
-  markFailed(id: string, error: string, dead: boolean): Promise<void>;
+  /** Records the failure; `dead` stops all further attempts, otherwise the row is retried at `retryAt`. */
+  markFailed(
+    id: string,
+    error: string,
+    dead: boolean,
+    retryAt: Date
+  ): Promise<void>;
 }

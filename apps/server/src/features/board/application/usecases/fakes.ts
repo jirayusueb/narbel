@@ -87,7 +87,15 @@ export class FakeGrants implements IBoardAccessRepository {
     boardId: string,
     member: { email: string; userId: string | null; role: MemberRole }
   ) => {
-    this.members.push({ boardId, name: member.email, ...member });
+    const index = this.members.findIndex(
+      (m) => m.boardId === boardId && m.email === member.email
+    );
+    const row = { boardId, name: member.email, ...member };
+    if (index === -1) {
+      this.members.push(row);
+    } else {
+      this.members[index] = row;
+    }
     return Promise.resolve();
   };
   listMemberRoles = (boardId: string) =>
@@ -103,7 +111,9 @@ export class FakeGrants implements IBoardAccessRepository {
       (m) => m.boardId === boardId && (m.userId === key || m.email === key)
     );
     const [removed] = index === -1 ? [] : this.members.splice(index, 1);
-    return Promise.resolve(removed ? { userId: removed.userId } : null);
+    return Promise.resolve(
+      removed ? { userId: removed.userId, email: removed.email } : null
+    );
   };
   findUserIdByEmail: (email: string) => Promise<string | null> = () =>
     Promise.resolve(null);
@@ -207,6 +217,17 @@ export class FakeComments implements IBoardCommentRepository {
     this.rows.set(comment.id, comment);
     return Promise.resolve();
   };
+  update = (
+    boardId: string,
+    id: string,
+    patch: Parameters<IBoardCommentRepository["update"]>[2]
+  ) => {
+    const row = this.rows.get(id);
+    if (row?.boardId === boardId) {
+      this.rows.set(id, { ...row, ...patch });
+    }
+    return Promise.resolve();
+  };
   delete = (_: string, id: string) => {
     this.rows.delete(id);
     return Promise.resolve();
@@ -287,6 +308,13 @@ export class FakeOutbox implements IOutbox {
   enqueue = (message: OutboxMessage, key: string) => {
     if (!this.messages.some((m) => m.key === key)) {
       this.messages.push({ message, key });
+    }
+    return Promise.resolve();
+  };
+  forget = (key: string) => {
+    const index = this.messages.findIndex((m) => m.key === key);
+    if (index !== -1) {
+      this.messages.splice(index, 1);
     }
     return Promise.resolve();
   };

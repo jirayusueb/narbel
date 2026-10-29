@@ -1,4 +1,9 @@
-import type { IEmailSender } from "../../application/interfaces/IEmailSender";
+import { setTimeout as sleep } from "node:timers/promises";
+
+import type {
+  Email,
+  IEmailSender,
+} from "../../application/interfaces/IEmailSender";
 import type { ClaimedMessage, IOutboxStore } from "./OutboxStore";
 import { renderOutboxMessage } from "./registry";
 import type { RenderContext } from "./registry";
@@ -12,6 +17,8 @@ export interface OutboxPolicy {
   maxAttempts: number;
   baseDelaySeconds: number;
   capSeconds: number;
+  /** longest a single send may take before it counts as failed */
+  sendTimeoutMs: number;
 }
 
 export const DEFAULT_OUTBOX_POLICY: OutboxPolicy = {
@@ -19,6 +26,7 @@ export const DEFAULT_OUTBOX_POLICY: OutboxPolicy = {
   maxAttempts: 8,
   baseDelaySeconds: 30,
   capSeconds: 3600,
+  sendTimeoutMs: 10_000,
 };
 
 export const backoffSeconds = (attemptsBefore: number, policy: OutboxPolicy) =>
@@ -74,9 +82,12 @@ export class OutboxWorker {
     const claimed = await this.store.claimDue(
       now,
       this.policy.batchSize,
+      // a whole batch of sends may each run to the timeout before the first retry becomes due
       (attemptsBefore) =>
         new Date(
-          now.getTime() + backoffSeconds(attemptsBefore, this.policy) * 1000
+          now.getTime() +
+            backoffSeconds(attemptsBefore, this.policy) * 1000 +
+            this.policy.batchSize * this.policy.sendTimeoutMs
         )
     );
     await this.deliverInOrder(claimed);
@@ -98,19 +109,42 @@ export class OutboxWorker {
       email = renderOutboxMessage(message.type, message.payload, this.context);
     } catch (error) {
       // a message that cannot be rendered will never become renderable by retrying
-      await this.store.markFailed(message.id, describe(error), true);
+      await this.store.markFailed(
+        message.id,
+        describe(error),
+        true,
+        this.now()
+      );
       return;
     }
     try {
-      await this.sender.send(email, message.id);
+      await this.send(email, message.id);
     } catch (error) {
       await this.store.markFailed(
         message.id,
         describe(error),
-        message.attempts >= this.policy.maxAttempts
+        message.attempts >= this.policy.maxAttempts,
+        new Date(
+          this.now().getTime() +
+            backoffSeconds(message.attempts - 1, this.policy) * 1000
+        )
       );
       return;
     }
     await this.store.markSent(message.id, this.now());
+  }
+
+  // bounds a sender that ignores its own timeout so stop() and the lease stay predictable
+  private async send(email: Email, key: string) {
+    const cancel = new AbortController();
+    const timeout = async () => {
+      await sleep(this.policy.sendTimeoutMs, null, { signal: cancel.signal });
+      throw new Error(`send timed out after ${this.policy.sendTimeoutMs}ms`);
+    };
+    try {
+      await Promise.race([this.sender.send(email, key), timeout()]);
+    } finally {
+      cancel.abort();
+    }
   }
 }

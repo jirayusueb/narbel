@@ -104,9 +104,14 @@ export class CommentEvents {
   }
 
   /** Tells the thread's people (author, assignee) that something was added, unless they were told already. */
-  async reply(root: Comment, alreadyNotified: Set<string>) {
+  async reply(
+    root: Comment,
+    alreadyNotified: Set<string>,
+    members: Set<string>
+  ) {
     const recipients = [...audience(root)].filter(
-      (id) => id !== this.actor.id && !alreadyNotified.has(id)
+      (id) =>
+        id !== this.actor.id && !alreadyNotified.has(id) && members.has(id)
     );
     await Promise.all(
       recipients.map((id) =>
@@ -119,8 +124,10 @@ export class CommentEvents {
     );
   }
 
-  async resolved(root: Comment) {
-    const recipients = [...audience(root)].filter((id) => id !== this.actor.id);
+  async resolved(root: Comment, members: Set<string>) {
+    const recipients = [...audience(root)].filter(
+      (id) => id !== this.actor.id && members.has(id)
+    );
     await Promise.all(
       recipients.map((id) =>
         this.tx.notifications.add(id, {

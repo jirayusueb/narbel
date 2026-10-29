@@ -78,10 +78,11 @@ class MemoryStore implements IOutboxStore {
     return Promise.resolve();
   }
 
-  markFailed(id: string, error: string, dead: boolean) {
+  markFailed(id: string, error: string, dead: boolean, retryAt: Date) {
     const row = this.pending(id);
     row.lastError = error;
     row.status = dead ? "dead" : "pending";
+    row.nextAttemptAt = retryAt;
     return Promise.resolve();
   }
 
@@ -110,6 +111,9 @@ class RecordingSender implements IEmailSender {
   }
 }
 
+const LEASE_SLACK =
+  (DEFAULT_OUTBOX_POLICY.batchSize * DEFAULT_OUTBOX_POLICY.sendTimeoutMs) /
+  1000;
 const setup = (policy = DEFAULT_OUTBOX_POLICY) => {
   const store = new MemoryStore();
   const sender = new RecordingSender();
@@ -150,7 +154,7 @@ describe("OutboxWorker", () => {
     expect(await worker.tick()).toBe(0);
   });
 
-  it("leases a claimed row so a second pass does not take it, then backs off exponentially", async () => {
+  it("retries a failed send after exactly its backoff, doubling each time", async () => {
     const { store, sender, worker, advance } = setup();
     sender.failing = true;
     store.add("m1");
@@ -167,6 +171,21 @@ describe("OutboxWorker", () => {
     advance(1);
     expect(await worker.tick()).toBe(1);
     expect(store.row("m1").attempts).toBe(3);
+  });
+
+  it("leases an in-flight row past a whole slow batch so another worker cannot take it", async () => {
+    const { store, worker, advance } = setup();
+    store.add("m1");
+    await store.claimDue(
+      new Date("2026-01-01T00:00:00Z"),
+      1,
+      () =>
+        new Date(Date.parse("2026-01-01T00:00:00Z") + (30 + LEASE_SLACK) * 1000)
+    );
+    advance(30 + LEASE_SLACK - 1);
+    expect(await worker.tick()).toBe(0);
+    advance(1);
+    expect(await worker.tick()).toBe(1);
   });
 
   it("parks the message as dead after the last attempt and never retries it", async () => {
@@ -188,7 +207,7 @@ describe("OutboxWorker", () => {
     store.add("m1");
     await worker.tick();
     sender.failing = false;
-    advance(30);
+    advance(30 + LEASE_SLACK);
     await worker.tick();
     expect(store.row("m1")).toMatchObject({ status: "sent", attempts: 2 });
   });
@@ -209,7 +228,7 @@ describe("OutboxWorker", () => {
     store.failMarkSentOnce = true;
     await expect(worker.tick()).rejects.toThrow("crash before mark-sent");
     expect(store.row("m1").status).toBe("pending");
-    advance(30);
+    advance(30 + LEASE_SLACK);
     await worker.tick();
     expect(store.row("m1").status).toBe("sent");
     expect(sender.sent.map((s) => s.key)).toEqual(["m1", "m1"]);
@@ -222,5 +241,20 @@ describe("OutboxWorker", () => {
     }
     expect(await worker.tick()).toBe(2);
     expect(await worker.tick()).toBe(1);
+  });
+
+  it("fails a send that never resolves, so stop() returns and the row stays pending", async () => {
+    const { store, sender, worker } = setup({
+      ...DEFAULT_OUTBOX_POLICY,
+      sendTimeoutMs: 20,
+    });
+    sender.send = () => Promise.withResolvers<undefined>().promise;
+    store.add("m1");
+    worker.start(1_000_000);
+    const pass = worker.tick();
+    await worker.stop();
+    expect(await pass).toBe(1);
+    expect(store.row("m1")).toMatchObject({ status: "pending", attempts: 1 });
+    expect(store.row("m1").lastError).toContain("timed out");
   });
 });

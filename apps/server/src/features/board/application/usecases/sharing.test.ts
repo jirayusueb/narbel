@@ -287,7 +287,7 @@ describe("invites", () => {
     base.profiles.add("ann", "ann");
     return {
       ...base,
-      invite: new InviteBoardMember(base.guard, base.uow, ids),
+      invite: new InviteBoardMember(base.guard, base.uow),
     };
   };
   const input = {
@@ -321,6 +321,26 @@ describe("invites", () => {
     await invite.execute({ ...input, email: "new@x.io" });
     expect(outbox.messages).toHaveLength(1);
     expect(notifications.sent).toHaveLength(0);
+  });
+
+  it("re-inviting does not queue another email or notify again; removing the member allows a fresh invite", async () => {
+    const { invite, grants, outbox, notifications, guard, uow } = setup();
+    grants.findUserIdByEmail = () => Promise.resolve("ann");
+    await invite.execute({ ...input, email: "ann@x.io" });
+    await invite.execute({ ...input, email: "Ann@x.io", role: "viewer" });
+    expect(outbox.messages).toHaveLength(1);
+    expect(notifications.kinds("ann")).toEqual(["board.invited"]);
+    expect(grants.members).toHaveLength(1);
+    expect(grants.members[0]?.role).toBe("viewer");
+    const removed = await new RemoveBoardMember(guard, uow).execute({
+      actor: input.actor,
+      boardId: "b1",
+      member: "ann@x.io",
+    });
+    expect(removed.isOk()).toBe(true);
+    expect(outbox.messages).toHaveLength(0);
+    await invite.execute({ ...input, email: "ann@x.io" });
+    expect(outbox.messages).toHaveLength(1);
   });
 
   it("rejects bad addresses, self-invites and non-owners without side effects", async () => {

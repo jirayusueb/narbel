@@ -65,10 +65,9 @@ export class ReplyToComment {
       }
       await tx.comments.save(reply.value);
       const events = new CommentEvents(tx, actor.value, reply.value);
-      const mentioned = await events.mentions(
-        await memberIdsOf(board, tx.grants)
-      );
-      await events.reply(root, mentioned);
+      const members = await memberIdsOf(board, tx.grants);
+      const mentioned = await events.mentions(members);
+      await events.reply(root, mentioned, members);
       return await presentOne(
         tx.comments,
         tx.profiles,

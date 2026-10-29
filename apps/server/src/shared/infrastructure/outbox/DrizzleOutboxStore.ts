@@ -45,14 +45,20 @@ export class DrizzleOutboxStore implements IOutboxStore {
   async markSent(id: string, at: Date) {
     await this.db
       .update(outbox)
-      .set({ status: "sent", sentAt: at, lastError: null })
+      // the payload holds the recipient and an excerpt; once delivered only type and timestamps stay
+      .set({ status: "sent", sentAt: at, lastError: null, payload: {} })
       .where(and(eq(outbox.id, id), eq(outbox.status, "pending")));
   }
 
-  async markFailed(id: string, error: string, dead: boolean) {
+  async markFailed(id: string, error: string, dead: boolean, retryAt: Date) {
     await this.db
       .update(outbox)
-      .set({ lastError: error, ...(dead ? { status: "dead" as const } : {}) })
+      // the lease covered a whole slow batch; the retry waits only its backoff from the actual failure
+      .set({
+        lastError: error,
+        nextAttemptAt: retryAt,
+        ...(dead ? { status: "dead" as const } : {}),
+      })
       .where(and(eq(outbox.id, id), eq(outbox.status, "pending")));
   }
 }

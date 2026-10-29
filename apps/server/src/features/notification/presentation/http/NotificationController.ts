@@ -32,19 +32,25 @@ const eventStream = (
   };
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      controller.enqueue(encoder.encode("retry: 3000\n: connected\n\n"));
-      heartbeat = setInterval(
-        () => controller.enqueue(encoder.encode(": hb\n\n")),
-        HEARTBEAT_MS
-      );
+      // the client may be gone while a Redis callback or heartbeat is still firing
+      const write = (text: string) => {
+        try {
+          controller.enqueue(encoder.encode(text));
+        } catch {
+          void close();
+        }
+      };
+      write("retry: 3000\n: connected\n\n");
+      heartbeat = setInterval(() => write(": hb\n\n"), HEARTBEAT_MS);
       signal.addEventListener("abort", close, { once: true });
       stop = await uc.subscribe(userId, (json) => {
-        controller.enqueue(
-          encoder.encode(
-            `event: notification\ndata: ${new TextDecoder().decode(json)}\n\n`
-          )
+        write(
+          `event: notification\ndata: ${new TextDecoder().decode(json)}\n\n`
         );
       });
+      if (signal.aborted) {
+        await close();
+      }
     },
     cancel: close,
   });

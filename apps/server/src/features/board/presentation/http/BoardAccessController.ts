@@ -77,7 +77,7 @@ export const createBoardAccessController = (
     )
     .get(
       "/members",
-      { authOptional: true, params, query: shareQuery },
+      { auth: true, params, query: shareQuery },
       async ({ user, request, params: { id } }) =>
         asWire(
           await uc.listBoardMembers.execute({

@@ -4,7 +4,7 @@ import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { reopened, resolved } from "../../domain/entities/Comment";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { requirePerson } from "../BoardPeople";
+import { memberIdsOf, requirePerson } from "../BoardPeople";
 import { CommentEvents } from "../CommentEvents";
 import { presentOne } from "../CommentPresenter";
 import type { CommentDto } from "../dtos/CommentDto";
@@ -48,9 +48,15 @@ export class ResolveComment {
         ? resolved(root, actor.value.id, new Date())
         : reopened(root);
       if (next.resolvedAt?.getTime() !== root.resolvedAt?.getTime()) {
-        await tx.comments.save(next);
+        await tx.comments.update(board.id, root.id, {
+          resolvedAt: next.resolvedAt,
+          resolvedById: next.resolvedById,
+        });
         if (input.resolve) {
-          await new CommentEvents(tx, actor.value, next).resolved(next);
+          await new CommentEvents(tx, actor.value, next).resolved(
+            next,
+            await memberIdsOf(board, tx.grants)
+          );
         }
       }
       return await presentOne(

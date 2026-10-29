@@ -23,10 +23,11 @@ export class ResendEmailSender implements IEmailSender {
         "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify({ from: this.config.RESEND_FROM, ...email }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Resend ${response.status}: ${body.slice(0, 300)}`);
+      // the provider body can echo the recipient address, so only the status is kept
+      throw new Error(`Resend ${response.status}`);
     }
   }
 }

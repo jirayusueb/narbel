@@ -1,4 +1,3 @@
-import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
@@ -12,8 +11,7 @@ import type { BoardTx } from "../ports/BoardTx";
 export class InviteBoardMember {
   constructor(
     private readonly guard: BoardAccessGuard,
-    private readonly uow: IUnitOfWork<BoardTx>,
-    private readonly ids: IIdGenerator
+    private readonly uow: IUnitOfWork<BoardTx>
   ) {}
 
   async execute(input: {
@@ -45,12 +43,14 @@ export class InviteBoardMember {
         return err(inviter.error);
       }
       const userId = await tx.grants.findUserIdByEmail(email.value);
+      const members = await tx.grants.listMembers(input.boardId);
+      const alreadyInvited = members.some((m) => m.email === email.value);
       await tx.grants.upsertMember(input.boardId, {
         email: email.value,
         userId,
         role: input.role,
       });
-      if (userId) {
+      if (userId && !alreadyInvited) {
         await tx.notifications.add(userId, {
           kind: "board.invited",
           boardId: input.boardId,
@@ -70,7 +70,7 @@ export class InviteBoardMember {
           boardTitle,
           inviterName: inviter.value.name,
         },
-        `invite:${this.ids.generate()}`
+        `invite:${input.boardId}:${email.value}`
       );
       return ok({ queued: true as const });
     });

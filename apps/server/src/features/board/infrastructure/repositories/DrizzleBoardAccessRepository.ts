@@ -97,7 +97,7 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
           )
         )
       )
-      .returning({ userId: boardAccess.userId });
+      .returning({ userId: boardAccess.userId, email: boardAccess.email });
     return removed[0] ?? null;
   }
 

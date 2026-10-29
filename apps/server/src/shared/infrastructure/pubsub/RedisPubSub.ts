@@ -13,7 +13,11 @@ export class RedisPubSub implements IPubSub {
     this.subscriber = publisher.duplicate();
     this.subscriber.on("messageBuffer", (channel: Buffer, message: Buffer) => {
       for (const handler of this.handlers.get(channel.toString()) ?? []) {
-        handler(new Uint8Array(message));
+        try {
+          handler(new Uint8Array(message));
+        } catch (error) {
+          console.error("Pub/sub handler failed", error);
+        }
       }
     });
   }

@@ -48,7 +48,10 @@ export class EditComment {
       if (edited.isErr()) {
         return err(edited.error);
       }
-      await tx.comments.save(edited.value);
+      await tx.comments.update(board.id, comment.id, {
+        body: edited.value.body,
+        editedAt: edited.value.editedAt,
+      });
       // people already named before the edit are not told again
       await new CommentEvents(tx, actor.value, edited.value).mentions(
         await memberIdsOf(board, tx.grants),

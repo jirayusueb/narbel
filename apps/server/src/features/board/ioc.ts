@@ -160,7 +160,7 @@ const createUseCases = ({
       webOrigin
     ),
     removeBoardMember: new RemoveBoardMember(guard, uow),
-    inviteBoardMember: new InviteBoardMember(guard, uow, ids),
+    inviteBoardMember: new InviteBoardMember(guard, uow),
     listBoardMembers: new ListBoardMembers(guard, grants, profiles),
     unlockBoard: new UnlockBoard(
       boards,

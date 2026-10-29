@@ -48,7 +48,7 @@ export class AssignComment {
       }
       if (assigneeId !== comment.assigneeId) {
         const next = { ...comment, assigneeId };
-        await tx.comments.save(next);
+        await tx.comments.update(board.id, comment.id, { assigneeId });
         const [assignee] = assigneeId
           ? await tx.profiles.findPeople([assigneeId])
           : [];

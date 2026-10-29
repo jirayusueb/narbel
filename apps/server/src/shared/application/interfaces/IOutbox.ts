@@ -29,4 +29,6 @@ export type OutboxMessageType = OutboxMessage["type"];
 export interface IOutbox {
   /** Queues `message` in the caller's transaction; a repeated `dedupeKey` is ignored. */
   enqueue(message: OutboxMessage, dedupeKey: string): Promise<void>;
+  /** Drops the message with `dedupeKey` (pending or sent) so the same key can be queued afresh. */
+  forget(dedupeKey: string): Promise<void>;
 }

@@ -120,19 +120,18 @@ export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
   }
 
   async save(entity: Comment) {
+    await this.db.insert(comment).values(entity);
+  }
+
+  async update(
+    boardId: string,
+    id: string,
+    patch: Parameters<IBoardCommentRepository["update"]>[2]
+  ) {
     await this.db
-      .insert(comment)
-      .values(entity)
-      .onConflictDoUpdate({
-        target: comment.id,
-        set: {
-          body: entity.body,
-          editedAt: entity.editedAt,
-          resolvedAt: entity.resolvedAt,
-          resolvedById: entity.resolvedById,
-          assigneeId: entity.assigneeId,
-        },
-      });
+      .update(comment)
+      .set(patch)
+      .where(and(eq(comment.boardId, boardId), eq(comment.id, id)));
   }
 
   async delete(boardId: string, id: string) {

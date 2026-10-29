@@ -1,3 +1,4 @@
+import { eq } from "@narbel/db";
 import type { DbExecutor } from "@narbel/db";
 import { outbox } from "@narbel/db/schema/account";
 
@@ -25,5 +26,9 @@ export class DrizzleOutbox implements IOutbox {
         dedupeKey,
       })
       .onConflictDoNothing({ target: outbox.dedupeKey });
+  }
+
+  async forget(dedupeKey: string) {
+    await this.db.delete(outbox).where(eq(outbox.dedupeKey, dedupeKey));
   }
 }
