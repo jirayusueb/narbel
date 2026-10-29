@@ -9,6 +9,7 @@ import { openCreateBoardDialog } from "@/features/create-board";
 import { openDeleteBoardDialog } from "@/features/delete-board";
 import { McpKeysPanel } from "@/features/mcp-keys";
 import { openRenameBoardDialog } from "@/features/rename-board";
+import { BrandSticker, pen } from "@/shared/ui";
 
 const GRID = "grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3";
 const ARRIVE = [0.16, 1, 0.3, 1] as const;
@@ -130,17 +131,25 @@ export const DashboardPage = () => {
             <p className="text-destructive text-sm">{error.message}</p>
           ) : null}
           {boards?.length === 0 ? (
-            <div className="bg-card shadow-surface flex flex-col items-start gap-6 rounded-[20px] p-8 md:p-12">
-              <div className="flex flex-col gap-2">
-                <h2 className="font-display text-headline leading-tight font-normal">
-                  Draw your first board
-                </h2>
-                <p className="text-muted-foreground max-w-prose text-sm">
-                  Create a board to start sketching, and invite people or agents
-                  to work on it with you.
-                </p>
+            <div className="bg-card shadow-surface flex flex-col items-start gap-6 overflow-hidden rounded-[20px] p-8 sm:flex-row sm:items-center sm:justify-between md:p-12">
+              <div className="flex flex-col items-start gap-6">
+                <div className="flex flex-col gap-2">
+                  <h2 className="font-display text-headline leading-tight font-normal">
+                    Draw your first board
+                  </h2>
+                  <p className="text-muted-foreground max-w-prose text-sm">
+                    Create a board to start sketching, and invite people or
+                    agents to work on it with you.
+                  </p>
+                </div>
+                <NewBoardButton />
               </div>
-              <NewBoardButton />
+              <div
+                aria-hidden="true"
+                className="-my-6 size-44 shrink-0 self-center md:size-52"
+              >
+                <BrandSticker icon={pen} enter={0.2} />
+              </div>
             </div>
           ) : null}
           {/* Always mounted so boards arriving after the skeleton still animate in. */}

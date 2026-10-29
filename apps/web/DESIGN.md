@@ -265,6 +265,14 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 The board is a full-viewport Excalidraw canvas. A name card (mark, serif title, status) floats beside Excalidraw's menu button; presence, comment toggle, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer; preferences, theme and export live in its main menu. Phones get one bottom drawer instead. Excalidraw's islands are re-tokenised to the same radii, Inter, white surfaces and citrus selection.
 
+### Stickers
+
+Isometric slab stickers from the fun-isometric kit (vendored in `src/shared/ui/stickers`, MIT, Kelvin Adithya): flat fills, a 5-unit ink outline, an extruded side falling down-left, animated on After Effects keyframe presets on one shared canvas clock. `BrandSticker` fixes the palette to `brand("#ddec61", "#717453")`, so bodies are citrus and dark parts moss.
+
+- **Where:** one per landing capability row (cloud for live sync, the chat bot for agents, a pin for comments, a padlock for sharing), the pen scribbling on its pad in the empty dashboard, and the chat bot beside "Connect an agent".
+- **How they move:** rows play once when scrolled into view and rest on their still frame, replaying on hover; the empty-state pen loops because it is the page's only focal point. Reduced motion shows the still frame.
+- **Rules:** decorative, so wrapped in `aria-hidden`; never more than one per section; new icons follow the kit's SKILL.md and pass `fi check`.
+
 ### Loading
 
 - **Signature loader:** the mark drawn by its own pen. The arch stroke draws on, the collaborator's dot lands with a citrus ring ping, then the ink runs off the far end and the loop restarts (1.6s). The label under it uses the text shimmer. Reduced motion: the static mark breathes in opacity. Used for route pending states and inside the board skeleton.

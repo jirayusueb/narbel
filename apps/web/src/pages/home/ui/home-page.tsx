@@ -17,7 +17,15 @@ import { Fragment, useRef } from "react";
 
 import { useSession } from "@/entities/session";
 import { SERVER_URL } from "@/shared/config";
-import { BrandMark, Wordmark } from "@/shared/ui";
+import {
+  BrandMark,
+  BrandSticker,
+  Wordmark,
+  chat,
+  cloud,
+  padlock,
+  pin,
+} from "@/shared/ui";
 
 import "./home.css";
 
@@ -415,23 +423,32 @@ const Stage = () => {
   );
 };
 
-const FEATURES: { id?: string; title: string; body: string }[] = [
+const FEATURES: {
+  id?: string;
+  title: string;
+  body: string;
+  icon: typeof cloud;
+}[] = [
   {
     title: "Live by default.",
     body: "Every board is one shared document that merges edits from every browser as they happen. Cursors and names show who is where, and you can follow someone across pages.",
+    icon: cloud,
   },
   {
     id: "agents",
     title: "Agents draw with you.",
     body: "Create an API key, point any MCP client at your narbel server, and the agent can list boards, read them, and add, update or delete elements. Its edits stream onto the board while you keep drawing.",
+    icon: chat,
   },
   {
     title: "Comments where the work is.",
     body: "Pin a comment to a spot on the canvas and write it with real formatting. Pages keep one board tidy when the idea grows.",
+    icon: pin,
   },
   {
     title: "Share on your terms.",
     body: "Keep a board private, open it to signed-in people with the link, lock it behind a password, or invite people by email. Viewers get a read-only board.",
+    icon: padlock,
   },
 ];
 
@@ -574,12 +591,23 @@ export const HomePage = () => {
           <article
             key={feature.title}
             id={feature.id}
-            className="grid scroll-mt-10 gap-5 py-12 md:grid-cols-12 md:gap-10 md:py-16"
+            className="grid scroll-mt-10 gap-y-3 py-12 md:grid-cols-12 md:gap-x-10 md:gap-y-2 md:py-16"
           >
-            <h2 className="font-display text-headline md:text-title font-normal md:col-span-5">
+            <div
+              aria-hidden="true"
+              className="-mb-3 -ml-6 size-32 md:col-span-5 md:row-start-1 md:size-44"
+            >
+              <BrandSticker
+                icon={feature.icon}
+                loop={false}
+                enter={0.1}
+                replayOnHover
+              />
+            </div>
+            <h2 className="font-display text-headline md:text-title font-normal md:col-span-5 md:row-start-2">
               {feature.title}
             </h2>
-            <div className="md:col-span-6 md:col-start-7">
+            <div className="md:col-span-6 md:col-start-7 md:row-start-2 md:pt-2">
               <p className="text-muted-foreground text-[17px] leading-[1.45]">
                 {feature.body}
               </p>

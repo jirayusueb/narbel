@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { SERVER_URL } from "@/shared/config";
 import { useCopy } from "@/shared/lib";
+import { BrandSticker, chat } from "@/shared/ui";
 
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../api/keys";
 
@@ -62,15 +63,20 @@ export const McpKeysPanel = () => {
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h2 className="font-display text-headline leading-tight font-normal">
-          Connect an agent
-        </h2>
-        <p className="text-muted-foreground max-w-prose text-sm">
-          Let AI agents read and edit your boards. Point an MCP client at the
-          URL below and send the key in the{" "}
-          <code className="font-mono text-[13px]">x-api-key</code> header.
-        </p>
+      <div className="flex items-end gap-4">
+        <div aria-hidden="true" className="-mb-2 -ml-3 size-20 shrink-0">
+          <BrandSticker icon={chat} loop={false} enter={0.1} replayOnHover />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h2 className="font-display text-headline leading-tight font-normal">
+            Connect an agent
+          </h2>
+          <p className="text-muted-foreground max-w-prose text-sm">
+            Let AI agents read and edit your boards. Point an MCP client at the
+            URL below and send the key in the{" "}
+            <code className="font-mono text-[13px]">x-api-key</code> header.
+          </p>
+        </div>
       </div>
       <div className="bg-card flex items-center gap-3 rounded-[15px] py-2 pr-2 pl-3">
         <span className="bg-citrus text-citrus-foreground shrink-0 rounded-[8px] px-2 text-xs font-medium">
