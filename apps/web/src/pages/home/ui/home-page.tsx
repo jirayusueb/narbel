@@ -471,12 +471,9 @@ const Cta = ({ signedIn }: { signedIn: boolean }) => (
   </div>
 );
 
-const rise = (delay: number) => ({
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] as const },
-  "data-rise": "",
-});
+// CSS, not motion: the hero is server-rendered and must animate before (or without) hydration.
+const rise = (delayMs: number) =>
+  ({ "--delay": `${delayMs}ms` }) as CSSProperties;
 
 export const HomePage = () => {
   const { data: session } = useSession();
@@ -487,32 +484,27 @@ export const HomePage = () => {
 
   return (
     <div className="h-full overflow-x-hidden overflow-y-auto motion-safe:scroll-smooth">
-      <noscript>
-        <style>
-          {"[data-rise]{opacity:1!important;transform:none!important}"}
-        </style>
-      </noscript>
       <section className="flex flex-col items-center px-5 pt-16 pb-20 text-center md:px-[30px] md:pt-24 md:pb-28">
         <h1 className="font-display lg:text-display max-w-[13ch] text-[44px] leading-[0.95] font-normal tracking-[-0.04em] md:text-[72px]">
           {HERO_WORDS.map((word, index) => (
             <Fragment key={index}>
               {index > 0 ? " " : null}
-              <motion.span className="inline-block" {...rise(index * 0.04)}>
+              <span className="home-rise inline-block" style={rise(index * 40)}>
                 {word}
-              </motion.span>
+              </span>
             </Fragment>
           ))}
         </h1>
-        <motion.p
-          className="text-muted-foreground mt-8 max-w-[34rem] text-[17px] leading-[1.4] text-pretty md:text-lg"
-          {...rise(0.2)}
+        <p
+          className="home-rise text-muted-foreground mt-8 max-w-[34rem] text-[17px] leading-[1.4] text-pretty md:text-lg"
+          style={rise(200)}
         >
           Draw together in real time, drop in images, leave comments on the
           canvas, and let AI agents read and edit the same board over MCP.
-        </motion.p>
-        <motion.div className="mt-10" {...rise(0.28)}>
+        </p>
+        <div className="home-rise mt-10" style={rise(280)}>
           <Cta signedIn={signedIn} />
-        </motion.div>
+        </div>
       </section>
 
       <div

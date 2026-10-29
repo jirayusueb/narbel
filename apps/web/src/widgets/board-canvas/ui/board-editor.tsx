@@ -110,16 +110,8 @@ export const BoardEditor = ({
         }}
         onPointerUpdate={onPointerUpdate}
         renderTopRightUI={() =>
-          isPhone ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Board menu"
-              onPress={handleOpenDrawer}
-            >
-              <Users />
-            </Button>
-          ) : (
+          // Phones: the toolbar row is already full, so the board button sits in the empty footer centre instead.
+          isPhone ? null : (
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -206,7 +198,19 @@ export const BoardEditor = ({
         mode={commentMode}
         onModeChange={setCommentMode}
       />
-      {isPhone ? null : <BoardIdentity board={board} status={status} />}
+      {isPhone ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="absolute bottom-8 left-1/2 z-[4] -translate-x-1/2"
+          onPress={handleOpenDrawer}
+        >
+          <Users data-icon="inline-start" />
+          Board
+        </Button>
+      ) : (
+        <BoardIdentity board={board} status={status} />
+      )}
       <BoardDrawer
         isOpen={drawerOpen}
         onOpenChange={handleDrawerOpenChange}

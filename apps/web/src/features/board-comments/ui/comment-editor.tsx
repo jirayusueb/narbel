@@ -98,6 +98,8 @@ export const CommentComposer = ({
   const editor = useEditor({
     extensions,
     immediatelyRender: false,
+    // The character count and Comment button read the document on render.
+    shouldRerenderOnTransaction: true,
     editorProps: {
       attributes: {
         class: `${proseClass} bg-card border-input focus:outline-ring min-h-16 rounded-[15px] border px-3 py-2 focus:outline-2 focus:outline-solid focus:outline-offset-3`,

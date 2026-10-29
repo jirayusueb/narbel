@@ -7,7 +7,7 @@
   --default-border-color: #f0f0eb;
   --color-surface-high: #f0f0eb;
   --color-surface-mid: #f0f0eb;
-  --color-surface-low: #e1e1de;
+  --color-surface-low: #ffffff;
   --color-on-surface: #080808;
   --text-primary-color: #080808;
   --shadow-island: 0 10px 20px rgb(0 0 0 / 0.08);
@@ -68,4 +68,13 @@
 
 .excalidraw .ToolIcon .ToolIcon_type_radio:checked + .ToolIcon__icon:hover {
   background: #d3de5d;
+}
+
+/* Standalone canvas controls read as the same white islands as the toolbar. */
+.excalidraw .dropdown-menu-button,
+.excalidraw .sidebar-trigger,
+.excalidraw .help-icon,
+.excalidraw .zoom-actions,
+.excalidraw .undo-redo-buttons {
+  box-shadow: var(--shadow-island);
 }

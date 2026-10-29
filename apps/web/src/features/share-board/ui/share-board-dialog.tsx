@@ -46,8 +46,8 @@ const VISIBILITY_OPTIONS: {
   },
   {
     value: "link",
-    label: "Anyone with the link",
-    hint: "Signed-in people with the link can view",
+    label: "Anyone signed in",
+    hint: "Signed-in people with the board’s address can view",
     Icon: Link2,
   },
   {
@@ -191,7 +191,7 @@ const LinkSection = ({
 
   return (
     <Section title="Share link">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -202,8 +202,13 @@ const LinkSection = ({
               patch.mutate({ shareTokenEnabled: e.target.checked }, { onError })
             }
           />
-          Anyone with the link
+          Turn on a share link
         </label>
+        <span
+          className={`text-sm ${enabled ? "text-muted-foreground" : "text-subtle-foreground"}`}
+        >
+          People who open it
+        </span>
         <Select
           aria-label="Link role"
           value={share?.role ?? "viewer"}
@@ -369,7 +374,7 @@ const ShareBoardDialog = ({
           Share “{board.title}”
         </DialogTitle>
         <DialogDescription>
-          People you share with need a Narbel account.
+          People you share with need a narbel account.
         </DialogDescription>
       </DialogHeader>
       {access ? (
