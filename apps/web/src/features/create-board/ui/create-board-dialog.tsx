@@ -50,7 +50,9 @@ export const CreateBoardDialog = () => {
           }}
         >
           <DialogHeader>
-            <DialogTitle>New board</DialogTitle>
+            <DialogTitle className="font-display text-feature font-normal">
+              New board
+            </DialogTitle>
             <DialogDescription>
               Give your board a name. You can rename it later.
             </DialogDescription>
@@ -68,7 +70,7 @@ export const CreateBoardDialog = () => {
             </Field>
           </FieldGroup>
           <DialogFooter>
-            <DialogClose>Cancel</DialogClose>
+            <DialogClose variant="ghost">Cancel</DialogClose>
             <Button type="submit" isDisabled={!trimmed || create.isPending}>
               {create.isPending ? <Spinner data-icon="inline-start" /> : null}
               Create

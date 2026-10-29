@@ -29,13 +29,15 @@ export const DeleteBoardDialog = ({ board }: { board: Board }) => {
       </Button>
       <AlertDialog>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete “{board.title}”?</AlertDialogTitle>
+          <AlertDialogTitle className="font-display text-feature font-normal">
+            Delete “{board.title}”?
+          </AlertDialogTitle>
           <AlertDialogDescription>
             The board and its uploaded images are removed permanently.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel variant="ghost">Cancel</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onPress={() =>

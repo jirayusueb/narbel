@@ -1,67 +1,46 @@
 # Deploying narbel on Dokploy
 
-Stack: `docker-compose.dokploy.yml` runs `postgres`, a one-shot `migrate`, `server` (Elysia, port 3000) and `web` (TanStack Start, port 3001). S3 storage is external.
+Narbel runs on Dokploy as five services in the `narbel` project:
 
-## Prerequisites
+| Service | Kind | What it runs | Published port |
+| --- | --- | --- | --- |
+| `narbel-web` | Application (git, Dockerfile `apps/web/Dockerfile`, stage `runner`) | TanStack Start web app | 4001 → 3001 |
+| `narbel-api` | Application (git, Dockerfile `apps/server/Dockerfile`, stage `runner`) | Elysia API, websockets (`/api/boards/sync/:id`), MCP (`/mcp`) | 4000 → 3000 |
+| `narbel-store` | Application (Docker image `rustfs/rustfs`, volume `narbel-store-data` on `/data`) | S3-compatible object store for board images | 4002 → 9000 |
+| `narbel-db` | Postgres (`postgres:18-alpine`) | database | internal only |
+| `narbel-cache` | Redis (`redis:7-alpine`) | cache-aside and cross-instance websocket fan-out | internal only |
 
-- A Dokploy instance and two DNS names pointing at it, for example `app.example.com` (web) and `api.example.com` (server).
-- An S3-compatible bucket (AWS S3, or the Dokploy MinIO template). Create the bucket first.
-- Drizzle migrations committed under `packages/db/src/migrations`. Generate them locally with `bun run db:generate` if the folder is empty. The `migrate` service only applies existing migration files.
+Services reach each other on `dokploy-network` by their Dokploy app names (for example `narbel-db-exn7k3`). The store is published because browsers upload straight to it through presigned URLs.
 
-## Environment variables
+## Provisioning
 
-Set these in the service's **Environment** tab. Compose fails fast if a required one is missing.
+`scripts/dokploy-provision.ts` creates and configures everything through the Dokploy API and is safe to rerun. It keeps generated secrets and service ids in `.dokploy-state.json` (gitignored).
 
-| Variable | Required | Example / meaning |
-| --- | --- | --- |
-| `POSTGRES_PASSWORD` | yes | Random password for the bundled Postgres. Pick once. Changing it later does not change the existing volume. |
-| `BETTER_AUTH_SECRET` | yes | 32+ random chars (`openssl rand -base64 32`). |
-| `BETTER_AUTH_URL` | yes | Public API origin, `https://api.example.com`. |
-| `CORS_ORIGIN` | yes | Public web origin, `https://app.example.com`. |
-| `VITE_SERVER_URL` | yes | Public API origin, `https://api.example.com`. Baked into the web bundle at build time, so changing it needs a rebuild. |
-| `S3_ENDPOINT` | yes | `https://s3.example.com` (full URL with scheme). |
-| `S3_REGION` | no | Defaults to `us-east-1`. |
-| `S3_BUCKET` | yes | Bucket name, e.g. `narbel`. |
-| `S3_ACCESS_KEY_ID` | yes | Access key. |
-| `S3_SECRET_ACCESS_KEY` | yes | Secret key. |
-| `RESEND_API_KEY` | yes | Resend API key, used for board invite emails. |
-| `RESEND_FROM` | no | Sender, defaults to `Narbel <onboarding@resend.dev>`. Use a verified domain to mail anyone. |
-| `WEB_ORIGIN` | no | Public web origin used in invite and share links. Defaults to `CORS_ORIGIN`. |
+```bash
+DOKPLOY_URL=http://<dokploy-host>:3000 \
+DOKPLOY_API_KEY=<dokploy api key> \
+RESEND_API_KEY=<resend key> \
+bun scripts/dokploy-provision.ts <environmentId> <sshKeyId>
+```
 
-`DATABASE_URL` and `SERVER_URL` are set inside the compose file. Do not add them.
+- `environmentId`: the `production` environment of the `narbel` project.
+- `sshKeyId`: a Dokploy SSH key whose public half is a read-only deploy key on the GitHub repo.
+- `BRANCH` (optional, default `rebuild`): the git branch to build.
 
-## Steps
+The script also creates the `narbel` bucket and its CORS rule (needs Docker locally for `aws-cli`).
 
-1. In Dokploy create a project, then **Create Service -> Compose**. Type: **Docker Compose**.
-2. Source: your Git provider, repository and branch. **Compose Path**: `./docker-compose.dokploy.yml`.
-3. Paste the variables above into the **Environment** tab and save.
-4. **Domains** tab, add two domains with HTTPS on and a Let's Encrypt certificate:
-   - `app.example.com` -> service `web`, port `3001`
-   - `api.example.com` -> service `server`, port `3000`
-5. Click **Deploy**. Order is: postgres healthy, `migrate` exits 0, `server` healthy, `web` starts. Build logs are in the **Deployments** tab.
-6. Open `https://app.example.com`, sign up, create a board.
+## Environment
 
-## Notes
+`narbel-api`: `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (public API URL), `CORS_ORIGIN` and `WEB_ORIGIN` (public web URL), `S3_ENDPOINT` (public store URL), `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `RESEND_API_KEY`, `RESEND_FROM`. The image sets `MIGRATIONS_DIR`, so the API applies pending Drizzle migrations on every start.
 
-- **HTTPS is required.** Web and API sit on different subdomains, so the session cookie is cross-site and browsers only send secure cookies over HTTPS. `BETTER_AUTH_URL`, `CORS_ORIGIN` and `VITE_SERVER_URL` must all use `https://`, with no trailing slash.
-- **WebSockets.** Realtime sync uses `wss://api.example.com/api/boards/sync/:id`. Traefik proxies upgrades with no extra configuration. If sync fails behind another proxy or CDN in front of Traefik (e.g. Cloudflare), make sure WebSockets are enabled there.
-- **Images.** The browser uploads straight to S3 through a presigned PUT URL and the server streams images back after an access check, so `S3_ENDPOINT` must be reachable from the user's browser and the bucket must allow cross-origin PUT from the web origin.
-- **Redeploys** rerun `migrate` first; it is a no-op when nothing changed. Data lives in the `narbel_postgres_data` volume.
+`narbel-web`: build arg `VITE_SERVER_URL` (public API URL), runtime `SERVER_URL` (internal API URL for SSR).
 
-## MCP for AI agents
+`narbel-store`: `RUSTFS_ACCESS_KEY`, `RUSTFS_SECRET_KEY` (same pair as the API's S3 keys).
 
-1. Sign in to the web app. Create an API key with the better-auth API key plugin on the API origin, e.g. from the browser console on the app:
-   ```js
-   await fetch("https://api.example.com/api/auth/api-key/create", {
-     method: "POST",
-     credentials: "include",
-     headers: { "content-type": "application/json" },
-     body: JSON.stringify({ name: "mcp" }),
-   }).then((r) => r.json());
-   ```
-   Copy the returned `key`. It is shown once.
-2. Point an MCP client at `https://api.example.com/mcp` (Streamable HTTP) with header `x-api-key: <key>`. For Claude Code:
-   ```sh
-   claude mcp add --transport http narbel https://api.example.com/mcp --header "x-api-key: <key>"
-   ```
-3. Tools: `list_boards`, `create_board`, `get_board`, `list_pages`, `add_page`, `rename_page`, `delete_page`, `add_elements`, `update_element`, `delete_elements`, `get_selection`, `select`, `edit_selection`. Edits show up live in open browsers.
+## Cookies and domains
+
+Over plain http (IP and ports) web and API are the same site, so the session cookie is `SameSite=Lax` without `Secure`. When `BETTER_AUTH_URL` is https the cookie switches to `SameSite=None; Secure`, which cross-site https domains need. To move to domains, add them in Dokploy for `narbel-web` (port 3001), `narbel-api` (port 3000) and `narbel-store` (port 9000), then rerun the script after changing `HOST`/URLs in it, and redeploy `narbel-web` (the API URL is baked in at build time).
+
+## MCP
+
+Create an API key on the dashboard ("MCP access"), then point an MCP client at `POST <api>/mcp` with header `x-api-key: <key>`.

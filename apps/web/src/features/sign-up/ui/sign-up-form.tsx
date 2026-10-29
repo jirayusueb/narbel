@@ -1,12 +1,5 @@
 import { Button } from "@narbel/ui/components/button";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@narbel/ui/components/card";
-import {
   Field,
   FieldError,
   FieldGroup,
@@ -58,11 +51,16 @@ export const SignUpForm = ({
   }
 
   return (
-    <Card className="mx-auto mt-10 w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Create account</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="bg-card shadow-surface mx-auto flex w-full max-w-md flex-col gap-8 rounded-[20px] p-6 sm:p-8">
+      <div className="flex flex-col gap-2">
+        <h1 className="font-display text-headline leading-tight font-normal">
+          Create account
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Start drawing boards you can share with your team and your agents.
+        </p>
+      </div>
+      <div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -161,12 +159,13 @@ export const SignUpForm = ({
             </form.Subscribe>
           </FieldGroup>
         </form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <Button variant="link" onPress={onSwitchToSignIn}>
-          Already have an account? Sign in
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-1 text-sm">
+        <span className="text-muted-foreground">Already have an account?</span>
+        <Button variant="link" size="sm" onPress={onSwitchToSignIn}>
+          Sign in
         </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 };

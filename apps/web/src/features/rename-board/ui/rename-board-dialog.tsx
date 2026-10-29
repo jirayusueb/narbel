@@ -56,7 +56,9 @@ export const RenameBoardDialog = ({ board }: { board: Board }) => {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Rename board</DialogTitle>
+            <DialogTitle className="font-display text-feature font-normal">
+              Rename board
+            </DialogTitle>
             <DialogDescription>
               Titles are 1 to 120 characters.
             </DialogDescription>
@@ -76,7 +78,7 @@ export const RenameBoardDialog = ({ board }: { board: Board }) => {
             </Field>
           </FieldGroup>
           <DialogFooter>
-            <DialogClose>Cancel</DialogClose>
+            <DialogClose variant="ghost">Cancel</DialogClose>
             <Button type="submit" isDisabled={!trimmed || rename.isPending}>
               {rename.isPending ? <Spinner data-icon="inline-start" /> : null}
               Save

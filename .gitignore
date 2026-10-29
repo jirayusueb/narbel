@@ -57,3 +57,4 @@ coverage
 tmp
 temp
 .env.deploy
+.dokploy-state.json

@@ -38,7 +38,7 @@ bun run redproof:prove   # prove each gate can fail
 
 ```bash
 bun install
-bun run services:start   # postgres + S3 (RustFS) + bucket setup
+bun run services:start   # postgres + redis + S3 (RustFS) + bucket setup
 bun run db:migrate
 bun run dev
 ```
@@ -85,7 +85,7 @@ Run standalone Node/Bun tools that use Varlock from the owning app directory so 
 
 ### Dokploy
 
-`docker-compose.dokploy.yml` targets Dokploy's Docker Compose mode (postgres, one-shot migrate, server, web; domains set in the Dokploy UI). Step-by-step guide and full env var list: [docs/deploy-dokploy.md](docs/deploy-dokploy.md).
+Dokploy runs narbel as five services: `narbel-web`, `narbel-api`, `narbel-store` (RustFS S3), `narbel-db` (Postgres 18 alpine) and `narbel-cache` (Redis). `scripts/dokploy-provision.ts` creates and configures them through the Dokploy API. Guide and env vars: [docs/deploy-dokploy.md](docs/deploy-dokploy.md).
 
 ### Local Docker Compose
 
@@ -118,7 +118,7 @@ narbel/
 - `bun run dev:web`: Start only the web application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
-- `bun run services:start`: Start postgres and the local S3 store
+- `bun run services:start`: Start postgres, redis and the local S3 store
 - `bun run redproof` / `bun run redproof:prove`: Run / prove the guardrail gates
 - `bun run db:push`: Push schema changes to database
 - `bun run db:generate`: Generate database client/types
