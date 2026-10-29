@@ -155,6 +155,7 @@ export const BoardEditor = ({
                   />
                 ) : null}
                 <CommentsPanelToggle open={panelOpen} onChange={setPanelOpen} />
+                <NotificationsBell />
                 {isOwner ? (
                   <Button
                     variant="citrus"
@@ -166,7 +167,6 @@ export const BoardEditor = ({
                   </Button>
                 ) : null}
               </div>
-              <NotificationsBell />
               <UserMenu />
             </motion.div>
           )
