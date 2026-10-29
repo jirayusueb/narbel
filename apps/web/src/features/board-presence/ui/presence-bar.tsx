@@ -2,6 +2,7 @@ import { colorFromName, initials } from "@/shared/lib";
 
 import type { Peer } from "../model/use-presence";
 
+const MAX_SHOWN = 4;
 export const PresenceBar = ({
   peers,
   followId,
@@ -12,18 +13,20 @@ export const PresenceBar = ({
   onFollow: (clientId: number | null) => void;
 }) => {
   const followed = peers.find((peer) => peer.clientId === followId);
+  const shown = peers.slice(0, MAX_SHOWN);
+  const extra = peers.length - shown.length;
   return (
     <div data-presence className="flex items-center gap-2">
       {followed ? (
-        <span className="bg-primary text-primary-foreground px-2 py-0.5 text-xs">
+        <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-1 text-xs max-md:hidden">
           Following {followed.name} · Esc to stop
         </span>
       ) : null}
       <ul
-        className="flex -space-x-1"
+        className="flex -space-x-2"
         aria-label={`${peers.length} others here`}
       >
-        {peers.map((peer) => (
+        {shown.map((peer) => (
           <li key={peer.clientId}>
             <button
               type="button"
@@ -33,8 +36,8 @@ export const PresenceBar = ({
               onClick={() =>
                 onFollow(peer.clientId === followId ? null : peer.clientId)
               }
-              className={`grid size-7 place-items-center rounded-full text-[10px] font-semibold text-white ring-2 ${
-                peer.clientId === followId ? "ring-primary" : "ring-background"
+              className={`outline-ring grid size-8 cursor-pointer place-items-center rounded-full text-xs font-medium text-white ring-2 focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                peer.clientId === followId ? "ring-citrus" : "ring-background"
               }`}
               style={{ backgroundColor: colorFromName(peer.name).background }}
             >
@@ -42,12 +45,18 @@ export const PresenceBar = ({
             </button>
           </li>
         ))}
+        {extra > 0 ? (
+          <li
+            title={peers
+              .slice(MAX_SHOWN)
+              .map((peer) => peer.name)
+              .join(", ")}
+            className="bg-muted text-muted-foreground ring-background grid size-8 place-items-center rounded-full text-xs font-medium ring-2"
+          >
+            +{extra}
+          </li>
+        ) : null}
       </ul>
-      {peers.length > 0 ? (
-        <span className="text-muted-foreground text-xs">
-          {peers.length} other{peers.length === 1 ? "" : "s"} here
-        </span>
-      ) : null}
     </div>
   );
 };

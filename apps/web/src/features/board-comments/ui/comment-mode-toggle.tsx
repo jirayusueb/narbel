@@ -9,12 +9,13 @@ export const CommentModeToggle = ({
   onChange: (next: boolean) => void;
 }) => (
   <Button
-    variant={active ? "default" : "outline"}
-    size="sm"
+    variant="ghost"
+    size="icon-sm"
+    aria-label="Comment"
     aria-pressed={active}
+    className="aria-pressed:bg-citrus aria-pressed:text-citrus-foreground"
     onPress={() => onChange(!active)}
   >
-    <MessageSquarePlus data-icon="inline-start" />
-    Comment
+    <MessageSquarePlus />
   </Button>
 );

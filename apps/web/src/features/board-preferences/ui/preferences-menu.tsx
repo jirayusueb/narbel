@@ -19,9 +19,14 @@ export const PreferencesMenu = ({
   onChange: (next: Preferences) => void;
 }) => (
   <DropdownMenuTrigger>
-    <Button variant="outline" size="sm">
-      <SlidersHorizontal data-icon="inline-start" />
-      Preferences
+    <Button
+      variant="ghost"
+      size="sm"
+      aria-label="Preferences"
+      className="max-xl:size-8 max-xl:rounded-[10px] max-xl:px-0"
+    >
+      <SlidersHorizontal />
+      <span className="max-xl:hidden">Preferences</span>
     </Button>
     <DropdownMenu
       placement="bottom end"

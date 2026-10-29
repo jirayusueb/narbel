@@ -13,7 +13,7 @@ export const MAX_BODY = 2000;
 const extensions = [StarterKit.configure({ link: { openOnClick: false } })];
 
 const proseClass =
-  "text-xs [&_a]:underline [&_code]:bg-muted [&_h2]:text-sm [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-1 [&_pre]:bg-muted [&_ul]:list-disc [&_ul]:pl-4 outline-none";
+  "text-sm [&_a]:underline [&_a]:underline-offset-2 [&_code]:bg-muted [&_code]:font-mono [&_code]:text-[13px] [&_code]:rounded-[5px] [&_code]:px-1 [&_h2]:text-sm [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1.5 [&_pre]:bg-muted [&_pre]:rounded-[10px] [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-[13px] [&_ul]:list-disc [&_ul]:pl-5 outline-none";
 
 const Tool = ({
   label,
@@ -100,7 +100,7 @@ export const CommentComposer = ({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: `${proseClass} min-h-16 border bg-background p-2`,
+        class: `${proseClass} bg-card border-input focus:outline-ring min-h-16 rounded-[15px] border px-3 py-2 focus:outline-2 focus:outline-offset-3`,
         "aria-label": "Write a comment",
       },
       handleKeyDown: (view, event) => {

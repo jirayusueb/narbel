@@ -1,10 +1,4 @@
 import { buttonVariants } from "@narbel/ui/components/button";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@narbel/ui/components/empty";
 import { Link } from "@tanstack/react-router";
 
 import { useBoard } from "@/entities/board";
@@ -32,20 +26,22 @@ export const BoardPage = ({
 
   if (error || !board) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>Board not found</EmptyTitle>
-          <EmptyDescription>
+      <div className="flex h-full flex-col items-center justify-center gap-6 px-5 text-center">
+        <div className="flex flex-col gap-2">
+          <h1 className="font-display text-title leading-tight font-normal">
+            Board not found
+          </h1>
+          <p className="text-muted-foreground text-sm">
             It may have been deleted, or it belongs to someone else.
-          </EmptyDescription>
-        </EmptyHeader>
+          </p>
+        </div>
         <Link
           to="/dashboard"
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ variant: "secondary" })}
         >
           Back to boards
         </Link>
-      </Empty>
+      </div>
     );
   }
 

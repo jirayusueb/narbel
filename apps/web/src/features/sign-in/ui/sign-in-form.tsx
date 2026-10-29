@@ -2,6 +2,7 @@ import { Button } from "@narbel/ui/components/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -57,9 +58,10 @@ export const SignInForm = ({
   }
 
   return (
-    <Card className="mx-auto mt-10 w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Welcome back</CardTitle>
+    <Card className="w-full max-w-md justify-self-center [--card-spacing:--spacing(7)] lg:justify-self-start">
+      <CardHeader className="gap-2">
+        <CardTitle className="text-headline">Welcome back</CardTitle>
+        <CardDescription>Sign in to get back to your boards.</CardDescription>
       </CardHeader>
       <CardContent>
         <form

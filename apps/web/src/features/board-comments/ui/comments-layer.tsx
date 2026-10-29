@@ -5,8 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 
-import { colorFromName } from "@/shared/lib";
-
 import { useCommentMutations, useComments } from "../api/comments";
 import type { BoardComment } from "../api/comments";
 import { CommentBody, CommentComposer } from "./comment-editor";
@@ -42,7 +40,7 @@ const Popover = ({
   children: React.ReactNode;
 }) => (
   <div
-    className="bg-popover text-popover-foreground ring-foreground/10 pointer-events-auto absolute z-20 w-72 p-3 shadow-md ring-1"
+    className="bg-popover text-popover-foreground shadow-elevated ring-border pointer-events-auto absolute z-20 w-80 max-w-[calc(100%-1.5rem)] rounded-[20px] p-4 ring-1"
     style={{ left: left + 14, top }}
   >
     {children}
@@ -66,12 +64,8 @@ const Pin = ({
     type="button"
     aria-label={`Comment by ${comment.authorName}`}
     onClick={onClick}
-    className={`pointer-events-auto absolute grid size-7 -translate-x-1/2 -translate-y-full place-items-center rounded-full rounded-bl-none text-[10px] font-semibold text-white shadow ${selected ? "ring-primary ring-2" : ""}`}
-    style={{
-      left,
-      top,
-      backgroundColor: colorFromName(comment.authorName).background,
-    }}
+    className={`shadow-elevated outline-ring pointer-events-auto absolute grid size-8 -translate-x-1/2 -translate-y-full cursor-pointer place-items-center rounded-full rounded-bl-[4px] text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 ${selected ? "bg-citrus text-citrus-foreground" : "bg-primary text-primary-foreground"}`}
+    style={{ left, top }}
   >
     {comment.authorName.slice(0, 1).toUpperCase()}
   </button>
@@ -184,7 +178,7 @@ export const CommentsLayer = ({
       {draft ? (
         <>
           <span
-            className="bg-primary absolute size-3 -translate-x-1/2 -translate-y-full rounded-full rounded-bl-none"
+            className="bg-primary absolute size-3 -translate-x-1/2 -translate-y-full rounded-full rounded-bl-[2px]"
             style={toScreen(draft)}
           />
           <Popover {...toScreen(draft)}>
@@ -203,16 +197,18 @@ export const CommentsLayer = ({
       {active ? (
         <Popover {...toScreen(active)}>
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate font-medium">{active.authorName}</span>
-            <span className="text-muted-foreground shrink-0 text-[10px]">
+            <span className="truncate text-[13px] font-medium">
+              {active.authorName}
+            </span>
+            <span className="text-subtle-foreground shrink-0 text-xs">
               {formatter.format(new Date(active.createdAt))}
             </span>
           </div>
           <CommentBody markdown={active.body} />
-          <div className="mt-2 flex justify-end gap-1">
+          <div className="mt-3 flex justify-end gap-1">
             {canWrite ? (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="xs"
                 isDisabled={resolve.isPending}
                 onPress={() =>
@@ -248,17 +244,22 @@ export const CommentsLayer = ({
       {resolved.length > 0 ? (
         <div className="pointer-events-auto absolute bottom-3 left-3 flex flex-col items-start gap-1">
           {showResolved ? (
-            <ul className="bg-popover ring-foreground/10 flex max-h-64 w-72 flex-col gap-2 overflow-y-auto p-3 shadow-md ring-1">
+            <ul className="bg-popover shadow-elevated ring-border flex max-h-64 w-80 flex-col gap-3 overflow-y-auto rounded-[20px] p-4 ring-1">
               {resolved.map((c) => (
-                <li key={c.id} className="border-b pb-2 last:border-b-0">
-                  <span className="font-medium">{c.authorName}</span>
+                <li
+                  key={c.id}
+                  className="border-border border-b pb-3 last:border-b-0 last:pb-0"
+                >
+                  <span className="text-[13px] font-medium">
+                    {c.authorName}
+                  </span>
                   <CommentBody markdown={c.body} />
                 </li>
               ))}
             </ul>
           ) : null}
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             aria-expanded={showResolved}
             onPress={() => setShowResolved((v) => !v)}

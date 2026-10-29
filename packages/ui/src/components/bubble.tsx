@@ -18,9 +18,9 @@ const bubbleVariants = cva(
     variants: {
       variant: {
         default:
-          "*:data-[slot=bubble-content]:bg-primary *:data-[slot=bubble-content]:text-primary-foreground [&>[data-slot=bubble-content]:is(button,a):hover]:bg-primary/80",
+          "*:data-[slot=bubble-content]:bg-card *:data-[slot=bubble-content]:text-card-foreground *:data-[slot=bubble-content]:shadow-surface [&>[data-slot=bubble-content]:is(button,a):hover]:bg-accent",
         secondary:
-          "*:data-[slot=bubble-content]:bg-secondary *:data-[slot=bubble-content]:text-secondary-foreground [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]",
+          "*:data-[slot=bubble-content]:bg-muted *:data-[slot=bubble-content]:text-foreground [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_5%)]",
         muted:
           "*:data-[slot=bubble-content]:bg-muted [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_5%)]",
         tinted:
@@ -72,7 +72,7 @@ function BubbleContent({
       ...props,
       "data-slot": "bubble-content",
       className: cn(
-        "[button,a]:focus-visible:border-ring [button,a]:focus-visible:ring-ring/50 w-fit max-w-full min-w-0 overflow-hidden rounded-none border border-transparent px-2.5 py-2 text-xs leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:transition-colors [button,a]:outline-none [button,a]:focus-visible:ring-1",
+        "[button,a]:focus-visible:outline-ring w-fit max-w-full min-w-0 overflow-hidden rounded-[15px] border border-transparent px-3.5 py-2.5 text-sm leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:transition-colors [button,a]:outline-none [button,a]:focus-visible:outline-2 [button,a]:focus-visible:outline-offset-2",
         className
       ),
       children,
@@ -86,7 +86,7 @@ function BubbleContent({
       {...props}
       data-slot="bubble-content"
       className={cn(
-        "[button,a]:focus-visible:border-ring [button,a]:focus-visible:ring-ring/50 w-fit max-w-full min-w-0 overflow-hidden rounded-none border border-transparent px-2.5 py-2 text-xs leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:transition-colors [button,a]:outline-none [button,a]:focus-visible:ring-1",
+        "[button,a]:focus-visible:outline-ring w-fit max-w-full min-w-0 overflow-hidden rounded-[15px] border border-transparent px-3.5 py-2.5 text-sm leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:transition-colors [button,a]:outline-none [button,a]:focus-visible:outline-2 [button,a]:focus-visible:outline-offset-2",
         className
       )}
     >
@@ -96,7 +96,7 @@ function BubbleContent({
 }
 
 const bubbleReactionsVariants = cva(
-  "bg-muted ring-card absolute z-10 flex w-fit shrink-0 items-center justify-center gap-1 rounded-none px-1.5 py-0.5 text-xs ring-2 has-[button]:p-0",
+  "bg-muted ring-card absolute z-10 flex w-fit shrink-0 items-center justify-center gap-1 rounded-full px-1.5 py-0.5 text-xs ring-2 has-[button]:p-0",
   {
     variants: {
       side: {

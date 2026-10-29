@@ -47,7 +47,7 @@ Open [http://localhost:3001](http://localhost:3001) for the web app. The API run
 
 ## UI Customization
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+React web apps in this stack share shadcn/ui primitives through `packages/ui`. The visual system (intentapp.dev-derived tokens, type, components, rules) is documented in [apps/web/DESIGN.md](apps/web/DESIGN.md); product context lives in [apps/web/PRODUCT.md](apps/web/PRODUCT.md).
 
 - Change design tokens and global styles in `packages/ui/src/styles/globals.css`
 - Update shared primitives in `packages/ui/src/components/*`
