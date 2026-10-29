@@ -1,16 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { DashboardPage } from "@/pages/dashboard";
+
 export const Route = createFileRoute("/_auth/dashboard")({
-  component: RouteComponent,
+  component: DashboardPage,
 });
-
-function RouteComponent() {
-  const { session } = Route.useRouteContext();
-
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Welcome {session.data?.user.name}</p>
-    </div>
-  );
-}

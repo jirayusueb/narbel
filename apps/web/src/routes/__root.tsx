@@ -1,53 +1,17 @@
-import { Toaster } from "@narbel/ui/components/sonner";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { createRootRoute } from "@tanstack/react-router";
 
-import Header from "../components/header";
+import { RootDocument } from "@/app";
 
-import appCss from "../index.css?url";
+import appCss from "@/app/styles/index.css?url";
 
-export interface RouterAppContext {}
-
-export const Route = createRootRouteWithContext<RouterAppContext>()({
+export const Route = createRootRoute({
   head: () => ({
     meta: [
-      {
-        charSet: "utf-8",
-      },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      {
-        title: "My App",
-      },
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "Narbel" },
     ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
-
   component: RootDocument,
 });
-
-function RootDocument() {
-  return (
-    <html lang="en" className="dark">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Header />
-          <Outlet />
-        </div>
-        <Toaster richColors />
-        <TanStackRouterDevtools position="bottom-left" />
-        <Scripts />
-      </body>
-    </html>
-  );
-}

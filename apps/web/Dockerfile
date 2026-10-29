@@ -2,12 +2,13 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 
 COPY . .
-RUN --mount=type=secret,id=web_env,target=/app/apps/web/.env.local --mount=type=secret,id=server_env,target=/app/apps/server/.env.local --mount=type=cache,target=/root/.bun/install/cache bun install
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install
 
+# Public API origin, baked into the client bundle.
 ARG VITE_SERVER_URL
 ENV VITE_SERVER_URL=${VITE_SERVER_URL}
 ENV NODE_ENV=production
-RUN --mount=type=secret,id=web_env,target=/app/apps/web/.env.local --mount=type=secret,id=server_env,target=/app/apps/server/.env.local cd apps/web && bun run build
+RUN cd apps/web && bun run build
 
 FROM oven/bun:1 AS runner
 WORKDIR /app
