@@ -10,6 +10,7 @@
     "env:generate": "varlock codegen"
   },
   "dependencies": {
+    "@better-auth/api-key": "1.7.12",
     "@elysia/eden": "^2.0.0-rc.1",
     "@excalidraw/excalidraw": "0.18.1",
     "@narbel/ui": "workspace:*",
