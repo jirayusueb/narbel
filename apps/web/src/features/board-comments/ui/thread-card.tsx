@@ -176,9 +176,11 @@ export const ThreadCard = ({
           <button
             type="button"
             aria-expanded
-            aria-label="Collapse thread"
+            aria-label={
+              pageName ? `${pageName}, collapse thread` : "Collapse thread"
+            }
             onClick={onToggle}
-            className="text-muted-foreground hover:text-foreground focus-visible:outline-ring -mt-1 -mb-1 flex cursor-pointer items-center gap-1 self-end rounded-[8px] text-xs focus-visible:outline-2 focus-visible:outline-solid"
+            className="text-muted-foreground hover:text-foreground focus-visible:outline-ring -mt-1.5 -mr-1.5 -mb-1.5 flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-1 self-end rounded-[8px] px-1.5 text-xs focus-visible:outline-2 focus-visible:outline-solid"
           >
             {pageName ? <span>{pageName}</span> : null}
             <ChevronDown className="size-3.5 rotate-180" />

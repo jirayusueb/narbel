@@ -14,7 +14,11 @@ import { Header } from "@/widgets/header";
 import { Providers } from "../providers/providers";
 
 export const RootDocument = () => {
-  // The board is a full-height workspace with its own window bar; onboarding has no app to navigate yet.
+  // The board is a full-viewport canvas with its own chrome; every other page scrolls the document.
+  const onBoard = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/boards/"),
+  });
+  // Onboarding has no app to navigate yet, so it hides the header too.
   const bare = useRouterState({
     select: ({ location }) =>
       location.pathname.startsWith("/boards/") ||
@@ -26,16 +30,12 @@ export const RootDocument = () => {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className={onBoard ? "overscroll-none" : undefined}>
         <Providers>
           <MotionConfig reducedMotion="user">
-            <div
-              className={
-                bare ? "h-svh" : "grid h-svh grid-rows-[auto_minmax(0,1fr)]"
-              }
-            >
+            <div className="flex min-h-svh flex-col">
               {bare ? null : <Header />}
-              <main className="h-full min-h-0 overflow-hidden">
+              <main className="flex flex-1 flex-col">
                 <ViewTransition default="page-swap">
                   <Outlet />
                 </ViewTransition>

@@ -35,7 +35,15 @@ export const BoardStatus = ({
         aria-hidden="true"
         className={`size-1.5 rounded-full ${STATUS_DOT[status]}`}
       />
-      {STATUS_LABEL[status]}
+      <span
+        className={
+          status === "connecting" || status === "syncing"
+            ? "text-shimmer"
+            : undefined
+        }
+      >
+        {STATUS_LABEL[status]}
+      </span>
     </output>
     {canWrite ? null : (
       <span className="border-border-strong text-muted-foreground rounded-full border px-2 py-0.5 text-xs">

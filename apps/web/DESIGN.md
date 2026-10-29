@@ -60,6 +60,17 @@ typography:
     fontWeight: 500
     lineHeight: 1.15
     letterSpacing: "-0.01em"
+  chrome:
+    fontFamily: "Roboto Serif Variable, ui-serif, Georgia, serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "-0.02em"
+  badge:
+    fontFamily: "Inter Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.625rem"
+    fontWeight: 600
+    lineHeight: 1
   code:
     fontFamily: "JetBrains Mono Variable, ui-monospace, monospace"
     fontSize: "0.8125rem"
@@ -196,9 +207,12 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 - **Status word** (400, clamp(7rem, 24vw, 18rem), 1, -0.04em): the "404" and "Oops" words on the not-found and error pages only.
 - **Title** (400, 40px, 1, -0.035em): page titles ("Boards"), landing section headings on desktop.
 - **Headline** (400, 32px, 1, -0.035em): section headings, dialog titles, auth panel titles.
-- **Feature** (400, 24px, 1.05, -0.02em): board card titles, empty-state titles, card titles.
-- **Body** (400, 14px to 17px, 1.4 to 1.45, -0.01em): copy. Landing paragraphs run 17px.
-- **Label** (500, 14px or 13px, 1.15): buttons, field labels, tabs.
+- **Feature** (400, 24px, 1.05, -0.02em): board card titles, empty-state titles, card titles, and the titles of the board's comments panel and phone drawer.
+- **Chrome title** (400 serif, 17px, 1.5, -0.02em): the board name inside its 40px name card, the one serif small enough to sit in Excalidraw's chrome.
+- **Body** (400, 14px to 17px, 1.4 to 1.45, -0.01em): copy. Landing paragraphs run 17px; comment bodies run 14px.
+- **Label** (500, 14px or 13px, 1.15): buttons, field labels, tabs, page tabs, Excalidraw's Library label. Dense rows (thread authors, mention and assignee pickers, notifications) use 13px.
+- **Caption** (400, 12px, 1.33): timestamps, the Live status, composer hints, resolved-by lines.
+- **Badge** (600, 10px, 1, tabular figures): the unread count on the bell, and nothing else.
 
 ### Named Rules
 
@@ -206,7 +220,9 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 
 ## Layout
 
-A 30px outer margin (20px on mobile) and 10px gutters, as on intentapp.dev. App pages sit in a centred `max-w-6xl` column; board grids are 1, 2, then 3 columns with 10px gaps. The header is an 80px three-column grid: links left, mark centred, account right. Board routes drop the header and use their own 56px window bar plus a 44px tab row, so the canvas gets the rest. Landing sections are separated by 112 to 160px of space, never by rules.
+A 30px outer margin (20px on mobile) and 10px gutters, as on intentapp.dev. App pages sit in a centred `max-w-6xl` column; board grids are 1, 2, then 3 columns with 10px gaps. The header is an 80px three-column grid: links left, mark centred, account right. Board routes drop the header and give the whole viewport to the canvas. Landing sections are separated by 112 to 160px of space, never by rules.
+
+**Scrolling.** Every page except the board scrolls the document itself (no inner scroll containers), so browser back restores position, phone address bars collapse, and keyboard paging works. The header is sticky: it gains a hairline once the page moves, tucks away when scrolling down past 120px, and returns on any scroll up. Hash links glide to their section (instant under reduced motion); navigation scroll resets stay instant. The landing's closing wordmark rises into place tied to scroll progress, settling exactly at the page's end. The board page never scrolls and disables overscroll so pull-to-refresh can't fire mid-drawing.
 
 ## Elevation & Depth
 
@@ -262,6 +278,23 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 ### Board Canvas
 
 The board is a full-viewport Excalidraw canvas. A name card (mark, serif title, status) floats beside Excalidraw's menu button; presence, comment toggle, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer; preferences, theme and export live in its main menu. Phones get one bottom drawer instead. Excalidraw's islands are re-tokenised to the same radii, Inter, white surfaces and citrus selection.
+
+Keyboard: `c` (only while focus is on the board) enters comment mode and focuses the placement surface; arrows move a citrus reticle (Shift for larger steps), Enter places the pin, Escape backs out one step at a time (mention list, composer, mode). Opening the comments panel moves focus into it and closing returns focus to the control that opened it; below `md` the panel is a modal sheet that keeps Tab inside. Excalidraw's menu button is named "Board menu".
+
+### Stickers
+
+Isometric slab stickers from the fun-isometric kit (vendored in `src/shared/ui/stickers`, MIT, Kelvin Adithya): flat fills, a 5-unit ink outline, an extruded side falling down-left, animated on After Effects keyframe presets on one shared canvas clock. `BrandSticker` fixes the palette to `brand("#ddec61", "#717453")`, so bodies are citrus and dark parts moss.
+
+- **Where:** one per landing capability row (cloud for live sync, the chat bot for agents, a pin for comments, a padlock for sharing), the pen scribbling on its pad in the empty dashboard, and the chat bot beside "Connect an agent".
+- **How they move:** rows play once when scrolled into view and rest on their still frame, replaying on hover; the empty-state pen loops because it is the page's only focal point. Reduced motion shows the still frame.
+- **Rules:** decorative, so wrapped in `aria-hidden`; never more than one per section; new icons follow the kit's SKILL.md and pass `fi check`.
+
+### Loading
+
+- **Signature loader:** the mark drawn by its own pen. The arch stroke draws on, the collaborator's dot lands with a citrus ring ping, then the ink runs off the far end and the loop restarts (1.6s). The label under it uses the text shimmer. Reduced motion: the static mark breathes in opacity. Used for route pending states and inside the board skeleton.
+- **Skeletons:** recess-grey shapes with one shared sheen band that sweeps the whole viewport (`skeleton-sheen`, fixed background), so every skeleton on screen moves as one. Skeletons copy the real layout: board cards keep their sheet, title lines and meta line; the board skeleton places ghost islands where Excalidraw's islands will appear.
+- **Spinner:** a thin arc that lengthens and shortens as it turns, for button-level waits.
+- **Text shimmer:** in-progress labels ("Connecting", "Syncing", "Loading") carry a brighter band through their own ink (`text-shimmer`).
 
 ### Status Pages
 

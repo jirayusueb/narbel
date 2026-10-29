@@ -6,13 +6,26 @@ import {
 } from "@reactuses/core";
 import { Link } from "@tanstack/react-router";
 import { Bot, Files, Pause, PenLine, Play, Plug } from "lucide-react";
-import { motion } from "motion/react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import { Fragment, useRef } from "react";
 
 import { useSession } from "@/entities/session";
 import { SERVER_URL } from "@/shared/config";
-import { BrandMark, Wordmark } from "@/shared/ui";
+import {
+  BrandMark,
+  BrandSticker,
+  Wordmark,
+  chat,
+  cloud,
+  padlock,
+  pin,
+} from "@/shared/ui";
 
 import "./home.css";
 
@@ -410,23 +423,32 @@ const Stage = () => {
   );
 };
 
-const FEATURES: { id?: string; title: string; body: string }[] = [
+const FEATURES: {
+  id?: string;
+  title: string;
+  body: string;
+  icon: typeof cloud;
+}[] = [
   {
     title: "Live by default.",
     body: "Every board is one shared document that merges edits from every browser as they happen. Cursors and names show who is where, and you can follow someone across pages.",
+    icon: cloud,
   },
   {
     id: "agents",
     title: "Agents draw with you.",
     body: "Create an API key, point any MCP client at your narbel server, and the agent can list boards, read them, and add, update or delete elements. Its edits stream onto the board while you keep drawing.",
+    icon: chat,
   },
   {
     title: "Comments where the work is.",
     body: "Pin a comment to a spot on the canvas and write it with real formatting. Pages keep one board tidy when the idea grows.",
+    icon: pin,
   },
   {
     title: "Share on your terms.",
     body: "Keep a board private, open it to signed-in people with the link, lock it behind a password, or invite people by email. Viewers get a read-only board.",
+    icon: padlock,
   },
 ];
 
@@ -475,6 +497,34 @@ const Cta = ({ signedIn }: { signedIn: boolean }) => (
 const rise = (delayMs: number) =>
   ({ "--delay": `${delayMs}ms` }) as CSSProperties;
 
+// The wordmark rises into place as the reader reaches the end of the page, tied to scroll so it settles exactly at the bottom.
+const FooterWordmark = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end end"],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], ["45%", "0%"]);
+  const tilt = useTransform(scrollYProgress, [0, 1], [-24, 0]);
+  return (
+    <div ref={ref} className="overflow-clip pt-[4vw]" aria-hidden="true">
+      <motion.div
+        className="flex items-end gap-[3vw]"
+        style={reduce ? undefined : { y }}
+      >
+        <motion.span
+          className="shrink-0"
+          style={reduce ? undefined : { rotate: tilt }}
+        >
+          <BrandMark className="size-[17.5vw]" />
+        </motion.span>
+        <Wordmark className="text-[24vw] leading-[0.74] tracking-[-0.04em]" />
+      </motion.div>
+    </div>
+  );
+};
+
 export const HomePage = () => {
   const { data: session } = useSession();
   const signedIn = Boolean(session);
@@ -483,7 +533,7 @@ export const HomePage = () => {
   const [bandVisible] = useElementVisibility(bandRef);
 
   return (
-    <div className="h-full overflow-x-hidden overflow-y-auto motion-safe:scroll-smooth">
+    <div className="flex-1 overflow-x-clip">
       <section className="flex flex-col items-center px-5 pt-16 pb-20 text-center md:px-[30px] md:pt-24 md:pb-28">
         <h1 className="font-display lg:text-display max-w-[13ch] text-[44px] leading-[0.95] font-normal tracking-[-0.04em] md:text-[72px]">
           {HERO_WORDS.map((word, index) => (
@@ -541,12 +591,23 @@ export const HomePage = () => {
           <article
             key={feature.title}
             id={feature.id}
-            className="grid scroll-mt-10 gap-5 py-12 md:grid-cols-12 md:gap-10 md:py-16"
+            className="grid scroll-mt-10 gap-y-3 py-12 md:grid-cols-12 md:gap-x-10 md:gap-y-2 md:py-16"
           >
-            <h2 className="font-display text-headline md:text-title font-normal md:col-span-5">
+            <div
+              aria-hidden="true"
+              className="-mb-3 -ml-6 size-32 md:col-span-5 md:row-start-1 md:size-44"
+            >
+              <BrandSticker
+                icon={feature.icon}
+                loop={false}
+                enter={0.1}
+                replayOnHover
+              />
+            </div>
+            <h2 className="font-display text-headline md:text-title font-normal md:col-span-5 md:row-start-2">
               {feature.title}
             </h2>
-            <div className="md:col-span-6 md:col-start-7">
+            <div className="md:col-span-6 md:col-start-7 md:row-start-2 md:pt-2">
               <p className="text-muted-foreground text-[17px] leading-[1.45]">
                 {feature.body}
               </p>
@@ -587,10 +648,7 @@ export const HomePage = () => {
             Agents
           </Link>
         </nav>
-        <div className="flex items-end gap-[3vw]" aria-hidden="true">
-          <BrandMark className="size-[17.5vw] shrink-0" />
-          <Wordmark className="text-[24vw] leading-[0.74] tracking-[-0.04em]" />
-        </div>
+        <FooterWordmark />
       </footer>
     </div>
   );

@@ -12,7 +12,7 @@ export const UnlockBoardForm = ({ boardId }: { boardId: string }) => {
   const unlock = useUnlockBoard(boardId);
 
   return (
-    <div className="flex h-full items-center justify-center overflow-y-auto px-5 py-10">
+    <div className="flex flex-1 items-center justify-center px-5 py-10">
       <div className="bg-card shadow-surface flex w-full max-w-sm flex-col items-center gap-6 rounded-[20px] p-8 text-center">
         <div className="bg-muted flex size-12 items-center justify-center rounded-[15px]">
           <Lock aria-hidden className="size-5" />

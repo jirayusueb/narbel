@@ -18,7 +18,7 @@ const emptyHint = (
   allPages: boolean
 ) => {
   if (status === "open" && canWrite) {
-    return "Press C, then click the canvas to start one.";
+    return "Press C, then click the canvas or press Enter to start one.";
   }
   return allPages ? "No threads on any page." : "No threads on this page.";
 };
@@ -85,9 +85,7 @@ export const CommentsPanel = ({
       className="bg-card shadow-surface flex h-full min-h-0 flex-col rounded-[20px]"
     >
       <header className="flex items-center justify-between gap-2 pt-4 pr-3 pl-5">
-        <h2 className="font-display text-[22px] font-normal tracking-[-0.02em]">
-          Comments
-        </h2>
+        <h2 className="font-display text-feature font-normal">Comments</h2>
         <Button
           variant="ghost"
           size="icon-sm"

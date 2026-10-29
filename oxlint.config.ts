@@ -5,10 +5,11 @@ import tanstack from "ultracite/oxlint/tanstack";
 
 export default defineConfig({
   extends: [core, react, tanstack],
-  // shadcn components and agent skills are vendored and updated by their own CLIs
+  // shadcn components, agent skills and the fun-isometric sticker kit are vendored and updated from upstream
   ignorePatterns: [
     ...core.ignorePatterns,
     "packages/ui/src/components/**",
+    "apps/web/src/shared/ui/stickers/**",
     ".agents/**",
     ".claude/**",
   ],

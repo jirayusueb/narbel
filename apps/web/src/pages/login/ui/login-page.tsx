@@ -9,8 +9,8 @@ export const LoginPage = () => {
   const [showSignIn, setShowSignIn] = useState(false);
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto grid min-h-full w-full max-w-6xl items-center gap-16 px-5 py-10 md:px-[30px] lg:grid-cols-2">
+    <div className="flex flex-1 flex-col">
+      <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-16 px-5 py-10 md:px-[30px] lg:grid-cols-2">
         <motion.div layout transition={{ duration: 0.22 }}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

@@ -78,3 +78,15 @@
 .excalidraw .undo-redo-buttons {
   box-shadow: var(--shadow-island);
 }
+
+/* Excalidraw's own text joins the Label role instead of its tracked-out 12px caps-style label. */
+.excalidraw .sidebar-trigger__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* Zoom steps change the digits; tabular figures keep the button from twitching in width. */
+.excalidraw .reset-zoom-button {
+  font-variant-numeric: tabular-nums;
+}

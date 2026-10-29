@@ -1,0 +1,89 @@
+/* The pen draws the "n", the collaborator's dot lands on it, then the ink runs off the far end and the loop restarts. */
+@keyframes loader-stroke {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  48%,
+  62% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1;
+  }
+}
+
+@keyframes loader-dot {
+  0%,
+  40% {
+    transform: scale(0);
+  }
+  52% {
+    transform: scale(1.18);
+  }
+  60%,
+  78% {
+    transform: scale(1);
+  }
+  92%,
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes loader-ring {
+  0%,
+  48% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  54% {
+    opacity: 1;
+  }
+  76%,
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+@keyframes loader-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.loader-stroke {
+  stroke-dasharray: 1 1;
+  animation: loader-stroke 1.6s cubic-bezier(0.6, 0, 0.1, 1) infinite;
+}
+
+.loader-dot,
+.loader-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.loader-dot {
+  animation: loader-dot 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.loader-ring {
+  animation: loader-ring 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-stroke,
+  .loader-dot,
+  .loader-ring {
+    animation: none;
+  }
+  .loader-stroke {
+    stroke-dasharray: none;
+  }
+  .loader-ring {
+    opacity: 0;
+  }
+  .loader-mark {
+    animation: loader-breathe 2s ease-in-out infinite;
+  }
+}

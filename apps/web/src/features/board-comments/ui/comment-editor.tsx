@@ -4,7 +4,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Bold, Code, Heading2, Italic, Link2, List } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { UserAvatar } from "@/entities/user";
 
@@ -95,17 +95,23 @@ const Toolbar = ({
 );
 
 const MentionList = ({
+  id,
   at,
   matches,
   active,
   onPick,
 }: {
+  id: string;
   at: MentionQuery;
   matches: Mentionable[];
   active: number;
   onPick: (member: Mentionable) => void;
 }) => (
-  <ul
+  <div
+    id={id}
+    // A contenteditable can't own a native <select>; this is the ARIA listbox it points at.
+    // oxlint-disable-next-line prefer-tag-over-role
+    role="listbox"
     aria-label="Mention a member"
     className="bg-popover text-popover-foreground shadow-elevated ring-border fixed z-50 flex w-60 flex-col gap-0.5 rounded-[15px] p-1.5 ring-1"
     style={{
@@ -114,27 +120,30 @@ const MentionList = ({
     }}
   >
     {matches.map((member, index) => (
-      <li key={member.userId}>
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-current={index === active}
-          // Keep editor focus: picking must not blur the selection the range depends on.
-          onPointerDown={(e) => e.preventDefault()}
-          onClick={() => onPick(member)}
-          className="aria-[current=true]:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left text-[13px]"
-        >
-          <UserAvatar size={24} user={{ id: member.userId, ...member }} />
-          <span className="min-w-0 flex-1 truncate font-medium">
-            {member.name}
-          </span>
-          <span className="text-muted-foreground truncate">
-            @{member.username}
-          </span>
-        </button>
-      </li>
+      // The keyboard path is the editor: arrows move the active option, Enter or Tab picks it.
+      // oxlint-disable-next-line click-events-have-key-events
+      <div
+        key={member.userId}
+        id={`${id}-${index}`}
+        // oxlint-disable-next-line prefer-tag-over-role
+        role="option"
+        aria-selected={index === active}
+        tabIndex={-1}
+        // Keep editor focus: picking must not blur the selection the range depends on.
+        onPointerDown={(e) => e.preventDefault()}
+        onClick={() => onPick(member)}
+        className="aria-selected:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left text-[13px]"
+      >
+        <UserAvatar size={24} user={{ id: member.userId, ...member }} />
+        <span className="min-w-0 flex-1 truncate font-medium">
+          {member.name}
+        </span>
+        <span className="text-muted-foreground truncate">
+          @{member.username}
+        </span>
+      </div>
     ))}
-  </ul>
+  </div>
 );
 
 export const CommentComposer = ({
@@ -162,7 +171,9 @@ export const CommentComposer = ({
   const live = useRef<{
     submit: () => void;
     suggest: (e: KeyboardEvent) => boolean;
+    cancel?: () => void;
   } | null>(null);
+  const listId = useId();
   const [linkDraft, setLinkDraft] = useState<string | null>(null);
   const { mention, onQuery, matches, active, move, dismiss } =
     useMention(members);
@@ -188,6 +199,11 @@ export const CommentComposer = ({
       },
       handleKeyDown: (view, event) => {
         if (live.current?.suggest(event)) {
+          return true;
+        }
+        if (event.key === "Escape" && live.current?.cancel) {
+          event.preventDefault();
+          live.current.cancel();
           return true;
         }
         const inBlock = ["listItem", "codeBlock"].some(
@@ -229,6 +245,7 @@ export const CommentComposer = ({
           onSubmit(markdown);
         }
       },
+      cancel: onCancel,
       suggest: (event) => {
         if (matches.length === 0) {
           return false;
@@ -253,6 +270,23 @@ export const CommentComposer = ({
       editor?.commands.focus("end");
     }
   }, [editor, autoFocus]);
+
+  // The editor stays a textbox; it points at the suggestion it would pick so screen readers announce it.
+  const suggesting = mention !== null && matches.length > 0;
+  useEffect(() => {
+    const dom = editor?.view.dom;
+    if (!dom) {
+      return;
+    }
+    dom.setAttribute("aria-autocomplete", "list");
+    if (suggesting) {
+      dom.setAttribute("aria-controls", listId);
+      dom.setAttribute("aria-activedescendant", `${listId}-${active}`);
+    } else {
+      dom.removeAttribute("aria-controls");
+      dom.removeAttribute("aria-activedescendant");
+    }
+  }, [editor, suggesting, active, listId]);
 
   if (!editor) {
     return null;
@@ -297,6 +331,7 @@ export const CommentComposer = ({
       <EditorContent editor={editor} />
       {mention && matches.length > 0 ? (
         <MentionList
+          id={listId}
           at={mention}
           matches={matches}
           active={active}

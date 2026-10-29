@@ -20,7 +20,7 @@ const buttonVariants = cva(
         citrus:
           "bg-citrus text-citrus-foreground ease-intent hover:bg-primary hover:text-primary-foreground transition-colors duration-500",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-surface ease-intent hover:bg-citrus hover:text-citrus-foreground aria-expanded:bg-citrus aria-expanded:text-citrus-foreground transition-colors duration-500",
+          "bg-secondary text-secondary-foreground shadow-surface ease-intent in-[.bg-card,.bg-popover]:bg-muted hover:bg-citrus hover:text-citrus-foreground aria-expanded:bg-citrus aria-expanded:text-citrus-foreground transition-colors duration-500 in-[.bg-card,.bg-popover]:shadow-none",
         outline:
           "border-border-strong text-foreground hover:bg-accent aria-expanded:bg-accent border bg-transparent transition-colors duration-150",
         ghost:
