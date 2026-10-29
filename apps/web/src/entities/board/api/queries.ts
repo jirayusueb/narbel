@@ -10,6 +10,7 @@ export const boardKeys = {
   detail: (id: string, share?: string) =>
     ["boards", id, share ?? null] as const,
   access: (id: string) => ["boards", id, "access"] as const,
+  members: (id: string) => ["boards", id, "members"] as const,
 };
 
 export const useBoards = () =>
@@ -30,6 +31,14 @@ export const useBoard = (id: string, share?: string) =>
     queryFn: async () =>
       unwrap(await api.api.boards({ id }).get({ query: { share } })),
     retry: false,
+  });
+
+export const useBoardMembers = (id: string, share?: string) =>
+  useQuery({
+    queryKey: boardKeys.members(id),
+    queryFn: async () =>
+      unwrap(await api.api.boards({ id }).members.get({ query: { share } })),
+    staleTime: 30_000,
   });
 
 export const useCreateBoard = () => {

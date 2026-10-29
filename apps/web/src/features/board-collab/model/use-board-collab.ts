@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
+import type { UserRef } from "@/entities/user";
 import { SYNC_URL } from "@/shared/config";
 import { colorFromName, elementKey, isOnPage } from "@/shared/lib";
 
@@ -31,17 +32,18 @@ const LOCAL_ORIGIN = Symbol("local-edit");
 
 export const useBoardCollab = ({
   boardId,
-  userName,
+  user,
   pageId,
   canWrite,
   shareToken,
 }: {
   boardId: string;
-  userName: string;
+  user: UserRef;
   pageId: string | null;
   canWrite: boolean;
   shareToken?: string;
 }) => {
+  const { id: userId, name: userName, username, avatarUrl } = user;
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<CollabStatus>("connecting");
@@ -86,8 +88,13 @@ export const useBoardCollab = ({
     if (!session) {
       return;
     }
-    session.provider.awareness.setLocalStateField("user", { name: userName });
-  }, [session, userName]);
+    session.provider.awareness.setLocalStateField("user", {
+      id: userId,
+      name: userName,
+      username,
+      avatarUrl,
+    });
+  }, [session, userId, userName, username, avatarUrl]);
 
   useEffect(() => {
     if (!(session && api && sceneReady && pageId)) {

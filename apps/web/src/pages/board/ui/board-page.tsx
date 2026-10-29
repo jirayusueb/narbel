@@ -19,9 +19,11 @@ const WithHeader = ({ children }: { children: React.ReactNode }) => (
 export const BoardPage = ({
   boardId,
   shareToken,
+  focusComment,
 }: {
   boardId: string;
   shareToken?: string;
+  focusComment?: string;
 }) => {
   const { data: board, isPending, error } = useBoard(boardId, shareToken);
 
@@ -60,5 +62,11 @@ export const BoardPage = ({
     );
   }
 
-  return <BoardCanvas board={board} shareToken={shareToken} />;
+  return (
+    <BoardCanvas
+      board={board}
+      shareToken={shareToken}
+      focusComment={focusComment}
+    />
+  );
 };

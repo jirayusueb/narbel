@@ -10,13 +10,21 @@ import { useState } from "react";
 
 import type { Board } from "@/entities/board";
 import { useSession } from "@/entities/session";
+import { useMe } from "@/entities/user";
 import { useBoardCollab } from "@/features/board-collab";
 import type { CollabStatus } from "@/features/board-collab";
-import { CommentModeToggle, CommentsLayer } from "@/features/board-comments";
+import {
+  CommentModeToggle,
+  CommentsLayer,
+  CommentsPanel,
+  CommentsPanelToggle,
+  useCommentsWorkspace,
+} from "@/features/board-comments";
 import { useBoardMedia } from "@/features/board-media";
 import { PagesBar, usePages } from "@/features/board-pages";
 import { PreferencesMenu, usePreferences } from "@/features/board-preferences";
 import { PresenceBar, usePresence } from "@/features/board-presence";
+import { NotificationsBell } from "@/features/notifications";
 import { ShareBoardDialog } from "@/features/share-board";
 import { UserMenu } from "@/features/user-menu";
 import { BrandMark } from "@/shared/ui";
@@ -53,11 +61,14 @@ const replayUndo = (redo: boolean) =>
 export const BoardEditor = ({
   board,
   shareToken,
+  focusComment,
 }: {
   board: Board;
   shareToken?: string;
+  focusComment?: string;
 }) => {
   const { data: session } = useSession();
+  const { data: me } = useMe();
   const userId = session?.user.id ?? "";
   const [pageId, setPageId] = useState<string | null>(null);
   const [commentMode, setCommentMode] = useState(false);
@@ -66,7 +77,12 @@ export const BoardEditor = ({
   const { api, bindApi, doc, awareness, status, onChange, onPointerUpdate } =
     useBoardCollab({
       boardId: board.id,
-      userName: session?.user.name ?? "Anonymous",
+      user: {
+        id: userId,
+        name: me?.name ?? session?.user.name ?? "Anonymous",
+        username: me?.username ?? null,
+        avatarUrl: me?.avatarUrl ?? null,
+      },
       pageId,
       canWrite,
       shareToken,
@@ -88,6 +104,18 @@ export const BoardEditor = ({
   const presence = usePresence({ awareness, api, pageId, setPageId });
   const preferences = usePreferences({ userId, api });
   const { resolvedTheme } = useTheme();
+  const { env, panelOpen, setPanelOpen, focusedId, selectThread } =
+    useCommentsWorkspace({
+      boardId: board.id,
+      shareToken,
+      canWrite,
+      isOwner: board.role === "owner",
+      userId,
+      focusComment,
+      api,
+      pages: pages.pages,
+      setPageId,
+    });
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -147,12 +175,14 @@ export const BoardEditor = ({
                 />
               </>
             ) : null}
+            <CommentsPanelToggle open={panelOpen} onChange={setPanelOpen} />
             <PreferencesMenu
               prefs={preferences.prefs}
               onChange={preferences.handleChange}
             />
           </div>
           {board.role === "owner" ? <ShareBoardDialog board={board} /> : null}
+          <NotificationsBell />
           <div className="max-sm:hidden">
             <UserMenu />
           </div>
@@ -168,31 +198,43 @@ export const BoardEditor = ({
         onDelete={pages.handleDelete}
         onDuplicate={pages.handleDuplicate}
       />
-      <div className="relative min-h-0 flex-1">
-        <Excalidraw
-          theme={resolvedTheme === "dark" ? "dark" : "light"}
-          viewModeEnabled={!canWrite}
-          excalidrawAPI={bindApi}
-          {...preferences.excalidrawProps}
-          onChange={(elements, appState, files) => {
-            onChange(elements, appState);
-            preferences.onAppState(appState);
-            onFiles(files);
-          }}
-          onPointerUpdate={onPointerUpdate}
-        />
-        <CommentsLayer
-          boardId={board.id}
-          key={pageId ?? ""}
-          pageId={pageId}
-          api={api}
-          shareToken={shareToken}
-          canWrite={canWrite}
-          isOwner={board.role === "owner"}
-          userId={userId}
-          mode={commentMode}
-          onModeChange={setCommentMode}
-        />
+      <div className="relative flex min-h-0 flex-1">
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <Excalidraw
+            theme={resolvedTheme === "dark" ? "dark" : "light"}
+            viewModeEnabled={!canWrite}
+            excalidrawAPI={bindApi}
+            {...preferences.excalidrawProps}
+            onChange={(elements, appState, files) => {
+              onChange(elements, appState);
+              preferences.onAppState(appState);
+              onFiles(files);
+            }}
+            onPointerUpdate={onPointerUpdate}
+          />
+          <CommentsLayer
+            env={env}
+            key={pageId ?? ""}
+            pageId={pageId}
+            api={api}
+            mode={commentMode}
+            focusedId={focusedId}
+            onModeChange={setCommentMode}
+            onSelect={selectThread}
+          />
+        </div>
+        {panelOpen ? (
+          <aside className="max-md:bg-background max-md:absolute max-md:inset-0 max-md:z-30 max-md:p-2.5 md:w-96 md:shrink-0 md:pr-2.5 md:pb-2.5">
+            <CommentsPanel
+              env={env}
+              pageId={pageId}
+              focusedId={focusedId}
+              startAllPages={focusComment !== undefined}
+              onSelect={selectThread}
+              onClose={() => setPanelOpen(false)}
+            />
+          </aside>
+        ) : null}
       </div>
     </div>
   );

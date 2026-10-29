@@ -2,6 +2,7 @@ export {
   boardKeys,
   useBoard,
   useBoardAccess,
+  useBoardMembers,
   useBoards,
   useCreateBoard,
   useDeleteBoard,

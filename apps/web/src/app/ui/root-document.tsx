@@ -12,9 +12,11 @@ import { Header } from "@/widgets/header";
 import { Providers } from "../providers/providers";
 
 export const RootDocument = () => {
-  // The board is a full-height workspace with its own window bar.
-  const onBoard = useRouterState({
-    select: (state) => state.location.pathname.startsWith("/boards/"),
+  // The board is a full-height workspace with its own window bar; onboarding has no app to navigate yet.
+  const bare = useRouterState({
+    select: ({ location }) =>
+      location.pathname.startsWith("/boards/") ||
+      location.pathname === "/onboarding",
   });
 
   return (
@@ -26,10 +28,10 @@ export const RootDocument = () => {
         <Providers>
           <div
             className={
-              onBoard ? "h-svh" : "grid h-svh grid-rows-[auto_minmax(0,1fr)]"
+              bare ? "h-svh" : "grid h-svh grid-rows-[auto_minmax(0,1fr)]"
             }
           >
-            {onBoard ? null : <Header />}
+            {bare ? null : <Header />}
             <main className="h-full min-h-0 overflow-hidden">
               <Outlet />
             </main>

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { useSession } from "@/entities/session";
+import { NotificationsBell } from "@/features/notifications";
 import { UserMenu } from "@/features/user-menu";
 import { BrandMark } from "@/shared/ui";
 
@@ -34,7 +35,8 @@ export const Header = () => {
       >
         <BrandMark className="size-8" />
       </Link>
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-1.5">
+        {session ? <NotificationsBell /> : null}
         <UserMenu />
       </div>
     </header>
