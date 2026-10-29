@@ -2,10 +2,15 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 
 COPY . .
-RUN --mount=type=secret,id=web_env,target=/app/apps/web/.env.local --mount=type=secret,id=server_env,target=/app/apps/server/.env.local --mount=type=cache,target=/root/.bun/install/cache bun install
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install
 
 ENV NODE_ENV=production
-RUN --mount=type=secret,id=web_env,target=/app/apps/web/.env.local --mount=type=secret,id=server_env,target=/app/apps/server/.env.local cd apps/server && bun run build
+RUN cd apps/server && bun run build
+
+# One-shot: applies packages/db migrations. Needs the full workspace for drizzle-kit.
+FROM builder AS migrate
+WORKDIR /app/packages/db
+CMD ["bun", "run", "db:migrate:deploy"]
 
 FROM oven/bun:1 AS runner
 WORKDIR /app
@@ -15,4 +20,4 @@ COPY --from=builder /app /app
 EXPOSE 3000
 
 WORKDIR /app/apps/server
-CMD ["bun", "dist/index.mjs"]
+CMD ["bun", "run", "start"]

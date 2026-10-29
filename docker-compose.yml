@@ -51,6 +51,7 @@ services:
     environment:
       CORS_ORIGIN: http://localhost:3001
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/narbel
+      S3_ENDPOINT: http://s3:9000
     healthcheck:
       test:
         [
@@ -86,8 +87,37 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # MinIO no longer publishes images to Docker Hub; RustFS is an S3-compatible drop-in.
+  s3:
+    image: rustfs/rustfs
+    container_name: narbel-s3
+    environment:
+      RUSTFS_ACCESS_KEY: minioadmin
+      RUSTFS_SECRET_KEY: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - narbel_s3_data:/data
+    restart: unless-stopped
+
+  s3-setup:
+    image: amazon/aws-cli
+    depends_on:
+      - s3
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - until aws --endpoint-url http://s3:9000 s3api head-bucket --bucket narbel 2>/dev/null || aws --endpoint-url http://s3:9000 s3api create-bucket --bucket narbel; do sleep 2; done
+    restart: "no"
+
 volumes:
   narbel_postgres_data:
+  narbel_s3_data:
 
 # BuildKit makes these available only while install/build commands run.
 secrets:
