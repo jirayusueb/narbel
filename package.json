@@ -48,10 +48,13 @@
   },
   "devDependencies": {
     "@narbel/config": "workspace:*",
+    "@redproof/dependency-cruiser": "^0.12.0",
     "@types/bun": "catalog:",
+    "dependency-cruiser": "^18.7.0",
     "lefthook": "latest",
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
+    "redproof": "^0.12.0",
     "turbo": "^2.11.7",
     "typescript": "catalog:",
     "ultracite": "8.0.0",
