@@ -2,12 +2,10 @@ import { describe, expect, it } from "bun:test";
 
 import { RedisCache } from "../../../../shared/infrastructure/cache/RedisCache";
 import type { RedisLike } from "../../../../shared/infrastructure/cache/RedisCache";
-import type { IBoardCommentRepository } from "../../application/ports/IBoardCommentRepository";
+import { transactionalCache } from "../../../../shared/infrastructure/cache/TransactionalCache";
 import type { IBoardRepository } from "../../application/ports/IBoardRepository";
 import { Board } from "../../domain/entities/Board";
-import type { Comment } from "../../domain/entities/Comment";
 import { BoardTitle } from "../../domain/values/BoardTitle";
-import { CachedBoardCommentRepository } from "./CachedBoardCommentRepository";
 import { CachedBoardDocumentStore } from "./CachedBoardDocumentStore";
 import { CachedBoardRepository } from "./CachedBoardRepository";
 
@@ -164,64 +162,23 @@ describe("CachedBoardRepository", () => {
   });
 });
 
-describe("CachedBoardCommentRepository", () => {
-  class Comments implements IBoardCommentRepository {
-    reads = 0;
-    readonly rows = new Map<string, Comment>();
-    list = (boardId: string, pageId?: string) => {
-      this.reads += 1;
-      return Promise.resolve(
-        [...this.rows.values()].filter(
-          (c) => c.boardId === boardId && (!pageId || c.pageId === pageId)
-        )
-      );
-    };
-    findById = (_: string, id: string) =>
-      Promise.resolve(this.rows.get(id) ?? null);
-    save = (c: Comment) => {
-      this.rows.set(c.id, c);
-      return Promise.resolve();
-    };
-    delete = (_: string, id: string) => {
-      this.rows.delete(id);
-      return Promise.resolve();
-    };
-  }
-  const comment = (id: string, pageId: string): Comment => ({
-    id,
-    boardId: "b1",
-    pageId,
-    x: 1,
-    y: 2,
-    body: "hi",
-    authorId: "u",
-    authorName: "U",
-    createdAt: now,
-    resolvedAt: null,
-    parentId: null,
-  });
+describe("transactionalCache", () => {
+  it("never reads or fills the cache, and invalidates only after the commit", async () => {
+    const redis = new FakeRedis();
+    const shared = new RedisCache(redis);
+    await shared.set("board:b1", { stale: true }, 60);
+    const hooks: (() => Promise<void> | void)[] = [];
+    const tx = transactionalCache(shared, (hook) => hooks.push(hook));
 
-  it("caches per page and invalidates the page and the all-pages list on every change", async () => {
-    const inner = new Comments();
-    const repo = new CachedBoardCommentRepository(
-      inner,
-      new RedisCache(new FakeRedis())
-    );
-    expect(await repo.list("b1", "p1")).toEqual([]);
-    expect(await repo.list("b1")).toEqual([]);
-    await repo.list("b1", "p1");
-    expect(inner.reads).toBe(2);
+    expect(await tx.get("board:b1")).toBeUndefined();
+    await tx.set("board:b2", 1, 60);
+    expect(redis.data.has("board:b2")).toBe(false);
 
-    await repo.save(comment("c1", "p1"));
-    expect(await repo.list("b1", "p1")).toHaveLength(1);
-    expect(await repo.list("b1")).toHaveLength(1);
-    expect((await repo.list("b1", "p1"))[0]?.createdAt).toEqual(now);
-
-    await repo.save({ ...comment("c1", "p1"), resolvedAt: now });
-    expect((await repo.list("b1", "p1"))[0]?.resolvedAt).toEqual(now);
-
-    await repo.delete("b1", "c1");
-    expect(await repo.list("b1", "p1")).toEqual([]);
-    expect(await repo.list("b1")).toEqual([]);
+    await tx.del("board:b1");
+    expect(redis.data.has("board:b1")).toBe(true);
+    for (const hook of hooks) {
+      await hook();
+    }
+    expect(redis.data.has("board:b1")).toBe(false);
   });
 });

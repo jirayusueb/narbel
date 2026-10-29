@@ -1,9 +1,9 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 
-import { requireSession } from "@/app";
+import { requireOnboarded } from "@/app";
 
 export const Route = createFileRoute("/_auth")({
   ssr: false,
   component: Outlet,
-  beforeLoad: requireSession,
+  beforeLoad: requireOnboarded,
 });

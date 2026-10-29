@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
 import type { BoardAccessGuard, Actor, Need } from "../BoardAccess";
-import type { IEmailSender } from "../ports/IEmailSender";
 import { fakeUnlock, ids, newBoard, setupAccess } from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { InviteBoardMember } from "./InviteBoardMember";
@@ -195,8 +194,7 @@ describe("access administration", () => {
     const base = setupAccess();
     const update = new UpdateBoardAccess(
       base.guard,
-      base.boards,
-      base.grants,
+      base.uow,
       hasher,
       ids,
       "http://web"
@@ -283,24 +281,13 @@ describe("access administration", () => {
 });
 
 describe("invites", () => {
-  const setup = (delivered: boolean) => {
+  const setup = () => {
     const base = setupAccess();
-    const sent: { to: string; subject: string; html: string }[] = [];
-    const email: IEmailSender = {
-      send: (mail) => {
-        sent.push(mail);
-        return Promise.resolve(delivered);
-      },
-    };
+    base.profiles.add("owner", "olive", "Olive");
+    base.profiles.add("ann", "ann");
     return {
       ...base,
-      sent,
-      invite: new InviteBoardMember(
-        base.guard,
-        base.grants,
-        email,
-        "http://web"
-      ),
+      invite: new InviteBoardMember(base.guard, base.uow, ids),
     };
   };
   const input = {
@@ -309,30 +296,35 @@ describe("invites", () => {
     role: "editor" as const,
   };
 
-  it("stores the invite by lowercased email and sends the link", async () => {
-    const { invite, grants, sent } = setup(true);
+  it("stores the invite by lowercased email and queues the email with the notification", async () => {
+    const { invite, grants, outbox, notifications } = setup();
+    grants.findUserIdByEmail = () => Promise.resolve("ann");
     const result = await invite.execute({ ...input, email: " Ann@X.io " });
-    expect(result.isOk()).toBe(true);
+    expect(result.isOk() && result.value).toEqual({ queued: true });
     expect(grants.members[0]).toMatchObject({
       email: "ann@x.io",
+      userId: "ann",
       role: "editor",
     });
-    expect(sent[0]?.to).toBe("ann@x.io");
-    expect(sent[0]?.html).toContain("http://web/boards/b1");
+    expect(outbox.messages[0]?.message).toEqual({
+      type: "email.board-invite",
+      to: "ann@x.io",
+      boardId: "b1",
+      boardTitle: "Mine",
+      inviterName: "Olive",
+    });
+    expect(notifications.kinds("ann")).toEqual(["board.invited"]);
   });
 
-  it("keeps the invite and reports 502 when delivery fails", async () => {
-    const { invite, grants } = setup(false);
-    const result = await invite.execute({ ...input, email: "ann@x.io" });
-    expect(result.isErr() && result.error).toMatchObject({
-      code: "BadGateway",
-      details: { emailSent: false },
-    });
-    expect(grants.members).toHaveLength(1);
+  it("queues the email but notifies nobody when the invitee has no account yet", async () => {
+    const { invite, outbox, notifications } = setup();
+    await invite.execute({ ...input, email: "new@x.io" });
+    expect(outbox.messages).toHaveLength(1);
+    expect(notifications.sent).toHaveLength(0);
   });
 
   it("rejects bad addresses, self-invites and non-owners without side effects", async () => {
-    const { invite, grants, sent } = setup(true);
+    const { invite, grants, outbox } = setup();
     expect((await invite.execute({ ...input, email: "nope" })).isErr()).toBe(
       true
     );
@@ -346,11 +338,11 @@ describe("invites", () => {
     });
     expect(outsider.isErr() && outsider.error.code).toBe("NotFound");
     expect(grants.members).toHaveLength(0);
-    expect(sent).toHaveLength(0);
+    expect(outbox.messages).toHaveLength(0);
   });
 
   it("removes members by user id or pending email; the owner is protected", async () => {
-    const { grants, guard } = setup(true);
+    const { grants, guard, uow, comments } = setup();
     grants.members.push(
       {
         boardId: "b1",
@@ -367,11 +359,27 @@ describe("invites", () => {
         role: "viewer",
       }
     );
-    const remove = new RemoveBoardMember(guard, grants);
+    comments.rows.set("c1", {
+      id: "c1",
+      boardId: "b1",
+      pageId: "p",
+      x: 0,
+      y: 0,
+      body: "hi",
+      authorId: "owner",
+      createdAt: new Date(),
+      editedAt: null,
+      resolvedAt: null,
+      resolvedById: null,
+      assigneeId: "u1",
+      parentId: null,
+    });
+    const remove = new RemoveBoardMember(guard, uow);
     const actor = { userId: "owner" };
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "u1" })).isOk()
     ).toBe(true);
+    expect(comments.rows.get("c1")?.assigneeId).toBeNull();
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "p@x.io" })).isOk()
     ).toBe(true);
@@ -384,7 +392,7 @@ describe("invites", () => {
   });
 
   it("GetBoard reports the shared role to an invited viewer", async () => {
-    const { grants, guard } = setup(true);
+    const { grants, guard } = setup();
     grants.members.push({
       boardId: "b1",
       userId: "u1",

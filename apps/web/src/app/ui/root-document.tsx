@@ -18,6 +18,12 @@ export const RootDocument = () => {
   const onBoard = useRouterState({
     select: (state) => state.location.pathname.startsWith("/boards/"),
   });
+  // Onboarding has no app to navigate yet, so it hides the header too.
+  const bare = useRouterState({
+    select: ({ location }) =>
+      location.pathname.startsWith("/boards/") ||
+      location.pathname === "/onboarding",
+  });
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -28,7 +34,7 @@ export const RootDocument = () => {
         <Providers>
           <MotionConfig reducedMotion="user">
             <div className="flex min-h-svh flex-col">
-              {onBoard ? null : <Header />}
+              {bare ? null : <Header />}
               <main className="flex flex-1 flex-col">
                 <ViewTransition default="page-swap">
                   <Outlet />

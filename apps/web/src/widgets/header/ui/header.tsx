@@ -3,6 +3,7 @@ import { motion, useMotionValueEvent, useScroll } from "motion/react";
 import { useState } from "react";
 
 import { useSession } from "@/entities/session";
+import { NotificationsBell } from "@/features/notifications";
 import { UserMenu } from "@/features/user-menu";
 import { BrandMark } from "@/shared/ui";
 
@@ -61,7 +62,8 @@ export const Header = () => {
           <BrandMark className="size-8" />
         </motion.span>
       </Link>
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-1.5">
+        {session ? <NotificationsBell /> : null}
         <UserMenu />
       </div>
     </motion.header>

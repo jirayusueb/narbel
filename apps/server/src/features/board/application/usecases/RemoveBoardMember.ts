@@ -1,13 +1,14 @@
+import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import type { IBoardAccessRepository } from "../ports/IBoardAccessRepository";
+import type { BoardTx } from "../ports/BoardTx";
 
 export class RemoveBoardMember {
   constructor(
     private readonly guard: BoardAccessGuard,
-    private readonly grants: IBoardAccessRepository
+    private readonly uow: IUnitOfWork<BoardTx>
   ) {}
 
   async execute(input: {
@@ -27,7 +28,16 @@ export class RemoveBoardMember {
     if (granted.value.board.ownerId === input.member) {
       return err(AppError.validation("The owner cannot be removed"));
     }
-    const removed = await this.grants.removeMember(input.boardId, input.member);
-    return removed ? okEmpty() : err(AppError.notFound("Member"));
+    return await this.uow.run(async (tx) => {
+      const removed = await tx.grants.removeMember(input.boardId, input.member);
+      if (!removed) {
+        return err(AppError.notFound("Member"));
+      }
+      // someone without access cannot own work on the board
+      if (removed.userId) {
+        await tx.comments.clearAssignee(input.boardId, removed.userId);
+      }
+      return okEmpty();
+    });
   }
 }

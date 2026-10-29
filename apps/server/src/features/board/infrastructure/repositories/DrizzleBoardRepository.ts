@@ -1,5 +1,5 @@
 import { desc, eq, or } from "@narbel/db";
-import type { Database } from "@narbel/db";
+import type { DbExecutor } from "@narbel/db";
 import { board, boardAccess } from "@narbel/db/schema/board";
 
 import type { IBoardRepository } from "../../application/ports/IBoardRepository";
@@ -10,7 +10,7 @@ type BoardRow = typeof board.$inferSelect;
 const toDomain = (row: BoardRow) => Board.restore(row);
 
 export class DrizzleBoardRepository implements IBoardRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: DbExecutor) {}
 
   async findById(id: string) {
     const [row] = await this.db

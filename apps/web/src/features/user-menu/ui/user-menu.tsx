@@ -9,11 +9,12 @@ import {
 } from "@narbel/ui/components/dropdown-menu";
 import { Skeleton } from "@narbel/ui/components/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { LogOut, Monitor, Moon, Sun, UserRound } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 
 import { useSession } from "@/entities/session";
+import { UserAvatar, useMe } from "@/entities/user";
 import { authClient } from "@/shared/lib";
 
 const THEMES = [
@@ -25,6 +26,7 @@ const THEMES = [
 export const UserMenu = () => {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
+  const { data: me } = useMe();
   const { theme = "system", setTheme } = useTheme();
 
   if (isPending) {
@@ -51,13 +53,14 @@ export const UserMenu = () => {
     );
   }
 
-  const { name, email } = session.user;
-  const initials = name
-    .split(/\s+/u)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const { id: userId, email } = session.user;
+  const user = {
+    id: userId,
+    name: me?.name ?? session.user.name,
+    username: me?.username ?? null,
+    avatarUrl: me?.avatarUrl ?? null,
+  };
+  const { name } = user;
 
   return (
     <DropdownMenuTrigger>
@@ -66,20 +69,27 @@ export const UserMenu = () => {
         aria-label={`Account menu for ${name}`}
         className="h-10 gap-2.5 rounded-full pr-4 pl-1"
       >
-        <span
-          aria-hidden="true"
-          className="bg-citrus text-citrus-foreground flex size-8 items-center justify-center rounded-full text-xs font-semibold"
-        >
-          {initials}
-        </span>
+        <UserAvatar user={user} size={32} />
         <span className="max-w-32 truncate max-sm:hidden">{name}</span>
       </Button>
       <DropdownMenu placement="bottom end" className="min-w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex flex-col gap-0.5">
             <span className="text-foreground text-sm font-medium">{name}</span>
-            <span className="truncate">{email}</span>
+            <span className="truncate">
+              {user.username ? `@${user.username}` : email}
+            </span>
           </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem
+            textValue="Profile"
+            onAction={() => navigate({ to: "/settings/profile" })}
+          >
+            <UserRound />
+            Profile
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup

@@ -7,7 +7,7 @@ import {
 } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import type { BoardUseCases } from "../../ioc";
-import { actorFrom, unlockCookieName } from "./actor";
+import { actorFrom, shareQuery, unlockCookieName } from "./actor";
 
 const params = t.Object({ id: t.String() });
 const role = t.Union([t.Literal("editor"), t.Literal("viewer")]);
@@ -74,6 +74,17 @@ export const createBoardAccessController = (
           })
         );
       }
+    )
+    .get(
+      "/members",
+      { authOptional: true, params, query: shareQuery },
+      async ({ user, request, params: { id } }) =>
+        asWire(
+          await uc.listBoardMembers.execute({
+            actor: actorFrom(request, user, id),
+            boardId: id,
+          })
+        )
     )
     .post(
       "/invite",

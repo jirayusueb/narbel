@@ -246,5 +246,57 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
         })
       )
   );
+  server.registerTool(
+    "list_comments",
+    {
+      description:
+        "List comment threads of a board, newest first, with author, assignee, reactions and reply count. Page with nextCursor (pass it back as cursor).",
+      inputSchema: {
+        boardId,
+        pageId: pageId.describe("Only this page; omit for the whole board"),
+        status: z
+          .enum(["open", "resolved", "all"])
+          .optional()
+          .describe("Defaults to open"),
+        cursor: z
+          .string()
+          .optional()
+          .describe("nextCursor of the previous call"),
+        limit: z.number().int().min(1).max(100).optional(),
+      },
+    },
+    async (input) =>
+      reply(
+        await uc.listComments.execute({
+          actor,
+          boardId: input.boardId,
+          pageId: input.pageId,
+          status: input.status,
+          cursor: input.cursor,
+          limit: input.limit,
+        })
+      )
+  );
+  server.registerTool(
+    "reply_comment",
+    {
+      description:
+        "Reply to a comment thread as the owner of the API key. The thread author and assignee are notified like for any reply. Markdown, up to 2000 characters; @username mentions notify board members.",
+      inputSchema: {
+        boardId,
+        commentId: z.string().describe("Id of a comment from list_comments"),
+        body: z.string().describe("Reply text in markdown"),
+      },
+    },
+    async (input) =>
+      reply(
+        await uc.replyToComment.execute({
+          actor,
+          boardId: input.boardId,
+          commentId: input.commentId,
+          body: input.body,
+        })
+      )
+  );
   return server;
 };

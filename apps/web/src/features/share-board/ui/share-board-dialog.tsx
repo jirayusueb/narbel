@@ -21,6 +21,7 @@ import {
   useRemoveMember,
 } from "@/entities/board";
 import type { Board, BoardAccess, Visibility } from "@/entities/board";
+import { UserAvatar } from "@/entities/user";
 import { useCopy } from "@/shared/lib";
 
 const selectClass =
@@ -312,9 +313,20 @@ const MembersSection = ({
               key={member.userId ?? member.email}
               className="flex items-center justify-between gap-2 text-sm"
             >
-              <span className="min-w-0 truncate">
-                {member.name || member.email}
-                <span className="text-muted-foreground"> {member.email}</span>
+              <span className="flex min-w-0 items-center gap-2.5">
+                <UserAvatar
+                  size={28}
+                  user={{
+                    id: member.userId ?? member.email,
+                    name: member.name || member.email,
+                    username: null,
+                    avatarUrl: member.userId ? undefined : null,
+                  }}
+                />
+                <span className="min-w-0 truncate">
+                  {member.name || member.email}
+                  <span className="text-muted-foreground"> {member.email}</span>
+                </span>
               </span>
               <span className="flex shrink-0 items-center gap-1">
                 {member.userId ? null : (

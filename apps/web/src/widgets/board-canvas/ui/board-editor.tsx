@@ -12,8 +12,15 @@ import { useState } from "react";
 
 import type { Board } from "@/entities/board";
 import { useSession } from "@/entities/session";
+import { useMe } from "@/entities/user";
 import { useBoardCollab } from "@/features/board-collab";
-import { CommentModeToggle, CommentsLayer } from "@/features/board-comments";
+import {
+  CommentModeToggle,
+  CommentsLayer,
+  CommentsPanel,
+  CommentsPanelToggle,
+  useCommentsWorkspace,
+} from "@/features/board-comments";
 import { useBoardMedia } from "@/features/board-media";
 import { PagesBar, usePages } from "@/features/board-pages";
 import {
@@ -21,6 +28,7 @@ import {
   usePreferences,
 } from "@/features/board-preferences";
 import { PresenceBar, usePresence } from "@/features/board-presence";
+import { NotificationsBell } from "@/features/notifications";
 import { openRenameBoardDialog } from "@/features/rename-board";
 import { openShareBoardDialog } from "@/features/share-board";
 import { UserMenu } from "@/features/user-menu";
@@ -35,11 +43,14 @@ const PHONE_QUERY =
 export const BoardEditor = ({
   board,
   shareToken,
+  focusComment,
 }: {
   board: Board;
   shareToken?: string;
+  focusComment?: string;
 }) => {
   const { data: session } = useSession();
+  const { data: me } = useMe();
   const userId = session?.user.id ?? "";
   const navigate = useNavigate();
   const [pageId, setPageId] = useState<string | null>(null);
@@ -57,7 +68,12 @@ export const BoardEditor = ({
   const { api, bindApi, doc, awareness, status, onChange, onPointerUpdate } =
     useBoardCollab({
       boardId: board.id,
-      userName: session?.user.name ?? "Anonymous",
+      user: {
+        id: userId,
+        name: me?.name ?? session?.user.name ?? "Anonymous",
+        username: me?.username ?? null,
+        avatarUrl: me?.avatarUrl ?? null,
+      },
       pageId,
       canWrite,
       shareToken,
@@ -78,6 +94,18 @@ export const BoardEditor = ({
   });
   const presence = usePresence({ awareness, api, pageId, setPageId });
   const preferences = usePreferences({ userId, api });
+  const { env, panelOpen, setPanelOpen, focusedId, selectThread } =
+    useCommentsWorkspace({
+      boardId: board.id,
+      shareToken,
+      canWrite,
+      isOwner,
+      userId,
+      focusComment,
+      api,
+      pages: pages.pages,
+      setPageId,
+    });
 
   const presenceProps = {
     peers: presence.peers,
@@ -126,6 +154,7 @@ export const BoardEditor = ({
                     onChange={setCommentMode}
                   />
                 ) : null}
+                <CommentsPanelToggle open={panelOpen} onChange={setPanelOpen} />
                 {isOwner ? (
                   <Button
                     variant="citrus"
@@ -137,6 +166,7 @@ export const BoardEditor = ({
                   </Button>
                 ) : null}
               </div>
+              <NotificationsBell />
               <UserMenu />
             </motion.div>
           )
@@ -187,27 +217,38 @@ export const BoardEditor = ({
         <Footer>{isPhone ? null : <PagesBar {...pagesProps} />}</Footer>
       </Excalidraw>
       <CommentsLayer
-        boardId={board.id}
+        env={env}
         key={pageId ?? ""}
         pageId={pageId}
         api={api}
-        shareToken={shareToken}
-        canWrite={canWrite}
-        isOwner={isOwner}
-        userId={userId}
         mode={commentMode}
+        focusedId={focusedId}
         onModeChange={setCommentMode}
+        onSelect={selectThread}
       />
+      {panelOpen ? (
+        <aside className="max-md:bg-background absolute inset-0 z-30 max-md:p-2.5 md:inset-x-auto md:top-[76px] md:right-3 md:bottom-3 md:w-96">
+          <CommentsPanel
+            env={env}
+            pageId={pageId}
+            focusedId={focusedId}
+            startAllPages={focusComment !== undefined}
+            onSelect={selectThread}
+            onClose={() => setPanelOpen(false)}
+          />
+        </aside>
+      ) : null}
       {isPhone ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="absolute bottom-8 left-1/2 z-[4] -translate-x-1/2"
-          onPress={handleOpenDrawer}
-        >
-          <Users data-icon="inline-start" />
-          Board
-        </Button>
+        <div className="absolute bottom-8 left-1/2 z-[4] flex -translate-x-1/2 items-center gap-1.5">
+          <Button variant="secondary" size="sm" onPress={handleOpenDrawer}>
+            <Users data-icon="inline-start" />
+            Board
+          </Button>
+          <div className="bg-card flex rounded-[10px] shadow-[var(--shadow-island)]">
+            <CommentsPanelToggle open={panelOpen} onChange={setPanelOpen} />
+            <NotificationsBell />
+          </div>
+        </div>
       ) : (
         <BoardIdentity board={board} status={status} />
       )}

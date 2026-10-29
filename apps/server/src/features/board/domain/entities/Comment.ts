@@ -12,29 +12,39 @@ export interface Comment {
   y: number;
   body: string;
   authorId: string;
-  authorName: string;
   createdAt: Date;
+  editedAt: Date | null;
   resolvedAt: Date | null;
+  resolvedById: string | null;
+  assigneeId: string | null;
+  /** null for a thread root; replies are one level deep and always point at the root */
   parentId: string | null;
 }
 
+export const threadIdOf = (comment: Comment) => comment.parentId ?? comment.id;
+
+export const validateCommentBody = (raw: string): Result<string, AppError> => {
+  const body = raw.trim();
+  return body.length < 1 || body.length > COMMENT_MAX_LENGTH
+    ? err(
+        AppError.validation(
+          `Comment must be 1 to ${COMMENT_MAX_LENGTH} characters`
+        )
+      )
+    : ok(body);
+};
+
 export const newComment = (
-  input: Pick<Comment, "id" | "boardId" | "authorId" | "authorName"> & {
-    pageId: string;
-    x: number;
-    y: number;
+  input: Pick<Comment, "id" | "boardId" | "authorId" | "pageId" | "x" | "y"> & {
     body: string;
     parentId: string | null;
+    assigneeId: string | null;
   },
   now: Date
 ): Result<Comment, AppError> => {
-  const body = input.body.trim();
-  if (body.length < 1 || body.length > COMMENT_MAX_LENGTH) {
-    return err(
-      AppError.validation(
-        `Comment must be 1 to ${COMMENT_MAX_LENGTH} characters`
-      )
-    );
+  const body = validateCommentBody(input.body);
+  if (body.isErr()) {
+    return err(body.error);
   }
   if (!Number.isFinite(input.x) || !Number.isFinite(input.y)) {
     return err(AppError.validation("Comment position must be finite numbers"));
@@ -42,5 +52,34 @@ export const newComment = (
   if (input.pageId.length < 1) {
     return err(AppError.validation("pageId is required"));
   }
-  return ok({ ...input, body, createdAt: now, resolvedAt: null });
+  return ok({
+    ...input,
+    body: body.value,
+    createdAt: now,
+    editedAt: null,
+    resolvedAt: null,
+    resolvedById: null,
+  });
 };
+
+export const withBody = (
+  comment: Comment,
+  raw: string,
+  now: Date
+): Result<Comment, AppError> => {
+  const body = validateCommentBody(raw);
+  return body.isErr()
+    ? err(body.error)
+    : ok({ ...comment, body: body.value, editedAt: now });
+};
+
+export const resolved = (comment: Comment, by: string, now: Date): Comment =>
+  comment.resolvedAt
+    ? comment
+    : { ...comment, resolvedAt: now, resolvedById: by };
+
+export const reopened = (comment: Comment): Comment => ({
+  ...comment,
+  resolvedAt: null,
+  resolvedById: null,
+});

@@ -5,9 +5,10 @@ import { Elysia } from "elysia";
 
 import { createAuthModule, createBetterAuthPlugin } from "../features/auth";
 import { createBoardModule } from "../features/board";
-import type { S3Config } from "../features/board/infrastructure/services/BunS3FileStorage";
-import type { ResendConfig } from "../features/board/infrastructure/services/ResendEmailSender";
+import { createNotificationModule } from "../features/notification";
+import { createProfileModule } from "../features/profile";
 import type { ICache } from "../shared/application/interfaces/ICache";
+import type { IFileStorage } from "../shared/application/interfaces/IFileStorage";
 import type { IPubSub } from "../shared/application/interfaces/IPubSub";
 import { errorPlugin } from "../shared/presentation/plugins/errorPlugin";
 import { originGuard } from "../shared/presentation/plugins/originGuard";
@@ -19,9 +20,10 @@ export interface AppDeps {
   auth: Parameters<typeof createBetterAuthPlugin>[0];
   db: Database;
   corsOrigin: string;
-  s3: S3Config;
-  resend: ResendConfig;
+  storage: IFileStorage;
   webOrigin: string;
+  /** where browsers reach this API; avatar urls point here */
+  apiOrigin: string;
   /** signs unlock cookies */
   secret: string;
   cache: ICache;
@@ -32,20 +34,23 @@ export const createApp = ({
   auth,
   db,
   corsOrigin,
-  s3,
-  resend,
+  storage,
   webOrigin,
+  apiOrigin,
   secret,
   cache,
   pubsub,
 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
-  return new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BYTES } })
+  return new Elysia({
+    // the notification stream is idle between 25s heartbeats; Bun's 10s default would cut it
+    serve: { maxRequestBodySize: MAX_REQUEST_BODY_BYTES, idleTimeout: 60 },
+  })
     .use(originGuard(corsOrigin))
     .use(
       cors({
         origin: corsOrigin,
-        methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
         credentials: true,
       })
@@ -54,12 +59,14 @@ export const createApp = ({
     .use(errorPlugin)
     .get("/", () => "OK")
     .use(createAuthModule({ auth }))
+    .use(createProfileModule({ db, storage, apiOrigin, betterAuth }))
+    .use(createNotificationModule({ db, pubsub, betterAuth }))
     .use(
       createBoardModule({
         db,
-        s3,
-        resend,
+        storage,
         webOrigin,
+        apiOrigin,
         secret,
         cache,
         pubsub,

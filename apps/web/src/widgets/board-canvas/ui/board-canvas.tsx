@@ -14,15 +14,21 @@ const BoardEditor = lazy(async () => {
 export const BoardCanvas = ({
   board,
   shareToken,
+  focusComment,
 }: {
   board: Board;
   shareToken?: string;
+  focusComment?: string;
 }) => {
   const placeholder = <BoardSkeleton />;
   return (
     <ClientOnly fallback={placeholder}>
       <Suspense fallback={placeholder}>
-        <BoardEditor board={board} shareToken={shareToken} />
+        <BoardEditor
+          board={board}
+          shareToken={shareToken}
+          focusComment={focusComment}
+        />
       </Suspense>
     </ClientOnly>
   );

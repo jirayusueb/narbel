@@ -5,9 +5,11 @@ import type {
 import { useEffect, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 
+import type { UserRef } from "@/entities/user";
+
 export interface Peer {
   clientId: number;
-  name: string;
+  user: UserRef;
 }
 
 interface Viewport {
@@ -38,14 +40,21 @@ export const usePresence = ({
       const next: Peer[] = [];
       for (const [clientId, state] of awareness.getStates()) {
         if (clientId !== awareness.clientID && state.user?.name) {
-          next.push({ clientId, name: state.user.name });
+          next.push({
+            clientId,
+            user: { id: String(clientId), ...state.user },
+          });
         }
       }
       // Pointer and viewport updates also fire "change"; keep the identity when the roster is the same.
       setPeers((prev) =>
         prev.length === next.length &&
         prev.every(
-          (p, i) => p.clientId === next[i].clientId && p.name === next[i].name
+          (p, i) =>
+            p.clientId === next[i].clientId &&
+            p.user.id === next[i].user.id &&
+            p.user.name === next[i].user.name &&
+            p.user.avatarUrl === next[i].user.avatarUrl
         )
           ? prev
           : next
