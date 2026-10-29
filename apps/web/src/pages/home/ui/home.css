@@ -102,6 +102,17 @@
   transform: translate(590px, 396px);
 }
 
+/* Below md the 960-unit scene renders under 0.75x: box labels and cursor tags grow so they stay legible. */
+@media (width < 48rem) {
+  .home-stage-label {
+    font-size: 30px;
+  }
+
+  .home-stage-cursor {
+    scale: 1.5;
+  }
+}
+
 @keyframes home-rise {
   from {
     opacity: 0;

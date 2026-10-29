@@ -29,7 +29,7 @@ export const ProfileForm = () => {
   const remove = useRemoveAvatar();
 
   if (!me) {
-    return <Skeleton className="h-72 w-full rounded-[20px]" />;
+    return <Skeleton className="h-72 w-full rounded-xl" />;
   }
 
   const name = draft ?? me.name;
@@ -68,7 +68,7 @@ export const ProfileForm = () => {
   };
 
   return (
-    <div className="bg-card shadow-surface flex flex-col gap-8 rounded-[20px] p-6 sm:p-8">
+    <div className="bg-card shadow-surface flex flex-col gap-8 rounded-xl p-6 sm:p-8">
       <section className="flex flex-wrap items-center gap-5">
         <UserAvatar user={me} size={80} />
         <div className="flex flex-col gap-3">

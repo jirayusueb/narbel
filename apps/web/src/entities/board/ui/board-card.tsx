@@ -17,13 +17,13 @@ export const BoardCard = ({
   board: Board;
   actions?: ReactNode;
 }) => (
-  <div className="bg-card shadow-surface ease-intent hover:shadow-elevated group relative flex min-h-36 flex-col justify-between gap-6 rounded-[20px] p-5 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+  <div className="bg-card shadow-surface ease-intent hover:shadow-elevated group relative flex min-h-36 flex-col justify-between gap-6 rounded-xl p-5 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
     <h3 className="font-display text-feature line-clamp-2 pr-16 leading-tight font-normal break-words">
       <ViewTransition name={`board-title-${board.id}`}>
         <Link
           to="/boards/$boardId"
           params={{ boardId: board.id }}
-          className="focus-visible:outline-ring rounded-[8px] after:absolute after:inset-0 after:rounded-[20px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
+          className="focus-visible:outline-ring rounded-sm after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
         >
           {board.title}
         </Link>
@@ -40,7 +40,7 @@ export const BoardCard = ({
         </span>
       </span>
       {board.shared ? (
-        <span className="bg-muted text-muted-foreground rounded-[8px] px-2 py-0.5 text-xs font-medium capitalize">
+        <span className="bg-muted text-muted-foreground rounded-sm px-2 py-0.5 text-xs font-medium capitalize">
           {board.role}
         </span>
       ) : null}

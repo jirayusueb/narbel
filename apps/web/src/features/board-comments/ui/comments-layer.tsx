@@ -241,7 +241,7 @@ export const CommentsLayer = ({
             initial={{ opacity: 0, scale: 0.94, y: 4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-popover text-popover-foreground shadow-elevated ring-border pointer-events-auto absolute z-20 w-80 max-w-[calc(100%-1.5rem)] origin-top-left rounded-[20px] p-4 ring-1"
+            className="bg-popover text-popover-foreground shadow-elevated ring-border pointer-events-auto absolute z-20 w-80 max-w-[calc(100%-1.5rem)] origin-top-left rounded-xl p-4 ring-1"
             style={{ left: at.left + 14, top: at.top }}
           >
             <CommentComposer

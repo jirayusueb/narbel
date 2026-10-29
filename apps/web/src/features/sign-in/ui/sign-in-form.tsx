@@ -50,7 +50,7 @@ export const SignInForm = ({
   }
 
   return (
-    <div className="bg-card shadow-surface mx-auto flex w-full max-w-md flex-col gap-8 rounded-[20px] p-6 sm:p-8">
+    <div className="bg-card shadow-surface mx-auto flex w-full max-w-md flex-col gap-8 rounded-xl p-6 sm:p-8">
       <div className="flex flex-col gap-2">
         <h1 className="font-display text-headline leading-tight font-normal">
           Sign in

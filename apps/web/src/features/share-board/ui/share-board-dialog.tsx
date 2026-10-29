@@ -25,7 +25,7 @@ import { UserAvatar } from "@/entities/user";
 import { useCopy } from "@/shared/lib";
 
 const selectClass =
-  "h-10 rounded-[10px] border border-input bg-card px-3 text-sm outline-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40";
+  "h-10 rounded-md border border-input bg-card px-3 text-sm outline-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40";
 
 const Select = (props: ComponentProps<"select">) => (
   <select className={selectClass} {...props} />
@@ -88,7 +88,7 @@ const VisibilitySection = ({
     <Section title="Who can open this board">
       <fieldset
         aria-label="Visibility"
-        className="bg-muted m-0 flex min-w-0 flex-col gap-1 rounded-[20px] border-0 p-1.5"
+        className="bg-muted m-0 flex min-w-0 flex-col gap-1 rounded-xl border-0 p-1.5"
       >
         {VISIBILITY_OPTIONS.map(({ value, label, hint, Icon }) => (
           <button
@@ -96,7 +96,7 @@ const VisibilitySection = ({
             type="button"
             aria-pressed={choice === value}
             aria-disabled={patch.isPending}
-            className={`focus-visible:outline-ring flex cursor-pointer items-center gap-3 rounded-[15px] p-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid aria-disabled:cursor-default aria-disabled:opacity-60 ${
+            className={`focus-visible:outline-ring flex cursor-pointer items-center gap-3 rounded-lg p-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid aria-disabled:cursor-default aria-disabled:opacity-60 ${
               choice === value ? "bg-card shadow-surface" : "hover:bg-card/60"
             }`}
             onClick={() => {
@@ -120,7 +120,7 @@ const VisibilitySection = ({
             }}
           >
             <span
-              className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] ${
+              className={`flex size-9 shrink-0 items-center justify-center rounded-md ${
                 choice === value
                   ? "bg-citrus text-citrus-foreground"
                   : "bg-background text-muted-foreground"
@@ -226,7 +226,7 @@ const LinkSection = ({
         </Select>
       </div>
       {enabled && share ? (
-        <div className="bg-muted flex items-center gap-2 rounded-[15px] p-1.5 pl-3">
+        <div className="bg-muted flex items-center gap-2 rounded-lg p-1.5 pl-3">
           <input
             readOnly
             aria-label="Share link"

@@ -116,7 +116,7 @@ export const DashboardPage = () => {
               {[0, 1, 2].map((index) => (
                 <div
                   key={index}
-                  className={`bg-card shadow-surface flex min-h-36 flex-col justify-between rounded-[20px] p-5 ${index === 2 ? "max-lg:hidden" : ""}`}
+                  className={`bg-card shadow-surface flex min-h-36 flex-col justify-between rounded-xl p-5 ${index === 2 ? "max-lg:hidden" : ""}`}
                 >
                   <div className="flex flex-col gap-2">
                     <Skeleton className="h-5 w-3/4 rounded-full" />
@@ -131,7 +131,7 @@ export const DashboardPage = () => {
             <p className="text-destructive text-sm">{error.message}</p>
           ) : null}
           {boards?.length === 0 ? (
-            <div className="bg-card shadow-surface flex flex-col items-start gap-6 overflow-hidden rounded-[20px] p-8 sm:flex-row sm:items-center sm:justify-between md:p-12">
+            <div className="bg-card shadow-surface flex flex-col items-start gap-6 overflow-hidden rounded-xl p-8 sm:flex-row sm:items-center sm:justify-between md:p-12">
               <div className="flex flex-col items-start gap-6">
                 <div className="flex flex-col gap-2">
                   <h2 className="font-display text-headline leading-tight font-normal">

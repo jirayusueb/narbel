@@ -61,7 +61,7 @@ export const MentionHighlight = Extension.create({
                   Decoration.inline(
                     pos + match.index,
                     pos + match.index + match[0].length,
-                    { class: "rounded-[5px] bg-muted px-0.5 font-medium" }
+                    { class: "rounded-xs bg-muted px-0.5 font-medium" }
                   )
                 );
               }

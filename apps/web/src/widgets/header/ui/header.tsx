@@ -8,7 +8,7 @@ import { UserMenu } from "@/features/user-menu";
 import { BrandMark } from "@/shared/ui";
 
 const NAV_LINK =
-  "rounded-[8px] px-1 py-0.5 text-sm text-foreground decoration-transparent underline underline-offset-[0.35em] transition-colors duration-300 hover:decoration-foreground data-[status=active]:decoration-foreground";
+  "focus-visible:outline-ring rounded-sm px-1 py-0.5 text-sm text-foreground decoration-transparent underline underline-offset-[0.35em] transition-colors duration-300 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid data-[status=active]:decoration-foreground";
 
 // Below this the header always shows; past it, scrolling down tucks it away and any scroll up brings it back.
 const TUCK_AFTER = 120;
@@ -52,7 +52,7 @@ export const Header = () => {
       <Link
         to="/"
         aria-label="narbel home"
-        className="text-foreground rounded-[10px]"
+        className="text-foreground focus-visible:outline-ring rounded-md focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
       >
         <motion.span
           className="block"

@@ -99,6 +99,9 @@
   --text-display: 5.625rem;
   --text-display--line-height: 0.95;
   --text-display--letter-spacing: -0.04em;
+  --text-closing: 4rem;
+  --text-closing--line-height: 0.95;
+  --text-closing--letter-spacing: -0.04em;
   --text-title: 2.5rem;
   --text-title--line-height: 1;
   --text-title--letter-spacing: -0.035em;

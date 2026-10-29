@@ -1,5 +1,10 @@
 @import "@narbel/ui/globals.css";
 
+/* Keeps focused elements and hash targets clear of the 80px sticky header. */
+html {
+  scroll-padding-top: 6rem;
+}
+
 /* Intent motion language: old content leaves fast, new content arrives and rises. */
 ::view-transition-old(root),
 ::view-transition-old(.page-swap) {

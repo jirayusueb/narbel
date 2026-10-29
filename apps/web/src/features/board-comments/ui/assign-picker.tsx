@@ -54,7 +54,7 @@ export const AssignPicker = ({
       <Popover
         aria-label="Assign to a member"
         placement="bottom start"
-        className="w-64 gap-2 rounded-[15px] p-2"
+        className="w-64 gap-2 rounded-lg p-2"
       >
         <Input
           autoFocus
@@ -73,7 +73,7 @@ export const AssignPicker = ({
                 type="button"
                 aria-current={assignee?.id === member.userId}
                 onClick={() => assign(member.userId)}
-                className="hover:bg-accent focus-visible:outline-ring aria-[current=true]:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-solid"
+                className="hover:bg-accent focus-visible:outline-ring aria-[current=true]:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-solid"
               >
                 <UserAvatar size={24} user={{ id: member.userId, ...member }} />
                 <span className="min-w-0 flex-1 truncate font-medium">

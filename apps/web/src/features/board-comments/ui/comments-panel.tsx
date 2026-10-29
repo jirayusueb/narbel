@@ -82,7 +82,7 @@ export const CommentsPanel = ({
   return (
     <section
       aria-label="Comments"
-      className="bg-card shadow-surface flex h-full min-h-0 flex-col rounded-[20px]"
+      className="bg-card shadow-surface flex h-full min-h-0 flex-col rounded-xl"
     >
       <header className="flex items-center justify-between gap-2 pt-4 pr-3 pl-5">
         <h2 className="font-display text-feature font-normal">Comments</h2>
@@ -118,9 +118,9 @@ export const CommentsPanel = ({
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {threads.isPending ? (
           <div className="flex flex-col gap-2 p-2">
-            <Skeleton className="h-20 w-full rounded-[15px]" />
-            <Skeleton className="h-20 w-full rounded-[15px]" />
-            <Skeleton className="h-20 w-full rounded-[15px]" />
+            <Skeleton className="h-20 w-full rounded-lg" />
+            <Skeleton className="h-20 w-full rounded-lg" />
+            <Skeleton className="h-20 w-full rounded-lg" />
           </div>
         ) : null}
         {threads.error ? (
@@ -151,7 +151,7 @@ export const CommentsPanel = ({
         </ul>
         <div ref={sentinel} aria-hidden="true" className="h-px" />
         {threads.isFetchingNextPage ? (
-          <Skeleton className="m-2 h-20 rounded-[15px]" />
+          <Skeleton className="m-2 h-20 rounded-lg" />
         ) : null}
       </div>
     </section>

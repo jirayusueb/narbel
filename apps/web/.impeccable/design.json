@@ -52,6 +52,18 @@
     },
     "typographyMeta": {
       "display": { "displayName": "Display", "purpose": "Landing hero only." },
+      "display-tablet": {
+        "displayName": "Display (tablet)",
+        "purpose": "Landing hero between md and lg."
+      },
+      "display-mobile": {
+        "displayName": "Display (mobile)",
+        "purpose": "Landing hero below md."
+      },
+      "closing": {
+        "displayName": "Closing",
+        "purpose": "The landing's closing call on desktop only."
+      },
       "title": {
         "displayName": "Title",
         "purpose": "Page titles and landing section headings."

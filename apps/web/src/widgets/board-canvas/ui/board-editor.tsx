@@ -165,7 +165,7 @@ export const BoardEditor = ({
               className="flex items-center gap-2"
             >
               <PresenceBar {...presenceProps} />
-              <div className="bg-card flex items-center gap-1 rounded-[15px] p-1 shadow-[var(--shadow-island)]">
+              <div className="bg-card flex items-center gap-1 rounded-lg p-1 shadow-[var(--shadow-island)]">
                 {canWrite ? (
                   <CommentModeToggle
                     active={commentMode}
@@ -267,7 +267,7 @@ export const BoardEditor = ({
             <Users data-icon="inline-start" />
             Board
           </Button>
-          <div className="bg-card flex rounded-[10px] shadow-[var(--shadow-island)]">
+          <div className="bg-card flex rounded-md shadow-[var(--shadow-island)]">
             <CommentsPanelToggle open={panelOpen} onChange={setPanelOpen} />
             <NotificationsBell />
           </div>

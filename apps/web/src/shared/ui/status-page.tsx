@@ -72,11 +72,11 @@ const Scene = ({
           </svg>
           <div className="absolute top-5 right-0 flex flex-col items-end gap-1.5 sm:right-auto sm:left-4 sm:items-start">
             <span
-              className={`rounded-[8px] px-2 py-0.5 text-xs font-semibold ${colors.chip}`}
+              className={`rounded-sm px-2 py-0.5 text-xs font-semibold ${colors.chip}`}
             >
               Agent
             </span>
-            <span className="status-bubble bg-primary text-primary-foreground shadow-elevated w-max max-w-[min(15rem,70vw)] rounded-[15px] rounded-tr-[4px] px-3.5 py-2.5 text-left text-[13px] leading-snug sm:rounded-tl-[4px] sm:rounded-tr-[15px]">
+            <span className="status-bubble bg-primary text-primary-foreground shadow-elevated w-max max-w-[min(15rem,70vw)] rounded-lg rounded-tr-[4px] px-3.5 py-2.5 text-left text-[13px] leading-snug sm:rounded-tl-[4px] sm:rounded-tr-lg">
               {says}
             </span>
           </div>
@@ -187,11 +187,11 @@ export const ErrorState = ({ error, reset }: ErrorComponentProps) => {
       }
     >
       {message ? (
-        <details className="bg-card shadow-surface mt-6 w-full rounded-[15px] text-left">
-          <summary className="text-muted-foreground hover:text-foreground focus-visible:outline-ring cursor-pointer rounded-[15px] px-4 py-3 text-[13px] font-medium focus-visible:outline-2 focus-visible:outline-solid">
+        <details className="bg-card shadow-surface mt-6 w-full rounded-lg text-left">
+          <summary className="text-muted-foreground hover:text-foreground focus-visible:outline-ring cursor-pointer rounded-lg px-4 py-3 text-[13px] font-medium focus-visible:outline-2 focus-visible:outline-solid">
             Error details
           </summary>
-          <pre className="bg-muted text-muted-foreground mx-2 mb-2 overflow-x-auto rounded-[10px] px-3.5 py-3 font-mono text-[12px] leading-relaxed whitespace-pre-wrap">
+          <pre className="bg-muted text-muted-foreground mx-2 mb-2 overflow-x-auto rounded-md px-3.5 py-3 font-mono text-[12px] leading-relaxed whitespace-pre-wrap">
             {message}
           </pre>
         </details>

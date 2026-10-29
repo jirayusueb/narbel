@@ -78,8 +78,8 @@ export const McpKeysPanel = () => {
           </p>
         </div>
       </div>
-      <div className="bg-card flex items-center gap-3 rounded-[15px] py-2 pr-2 pl-3">
-        <span className="bg-citrus text-citrus-foreground shrink-0 rounded-[8px] px-2 text-xs font-medium">
+      <div className="bg-card flex items-center gap-3 rounded-lg py-2 pr-2 pl-3">
+        <span className="bg-citrus text-citrus-foreground shrink-0 rounded-sm px-2 text-xs font-medium">
           POST
         </span>
         <code className="text-moss min-w-0 flex-1 truncate font-mono text-[13px]">
@@ -119,11 +119,11 @@ export const McpKeysPanel = () => {
         </Button>
       </form>
       {fresh ? (
-        <div className="bg-card shadow-surface flex flex-col gap-3 rounded-[20px] p-5">
+        <div className="bg-card shadow-surface flex flex-col gap-3 rounded-xl p-5">
           <p className="text-muted-foreground text-sm">
             Copy this key now. It is shown only once.
           </p>
-          <pre className="bg-muted text-foreground overflow-x-auto rounded-[10px] p-3 font-mono text-[13px]">
+          <pre className="bg-muted text-foreground overflow-x-auto rounded-md p-3 font-mono text-[13px]">
             {clientConfig(fresh)}
           </pre>
           <div className="flex flex-wrap gap-2">
@@ -138,7 +138,7 @@ export const McpKeysPanel = () => {
         </p>
       ) : null}
       {keys.data?.length ? (
-        <ul className="bg-card shadow-surface divide-border divide-y rounded-[20px]">
+        <ul className="bg-card shadow-surface divide-border divide-y rounded-xl">
           {keys.data.map((key) => (
             <li
               key={key.id}

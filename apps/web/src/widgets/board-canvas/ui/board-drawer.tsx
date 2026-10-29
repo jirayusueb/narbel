@@ -34,7 +34,7 @@ const Section = ({
 );
 
 const ROW =
-  "h-11 w-full justify-start rounded-[12px] px-3 font-normal aria-pressed:bg-citrus aria-pressed:text-citrus-foreground";
+  "h-11 w-full justify-start rounded-md px-3 font-normal aria-pressed:bg-citrus aria-pressed:text-citrus-foreground";
 
 // Phones get every board action in one bottom drawer instead of floating islands.
 export const BoardDrawer = ({

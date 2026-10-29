@@ -133,7 +133,7 @@ export const PagesBar = ({
   return (
     <nav
       aria-label="Pages"
-      className="bg-card flex max-w-[min(560px,calc(100vw-420px))] [scrollbar-width:none] items-center gap-0.5 overflow-x-auto rounded-[15px] p-1 shadow-[var(--shadow-island)] [&::-webkit-scrollbar]:hidden"
+      className="bg-card flex max-w-[min(560px,calc(100vw-420px))] [scrollbar-width:none] items-center gap-0.5 overflow-x-auto rounded-lg p-1 shadow-[var(--shadow-island)] [&::-webkit-scrollbar]:hidden"
     >
       <LayoutGroup id={group}>
         {pages.map((page) => {
@@ -141,13 +141,13 @@ export const PagesBar = ({
           return (
             <div
               key={page.id}
-              className={`relative flex h-8 shrink-0 items-center rounded-[10px] ${active ? "text-foreground pr-1" : "text-muted-foreground"}`}
+              className={`relative flex h-8 shrink-0 items-center rounded-md ${active ? "text-foreground pr-1" : "text-muted-foreground"}`}
             >
               {active ? (
                 <motion.span
                   layoutId="active-page"
                   aria-hidden="true"
-                  className="bg-background absolute inset-0 rounded-[10px]"
+                  className="bg-background absolute inset-0 rounded-md"
                   transition={{ duration: 0.3, ease: [0.6, 0, 0.1, 1] }}
                 />
               ) : null}
@@ -207,11 +207,11 @@ export const PagesList = ({
       return (
         <div
           key={page.id}
-          className={`flex items-center gap-1 rounded-[12px] pr-1 ${active ? "bg-card shadow-surface" : ""}`}
+          className={`flex items-center gap-1 rounded-md pr-1 ${active ? "bg-card shadow-surface" : ""}`}
         >
           <Button
             variant="ghost"
-            className={`h-11 flex-1 justify-start rounded-[12px] px-3 ${active ? "font-medium hover:bg-transparent" : "text-muted-foreground font-normal"}`}
+            className={`h-11 flex-1 justify-start rounded-md px-3 ${active ? "font-medium hover:bg-transparent" : "text-muted-foreground font-normal"}`}
             aria-current={active ? "page" : undefined}
             onPress={() => onSelect(page.id)}
           >
@@ -231,7 +231,7 @@ export const PagesList = ({
     {readOnly ? null : (
       <Button
         variant="ghost"
-        className="text-muted-foreground h-11 justify-start rounded-[12px] px-3 font-normal"
+        className="text-muted-foreground h-11 justify-start rounded-md px-3 font-normal"
         onPress={onAdd}
       >
         <Plus data-icon="inline-start" />

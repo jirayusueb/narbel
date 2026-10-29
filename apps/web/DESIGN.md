@@ -30,6 +30,24 @@ typography:
     fontWeight: 400
     lineHeight: 0.95
     letterSpacing: "-0.04em"
+  display-tablet:
+    fontFamily: "Roboto Serif Variable, ui-serif, Georgia, serif"
+    fontSize: "4.5rem"
+    fontWeight: 400
+    lineHeight: 0.95
+    letterSpacing: "-0.04em"
+  display-mobile:
+    fontFamily: "Roboto Serif Variable, ui-serif, Georgia, serif"
+    fontSize: "2.75rem"
+    fontWeight: 400
+    lineHeight: 0.95
+    letterSpacing: "-0.04em"
+  closing:
+    fontFamily: "Roboto Serif Variable, ui-serif, Georgia, serif"
+    fontSize: "4rem"
+    fontWeight: 400
+    lineHeight: 0.95
+    letterSpacing: "-0.04em"
   title:
     fontFamily: "Roboto Serif Variable, ui-serif, Georgia, serif"
     fontSize: "2.5rem"
@@ -204,6 +222,8 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 ### Hierarchy
 
 - **Display** (400, 90px desktop / 72px tablet / 44px mobile, 0.95, -0.04em): landing hero only.
+- **Closing** (400, 64px desktop `text-closing` / 40px mobile `text-title`, 0.95, -0.04em): the landing's closing call ("Draw the next thing together.") only, one step under the hero.
+- **Wordmark** (400 serif, -0.04em): "narbel" in lowercase. Defaults to Feature size (24px); the landing footer scales it to 24vw beside the mark.
 - **Status word** (400, clamp(7rem, 24vw, 18rem), 1, -0.04em): the "404" and "Oops" words on the not-found and error pages only.
 - **Title** (400, 40px, 1, -0.035em): page titles ("Boards"), landing section headings on desktop.
 - **Headline** (400, 32px, 1, -0.035em): section headings, dialog titles, auth panel titles.

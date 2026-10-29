@@ -52,7 +52,7 @@ export const ReactionBar = ({
         <Popover
           aria-label="Choose a reaction"
           placement="bottom start"
-          className="w-auto flex-row gap-0.5 rounded-[15px] p-1.5"
+          className="w-auto flex-row gap-0.5 rounded-lg p-1.5"
         >
           {REACTIONS.map(({ emoji, label }) => {
             const mine =

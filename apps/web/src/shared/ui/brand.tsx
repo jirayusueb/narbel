@@ -21,7 +21,7 @@ export const BrandMark = ({ className }: { className?: string }) => (
 export const Wordmark = ({ className }: { className?: string }) => (
   <span
     className={cn(
-      "font-display text-[1.375rem] leading-none tracking-[-0.04em]",
+      "font-display text-feature leading-none tracking-[-0.04em]",
       className
     )}
   >

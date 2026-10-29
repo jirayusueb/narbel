@@ -22,7 +22,7 @@ export const MAX_BODY = 2000;
 const starter = StarterKit.configure({ link: { openOnClick: false } });
 
 const proseClass =
-  "text-sm [&_a]:underline [&_a]:underline-offset-2 [&_code]:bg-muted [&_code]:font-mono [&_code]:text-[13px] [&_code]:rounded-[5px] [&_code]:px-1 [&_h2]:text-sm [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:bg-muted [&_pre]:rounded-[10px] [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-[13px] [&_ul]:list-disc [&_ul]:pl-5 [&_p.is-empty]:before:pointer-events-none [&_p.is-empty]:before:float-left [&_p.is-empty]:before:h-0 [&_p.is-empty]:before:text-subtle-foreground [&_p.is-empty]:before:content-[attr(data-placeholder)] outline-hidden";
+  "text-sm [&_a]:underline [&_a]:underline-offset-2 [&_code]:bg-muted [&_code]:font-mono [&_code]:text-[13px] [&_code]:rounded-xs [&_code]:px-1 [&_h2]:text-sm [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:bg-muted [&_pre]:rounded-md [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-[13px] [&_ul]:list-disc [&_ul]:pl-5 [&_p.is-empty]:before:pointer-events-none [&_p.is-empty]:before:float-left [&_p.is-empty]:before:h-0 [&_p.is-empty]:before:text-subtle-foreground [&_p.is-empty]:before:content-[attr(data-placeholder)] outline-hidden";
 
 const Tool = ({
   label,
@@ -113,7 +113,7 @@ const MentionList = ({
     // oxlint-disable-next-line prefer-tag-over-role
     role="listbox"
     aria-label="Mention a member"
-    className="bg-popover text-popover-foreground shadow-elevated ring-border fixed z-50 flex w-60 flex-col gap-0.5 rounded-[15px] p-1.5 ring-1"
+    className="bg-popover text-popover-foreground shadow-elevated ring-border fixed z-50 flex w-60 flex-col gap-0.5 rounded-lg p-1.5 ring-1"
     style={{
       left: Math.min(at.left, window.innerWidth - 252),
       top: at.top + 6,
@@ -132,7 +132,7 @@ const MentionList = ({
         // Keep editor focus: picking must not blur the selection the range depends on.
         onPointerDown={(e) => e.preventDefault()}
         onClick={() => onPick(member)}
-        className="aria-selected:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left text-[13px]"
+        className="aria-selected:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px]"
       >
         <UserAvatar size={24} user={{ id: member.userId, ...member }} />
         <span className="min-w-0 flex-1 truncate font-medium">
@@ -194,7 +194,7 @@ export const CommentComposer = ({
     shouldRerenderOnTransaction: true,
     editorProps: {
       attributes: {
-        class: `${proseClass} bg-card border-input focus:outline-ring ${compact ? "min-h-10" : "min-h-16"} rounded-[15px] border px-3 py-2 focus:outline-2 focus:outline-solid focus:outline-offset-3`,
+        class: `${proseClass} bg-card border-input focus:outline-ring ${compact ? "min-h-10" : "min-h-16"} rounded-lg border px-3 py-2 focus:outline-2 focus:outline-solid focus:outline-offset-3`,
         "aria-label": placeholder,
       },
       handleKeyDown: (view, event) => {

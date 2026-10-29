@@ -68,8 +68,8 @@ export const NotificationsBell = () => {
         <ul className="border-border max-h-[26rem] overflow-y-auto border-t p-1.5">
           {list.isPending ? (
             <li className="flex flex-col gap-2 p-2">
-              <Skeleton className="h-12 w-full rounded-[10px]" />
-              <Skeleton className="h-12 w-full rounded-[10px]" />
+              <Skeleton className="h-12 w-full rounded-md" />
+              <Skeleton className="h-12 w-full rounded-md" />
             </li>
           ) : null}
           {list.isSuccess && items.length === 0 ? (
@@ -84,7 +84,7 @@ export const NotificationsBell = () => {
               <li key={item.id}>
                 <button
                   type="button"
-                  className="hover:bg-accent focus-visible:outline-ring flex w-full cursor-pointer items-start gap-3 rounded-[10px] p-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-solid"
+                  className="hover:bg-accent focus-visible:outline-ring flex w-full cursor-pointer items-start gap-3 rounded-md p-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-solid"
                   onClick={() => {
                     if (unreadItem) {
                       markRead.mutate({ ids: [item.id] });

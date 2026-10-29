@@ -44,6 +44,10 @@ The script also creates the `narbel` bucket and its CORS rule for the web origin
 
 With https URLs the session cookie is `SameSite=None; Secure`. If `BETTER_AUTH_URL` is plain http (an IP and port setup) it falls back to `SameSite=Lax` without `Secure`, which only works when web and API share a site.
 
+## Redeploying
+
+Pushing to the deploy branch does not trigger a build (the services use a custom git URL with an SSH key, so GitHub webhooks are not wired). After pushing, redeploy `narbel-api` and/or `narbel-web` from the Dokploy UI or with `POST /api/application.deploy {"applicationId": ...}`. The API applies pending migrations on start.
+
 ## MCP
 
 Create an API key on the dashboard ("MCP access"), then point an MCP client at `POST <api>/mcp` with header `x-api-key: <key>`.

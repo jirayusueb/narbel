@@ -100,7 +100,7 @@ const Replies = ({ thread, env }: { thread: Comment; env: ThreadEnv }) => {
   return (
     <div className="flex flex-col gap-3">
       {replies.isPending && thread.replyCount > 0 ? (
-        <Skeleton className="h-14 w-full rounded-[10px]" />
+        <Skeleton className="h-14 w-full rounded-md" />
       ) : null}
       {items.length > 0 ? (
         <ul className="border-border flex flex-col gap-4 border-t pt-3">
@@ -169,7 +169,7 @@ export const ThreadCard = ({
   return (
     <article
       id={`thread-${thread.id}`}
-      className={`flex flex-col gap-2.5 rounded-[15px] p-3 transition-colors ${expanded ? "bg-muted" : "hover:bg-accent"}`}
+      className={`flex flex-col gap-2.5 rounded-lg p-3 transition-colors ${expanded ? "bg-muted" : "hover:bg-accent"}`}
     >
       {expanded ? (
         <>
@@ -180,7 +180,7 @@ export const ThreadCard = ({
               pageName ? `${pageName}, collapse thread` : "Collapse thread"
             }
             onClick={onToggle}
-            className="text-muted-foreground hover:text-foreground focus-visible:outline-ring -mt-1.5 -mr-1.5 -mb-1.5 flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-1 self-end rounded-[8px] px-1.5 text-xs focus-visible:outline-2 focus-visible:outline-solid"
+            className="text-muted-foreground hover:text-foreground focus-visible:outline-ring -mt-1.5 -mr-1.5 -mb-1.5 flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-1 self-end rounded-sm px-1.5 text-xs focus-visible:outline-2 focus-visible:outline-solid"
           >
             {pageName ? <span>{pageName}</span> : null}
             <ChevronDown className="size-3.5 rotate-180" />
@@ -224,7 +224,7 @@ export const ThreadCard = ({
             type="button"
             aria-expanded={false}
             onClick={onToggle}
-            className="focus-visible:outline-ring flex cursor-pointer items-center gap-2 rounded-[8px] text-left focus-visible:outline-2 focus-visible:outline-solid"
+            className="focus-visible:outline-ring flex cursor-pointer items-center gap-2 rounded-sm text-left focus-visible:outline-2 focus-visible:outline-solid"
           >
             <UserAvatar size={24} user={thread.author} />
             <span className="min-w-0 flex-1 truncate text-[13px] font-medium">

@@ -67,7 +67,7 @@ export const BoardIdentity = ({
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-card shadow-elevated pointer-events-auto absolute top-4 left-[68px] z-[3] flex h-10 max-w-[calc(50vw-310px)] min-w-0 items-center gap-1.5 rounded-[15px] p-1 pr-3"
+      className="bg-card shadow-elevated pointer-events-auto absolute top-4 left-[68px] z-[3] flex h-10 max-w-[calc(50vw-310px)] min-w-0 items-center gap-1.5 rounded-lg p-1 pr-3"
     >
       <Link
         to="/dashboard"
@@ -83,7 +83,7 @@ export const BoardIdentity = ({
               type="button"
               title="Rename board"
               onClick={() => openRenameBoardDialog(board)}
-              className="font-display hover:bg-accent focus-visible:outline-ring block max-w-full cursor-text truncate rounded-[8px] px-1.5 py-0.5 text-[17px] tracking-[-0.02em] transition-colors focus-visible:outline-2 focus-visible:outline-solid"
+              className="font-display hover:bg-accent focus-visible:outline-ring block max-w-full cursor-text truncate rounded-sm px-1.5 py-0.5 text-[17px] tracking-[-0.02em] transition-colors focus-visible:outline-2 focus-visible:outline-solid"
             >
               {board.title}
             </button>

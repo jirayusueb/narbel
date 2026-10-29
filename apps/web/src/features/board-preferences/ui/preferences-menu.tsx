@@ -40,7 +40,7 @@ export const PreferencesToggles = ({ prefs, onChange }: PreferencesProps) => (
         <Button
           variant="ghost"
           aria-pressed={prefs[key]}
-          className="h-11 w-full justify-between rounded-[12px] px-3 font-normal aria-pressed:bg-transparent"
+          className="h-11 w-full justify-between rounded-md px-3 font-normal aria-pressed:bg-transparent"
           onPress={() => onChange({ ...prefs, [key]: !prefs[key] })}
         >
           {PREFERENCE_LABELS[key]}

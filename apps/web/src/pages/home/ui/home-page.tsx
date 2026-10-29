@@ -65,7 +65,7 @@ const TILES_BOTTOM: Tile[] = [
 
 const PEER_STYLE: Record<Peer, string> = {
   ink: "bg-foreground text-background",
-  moss: "bg-chart-2 text-white",
+  moss: "bg-chart-2 text-black",
   olive: "bg-chart-3 text-white",
   agent: "bg-citrus text-citrus-foreground",
 };
@@ -93,6 +93,10 @@ const MCP_TOOLS = [
 ];
 
 const HERO_WORDS = "One board for your team and its agents.".split(" ");
+
+// py-3 makes each footer link a 44px tap target; the ring follows the system focus style.
+const FOOTER_LINK =
+  "hover:decoration-foreground focus-visible:outline-ring rounded-md px-2 py-3 underline decoration-transparent underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-solid";
 
 // Label swap on hover, the way intentapp.dev's buttons roll their text.
 const Roll = ({ children }: { children: ReactNode }) => (
@@ -144,7 +148,7 @@ const MarqueeRow = ({
       {[...tiles, ...tiles].map((tile, index) => (
         <div
           key={index}
-          className="bg-card shadow-surface flex w-64 shrink-0 flex-col gap-5 rounded-[20px] px-5 py-4"
+          className="bg-card shadow-surface flex w-64 shrink-0 flex-col gap-5 rounded-xl px-5 py-4"
         >
           <Avatars peers={tile.peers} />
           <span className="flex flex-col gap-1.5">
@@ -172,23 +176,25 @@ const Cursor = ({
   className: string;
 }) => (
   <g className={className}>
-    <path
-      d="M0 0v19l5.2-4.6 3.6 7.7 3.3-1.5-3.6-7.6H15.5Z"
-      className={`${tone} stroke-card`}
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-    />
-    <rect
-      x="14"
-      y="22"
-      width={name.length * 7.4 + 20}
-      height="24"
-      rx="8"
-      className={tone}
-    />
-    <text x="24" y="38.5" className={ink} fontSize="12.5" fontWeight="600">
-      {name}
-    </text>
+    <g className="home-stage-cursor">
+      <path
+        d="M0 0v19l5.2-4.6 3.6 7.7 3.3-1.5-3.6-7.6H15.5Z"
+        className={`${tone} stroke-card`}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="14"
+        y="22"
+        width={name.length * 7.4 + 20}
+        height="24"
+        rx="8"
+        className={tone}
+      />
+      <text x="24" y="38.5" className={ink} fontSize="12.5" fontWeight="600">
+        {name}
+      </text>
+    </g>
   </g>
 );
 
@@ -217,7 +223,7 @@ const Box = ({
       x={x + 95}
       y={y + 51}
       textAnchor="middle"
-      className="fill-foreground font-display"
+      className="home-stage-label fill-foreground font-display"
       fontSize="22"
     >
       {label}
@@ -255,7 +261,7 @@ const Stage = () => {
       <div
         ref={ref}
         data-play={play}
-        className="home-stage bg-muted shadow-elevated overflow-hidden rounded-[25px] p-2 pt-0"
+        className="home-stage bg-muted shadow-elevated overflow-hidden rounded-2xl p-2 pt-0"
       >
         <div className="flex h-12 items-center gap-3 px-3" aria-hidden="true">
           <span className="flex gap-1.5" aria-hidden="true">
@@ -264,7 +270,7 @@ const Stage = () => {
             <span className="bg-border-strong size-2.5 rounded-full" />
           </span>
           <span className="ml-2 flex items-center gap-1 overflow-hidden text-xs">
-            <span className="bg-card shadow-surface rounded-[10px] px-3 py-1.5 font-medium">
+            <span className="bg-card shadow-surface rounded-md px-3 py-1.5 font-medium">
               System map
             </span>
             <span className="text-muted-foreground px-3 py-1.5 max-sm:hidden">
@@ -276,12 +282,12 @@ const Stage = () => {
           </span>
           <span className="ml-auto flex items-center gap-2.5">
             <Avatars peers={["ink", "moss", "agent"]} />
-            <span className="bg-citrus text-citrus-foreground rounded-[8px] px-2.5 py-1 text-xs font-medium max-sm:hidden">
+            <span className="bg-citrus text-citrus-foreground rounded-sm px-2.5 py-1 text-xs font-medium max-sm:hidden">
               Share
             </span>
           </span>
         </div>
-        <div className="bg-card overflow-hidden rounded-[20px]">
+        <div className="bg-card overflow-hidden rounded-xl">
           <svg
             viewBox="0 30 960 440"
             className="block h-auto w-full font-sans"
@@ -316,7 +322,7 @@ const Stage = () => {
               x="480"
               y="351"
               textAnchor="middle"
-              className="home-stage-show fill-citrus-foreground font-display"
+              className="home-stage-show home-stage-label fill-citrus-foreground font-display"
               fontSize="22"
               style={at(5.8)}
             >
@@ -326,7 +332,7 @@ const Stage = () => {
               <Arrow d="M480 182V292" head="M473 284l7 8 7-8" />
             </g>
 
-            <g className="home-stage-show" style={at(1.6)}>
+            <g className="home-stage-show max-md:hidden" style={at(1.6)}>
               <circle cx="612" cy="262" r="15" className="fill-foreground" />
               <text
                 x="612"
@@ -359,7 +365,7 @@ const Stage = () => {
                 Can we cache board reads?
               </text>
             </g>
-            <g className="home-stage-show" style={at(7.2)}>
+            <g className="home-stage-show max-md:hidden" style={at(7.2)}>
               <rect
                 x="640"
                 y="300"
@@ -408,6 +414,31 @@ const Stage = () => {
               className="home-stage-agent"
             />
           </svg>
+          {/* Below md the scaled SVG would set this thread near 5px, so it reflows as text under the canvas. */}
+          <div
+            aria-hidden="true"
+            className="flex flex-col gap-2 px-3 pb-3 text-sm leading-snug md:hidden"
+          >
+            <div
+              className="home-stage-show flex items-start gap-2"
+              style={at(1.6)}
+            >
+              <span className="bg-foreground text-background flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                M
+              </span>
+              <p className="bg-background rounded-lg px-3.5 py-2.5">
+                <span className="block text-xs font-semibold">Mai</span>
+                Can we cache board reads?
+              </p>
+            </div>
+            <p
+              className="home-stage-show bg-citrus text-citrus-foreground ml-9 self-start rounded-lg px-3.5 py-2.5"
+              style={at(7.2)}
+            >
+              <span className="block text-xs font-semibold">Agent · MCP</span>
+              Added a cache under the server.
+            </p>
+          </div>
         </div>
       </div>
       <figcaption className="text-subtle-foreground mt-4 text-center text-[13px]">
@@ -453,16 +484,16 @@ const FEATURES: {
 ];
 
 const McpSnippet = () => (
-  <div className="bg-card shadow-surface mt-8 overflow-hidden rounded-[20px]">
+  <div className="bg-card shadow-surface mt-8 overflow-hidden rounded-xl">
     <div className="flex items-center gap-2.5 px-5 pt-4 pb-3">
-      <span className="bg-citrus text-citrus-foreground rounded-[8px] px-2 py-0.5 text-xs font-medium">
+      <span className="bg-citrus text-citrus-foreground rounded-sm px-2 py-0.5 text-xs font-medium">
         POST
       </span>
       <code className="text-moss truncate font-mono text-[13px]">
         {PUBLIC_SERVER_URL}/mcp
       </code>
     </div>
-    <pre className="bg-muted text-muted-foreground mx-2 mb-2 rounded-[15px] px-4 py-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap">
+    <pre className="bg-muted text-muted-foreground mx-2 mb-2 rounded-lg px-4 py-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap">
       <span className="text-foreground">x-api-key</span>: your-key{"\n"}
       <span className="text-foreground">tools</span>: {MCP_TOOLS.join(", ")}
     </pre>
@@ -471,25 +502,28 @@ const McpSnippet = () => (
 
 const Cta = ({ signedIn }: { signedIn: boolean }) => (
   <div className="flex flex-wrap items-center justify-center gap-2.5">
-    <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.12 }}>
-      <Link
-        to={signedIn ? "/dashboard" : "/login"}
-        className={buttonVariants({ size: "lg" })}
-      >
-        <PenLine data-icon="inline-start" />
-        <Roll>{signedIn ? "Open your boards" : "Start drawing"}</Roll>
-      </Link>
-    </motion.div>
-    <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.12 }}>
-      <Link
-        to="/"
-        hash="agents"
-        className={buttonVariants({ variant: "secondary", size: "lg" })}
-      >
-        <Plug data-icon="inline-start" />
-        <Roll>Connect an agent</Roll>
-      </Link>
-    </motion.div>
+    <Link
+      to={signedIn ? "/dashboard" : "/login"}
+      className={buttonVariants({
+        size: "lg",
+        className: "active:scale-[0.98]",
+      })}
+    >
+      <PenLine data-icon="inline-start" />
+      <Roll>{signedIn ? "Open your boards" : "Start drawing"}</Roll>
+    </Link>
+    <Link
+      to="/"
+      hash="agents"
+      className={buttonVariants({
+        variant: "secondary",
+        size: "lg",
+        className: "active:scale-[0.98]",
+      })}
+    >
+      <Plug data-icon="inline-start" />
+      <Roll>Connect an agent</Roll>
+    </Link>
   </div>
 );
 
@@ -574,6 +608,7 @@ export const HomePage = () => {
           <Button
             variant="ghost"
             size="icon-xs"
+            className="relative after:absolute after:-inset-2"
             aria-label={paused ? "Play example boards" : "Pause example boards"}
             onPress={() => togglePaused()}
           >
@@ -591,7 +626,7 @@ export const HomePage = () => {
           <article
             key={feature.title}
             id={feature.id}
-            className="grid scroll-mt-10 gap-y-3 py-12 md:grid-cols-12 md:gap-x-10 md:gap-y-2 md:py-16"
+            className="grid gap-y-3 py-12 md:grid-cols-12 md:gap-x-10 md:gap-y-2 md:py-16"
           >
             <div
               aria-hidden="true"
@@ -618,7 +653,7 @@ export const HomePage = () => {
       </section>
 
       <section className="flex flex-col items-center px-5 pt-28 text-center md:px-[30px] md:pt-40">
-        <h2 className="font-display max-w-[14ch] text-[40px] leading-[0.95] font-normal tracking-[-0.04em] md:text-[64px]">
+        <h2 className="font-display text-title md:text-closing max-w-[14ch] leading-[0.95] font-normal tracking-[-0.04em]">
           Draw the next thing together.
         </h2>
         <p className="text-muted-foreground mt-6 max-w-[30rem] text-[17px] leading-[1.4]">
@@ -632,19 +667,12 @@ export const HomePage = () => {
       <footer className="px-5 pt-40 pb-8 md:px-[30px] md:pt-60">
         <nav
           aria-label="Footer"
-          className="mb-16 flex flex-col items-center gap-3 text-sm md:mb-24"
+          className="mb-16 flex flex-col items-center text-sm md:mb-24"
         >
-          <Link
-            to={signedIn ? "/dashboard" : "/login"}
-            className="hover:decoration-foreground underline decoration-transparent underline-offset-4 transition-colors"
-          >
+          <Link to={signedIn ? "/dashboard" : "/login"} className={FOOTER_LINK}>
             {signedIn ? "Boards" : "Sign in"}
           </Link>
-          <Link
-            to="/"
-            hash="agents"
-            className="hover:decoration-foreground underline decoration-transparent underline-offset-4 transition-colors"
-          >
+          <Link to="/" hash="agents" className={FOOTER_LINK}>
             Agents
           </Link>
         </nav>
