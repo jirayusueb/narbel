@@ -2,7 +2,13 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const defaultStates = ["default", "hover", "focus", "active", "disabled"] as const;
+const defaultStates = [
+  "default",
+  "hover",
+  "focus",
+  "active",
+  "disabled",
+] as const;
 
 export function StateMatrix<Row extends string>({
   rows,
@@ -25,7 +31,7 @@ export function StateMatrix<Row extends string>({
               <th
                 key={state}
                 scope="col"
-                className="text-left font-mono text-xs font-normal text-muted-foreground"
+                className="text-muted-foreground text-left font-mono text-xs font-normal"
               >
                 {state}
               </th>
@@ -37,7 +43,7 @@ export function StateMatrix<Row extends string>({
             <tr key={row}>
               <th
                 scope="row"
-                className="pr-4 text-left font-mono text-xs font-normal text-muted-foreground"
+                className="text-muted-foreground pr-4 text-left font-mono text-xs font-normal"
               >
                 {row}
               </th>

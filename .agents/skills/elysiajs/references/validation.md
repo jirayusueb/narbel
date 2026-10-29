@@ -6,14 +6,14 @@ Contents: [slots](#schema-slots), [coercion](#coercion), [Standard Schema](#stan
 
 ## Schema slots
 
-| Option     | Validates                                                              |
-| ---------- | ---------------------------------------------------------------------- |
-| `body`     | Parsed request body                                                    |
-| `query`    | Query string                                                           |
-| `params`   | Path parameters                                                        |
-| `headers`  | Request headers                                                        |
-| `cookie`   | Incoming cookies, with typed `.value` access; see [cookies](cookie.md) |
-| `response` | Handler result, using one schema or a status-to-schema map             |
+| Option | Validates |
+| --- | --- |
+| `body` | Parsed request body |
+| `query` | Query string |
+| `params` | Path parameters |
+| `headers` | Request headers |
+| `cookie` | Incoming cookies, with typed `.value` access; see [cookies](cookie.md) |
+| `response` | Handler result, using one schema or a status-to-schema map |
 
 ```ts
 import { Elysia, t } from "elysia";
@@ -25,7 +25,7 @@ export const app = new Elysia().get(
     query: t.Object({ name: t.String() }),
     response: t.Object({ id: t.Number(), name: t.String() }),
   },
-  ({ params, query }) => ({ id: params.id, name: query.name }),
+  ({ params, query }) => ({ id: params.id, name: query.name })
 );
 ```
 
@@ -35,19 +35,19 @@ export const app = new Elysia().get(
 
 Import `t` from `elysia`. It combines TypeBox 1.x with HTTP-specific types. Common TypeBox builders include `String`, `Number`, `Boolean`, `Object`, `Array`, `Literal`, `Union`, `Optional`, and `Partial`. Constraints use JSON Schema options such as `minimum`, `minLength`, `format`, and `maxItems`.
 
-| Elysia builder                         | Behavior                                                          |
-| -------------------------------------- | ----------------------------------------------------------------- |
-| `t.Numeric(options)`                   | Accepts a number or numeric string; decodes to number             |
-| `t.BooleanString()`                    | Accepts a boolean or `'true'`/`'false'`; decodes to boolean       |
-| `t.ObjectString({ ... })`              | Accepts an object or its JSON string; decodes to object           |
-| `t.UnionEnum(['a', 'b', 1])`           | Union of the listed literals                                      |
-| `t.Nullable(schema)`                   | Schema or `null`                                                  |
-| `t.MaybeEmpty(schema)`                 | Schema, `null`, or `undefined`; not automatically an empty string |
-| `t.File(options)` / `t.Files(options)` | One file or multiple files in one field                           |
-| `t.Cookie({ ... }, options)`           | Cookie schema with cookie configuration                           |
-| `t.Form({ ... })`                      | FormData response created with `form()`; see [responses](api.md)  |
-| `t.Uint8Array()`                       | Accepts ArrayBuffer or Uint8Array; decodes to Uint8Array          |
-| `t.ArrayBuffer()`                      | Accepts ArrayBuffer without conversion                            |
+| Elysia builder | Behavior |
+| --- | --- |
+| `t.Numeric(options)` | Accepts a number or numeric string; decodes to number |
+| `t.BooleanString()` | Accepts a boolean or `'true'`/`'false'`; decodes to boolean |
+| `t.ObjectString({ ... })` | Accepts an object or its JSON string; decodes to object |
+| `t.UnionEnum(['a', 'b', 1])` | Union of the listed literals |
+| `t.Nullable(schema)` | Schema or `null` |
+| `t.MaybeEmpty(schema)` | Schema, `null`, or `undefined`; not automatically an empty string |
+| `t.File(options)` / `t.Files(options)` | One file or multiple files in one field |
+| `t.Cookie({ ... }, options)` | Cookie schema with cookie configuration |
+| `t.Form({ ... })` | FormData response created with `form()`; see [responses](api.md) |
+| `t.Uint8Array()` | Accepts ArrayBuffer or Uint8Array; decodes to Uint8Array |
+| `t.ArrayBuffer()` | Accepts ArrayBuffer without conversion |
 
 TypeBox 1.x uses `t.Codec`, not `t.Transform`. `t.Recursive`, `t.Not`, and `t.RegExp` are not exported. Schemas have no `.static` property. See [migration.md](migration.md) for v1 changes.
 
@@ -88,7 +88,9 @@ new Elysia().get(
     },
   },
   ({ query, status }) =>
-    query.fail === "true" ? status(400, { error: "Invalid request" }) : { name: "Ada" },
+    query.fail === "true"
+      ? status(400, { error: "Invalid request" })
+      : { name: "Ada" }
 );
 ```
 
@@ -105,7 +107,7 @@ new Elysia().get(
   {
     params: z.object({ id: z.coerce.number() }),
   },
-  ({ params }) => params.id,
+  ({ params }) => params.id
 );
 ```
 
@@ -130,7 +132,7 @@ new Elysia().post(
       file: t.File({ type: ["image/png", "image/jpeg"], maxSize: "5m" }),
     }),
   },
-  ({ body }) => ({ name: body.file.name }),
+  ({ body }) => ({ name: body.file.name })
 );
 ```
 
@@ -148,10 +150,12 @@ new Elysia().post(
   {
     parse: "formdata",
     body: z.object({
-      file: z.file().refine((file) => fileType(file, "image/jpeg"), "Expected JPEG"),
+      file: z
+        .file()
+        .refine((file) => fileType(file, "image/jpeg"), "Expected JPEG"),
     }),
   },
-  ({ body }) => ({ name: body.file.name }),
+  ({ body }) => ({ name: body.file.name })
 );
 ```
 
@@ -176,7 +180,11 @@ type ByIdGet = UnwrapModels<typeof ByIdGet>;
 
 new Elysia()
   .model({ "user.profile": User })
-  .post("/profile", { body: "user.profile", response: "user.profile" }, ({ body }) => body);
+  .post(
+    "/profile",
+    { body: "user.profile", response: "user.profile" },
+    ({ body }) => body
+  );
 ```
 
 `ByIdGet.Params` is the schema; `ByIdGet['Params']` is its TypeScript type. See [project structure](project-structure.md) for a feature model convention.

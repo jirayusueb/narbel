@@ -13,17 +13,17 @@ Examples use `Elysia` and `t` from `elysia`. [Composition](composition.md#hook-s
 
 ## Stage order
 
-| Stage          | Instance API                     | Route option                       | Effect of a return value                                                                 |
-| -------------- | -------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| Request        | `.onRequest()`                   | None                               | Responds before routing and parsing.                                                     |
-| Parse          | `.onParse()`, `.parser()`        | `parse`                            | Becomes `body`; `undefined` tries the next parser.                                       |
-| Transform      | `.onTransform()`                 | `transform`                        | Mutate request context before validation.                                                |
-| Validation     | Schemas                          | `body`, `query`, and other schemas | Invalid requests return 422.                                                             |
-| Before handle  | `.onBeforeHandle()`, `.derive()` | `beforeHandle`, macro `derive`     | Runs in registration order. A response skips the handler. Derive objects extend context. |
-| Handler        | Route method                     | Handler argument                   | Becomes the response value.                                                              |
-| After handle   | `.onAfterHandle()`               | `afterHandle`                      | A non-`undefined` value replaces the response and skips remaining after-handle hooks.    |
-| Map response   | `.mapResponse()`                 | `mapResponse`                      | Converts the value to a `Response`; a return skips remaining map-response hooks.         |
-| After response | `.onAfterResponse()`             | `afterResponse`                    | Runs post-response work; cannot change the sent response.                                |
+| Stage | Instance API | Route option | Effect of a return value |
+| --- | --- | --- | --- |
+| Request | `.onRequest()` | None | Responds before routing and parsing. |
+| Parse | `.onParse()`, `.parser()` | `parse` | Becomes `body`; `undefined` tries the next parser. |
+| Transform | `.onTransform()` | `transform` | Mutate request context before validation. |
+| Validation | Schemas | `body`, `query`, and other schemas | Invalid requests return 422. |
+| Before handle | `.onBeforeHandle()`, `.derive()` | `beforeHandle`, macro `derive` | Runs in registration order. A response skips the handler. Derive objects extend context. |
+| Handler | Route method | Handler argument | Becomes the response value. |
+| After handle | `.onAfterHandle()` | `afterHandle` | A non-`undefined` value replaces the response and skips remaining after-handle hooks. |
+| Map response | `.mapResponse()` | `mapResponse` | Converts the value to a `Response`; a return skips remaining map-response hooks. |
+| After response | `.onAfterResponse()` | `afterResponse` | Runs post-response work; cannot change the sent response. |
 
 Errors enter `.onError()` or the route's `error` hook when they occur, not after successful responses. [Tracing](observability.md) measures lifecycle events.
 
@@ -94,10 +94,11 @@ new Elysia().get(
   "/private",
   {
     beforeHandle({ headers, status }) {
-      if (headers.authorization !== "Bearer test-token") return status(401, "Unauthorized");
+      if (headers.authorization !== "Bearer test-token")
+        return status(401, "Unauthorized");
     },
   },
-  () => "authorized",
+  () => "authorized"
 );
 ```
 

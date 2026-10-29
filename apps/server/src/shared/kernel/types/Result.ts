@@ -23,4 +23,5 @@ export type Result<T, E> = Ok<T, E> | Err<T, E>;
 export const ok = <T, E>(value: T): Result<T, E> => new Ok(value);
 export const err = <T, E>(error: E): Result<T, E> => new Err(error);
 
-export const okEmpty = <E>(): Result<undefined, E> => new Ok<undefined, E>(undefined);
+export const okEmpty = <E>(): Result<undefined, E> =>
+  new Ok<undefined, E>(undefined);

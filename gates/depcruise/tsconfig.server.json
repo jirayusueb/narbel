@@ -1,0 +1,10 @@
+{
+  "files": ["../../apps/server/src/main.ts"],
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": "../..",
+    "paths": {
+      "@/*": ["apps/server/src/*"]
+    }
+  }
+}

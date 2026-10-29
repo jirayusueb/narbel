@@ -43,7 +43,7 @@ export const app = new Elysia().get(
   {
     params: t.Object({ name: t.String({ minLength: 2 }) }),
   },
-  ({ params }) => `Hello, ${params.name}!`,
+  ({ params }) => `Hello, ${params.name}!`
 );
 
 export type App = typeof app;
@@ -83,13 +83,13 @@ NODE_ENV=production bun dist/index.js
 
 Use the same entry path for the bundler and `aot()`. Set the AOT target to the deployment runtime, even if the build runs on Bun.
 
-| Bundler                 | Import                       | Registration                                                          |
-| ----------------------- | ---------------------------- | --------------------------------------------------------------------- |
-| Bun                     | `elysia/plugin/aot/bun`      | `plugins: [aot(entry, { target })]`                                   |
-| esbuild                 | `elysia/plugin/aot/esbuild`  | `plugins: [aot(entry, { target })]`                                   |
-| Vite                    | `elysia/plugin/aot/vite`     | Same plugin, with `build.ssr: entry` and `ssr.noExternal: ['elysia']` |
-| Rspack                  | `elysia/plugin/aot/rspack`   | Same plugin, with `entry` and the bundler's runtime target            |
-| Rollup through unplugin | `elysia/plugin/aot/unplugin` | `createUnplugin(aotFactory).rollup({ entry, target })`                |
+| Bundler | Import | Registration |
+| --- | --- | --- |
+| Bun | `elysia/plugin/aot/bun` | `plugins: [aot(entry, { target })]` |
+| esbuild | `elysia/plugin/aot/esbuild` | `plugins: [aot(entry, { target })]` |
+| Vite | `elysia/plugin/aot/vite` | Same plugin, with `build.ssr: entry` and `ssr.noExternal: ['elysia']` |
+| Rspack | `elysia/plugin/aot/rspack` | Same plugin, with `entry` and the bundler's runtime target |
+| Rollup through unplugin | `elysia/plugin/aot/unplugin` | `createUnplugin(aotFactory).rollup({ entry, target })` |
 
 Supported AOT targets are `bun`, `node`, and `workerd`. The [Workers recipe](runtimes.md#cloudflare-workers) includes the complete esbuild configuration. For Node, also configure the [Node adapter](runtimes.md#nodejs). AOT changes code generation, not how the host listens for requests.
 

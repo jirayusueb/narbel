@@ -8,12 +8,12 @@ Choose the host's entrypoint below. See [versions.md](versions.md) for packages 
 
 ## Host contract
 
-| Host owns                               | Elysia entrypoint                              |
-| --------------------------------------- | ---------------------------------------------- |
-| Standalone Bun server                   | `app.listen(port)`                             |
-| Standalone Node server                  | `new Elysia({ adapter: node() }).listen(port)` |
-| Fetch-compatible server or route export | `app.fetch`                                    |
-| Host callback with a request argument   | `(request) => app.handle(request)`             |
+| Host owns | Elysia entrypoint |
+| --- | --- |
+| Standalone Bun server | `app.listen(port)` |
+| Standalone Node server | `new Elysia({ adapter: node() }).listen(port)` |
+| Fetch-compatible server or route export | `app.fetch` |
+| Host callback with a request argument | `(request) => app.handle(request)` |
 
 `fetch` and `handle` accept a Web Standard `Request`. Await their `Response`. Do not call `.listen()` when the host owns the server. Keep `strict: true` for type inference.
 
@@ -46,7 +46,9 @@ Bun 1.3+ can bundle HTML and serve frontend HMR alongside Elysia through `@elysi
 import { staticPlugin } from "@elysia/static";
 import { Elysia } from "elysia";
 
-new Elysia().use(await staticPlugin({ prefix: "/", bunFullstack: true })).listen(3000);
+new Elysia()
+  .use(await staticPlugin({ prefix: "/", bunFullstack: true }))
+  .listen(3000);
 ```
 
 Put `index.html` in `public/` and reference frontend modules from it. `bunFullstack: true` enables bundling; awaiting the plugin alone does not. The default prefix is `/public`. See [versions.md](versions.md) for compatible packages.
@@ -299,7 +301,10 @@ import { createFileRoute } from "@tanstack/react-router";
 // src/routes/api.$.ts
 import { Elysia } from "elysia";
 
-const app = new Elysia({ prefix: "/api" }).get("/", () => "Hello TanStack Start");
+const app = new Elysia({ prefix: "/api" }).get(
+  "/",
+  () => "Hello TanStack Start"
+);
 
 export const Route = createFileRoute("/api/$")({
   server: {

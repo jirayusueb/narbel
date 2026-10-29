@@ -5,5 +5,20 @@ import tanstack from "ultracite/oxlint/tanstack";
 
 export default defineConfig({
   extends: [core, react, tanstack],
-  ignorePatterns: core.ignorePatterns,
+  // shadcn components are vendored from the registry and updated with `shadcn add --diff`
+  ignorePatterns: [...core.ignorePatterns, "packages/ui/src/components/**"],
+  overrides: [
+    {
+      // the server follows the clean-architecture gist: PascalCase class files,
+      // constructor injection via parameter properties, method-style port signatures
+      files: ["apps/server/src/**"],
+      rules: {
+        "unicorn/filename-case": "off",
+        "typescript/parameter-properties": "off",
+        "typescript/method-signature-style": "off",
+        "eslint/class-methods-use-this": "off",
+        "eslint/max-classes-per-file": "off",
+      },
+    },
+  ],
 });

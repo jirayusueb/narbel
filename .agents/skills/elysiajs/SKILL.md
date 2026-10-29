@@ -26,8 +26,7 @@ description: Build, debug, or migrate Elysia v2 TypeScript backends with validat
 - **Register optional capabilities.** File MIME validation needs a detector. WebSockets need `elysia/websocket`. Node needs `@elysia/node` and Node 22.18 or newer.
 - **Always consult with an actual documentation** for the latest features, examples, and references. The skill is a guide to the documentation, not a replacement.
 
-For Elysia 1 use: https://elysiajs.com/llms.txt
-For Elysia 2 use: https://next.elysiajs.com/llms.txt
+For Elysia 1 use: https://elysiajs.com/llms.txt For Elysia 2 use: https://next.elysiajs.com/llms.txt
 
 ## Minimal app and test
 
@@ -42,7 +41,7 @@ export const app = new Elysia().get(
   {
     params: t.Object({ id: t.Number() }),
   },
-  ({ params }) => ({ id: params.id }),
+  ({ params }) => ({ id: params.id })
 );
 
 export type App = typeof app;
@@ -66,27 +65,27 @@ Run `bun test` and the project's type check. For new projects, see [runtime setu
 
 ## Choose a reference
 
-| Task                                                     | Read                                                                                                                                                                                 |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Versions, peer dependencies, source versus docs          | [Versions](references/versions.md)                                                                                                                                                   |
-| Configuration, routing, context, files, streams          | [Core API](references/api.md)                                                                                                                                                        |
-| Hooks, parsing, derived context, disposal                | [Lifecycle](references/lifecycle.md)                                                                                                                                                 |
-| Plugins, hook scope, guards, macros                      | [Composition](references/composition.md)                                                                                                                                             |
-| Schemas, coercion, uploads, inferred types               | [Validation](references/validation.md)                                                                                                                                               |
-| Expected errors, exception mapping, production responses | [Errors](references/errors.md)                                                                                                                                                       |
-| Folders, services, models, dependency injection          | [Project structure](references/project-structure.md)                                                                                                                                 |
-| Cookie values, validation, signing                       | [Cookies](references/cookie.md)                                                                                                                                                      |
-| WebSocket routes                                         | [WebSockets](references/websocket.md)                                                                                                                                                |
-| Route tests, type checks, lazy plugins                   | [Testing](references/testing.md)                                                                                                                                                     |
-| Typed client calls                                       | [Eden](references/eden.md)                                                                                                                                                           |
-| OpenAPI schemas and documentation                        | [OpenAPI](references/openapi.md)                                                                                                                                                     |
-| Bun, Node, Deno, Workers, frontend framework integration | [Runtimes](references/runtimes.md)                                                                                                                                                   |
-| Bundles, AOT, binaries, Docker, deployment               | [Deployment](references/deploy.md)                                                                                                                                                   |
-| Traces, spans, request timing                            | [Observability](references/observability.md)                                                                                                                                         |
-| CORS, JWT, static files, cron, HTML, GraphQL             | [Official plugins](references/plugins.md)                                                                                                                                            |
-| Databases and external libraries                         | [Drizzle](references/drizzle.md), [Prisma](references/prisma.md), [Better Auth](references/better-auth.md), [AI SDK](references/ai-sdk.md), [React Email](references/react-email.md) |
-| v1 syntax and migration                                  | [Migration](references/migration.md)                                                                                                                                                 |
-| Find an example by pattern                               | [Pattern index](references/cheat-sheet.md)                                                                                                                                           |
+| Task | Read |
+| --- | --- |
+| Versions, peer dependencies, source versus docs | [Versions](references/versions.md) |
+| Configuration, routing, context, files, streams | [Core API](references/api.md) |
+| Hooks, parsing, derived context, disposal | [Lifecycle](references/lifecycle.md) |
+| Plugins, hook scope, guards, macros | [Composition](references/composition.md) |
+| Schemas, coercion, uploads, inferred types | [Validation](references/validation.md) |
+| Expected errors, exception mapping, production responses | [Errors](references/errors.md) |
+| Folders, services, models, dependency injection | [Project structure](references/project-structure.md) |
+| Cookie values, validation, signing | [Cookies](references/cookie.md) |
+| WebSocket routes | [WebSockets](references/websocket.md) |
+| Route tests, type checks, lazy plugins | [Testing](references/testing.md) |
+| Typed client calls | [Eden](references/eden.md) |
+| OpenAPI schemas and documentation | [OpenAPI](references/openapi.md) |
+| Bun, Node, Deno, Workers, frontend framework integration | [Runtimes](references/runtimes.md) |
+| Bundles, AOT, binaries, Docker, deployment | [Deployment](references/deploy.md) |
+| Traces, spans, request timing | [Observability](references/observability.md) |
+| CORS, JWT, static files, cron, HTML, GraphQL | [Official plugins](references/plugins.md) |
+| Databases and external libraries | [Drizzle](references/drizzle.md), [Prisma](references/prisma.md), [Better Auth](references/better-auth.md), [AI SDK](references/ai-sdk.md), [React Email](references/react-email.md) |
+| v1 syntax and migration | [Migration](references/migration.md) |
+| Find an example by pattern | [Pattern index](references/cheat-sheet.md) |
 
 ## Defaults for a new project
 

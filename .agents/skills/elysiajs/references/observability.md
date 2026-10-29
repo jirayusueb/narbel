@@ -69,19 +69,19 @@ export const app = new Elysia()
     opentelemetry({
       serviceName: "example-api",
       spanProcessors: [new BatchSpanProcessor(new OTLPTraceExporter())],
-    }),
+    })
   )
   .get("/message", () => record("format-message", () => ({ text: "Hello" })));
 ```
 
 The exporter uses its configured endpoint and credentials. The plugin creates lifecycle spans and propagates request context to compatible instrumented libraries. Name hook functions for recognizable spans.
 
-| Export                      | Purpose                                                            |
-| --------------------------- | ------------------------------------------------------------------ |
-| `record(name, fn)`          | Run a function in an active span, close it, and capture exceptions |
-| `getCurrentSpan()`          | Current active span, or `undefined`                                |
-| `setAttributes(attributes)` | Add attributes to the active span when present                     |
-| `getTracer()`               | Access the tracer for lower-level span operations                  |
+| Export | Purpose |
+| --- | --- |
+| `record(name, fn)` | Run a function in an active span, close it, and capture exceptions |
+| `getCurrentSpan()` | Current active span, or `undefined` |
+| `setAttributes(attributes)` | Add attributes to the active span when present |
+| `getTracer()` | Access the tracer for lower-level span operations |
 
 Options extend the OpenTelemetry Node SDK, including `serviceName`, `resource`, `sampler`, `instrumentations`, `spanProcessors`, and `traceExporter`. Avoid copying SDK option tables across SDK versions.
 
@@ -124,7 +124,7 @@ export const app = new Elysia()
   .use(
     serverTiming({
       allow: ({ request }) => new URL(request.url).pathname !== "/health",
-    }),
+    })
   )
   .get("/", () => "Hello");
 ```

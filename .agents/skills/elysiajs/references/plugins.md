@@ -6,20 +6,20 @@ Contents: [package selection](#package-selection), [CORS](#cors), [bearer and JW
 
 ## Package selection
 
-| Need                       | Package and export                                       | Details                           |
-| -------------------------- | -------------------------------------------------------- | --------------------------------- |
-| Cross-origin requests      | `@elysia/cors`, `cors`                                   | [CORS](#cors)                     |
-| Extract bearer tokens      | `@elysia/bearer`, `bearer`                               | [Bearer and JWT](#bearer-and-jwt) |
-| Sign and verify JWTs       | `@elysia/jwt`, `jwt`                                     | [Bearer and JWT](#bearer-and-jwt) |
-| Static directories         | `@elysia/static`, `staticPlugin`                         | [Static files](#static-files)     |
-| HTML and Kita JSX          | `@elysia/html`, `html`, `Html`                           | [HTML](#html)                     |
-| In-process jobs            | `@elysia/cron`, `cron`, `Patterns`                       | [Cron](#cron)                     |
-| Apollo GraphQL             | `@elysia/apollo`, `apollo`, `gql`                        | [GraphQL](#graphql)               |
-| GraphQL Yoga               | `@elysia/graphql-yoga`, `yoga`                           | [GraphQL](#graphql)               |
-| API documentation          | `@elysia/openapi`, `openapi`, `fromTypes`, `withHeaders` | [OpenAPI](openapi.md)             |
-| Traces and browser timings | `@elysia/opentelemetry`, `@elysia/server-timing`         | [Observability](observability.md) |
-| Node server                | `@elysia/node`, `node`                                   | [Runtimes](runtimes.md)           |
-| Typed frontend client      | `@elysia/eden`, `treaty`, `edenFetch`                    | [Eden](eden.md)                   |
+| Need | Package and export | Details |
+| --- | --- | --- |
+| Cross-origin requests | `@elysia/cors`, `cors` | [CORS](#cors) |
+| Extract bearer tokens | `@elysia/bearer`, `bearer` | [Bearer and JWT](#bearer-and-jwt) |
+| Sign and verify JWTs | `@elysia/jwt`, `jwt` | [Bearer and JWT](#bearer-and-jwt) |
+| Static directories | `@elysia/static`, `staticPlugin` | [Static files](#static-files) |
+| HTML and Kita JSX | `@elysia/html`, `html`, `Html` | [HTML](#html) |
+| In-process jobs | `@elysia/cron`, `cron`, `Patterns` | [Cron](#cron) |
+| Apollo GraphQL | `@elysia/apollo`, `apollo`, `gql` | [GraphQL](#graphql) |
+| GraphQL Yoga | `@elysia/graphql-yoga`, `yoga` | [GraphQL](#graphql) |
+| API documentation | `@elysia/openapi`, `openapi`, `fromTypes`, `withHeaders` | [OpenAPI](openapi.md) |
+| Traces and browser timings | `@elysia/opentelemetry`, `@elysia/server-timing` | [Observability](observability.md) |
+| Node server | `@elysia/node`, `node` | [Runtimes](runtimes.md) |
+| Typed frontend client | `@elysia/eden`, `treaty`, `edenFetch` | [Eden](eden.md) |
 
 `@elysia/swagger` is the older integration. Prefer `@elysia/openapi` for v2. Check community packages' peer ranges, runtime dependencies, and a working example. Directory listings do not prove v2 compatibility.
 
@@ -35,22 +35,22 @@ export const app = new Elysia()
       origin: "https://app.example.com",
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
-    }),
+    })
   )
   .get("/", () => "Hello");
 ```
 
 `cors()` accepts any origin by default. For credentialed browser requests, set the frontend origin and client `credentials: 'include'`.
 
-| Option           | Default and behavior                                                                                                 |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `origin`         | `true` reflects `Origin`; string, RegExp, request predicate, or an array restricts origins; `false` omits the header |
-| `methods`        | `true` reflects the requested preflight method; use a string or array to restrict methods                            |
-| `allowedHeaders` | `true` reflects requested preflight headers; use a string or array to restrict them                                  |
-| `exposeHeaders`  | Use an explicit string or array for response headers the browser may read                                            |
-| `credentials`    | `true`                                                                                                               |
-| `maxAge`         | `5` seconds                                                                                                          |
-| `preflight`      | Enables handling of `OPTIONS` preflight requests                                                                     |
+| Option | Default and behavior |
+| --- | --- |
+| `origin` | `true` reflects `Origin`; string, RegExp, request predicate, or an array restricts origins; `false` omits the header |
+| `methods` | `true` reflects the requested preflight method; use a string or array to restrict methods |
+| `allowedHeaders` | `true` reflects requested preflight headers; use a string or array to restrict them |
+| `exposeHeaders` | Use an explicit string or array for response headers the browser may read |
+| `credentials` | `true` |
+| `maxAge` | `5` seconds |
+| `preflight` | Enables handling of `OPTIONS` preflight requests |
 
 An origin predicate receives the `Request`. Anchor origin regexes, such as `/^https:\/\/(?:[a-z0-9-]+\.)*example\.com$/i`, so an unrelated hostname cannot match a substring.
 
@@ -89,15 +89,15 @@ import { Elysia } from "elysia";
 new Elysia().use(staticPlugin({ assets: "public", prefix: "/public" }));
 ```
 
-| Option           | Default and behavior                                                             |
-| ---------------- | -------------------------------------------------------------------------------- |
-| `assets`         | `public` directory                                                               |
-| `prefix`         | `/public` URL prefix                                                             |
-| `ignorePatterns` | `[]`                                                                             |
-| `headers`        | `{}` response headers                                                            |
-| `staticLimit`    | `1024` paths before switching to lazy registration                               |
-| `alwaysStatic`   | `NODE_ENV === 'production'`; ignores `staticLimit` when true                     |
-| `indexHTML`      | `true`; serves directory `index.html`, not a fallback for every missing SPA path |
+| Option | Default and behavior |
+| --- | --- |
+| `assets` | `public` directory |
+| `prefix` | `/public` URL prefix |
+| `ignorePatterns` | `[]` |
+| `headers` | `{}` response headers |
+| `staticLimit` | `1024` paths before switching to lazy registration |
+| `alwaysStatic` | `NODE_ENV === 'production'`; ignores `staticLimit` when true |
+| `indexHTML` | `true`; serves directory `index.html`, not a fallback for every missing SPA path |
 
 For one file, use Elysia's `file` helper:
 
@@ -115,13 +115,15 @@ new Elysia().get("/logo", file("public/logo.png"));
 import { html, Html } from "@elysia/html";
 import { Elysia, t } from "elysia";
 
-new Elysia().use(html()).post("/greet", { body: t.Object({ name: t.String() }) }, ({ body }) => (
-  <html>
-    <body>
-      <h1 safe>{body.name}</h1>
-    </body>
-  </html>
-));
+new Elysia()
+  .use(html())
+  .post("/greet", { body: t.Object({ name: t.String() }) }, ({ body }) => (
+    <html>
+      <body>
+        <h1 safe>{body.name}</h1>
+      </body>
+    </html>
+  ));
 ```
 
 Use `.tsx` and configure the factory:
@@ -138,12 +140,12 @@ Use `.tsx` and configure the factory:
 
 Import uppercase `Html` in JSX files. Use `safe` for untrusted text. The optional `@kitajs/ts-html-plugin` editor plugin can flag unsafe JSX expressions.
 
-| Option        | Default and behavior                                                                      |
-| ------------- | ----------------------------------------------------------------------------------------- |
-| `contentType` | `text/html; charset=utf8`                                                                 |
-| `autoDetect`  | `true`                                                                                    |
-| `autoDoctype` | `true`; adds a doctype to an HTML root if absent; `'full'` currently behaves like `true`  |
-| `isHtml`      | Detection function; the current automatic-response path still calls the built-in detector |
+| Option | Default and behavior |
+| --- | --- |
+| `contentType` | `text/html; charset=utf8` |
+| `autoDetect` | `true` |
+| `autoDoctype` | `true`; adds a doctype to an HTML root if absent; `'full'` currently behaves like `true` |
+| `isHtml` | Detection function; the current automatic-response path still calls the built-in detector |
 
 Use context `html(value)` for explicit HTML responses. Verify the installed implementation before relying on custom `isHtml` detection.
 
@@ -160,7 +162,7 @@ new Elysia().use(
     run() {
       console.log("heartbeat");
     },
-  }),
+  })
 );
 ```
 
@@ -187,7 +189,7 @@ new Elysia().use(
     context: async ({ request }) => ({
       authorization: request.headers.get("Authorization"),
     }),
-  }),
+  })
 );
 ```
 
@@ -205,7 +207,7 @@ new Elysia().use(
     context: { name: "Alex" },
     useContext(_) {},
     resolvers: { Query: { hello: (_parent, _args, context) => context.name } },
-  }),
+  })
 );
 ```
 

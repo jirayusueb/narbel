@@ -22,15 +22,17 @@ import { Elysia } from "elysia";
 
 import { auth } from "./auth";
 
-const authentication = new Elysia({ name: "authentication" }).mount(auth.handler).macro({
-  auth: {
-    async derive({ status, request: { headers } }) {
-      const session = await auth.api.getSession({ headers });
-      if (!session) return status(401, "Unauthorized");
-      return { user: session.user, session: session.session };
+const authentication = new Elysia({ name: "authentication" })
+  .mount(auth.handler)
+  .macro({
+    auth: {
+      async derive({ status, request: { headers } }) {
+        const session = await auth.api.getSession({ headers });
+        if (!session) return status(401, "Unauthorized");
+        return { user: session.user, session: session.session };
+      },
     },
-  },
-});
+  });
 
 export const app = new Elysia()
   .use(
@@ -38,7 +40,7 @@ export const app = new Elysia()
       origin: "http://localhost:3001",
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
-    }),
+    })
   )
   .use(authentication)
   .get("/user", { auth: true }, ({ user }) => user);
@@ -76,13 +78,16 @@ import { auth } from "./auth";
 
 const schema = await auth.api.generateOpenAPISchema();
 const paths = Object.fromEntries(
-  Object.entries(schema.paths).map(([path, operation]) => [`/api/auth${path}`, operation]),
+  Object.entries(schema.paths).map(([path, operation]) => [
+    `/api/auth${path}`,
+    operation,
+  ])
 );
 
 export const app = new Elysia().mount(auth.handler).use(
   openapi({
     documentation: { components: schema.components, paths },
-  }),
+  })
 );
 ```
 

@@ -26,7 +26,9 @@ function toHex(rgb: number[]) {
 function luminance([r, g, b]: number[]) {
   const [R, G, B] = [r, g, b].map((value) => {
     const channel = value / 255;
-    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    return channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * R + 0.7152 * G + 0.0722 * B;
 }
@@ -48,7 +50,9 @@ export function ColorPair({
   className?: string;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const [info, setInfo] = React.useState<{ ratio: number; bg: string } | null>(null);
+  const [info, setInfo] = React.useState<{ ratio: number; bg: string } | null>(
+    null
+  );
 
   React.useEffect(() => {
     const element = ref.current;
@@ -74,18 +78,23 @@ export function ColorPair({
     return () => observer.disconnect();
   }, []);
 
-  const level = !info
-    ? ""
-    : info.ratio >= 7
+  const level = info
+    ? info.ratio >= 7
       ? "AAA"
       : info.ratio >= 4.5
         ? "AA"
         : info.ratio >= 3
           ? "AA Large"
-          : "Fail";
+          : "Fail"
+    : "";
 
   return (
-    <div className={cn("flex flex-col overflow-hidden rounded-xl border", className)}>
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden rounded-xl border",
+        className
+      )}
+    >
       <div
         ref={ref}
         style={{
@@ -101,12 +110,16 @@ export function ColorPair({
           </span>
         )}
       </div>
-      <div className="flex flex-col gap-0.5 bg-background p-3">
+      <div className="bg-background flex flex-col gap-0.5 p-3">
         <span className="text-sm font-medium">{name}</span>
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="text-muted-foreground font-mono text-xs">
           --{background} / --{foreground}
         </span>
-        {info && <span className="font-mono text-xs text-muted-foreground">{info.bg}</span>}
+        {info && (
+          <span className="text-muted-foreground font-mono text-xs">
+            {info.bg}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -11,11 +11,14 @@ new Elysia().get(
   "/profile",
   {
     cookie: t.Object({
-      profile: t.Cookie(t.Optional(t.Object({ id: t.Number(), name: t.String() })), {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-      }),
+      profile: t.Cookie(
+        t.Optional(t.Object({ id: t.Number(), name: t.String() })),
+        {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+        }
+      ),
       theme: t.Cookie(t.Optional(t.String()), { sameSite: "lax", path: "/" }),
     }),
   },
@@ -23,7 +26,7 @@ new Elysia().get(
     profile.value = { id: 1, name: "Ada" };
     theme.value = "dark";
     return { profile: profile.value, theme: theme.value };
-  },
+  }
 );
 ```
 
@@ -31,14 +34,14 @@ Required cookie schemas reject missing cookies. Use `t.Optional` to allow creati
 
 Changing `.value` or an attribute schedules `Set-Cookie` automatically. Attributes such as `httpOnly` describe outgoing cookies; an incoming `Cookie` header cannot prove those attributes.
 
-| Operation                     | Behavior                                                                 |
-| ----------------------------- | ------------------------------------------------------------------------ |
-| `cookie.name.value`           | Reads the decoded value                                                  |
-| `cookie.name.value = value`   | Sets the outgoing value                                                  |
-| `cookie.name.httpOnly = true` | Changes one attribute                                                    |
-| `cookie.name.update(options)` | Merges options into current properties                                   |
-| `cookie.name.set(options)`    | Rebuilds from initial properties and current value, then applies options |
-| `cookie.name.remove()`        | Expires the cookie; no-op when its value is `undefined`                  |
+| Operation | Behavior |
+| --- | --- |
+| `cookie.name.value` | Reads the decoded value |
+| `cookie.name.value = value` | Sets the outgoing value |
+| `cookie.name.httpOnly = true` | Changes one attribute |
+| `cookie.name.update(options)` | Merges options into current properties |
+| `cookie.name.set(options)` | Rebuilds from initial properties and current value, then applies options |
+| `cookie.name.remove()` | Expires the cookie; no-op when its value is `undefined` |
 
 `delete cookie.name` does not expire a browser cookie. Removal must use the original path and domain. Keep these in constructor or route cookie configuration; `remove()` uses `set()` and resets later attribute changes to the initial defaults.
 
@@ -70,7 +73,7 @@ new Elysia({
   ({ cookie: { session } }) => {
     session.value = crypto.randomUUID();
     return "Session created";
-  },
+  }
 );
 ```
 
@@ -82,19 +85,19 @@ Invalid signatures raise `InvalidCookie` with status 400. Missing signing secret
 
 Set cookie defaults in the constructor or `t.Cookie`. `set()` and `update()` accept values and attributes, not signing configuration. Passing `secrets` there throws.
 
-| Option        | Values or unit                                 | Notes                                                       |
-| ------------- | ---------------------------------------------- | ----------------------------------------------------------- |
-| `secrets`     | String or array of strings and optional `null` | Plural spelling; rotation described above                   |
-| `sign`        | `true`, name, or array of names                | Selects signed cookies                                      |
-| `path`        | String                                         | Elysia defaults to `'/'`                                    |
-| `domain`      | String                                         | Omit for the current host                                   |
-| `expires`     | Date                                           | Absolute expiration                                         |
-| `maxAge`      | Seconds                                        | Floored to an integer; align with `expires` if setting both |
-| `httpOnly`    | Boolean                                        | Hides the cookie from `document.cookie`                     |
-| `secure`      | Boolean                                        | Sends the cookie over HTTPS only                            |
-| `sameSite`    | `'lax'`, `'strict'`, `'none'`, boolean         | `true` means Strict; `false` omits the attribute            |
-| `priority`    | `'low'`, `'medium'`, `'high'`                  | Browser-dependent                                           |
-| `partitioned` | Boolean                                        | Partitioned cookie attribute                                |
+| Option | Values or unit | Notes |
+| --- | --- | --- |
+| `secrets` | String or array of strings and optional `null` | Plural spelling; rotation described above |
+| `sign` | `true`, name, or array of names | Selects signed cookies |
+| `path` | String | Elysia defaults to `'/'` |
+| `domain` | String | Omit for the current host |
+| `expires` | Date | Absolute expiration |
+| `maxAge` | Seconds | Floored to an integer; align with `expires` if setting both |
+| `httpOnly` | Boolean | Hides the cookie from `document.cookie` |
+| `secure` | Boolean | Sends the cookie over HTTPS only |
+| `sameSite` | `'lax'`, `'strict'`, `'none'`, boolean | `true` means Strict; `false` omits the attribute |
+| `priority` | `'low'`, `'medium'`, `'high'` | Browser-dependent |
+| `partitioned` | Boolean | Partitioned cookie attribute |
 
 There is no custom `encode` option in v2. Assign values through `.value`.
 

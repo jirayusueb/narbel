@@ -36,12 +36,16 @@ const source = roots
   .map((root) => resolve(root))
   .flatMap(walk)
   .filter((file) => /\.(tsx?|jsx?)$/.test(file))
-  .map((file) => readFileSync(file, "utf8"))
+  .map((file) => readFileSync(file, "utf-8"))
   .join("\n");
 
-const missing = components.filter((name) => !new RegExp(`/ui/${name}["']`).test(source));
+const missing = components.filter(
+  (name) => !new RegExp(`/ui/${name}["']`).test(source)
+);
 
-console.log(`${components.length - missing.length}/${components.length} components shown.`);
+console.log(
+  `${components.length - missing.length}/${components.length} components shown.`
+);
 
 if (missing.length > 0) {
   console.log(`Missing: ${missing.join(", ")}`);

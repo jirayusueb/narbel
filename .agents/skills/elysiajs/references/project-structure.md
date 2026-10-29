@@ -81,7 +81,7 @@ export const user = new Elysia({ prefix: "/user" }).get(
     params: UserModel.ByIdGet.Params,
     response: UserModel.ByIdGet.Response,
   },
-  ({ params }) => getUser(params.id),
+  ({ params }) => getUser(params.id)
 );
 ```
 

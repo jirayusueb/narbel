@@ -34,7 +34,7 @@ export const app = new Elysia().post(
     });
 
     return result.toTextStreamResponse();
-  },
+  }
 );
 ```
 
@@ -54,7 +54,8 @@ new Elysia().get("/events", async function* ({ request }) {
     abortSignal: request.signal,
   });
 
-  for await (const data of result.textStream) yield sse({ event: "message", data });
+  for await (const data of result.textStream)
+    yield sse({ event: "message", data });
 
   yield sse({ event: "done" });
 });

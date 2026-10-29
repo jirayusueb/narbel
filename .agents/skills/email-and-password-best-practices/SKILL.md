@@ -204,7 +204,8 @@ export const auth = betterAuth({
     enabled: true,
     password: {
       hash: (password) => hash(password, argon2Options),
-      verify: ({ password, hash: storedHash }) => verify(storedHash, password, argon2Options),
+      verify: ({ password, hash: storedHash }) =>
+        verify(storedHash, password, argon2Options),
     },
   },
 });

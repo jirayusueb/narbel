@@ -20,7 +20,7 @@ new Elysia()
     function* ({ query, body }) {
       yield `Room: ${query.room}`;
       yield body.message;
-    },
+    }
   )
   .listen(3000);
 ```
@@ -43,16 +43,16 @@ Sockets expose `body`, `query`, `params`, and derived values directly. Use `ws.q
 
 ## Lifecycle
 
-| Option                    | Behavior                                                                                                        |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `parse(ws, message)`      | Runs after default message parsing and before validation; return a replacement or `undefined` to keep the value |
-| `transform`               | Runs before validation on upgrade and again for messages                                                        |
-| `beforeHandle`            | Runs on upgrade and before message handlers; return a status to reject the upgrade                              |
-| `upgrade`                 | Handshake response headers, as an object or function of the upgrade context                                     |
-| `open(ws)`                | Connection opened                                                                                               |
-| `message(ws, message)`    | Validated message, also available as `ws.body`                                                                  |
-| `drain(ws)`               | Backpressure cleared                                                                                            |
-| `close(ws, code, reason)` | Connection closed                                                                                               |
+| Option | Behavior |
+| --- | --- |
+| `parse(ws, message)` | Runs after default message parsing and before validation; return a replacement or `undefined` to keep the value |
+| `transform` | Runs before validation on upgrade and again for messages |
+| `beforeHandle` | Runs on upgrade and before message handlers; return a status to reject the upgrade |
+| `upgrade` | Handshake response headers, as an object or function of the upgrade context |
+| `open(ws)` | Connection opened |
+| `message(ws, message)` | Validated message, also available as `ws.body` |
+| `drain(ws)` | Backpressure cleared |
+| `close(ws, code, reason)` | Connection closed |
 
 Authentication belongs in `beforeHandle`. Avoid assuming `transform` or `beforeHandle` runs only once per connection. Per-message `parse` is distinct from an HTTP body parser. The v1 `transformMessage` option is replaced by `parse`.
 

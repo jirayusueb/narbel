@@ -1,9 +1,9 @@
-import { cn } from "cn"
+import { cn } from "cn";
 import {
   LabelContext,
   Label as LabelPrimitive,
   type LabelProps,
-} from "react-aria-components"
+} from "react-aria-components";
 
 function Label({ className, htmlFor, slot, ...props }: LabelProps) {
   const label = (
@@ -17,13 +17,13 @@ function Label({ className, htmlFor, slot, ...props }: LabelProps) {
       htmlFor={htmlFor}
       slot={slot}
     />
-  )
+  );
 
   if (htmlFor && slot === undefined) {
-    return <LabelContext.Provider value={null}>{label}</LabelContext.Provider>
+    return <LabelContext.Provider value={null}>{label}</LabelContext.Provider>;
   }
 
-  return label
+  return label;
 }
 
-export { Label }
+export { Label };

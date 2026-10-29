@@ -6,12 +6,12 @@ Contents: [response choice](#response-choice), [hooks](#error-hooks), [custom er
 
 ## Response choice
 
-| Result                          | Runtime behavior                                                 |
-| ------------------------------- | ---------------------------------------------------------------- |
-| `return status(code, body)`     | Ordinary response with status-specific typing                    |
-| `return problem(code, fields)`  | Ordinary RFC 9457 response with `application/problem+json`       |
-| Return or throw an `Error`      | Enters error hooks, then the default error response if unhandled |
-| Throw `status()` or `problem()` | Enters error hooks                                               |
+| Result | Runtime behavior |
+| --- | --- |
+| `return status(code, body)` | Ordinary response with status-specific typing |
+| `return problem(code, fields)` | Ordinary RFC 9457 response with `application/problem+json` |
+| Return or throw an `Error` | Enters error hooks, then the default error response if unhandled |
+| Throw `status()` or `problem()` | Enters error hooks |
 
 A returned `Error` from `afterHandle` also enters error handling. For an authentication rejection, return `status(401, 'Unauthorized')`; `new Error('Unauthorized')` has status 500.
 
@@ -39,7 +39,9 @@ Keep the concrete error classes in each return union, either through inference o
 ```ts
 import { Elysia, problem } from "elysia";
 
-new Elysia().get("/conflict", () => problem(409, { detail: "Username is taken" }));
+new Elysia().get("/conflict", () =>
+  problem(409, { detail: "Username is taken" })
+);
 ```
 
 `problem()` fills `type`, `title`, and `status`. Both helpers accept numeric statuses or names such as `'Conflict'`. Assigning `set.status` changes the runtime status without preserving the status/body relationship in inference.
@@ -66,7 +68,10 @@ class DatabaseUnavailable extends Error {}
 
 new Elysia()
   .onError(NotFound, ({ status }) => status(404, "Not found"))
-  .onError(DatabaseUnavailable, problem(503, { detail: "Please try again later" }))
+  .onError(
+    DatabaseUnavailable,
+    problem(503, { detail: "Please try again later" })
+  )
   .get("/users", () => new DatabaseUnavailable());
 ```
 
@@ -98,12 +103,12 @@ This sends status 402 with `type`, `code`, `title`, `status`, `detail`, and `bal
 
 ### Response customization
 
-| Member        | Effect                                                              |
-| ------------- | ------------------------------------------------------------------- |
-| `headers`     | Response headers                                                    |
-| `detail`      | Public problem detail, instead of the error message                 |
-| `extension()` | Synchronous plain object added to the problem document              |
-| `value()`     | Entire response body; may be async or return `status()`/`problem()` |
+| Member | Effect |
+| --- | --- |
+| `headers` | Response headers |
+| `detail` | Public problem detail, instead of the error message |
+| `extension()` | Synchronous plain object added to the problem document |
+| `value()` | Entire response body; may be async or return `status()`/`problem()` |
 
 Precedence is `value()`, then `detail`, then the extension's string `detail`, then the message fallback. A `value()` returning `undefined` falls through. Any other value skips `extension()`.
 
@@ -121,15 +126,15 @@ A class can extend `HTTPError` with literal `type` and `status` fields. A class 
 
 Redaction under `NODE_ENV=production` depends on the error path. It is not a blanket removal of messages or `detail`.
 
-| Error path                                                               | Production response                                                                                     |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Unhandled `Error` without a status                                       | 500 problem document without the development `detail` and `name`                                        |
-| Plain `Error` with a status                                              | Message fallback for 5xx is masked; ordinary 4xx messages remain visible                                |
-| `HTTPError` subclass with only a constructor message                     | 5xx message fallback is replaced by the status title                                                    |
-| `HTTPError` subclass with explicit `detail`, `extension()`, or `value()` | Authored response data remains public, including on 5xx                                                 |
-| `Error implements HTTPError` with a 5xx status                           | Masked problem document; custom response methods and headers are not honored as they are for subclasses |
-| `new NotFound(message)` or `new InternalServerError(message)`            | Explicit message remains public as `detail`                                                             |
-| Custom response from `onError`, `status()`, or `problem()`               | Authored response remains public                                                                        |
+| Error path | Production response |
+| --- | --- |
+| Unhandled `Error` without a status | 500 problem document without the development `detail` and `name` |
+| Plain `Error` with a status | Message fallback for 5xx is masked; ordinary 4xx messages remain visible |
+| `HTTPError` subclass with only a constructor message | 5xx message fallback is replaced by the status title |
+| `HTTPError` subclass with explicit `detail`, `extension()`, or `value()` | Authored response data remains public, including on 5xx |
+| `Error implements HTTPError` with a 5xx status | Masked problem document; custom response methods and headers are not honored as they are for subclasses |
+| `new NotFound(message)` or `new InternalServerError(message)` | Explicit message remains public as `detail` |
+| Custom response from `onError`, `status()`, or `problem()` | Authored response remains public |
 
 Explicit error bodies are public API data. Default redaction does not sanitize them.
 
@@ -147,7 +152,7 @@ new Elysia().get(
   {
     params: t.Object({ id: t.Number({ error: "id must be a number" }) }),
   },
-  ({ params }) => params.id,
+  ({ params }) => params.id
 );
 ```
 
@@ -161,12 +166,12 @@ A message applies to the schema it is attached to. A field message handles that 
 
 Import these classes from `elysia` for class-specific hooks.
 
-| Class                 | Status     | Code                    | Cause                              |
-| --------------------- | ---------- | ----------------------- | ---------------------------------- |
-| `NotFound`            | 404        | `not-found`             | No matching route                  |
-| `ParseError`          | 400        | `parse`                 | Malformed body                     |
-| `ValidationError`     | 422 or 500 | `validation`            | Request or response schema failure |
-| `InvalidCookie`       | 400        | `invalid-cookie`        | Invalid cookie signature           |
-| `InternalServerError` | 500        | `internal-server-error` | Explicit server error              |
+| Class | Status | Code | Cause |
+| --- | --- | --- | --- |
+| `NotFound` | 404 | `not-found` | No matching route |
+| `ParseError` | 400 | `parse` | Malformed body |
+| `ValidationError` | 422 or 500 | `validation` | Request or response schema failure |
+| `InvalidCookie` | 400 | `invalid-cookie` | Invalid cookie signature |
+| `InternalServerError` | 500 | `internal-server-error` | Explicit server error |
 
 A missing cookie secret is a server misconfiguration and returns 500. `ParseError` exposes its parser cause only in development. Built-in problem types use `HTTPError.typeBase`, except validation keeps `type: 'validation'`.

@@ -1,7 +1,9 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "cn"
+import { Button } from "@narbel/ui/components/button";
+import { XIcon } from "@phosphor-icons/react";
+import { cn } from "cn";
+import * as React from "react";
 import {
   Dialog as DialogPrimitive,
   DialogTrigger as DialogTriggerPrimitive,
@@ -11,13 +13,10 @@ import {
   type DialogProps as DialogPrimitiveProps,
   type DialogTriggerProps as DialogTriggerPrimitiveProps,
   type ModalOverlayProps as ModalOverlayPrimitiveProps,
-} from "react-aria-components"
-
-import { Button } from "@narbel/ui/components/button"
-import { XIcon } from "@phosphor-icons/react"
+} from "react-aria-components";
 
 function DialogTrigger({ ...props }: DialogTriggerPrimitiveProps) {
-  return <DialogTriggerPrimitive data-slot="dialog-trigger" {...props} />
+  return <DialogTriggerPrimitive data-slot="dialog-trigger" {...props} />;
 }
 
 function DialogClose({
@@ -35,7 +34,7 @@ function DialogClose({
       className={cn(className)}
       {...props}
     />
-  )
+  );
 }
 
 function DialogOverlay({
@@ -43,21 +42,21 @@ function DialogOverlay({
   children,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, "className" | "children"> & {
-  className?: string
-  children: React.ReactNode
+  className?: string;
+  children: React.ReactNode;
 }) {
   return (
     <ModalOverlayPrimitive
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 supports-backdrop-filter:backdrop-blur-xs",
+        "data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs",
         className
       )}
       {...props}
     >
       {children}
     </ModalOverlayPrimitive>
-  )
+  );
 }
 
 function Dialog({
@@ -68,16 +67,16 @@ function Dialog({
   ...props
 }: Omit<ModalOverlayPrimitiveProps, "className" | "children"> &
   Pick<React.ComponentProps<typeof ModalPrimitive>, "isDismissable"> & {
-    className?: string
-    children: React.ReactNode
-    showCloseButton?: boolean
+    className?: string;
+    children: React.ReactNode;
+    showCloseButton?: boolean;
   }) {
   return (
     <DialogOverlay isDismissable={isDismissable} {...props}>
       <ModalPrimitive
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-none bg-popover p-4 text-xs/relaxed text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 sm:max-w-sm",
+          "bg-popover text-popover-foreground ring-foreground/10 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-none p-4 text-xs/relaxed ring-1 duration-100 outline-none sm:max-w-sm",
           className
         )}
       >
@@ -92,15 +91,14 @@ function Dialog({
               className="absolute top-2 right-2"
               size="icon-sm"
             >
-              <XIcon
-              />
+              <XIcon />
               <span className="sr-only">Close</span>
             </DialogClose>
           )}
         </DialogPrimitive>
       </ModalPrimitive>
     </DialogOverlay>
-  )
+  );
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -110,7 +108,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("flex flex-col gap-1 text-left", className)}
       {...props}
     />
-  )
+  );
 }
 
 function DialogFooter({
@@ -119,7 +117,7 @@ function DialogFooter({
   children,
   ...props
 }: React.ComponentProps<"div"> & {
-  showCloseButton?: boolean
+  showCloseButton?: boolean;
 }) {
   return (
     <div
@@ -133,7 +131,7 @@ function DialogFooter({
       {children}
       {showCloseButton && <DialogClose variant="outline">Close</DialogClose>}
     </div>
-  )
+  );
 }
 
 function DialogTitle({
@@ -147,7 +145,7 @@ function DialogTitle({
       className={cn("font-heading text-sm font-medium", className)}
       {...props}
     />
-  )
+  );
 }
 
 function DialogDescription({
@@ -158,12 +156,12 @@ function DialogDescription({
     <div
       data-slot="dialog-description"
       className={cn(
-        "text-xs/relaxed text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+        "text-muted-foreground *:[a]:hover:text-foreground text-xs/relaxed *:[a]:underline *:[a]:underline-offset-3",
         className
       )}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -177,4 +175,4 @@ export {
   DialogOverlay,
   DialogTitle,
   DialogTrigger,
-}
+};

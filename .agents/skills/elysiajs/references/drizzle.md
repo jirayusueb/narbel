@@ -27,7 +27,11 @@ export const users = pgTable("users", {
 ```
 
 ```ts
-import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-orm/typebox";
+import {
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-orm/typebox";
 // users.ts
 import { Elysia, t } from "elysia";
 
@@ -40,8 +44,12 @@ const refineName = (schema: Parameters<typeof t.String>[0]) =>
 const insertUser = createInsertSchema(users, { name: refineName });
 const updateUser = createUpdateSchema(users, { name: refineName });
 
-const createUserSchema = t.Pick(insertUser, ["name"], { additionalProperties: false });
-const updateUserSchema = t.Pick(updateUser, ["name"], { additionalProperties: false });
+const createUserSchema = t.Pick(insertUser, ["name"], {
+  additionalProperties: false,
+});
+const updateUserSchema = t.Pick(updateUser, ["name"], {
+  additionalProperties: false,
+});
 const publicUserSchema = createSelectSchema(users);
 
 export const userRoutes = new Elysia().post(
@@ -57,7 +65,7 @@ export const userRoutes = new Elysia().post(
     });
     if (!user) throw new Error("Insert returned no user");
     return user;
-  },
+  }
 );
 ```
 

@@ -16,7 +16,7 @@ export const app = new Elysia().use(openapi()).post(
     body: t.Object({ text: t.String() }),
     response: t.Object({ text: t.String() }),
   },
-  ({ body }) => body,
+  ({ body }) => body
 );
 ```
 
@@ -70,7 +70,7 @@ new Elysia().post(
       deprecated: false,
     },
   },
-  ({ body }) => body,
+  ({ body }) => body
 );
 ```
 
@@ -107,7 +107,7 @@ new Elysia().get(
   ({ set }) => {
     set.headers["x-source"] = "example";
     return "Hello";
-  },
+  }
 );
 ```
 
@@ -119,18 +119,18 @@ For Standard Schema libraries without a native JSON Schema method, configure `ma
 
 ## Configuration
 
-| Option                                             | Default or purpose                                                                                      |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `enabled`                                          | `true`                                                                                                  |
-| `openapiVersion`                                   | `3.1.2`; accepts supported `3.0.x` and `3.1.x` versions                                                 |
-| `path`                                             | `/openapi`                                                                                              |
-| `specPath`                                         | `${path}/json`                                                                                          |
-| `provider`                                         | `scalar`, `swagger-ui`, or `null` for the document only                                                 |
-| `documentation`                                    | Root `info`, `servers`, `tags`, `components`, and external paths                                        |
-| `references`                                       | Additional schemas, including `fromTypes(...)`                                                          |
-| `mapJsonSchema`                                    | Vendor-to-JSON-Schema converters                                                                        |
-| `exclude.paths`, `exclude.methods`, `exclude.tags` | Omit matching routes                                                                                    |
-| `exclude.staticFile`                               | `true`                                                                                                  |
-| `scalar`, `swagger`                                | Provider options; Scalar `cdn` overrides its bundle and `withDefaultFonts: false` disables its font CDN |
+| Option | Default or purpose |
+| --- | --- |
+| `enabled` | `true` |
+| `openapiVersion` | `3.1.2`; accepts supported `3.0.x` and `3.1.x` versions |
+| `path` | `/openapi` |
+| `specPath` | `${path}/json` |
+| `provider` | `scalar`, `swagger-ui`, or `null` for the document only |
+| `documentation` | Root `info`, `servers`, `tags`, `components`, and external paths |
+| `references` | Additional schemas, including `fromTypes(...)` |
+| `mapJsonSchema` | Vendor-to-JSON-Schema converters |
+| `exclude.paths`, `exclude.methods`, `exclude.tags` | Omit matching routes |
+| `exclude.staticFile` | `true` |
+| `scalar`, `swagger` | Provider options; Scalar `cdn` overrides its bundle and `withDefaultFonts: false` disables its font CDN |
 
 For mounted Better Auth handlers, merge generated paths through the [Better Auth recipe](better-auth.md#merge-openapi-paths).

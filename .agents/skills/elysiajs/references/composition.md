@@ -16,7 +16,7 @@ Every Elysia instance can be a plugin. `.use(plugin)` imports its routes and sha
 ```ts
 const service = new Elysia({ name: "service" }).decorate(
   "greet",
-  (name: string) => `Hello ${name}`,
+  (name: string) => `Hello ${name}`
 );
 
 const users = new Elysia({ prefix: "/users" })
@@ -75,11 +75,11 @@ Export hooks in three ways:
 
 A guard applies route options to a set of routes:
 
-| Form                                     | Affected routes                                        |
-| ---------------------------------------- | ------------------------------------------------------ |
-| `.guard(options)`                        | Following routes in the instance.                      |
-| `.guard(options, app => app...)`         | Routes inside the callback.                            |
-| `.group(prefix, app => app...)`          | Callback routes receive the prefix.                    |
+| Form | Affected routes |
+| --- | --- |
+| `.guard(options)` | Following routes in the instance. |
+| `.guard(options, app => app...)` | Routes inside the callback. |
+| `.group(prefix, app => app...)` | Callback routes receive the prefix. |
 | `.group(prefix, options, app => app...)` | Callback routes receive the prefix and shared options. |
 
 ```ts
@@ -89,7 +89,7 @@ new Elysia()
     {
       query: t.Object({ page: t.Optional(t.Number()) }),
     },
-    (app) => app.get("/items", ({ query }) => ({ page: query.page ?? 1 })),
+    (app) => app.get("/items", ({ query }) => ({ page: query.page ?? 1 }))
   )
   .get("/health", () => "ok");
 ```
@@ -154,7 +154,9 @@ const auth = new Elysia({ name: "auth" }).macro({
   },
 });
 
-new Elysia().use(auth).get("/me", { auth: true }, ({ user }) => ({ id: user.id }));
+new Elysia()
+  .use(auth)
+  .get("/me", { auth: true }, ({ user }) => ({ id: user.id }));
 ```
 
 The session map makes this example self-contained. Use the project's credential verification service in production.
@@ -179,7 +181,7 @@ new Elysia()
       withAge: true,
       body: t.Object({ name: t.String() }),
     },
-    ({ body }) => ({ name: body.name, age: body.age }),
+    ({ body }) => ({ name: body.name, age: body.age })
   );
 ```
 
@@ -233,7 +235,13 @@ The handler's `role` is the literal `'admin'`. Literal preservation requires lit
 A lambda's `option` can type a callback from the route's context:
 
 ```ts
-import { Elysia, macroType, t, type Context, type MacroTypeLambda } from "elysia";
+import {
+  Elysia,
+  macroType,
+  t,
+  type Context,
+  type MacroTypeLambda,
+} from "elysia";
 
 interface Log extends MacroTypeLambda {
   option: (context: this["context"]) => string;
@@ -254,7 +262,7 @@ new Elysia()
       body: t.Object({ name: t.String() }),
       log: ({ params, body }) => `${params.id}: ${body.name}`,
     },
-    ({ body }) => body,
+    ({ body }) => body
   );
 ```
 

@@ -27,7 +27,7 @@ export const app = new Elysia()
     {
       body: t.Object({ id: t.Number(), name: t.String() }),
     },
-    ({ body }) => body,
+    ({ body }) => body
   );
 
 export type App = typeof app;
@@ -118,7 +118,8 @@ import { treaty } from "@elysia/eden";
 import { Elysia } from "elysia";
 
 const app = new Elysia().get("/users/:id", ({ params, status }) => {
-  if (params.id === "missing") return status(404, { message: "User not found" });
+  if (params.id === "missing")
+    return status(404, { message: "User not found" });
   return { id: params.id };
 });
 
@@ -164,15 +165,15 @@ type MirrorError = Treaty.Error<typeof api.mirror.post>;
 
 `treaty<App>(origin, options)` accepts these options. Prefer an explicit URL scheme. Inferred schemes use HTTP for local addresses and HTTPS otherwise.
 
-| Option           | Behavior                                                                                     |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| `fetch`          | Default `RequestInit` excluding headers and method, for example `{ credentials: 'include' }` |
-| `fetcher`        | Custom fetch-compatible function returning a Web Standard `Response`                         |
-| `headers`        | Object, `(path, options) => headers`, or array of header functions                           |
-| `onRequest`      | Function or array. Returned `RequestInit` values are shallow-merged into the request         |
-| `onResponse`     | Function or array. First non-null, non-undefined return overrides parsed data                |
-| `parseDate`      | Defaults to `true`. Converts recognized date strings to `Date`                               |
-| `throwHttpError` | Defaults to `false`. Accepts `true` or an error predicate                                    |
+| Option | Behavior |
+| --- | --- |
+| `fetch` | Default `RequestInit` excluding headers and method, for example `{ credentials: 'include' }` |
+| `fetcher` | Custom fetch-compatible function returning a Web Standard `Response` |
+| `headers` | Object, `(path, options) => headers`, or array of header functions |
+| `onRequest` | Function or array. Returned `RequestInit` values are shallow-merged into the request |
+| `onResponse` | Function or array. First non-null, non-undefined return overrides parsed data |
+| `parseDate` | Defaults to `true`. Converts recognized date strings to `Date` |
+| `throwHttpError` | Defaults to `false`. Accepts `true` or an error predicate |
 
 ```ts
 const api = treaty<App>("https://api.example.com", {

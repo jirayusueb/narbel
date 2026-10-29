@@ -14,7 +14,7 @@ const app = new Elysia().post(
   {
     body: t.Object({ name: t.String({ minLength: 1 }) }),
   },
-  ({ body, status }) => status(201, body),
+  ({ body, status }) => status(201, body)
 );
 
 test("creates a user", async () => {

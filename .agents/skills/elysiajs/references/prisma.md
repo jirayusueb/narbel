@@ -27,7 +27,7 @@ export const userRoutes = new Elysia()
       prisma.user.create({
         data: body,
         select: { id: true, email: true },
-      }),
+      })
   )
   .get(
     "/users/:id",
@@ -41,7 +41,7 @@ export const userRoutes = new Elysia()
       });
       if (!user) return status(404, "User not found");
       return user;
-    },
+    }
   );
 ```
 
