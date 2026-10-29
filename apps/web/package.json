@@ -24,6 +24,7 @@
     "@tiptap/starter-kit": "^3.32.1",
     "@varlock/vite-integration": "1.5.4",
     "better-auth": "catalog:",
+    "boring-avatars": "^2.0.4",
     "lucide-react": "^1.56.0",
     "next-themes": "catalog:",
     "nitro": "3.0.260903-beta",
