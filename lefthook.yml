@@ -1,6 +1,11 @@
 # Lefthook configuration
 # https://github.com/evilmartians/lefthook
 
+pre-push:
+  jobs:
+    - name: redproof
+      run: bunx redproof check
+
 pre-commit:
   parallel: true
   jobs:

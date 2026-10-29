@@ -30,6 +30,7 @@
     "db:generate": "turbo run db:generate -F @narbel/db --",
     "db:migrate": "turbo run db:migrate -F @narbel/db --",
     "db:start": "docker compose up -d postgres",
+    "services:start": "docker compose up -d postgres s3 s3-setup",
     "db:watch": "docker compose up postgres",
     "db:stop": "docker compose stop postgres",
     "db:down": "docker compose down postgres",
@@ -43,7 +44,10 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "docker:dokploy:config": "docker compose -f docker-compose.dokploy.yml config",
-    "docker:dokploy:build": "docker compose -f docker-compose.dokploy.yml build"
+    "docker:dokploy:build": "docker compose -f docker-compose.dokploy.yml build",
+    "redproof": "redproof check",
+    "redproof:prove": "redproof prove",
+    "redproof:describe": "redproof describe"
   },
   "dependencies": {
     "zod": "catalog:"

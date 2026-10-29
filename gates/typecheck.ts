@@ -1,21 +1,35 @@
 import { defineGate, defineProofs, defineRules, mutate, proof } from "redproof";
-import { command } from "redproof/command";
+import { commands } from "redproof/command";
+
+// tsc only: the web package's check-types script also runs `vite build`, which rewrites
+// routeTree.gen.ts and .output and breaks Redproof's workspace restore check.
+const PROJECTS = [
+  "apps/server",
+  "apps/web",
+  "packages/auth",
+  "packages/db",
+  "packages/ui",
+];
 
 const rules = defineRules({
   typecheck: {
     id: "monorepo/typecheck",
-    description: "Every workspace package type-checks (turbo check-types).",
+    description: "Every workspace package type-checks (tsc --noEmit).",
   },
 });
 
 const gate = defineGate({
   id: "typecheck",
   rules,
-  check: command({
-    rule: rules.typecheck,
-    command: "bun",
-    args: ["run", "check-types", "--force"],
-    timeoutMs: 600_000,
+  check: commands({
+    mode: "parallel",
+    entries: PROJECTS.map((project) => ({
+      rule: rules.typecheck,
+      label: project,
+      command: "bun",
+      args: ["x", "tsc", "--noEmit", "-p", project],
+      timeoutMs: 300_000,
+    })),
   }),
 });
 
