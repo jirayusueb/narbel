@@ -1,0 +1,3 @@
+{
+  "extends": "@narbel/config/tsconfig.base.json"
+}
