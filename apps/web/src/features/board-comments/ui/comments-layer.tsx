@@ -1,4 +1,6 @@
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { useEventListener } from "@reactuses/core";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
@@ -37,16 +39,20 @@ const Pin = ({
   selected: boolean;
   onClick: () => void;
 }) => (
-  <button
+  <motion.button
+    initial={{ opacity: 0, scale: 0.4 }}
+    animate={{ opacity: 1, scale: selected ? 1.08 : 1 }}
+    exit={{ opacity: 0, scale: 0.4, transition: { duration: 0.12 } }}
+    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
     type="button"
     aria-label={`Thread by ${comment.author.name}${comment.replyCount ? `, ${comment.replyCount} replies` : ""}`}
     aria-pressed={selected}
     onClick={onClick}
-    className={`shadow-elevated outline-ring pointer-events-auto absolute -translate-x-1/2 -translate-y-full cursor-pointer overflow-hidden rounded-full rounded-bl-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid ${selected ? "ring-foreground ring-offset-background ring-2 ring-offset-2" : ""}`}
+    className={`shadow-elevated outline-ring pointer-events-auto absolute origin-bottom-left -translate-x-1/2 -translate-y-full cursor-pointer overflow-hidden rounded-full rounded-bl-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid ${selected ? "ring-foreground ring-offset-background ring-2 ring-offset-2" : ""}`}
     style={{ left, top }}
   >
     <UserAvatar size={32} user={comment.author} className="rounded-none" />
-  </button>
+  </motion.button>
 );
 
 export const CommentsLayer = ({
@@ -83,22 +89,18 @@ export const CommentsLayer = ({
     return api.onScrollChange(sync);
   }, [api]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) {
-        return;
-      }
-      if (e.key === "c" && canWrite) {
-        onModeChange(!mode);
-      } else if (e.key === "Escape") {
-        setDraft(null);
-        onSelect(null);
-        onModeChange(false);
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [canWrite, mode, onModeChange, onSelect]);
+  useEventListener("keydown", (e: KeyboardEvent) => {
+    if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) {
+      return;
+    }
+    if (e.key === "c" && canWrite) {
+      onModeChange(!mode);
+    } else if (e.key === "Escape") {
+      setDraft(null);
+      onSelect(null);
+      onModeChange(false);
+    }
+  });
 
   const toScreen = (c: { x: number; y: number }) => ({
     left: (c.x + view.scrollX) * view.zoom,
@@ -126,26 +128,31 @@ export const CommentsLayer = ({
           onPointerDown={place}
         />
       ) : null}
-      {pins.map((c) => (
-        <Pin
-          key={c.id}
-          comment={c}
-          {...toScreen(c)}
-          selected={c.id === focusedId}
-          onClick={() => {
-            setDraft(null);
-            onSelect(c.id === focusedId ? null : c);
-          }}
-        />
-      ))}
+      <AnimatePresence>
+        {pins.map((c) => (
+          <Pin
+            key={c.id}
+            comment={c}
+            {...toScreen(c)}
+            selected={c.id === focusedId}
+            onClick={() => {
+              setDraft(null);
+              onSelect(c.id === focusedId ? null : c);
+            }}
+          />
+        ))}
+      </AnimatePresence>
       {draft && at ? (
         <>
           <span
             className="bg-primary absolute size-3 -translate-x-1/2 -translate-y-full rounded-full rounded-bl-[2px]"
             style={at}
           />
-          <div
-            className="bg-popover text-popover-foreground shadow-elevated ring-border pointer-events-auto absolute z-20 w-80 max-w-[calc(100%-1.5rem)] rounded-[20px] p-4 ring-1"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="bg-popover text-popover-foreground shadow-elevated ring-border pointer-events-auto absolute z-20 w-80 max-w-[calc(100%-1.5rem)] origin-top-left rounded-[20px] p-4 ring-1"
             style={{ left: at.left + 14, top: at.top }}
           >
             <CommentComposer
@@ -165,7 +172,7 @@ export const CommentsLayer = ({
                 )
               }
             />
-          </div>
+          </motion.div>
         </>
       ) : null}
     </div>

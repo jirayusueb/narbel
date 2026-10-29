@@ -1,6 +1,6 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 
-import { Loader } from "@/shared/ui";
+import { ErrorState, Loader, NotFound } from "@/shared/ui";
 
 import { routeTree } from "./routeTree.gen";
 
@@ -9,9 +9,13 @@ export const getRouter = () => {
     routeTree,
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
+    // Router state lives in an external store, so navigations are not React transitions and
+    // React's <ViewTransition> only covers Suspense reveals; the router starts page transitions.
+    defaultViewTransition: true,
     context: {},
     defaultPendingComponent: () => <Loader />,
-    defaultNotFoundComponent: () => <div>Not Found</div>,
+    defaultNotFoundComponent: () => <NotFound />,
+    defaultErrorComponent: ErrorState,
   });
 
   return router;

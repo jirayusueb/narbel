@@ -2,11 +2,12 @@ import { Button } from "@narbel/ui/components/button";
 import { Field, FieldLabel } from "@narbel/ui/components/field";
 import { Input } from "@narbel/ui/components/input";
 import { Spinner } from "@narbel/ui/components/spinner";
-import { Copy, KeyRound, Trash2 } from "lucide-react";
+import { Check, Copy, KeyRound, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { SERVER_URL } from "@/shared/config";
+import { useCopy } from "@/shared/lib";
 
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../api/keys";
 
@@ -23,21 +24,33 @@ const clientConfig = (key: string) =>
     2
   );
 
-const copy = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast.success("Copied");
-  } catch {
-    toast.error("Clipboard unavailable");
-  }
+const CopyButton = ({ text, label }: { text: string; label: string }) => {
+  const [copied, copy] = useCopy();
+  return (
+    <Button variant="secondary" size="sm" onPress={() => copy(text)}>
+      {copied ? (
+        <Check data-icon="inline-start" />
+      ) : (
+        <Copy data-icon="inline-start" />
+      )}
+      {copied ? "Copied" : label}
+    </Button>
+  );
 };
 
-const CopyButton = ({ text, label }: { text: string; label: string }) => (
-  <Button variant="secondary" size="sm" onPress={() => copy(text)}>
-    <Copy data-icon="inline-start" />
-    {label}
-  </Button>
-);
+const CopyUrlButton = ({ url }: { url: string }) => {
+  const [copied, copy] = useCopy();
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      aria-label={copied ? "Copied" : "Copy URL"}
+      onPress={() => copy(url)}
+    >
+      {copied ? <Check /> : <Copy />}
+    </Button>
+  );
+};
 
 export const McpKeysPanel = () => {
   const [name, setName] = useState("");
@@ -66,14 +79,7 @@ export const McpKeysPanel = () => {
         <code className="text-moss min-w-0 flex-1 truncate font-mono text-[13px]">
           {MCP_URL}
         </code>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Copy URL"
-          onPress={() => copy(MCP_URL)}
-        >
-          <Copy />
-        </Button>
+        <CopyUrlButton url={MCP_URL} />
       </div>
       <form
         className="flex flex-col gap-3 sm:flex-row sm:items-end"

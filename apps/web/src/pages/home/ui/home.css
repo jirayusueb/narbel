@@ -4,13 +4,6 @@
   }
 }
 
-@keyframes home-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-}
-
 @keyframes home-draw {
   to {
     stroke-dashoffset: 0;
@@ -80,11 +73,6 @@
   animation-play-state: paused;
 }
 
-.home-rise {
-  animation: home-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: var(--delay, 0ms);
-}
-
 /* The stage plays once, the first time it scrolls into view. Before that it rests on its final frame for no-JS and reduced motion. */
 .home-stage[data-play="true"] .home-stage-draw {
   stroke-dasharray: var(--len);
@@ -114,9 +102,21 @@
   transform: translate(590px, 396px);
 }
 
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.home-rise {
+  animation: home-rise 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .home-marquee,
   .home-rise,
+  .home-marquee,
   .home-stage[data-play="true"] .home-stage-draw,
   .home-stage[data-play="true"] .home-stage-show,
   .home-stage[data-play="true"] .home-stage-mai,

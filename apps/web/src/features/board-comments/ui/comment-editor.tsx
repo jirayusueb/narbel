@@ -170,6 +170,8 @@ export const CommentComposer = ({
     extensions,
     content: initial ? fromMarkdown(initial) : "",
     immediatelyRender: false,
+    // The character count and Comment button read the document on render.
+    shouldRerenderOnTransaction: true,
     editorProps: {
       attributes: {
         class: `${proseClass} bg-card border-input focus:outline-ring ${compact ? "min-h-10" : "min-h-16"} rounded-[15px] border px-3 py-2 focus:outline-2 focus:outline-solid focus:outline-offset-3`,

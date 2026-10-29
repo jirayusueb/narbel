@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { motion } from "motion/react";
 
 import { useSession } from "@/entities/session";
 import { NotificationsBell } from "@/features/notifications";
@@ -12,7 +13,10 @@ export const Header = () => {
   const { data: session } = useSession();
 
   return (
-    <header className="grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 md:px-[30px]">
+    <header
+      style={{ viewTransitionName: "site-header" }}
+      className="grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 md:px-[30px]"
+    >
       <nav aria-label="Main" className="flex items-center gap-4 md:gap-5">
         {session ? (
           <Link to="/dashboard" className={NAV_LINK}>
@@ -31,9 +35,15 @@ export const Header = () => {
       <Link
         to="/"
         aria-label="narbel home"
-        className="text-foreground ease-intent rounded-[10px] transition-transform duration-500 hover:rotate-[-8deg] motion-reduce:hover:rotate-0"
+        className="text-foreground rounded-[10px]"
       >
-        <BrandMark className="size-8" />
+        <motion.span
+          className="block"
+          whileHover={{ rotate: -8 }}
+          transition={{ duration: 0.5, ease: [0.6, 0, 0.1, 1] }}
+        >
+          <BrandMark className="size-8" />
+        </motion.span>
       </Link>
       <div className="flex items-center justify-end gap-1.5">
         {session ? <NotificationsBell /> : null}

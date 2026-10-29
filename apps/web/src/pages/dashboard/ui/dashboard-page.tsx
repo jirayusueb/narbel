@@ -1,12 +1,91 @@
+import { Button } from "@narbel/ui/components/button";
 import { Skeleton } from "@narbel/ui/components/skeleton";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { BoardCard, useBoards, useSharedBoards } from "@/entities/board";
-import { CreateBoardDialog } from "@/features/create-board";
-import { DeleteBoardDialog } from "@/features/delete-board";
+import type { Board } from "@/entities/board";
+import { openCreateBoardDialog } from "@/features/create-board";
+import { openDeleteBoardDialog } from "@/features/delete-board";
 import { McpKeysPanel } from "@/features/mcp-keys";
-import { RenameBoardDialog } from "@/features/rename-board";
+import { openRenameBoardDialog } from "@/features/rename-board";
 
 const GRID = "grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3";
+const ARRIVE = [0.16, 1, 0.3, 1] as const;
+const STAGGER_ITEMS = 6;
+const STAGGER_S = 0.04;
+
+const NewBoardButton = () => (
+  <Button onPress={openCreateBoardDialog}>
+    <Plus data-icon="inline-start" />
+    New board
+  </Button>
+);
+
+const BoardGrid = ({
+  boards,
+  editable = false,
+}: {
+  boards: Board[];
+  editable?: boolean;
+}) => {
+  const reduce = useReducedMotion();
+  return (
+    <div className={boards.length ? GRID : "contents"}>
+      {/* initial={false}: items present on first paint stay visible; only later additions animate. */}
+      <AnimatePresence mode="popLayout" initial={false}>
+        {boards.map((board, index) => (
+          <motion.div
+            key={board.id}
+            layout={!reduce}
+            initial={{ opacity: 0, scale: reduce ? 1 : 0.96 }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              transition: {
+                duration: 0.35,
+                ease: ARRIVE,
+                delay: Math.min(index, STAGGER_ITEMS) * STAGGER_S,
+              },
+            }}
+            exit={{
+              opacity: 0,
+              scale: reduce ? 1 : 0.96,
+              transition: { duration: 0.2, ease: ARRIVE },
+            }}
+            transition={{ layout: { duration: 0.35, ease: ARRIVE } }}
+          >
+            <BoardCard
+              board={board}
+              actions={
+                editable ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Rename ${board.title}`}
+                      onPress={() => openRenameBoardDialog(board)}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Delete ${board.title}`}
+                      onPress={() => openDeleteBoardDialog(board)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </>
+                ) : undefined
+              }
+            />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export const DashboardPage = () => {
   const { data: boards, isPending, error } = useBoards();
@@ -27,7 +106,7 @@ export const DashboardPage = () => {
                 </p>
               ) : null}
             </div>
-            {boards?.length ? <CreateBoardDialog /> : null}
+            {boards?.length ? <NewBoardButton /> : null}
           </div>
           {isPending ? (
             <div className={GRID}>
@@ -50,36 +129,18 @@ export const DashboardPage = () => {
                   to work on it with you.
                 </p>
               </div>
-              <CreateBoardDialog />
+              <NewBoardButton />
             </div>
           ) : null}
-          {boards?.length ? (
-            <div className={GRID}>
-              {boards.map((board) => (
-                <BoardCard
-                  key={board.id}
-                  board={board}
-                  actions={
-                    <>
-                      <RenameBoardDialog board={board} />
-                      <DeleteBoardDialog board={board} />
-                    </>
-                  }
-                />
-              ))}
-            </div>
-          ) : null}
+          {/* Always mounted so boards arriving after the skeleton still animate in. */}
+          <BoardGrid boards={boards ?? []} editable />
         </section>
         {shared?.length ? (
           <section className="mt-20 flex flex-col gap-6">
             <h2 className="font-display text-headline leading-tight font-normal">
               Shared with you
             </h2>
-            <div className={GRID}>
-              {shared.map((board) => (
-                <BoardCard key={board.id} board={board} />
-              ))}
-            </div>
+            <BoardGrid boards={shared} />
           </section>
         ) : null}
         <div className="mt-20">

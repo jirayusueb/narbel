@@ -2,7 +2,8 @@ import type {
   AppState,
   ExcalidrawImperativeAPI,
 } from "@excalidraw/excalidraw/types";
-import { useCallback, useEffect, useState } from "react";
+import { useLocalStorage } from "@reactuses/core";
+import { useCallback, useEffect } from "react";
 
 export interface Preferences {
   grid: boolean;
@@ -28,17 +29,6 @@ const DEFAULTS: Preferences = {
   stats: false,
 };
 
-const storageKey = (userId: string) => `narbel:prefs:${userId}`;
-
-const load = (userId: string): Preferences => {
-  try {
-    const raw = localStorage.getItem(storageKey(userId));
-    return { ...DEFAULTS, ...(raw ? JSON.parse(raw) : {}) };
-  } catch {
-    return DEFAULTS;
-  }
-};
-
 const IDLE_TOOLS = new Set(["selection", "hand"]);
 
 export const usePreferences = ({
@@ -48,15 +38,12 @@ export const usePreferences = ({
   userId: string;
   api: ExcalidrawImperativeAPI | null;
 }) => {
-  const [prefs, setPrefs] = useState(() => load(userId));
-
-  const update = useCallback(
-    (next: Preferences) => {
-      setPrefs(next);
-      localStorage.setItem(storageKey(userId), JSON.stringify(next));
-    },
-    [userId]
+  const [stored, setStored] = useLocalStorage<Partial<Preferences>>(
+    `narbel:prefs:${userId}`,
+    DEFAULTS
   );
+  // Older stored objects may predate a preference, so defaults fill the gaps.
+  const prefs: Preferences = { ...DEFAULTS, ...stored };
 
   useEffect(() => {
     if (!api) {
@@ -93,7 +80,7 @@ export const usePreferences = ({
 
   return {
     prefs,
-    handleChange: update,
+    handleChange: setStored,
     onAppState,
     excalidrawProps: {
       gridModeEnabled: prefs.grid,

@@ -1,1 +1,57 @@
 @import "@narbel/ui/globals.css";
+
+/* Intent motion language: old content leaves fast, new content arrives and rises. */
+::view-transition-old(root),
+::view-transition-old(.page-swap) {
+  animation: vt-out 160ms cubic-bezier(0.6, 0, 0.1, 1) both;
+}
+
+::view-transition-new(root),
+::view-transition-new(.page-swap) {
+  animation: vt-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Shared elements (board titles) morph; the page and header groups stay put. */
+::view-transition-group(*) {
+  animation-duration: 400ms;
+  animation-timing-function: cubic-bezier(0.6, 0, 0.1, 1);
+}
+
+::view-transition-group(root),
+::view-transition-group(.page-swap),
+::view-transition-group(site-header) {
+  animation-duration: 0.01ms;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 120ms;
+    animation-timing-function: linear;
+  }
+
+  ::view-transition-new(root),
+  ::view-transition-new(.page-swap) {
+    animation-name: vt-fade-in;
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}

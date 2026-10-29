@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Clock } from "lucide-react";
+import { ViewTransition } from "react";
 import type { ReactNode } from "react";
 
 import type { Board } from "../model/types";
@@ -18,13 +19,15 @@ export const BoardCard = ({
 }) => (
   <div className="bg-card shadow-surface ease-intent hover:shadow-elevated group relative flex min-h-36 flex-col justify-between gap-6 rounded-[20px] p-5 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
     <h3 className="font-display text-feature line-clamp-2 pr-16 leading-tight font-normal break-words">
-      <Link
-        to="/boards/$boardId"
-        params={{ boardId: board.id }}
-        className="focus-visible:outline-ring rounded-[8px] after:absolute after:inset-0 after:rounded-[20px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
-      >
-        {board.title}
-      </Link>
+      <ViewTransition name={`board-title-${board.id}`}>
+        <Link
+          to="/boards/$boardId"
+          params={{ boardId: board.id }}
+          className="focus-visible:outline-ring rounded-[8px] after:absolute after:inset-0 after:rounded-[20px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
+        >
+          {board.title}
+        </Link>
+      </ViewTransition>
     </h3>
     <p className="text-subtle-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
       <span className="flex items-center gap-1.5">

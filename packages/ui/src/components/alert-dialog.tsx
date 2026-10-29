@@ -1,87 +1,53 @@
 import { Button } from "@narbel/ui/components/button";
+import { ModalRoot, overlayClass } from "@narbel/ui/components/modal-motion";
 import { cn } from "cn";
 import * as React from "react";
-import {
-  Dialog as AlertDialogPrimitive,
-  DialogTrigger as AlertDialogTriggerPrimitive,
-  Heading,
-  ModalOverlay as ModalOverlayPrimitive,
-  Modal as ModalPrimitive,
-  type DialogTriggerProps as AlertDialogTriggerPrimitiveProps,
-  type ModalOverlayProps as ModalOverlayPrimitiveProps,
-} from "react-aria-components";
-
-function AlertDialogTrigger({ ...props }: AlertDialogTriggerPrimitiveProps) {
-  return (
-    <AlertDialogTriggerPrimitive data-slot="alert-dialog-trigger" {...props} />
-  );
-}
-
-function AlertDialogOverlay({
-  className,
-  children,
-  ...props
-}: Omit<ModalOverlayPrimitiveProps, "className" | "children"> & {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <ModalOverlayPrimitive
-      data-slot="alert-dialog-overlay"
-      className={cn(
-        "data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 ease-intent fixed inset-0 isolate z-50 bg-black/30 backdrop-blur-[2px] duration-200 motion-reduce:duration-0 dark:bg-black/50",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </ModalOverlayPrimitive>
-  );
-}
+import { Dialog as AlertDialogPrimitive, Heading } from "react-aria-components";
 
 function AlertDialog({
   className,
   size = "default",
   children,
-  ...props
-}: Omit<ModalOverlayPrimitiveProps, "className" | "children"> &
-  Pick<React.ComponentProps<typeof ModalPrimitive>, "isDismissable"> & {
-    className?: string;
-    size?: "default" | "sm";
-    children: React.ReactNode;
-  }) {
+  isOpen,
+  onOpenChange,
+  onExitComplete,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onExitComplete?: () => void;
+  className?: string;
+  size?: "default" | "sm";
+  children: React.ReactNode;
+}) {
   return (
-    <AlertDialogOverlay {...props}>
-      <ModalPrimitive
-        data-slot="alert-dialog-content"
-        data-size={size}
-        className={cn(
-          "group/alert-dialog-content bg-popover text-popover-foreground shadow-elevated ring-border data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-[0.98] data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-[0.98] ease-intent fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[20px] p-6 ring-1 duration-200 outline-none data-[size=sm]:max-w-xs motion-reduce:duration-0 sm:p-7 data-[size=default]:sm:max-w-md",
-          className
-        )}
+    <ModalRoot
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      onExitComplete={onExitComplete}
+      isDismissable={false}
+      overlaySlot="alert-dialog-overlay"
+      panelSlot="alert-dialog-content"
+      panelData={{ "data-size": size }}
+      overlayClassName={cn(
+        overlayClass,
+        "flex items-center justify-center p-4"
+      )}
+      hidden={(reduce) =>
+        reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }
+      }
+      panelClassName={cn(
+        "group/alert-dialog-content bg-popover text-popover-foreground shadow-elevated ring-border relative grid max-h-full w-full gap-4 overflow-y-auto rounded-[20px] p-6 ring-1 outline-none data-[size=sm]:max-w-xs sm:p-7 data-[size=default]:sm:max-w-md",
+        className
+      )}
+    >
+      <AlertDialogPrimitive
+        data-slot="alert-dialog"
+        role="alertdialog"
+        className="[display:inherit] [gap:inherit] outline-none"
       >
-        <AlertDialogPrimitive
-          data-slot="alert-dialog"
-          role="alertdialog"
-          className="[display:inherit] [gap:inherit] outline-none"
-        >
-          {children}
-        </AlertDialogPrimitive>
-      </ModalPrimitive>
-    </AlertDialogOverlay>
-  );
-}
-
-function AlertDialogContent({
-  className,
-  size = "default",
-  children,
-  ...props
-}: React.ComponentProps<typeof AlertDialog>) {
-  return (
-    <AlertDialog className={className} size={size} {...props}>
-      {children}
-    </AlertDialog>
+        {children}
+      </AlertDialogPrimitive>
+    </ModalRoot>
   );
 }
 
@@ -202,12 +168,9 @@ export {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogMedia,
-  AlertDialogOverlay,
   AlertDialogTitle,
-  AlertDialogTrigger,
 };

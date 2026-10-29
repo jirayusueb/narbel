@@ -6,50 +6,65 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@narbel/ui/components/alert-dialog";
-import { Button } from "@narbel/ui/components/button";
-import { Trash2 } from "lucide-react";
+import { overlay } from "overlay-kit";
 import { toast } from "sonner";
 
 import { useDeleteBoard } from "@/entities/board";
 import type { Board } from "@/entities/board";
 
-export const DeleteBoardDialog = ({ board }: { board: Board }) => {
+const DeleteBoardDialog = ({
+  board,
+  isOpen,
+  close,
+  unmount,
+}: {
+  board: Board;
+  isOpen: boolean;
+  close: () => void;
+  unmount: () => void;
+}) => {
   const remove = useDeleteBoard();
 
   return (
-    <AlertDialogTrigger>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label={`Delete ${board.title}`}
-      >
-        <Trash2 />
-      </Button>
-      <AlertDialog>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="font-display text-feature font-normal">
-            Delete “{board.title}”?
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            The board and its uploaded images are removed permanently.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel variant="ghost">Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            onPress={() =>
-              remove.mutate(board.id, {
-                onError: (error) => toast.error(error.message),
-              })
-            }
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialog>
-    </AlertDialogTrigger>
+    <AlertDialog
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          close();
+        }
+      }}
+      onExitComplete={unmount}
+    >
+      <AlertDialogHeader>
+        <AlertDialogTitle className="font-display text-feature font-normal">
+          Delete “{board.title}”?
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          The board and its uploaded images are removed permanently.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel variant="ghost">Cancel</AlertDialogCancel>
+        {/* Stays open until the request settles so the error toast still has a mounted observer. */}
+        <AlertDialogAction
+          slot={null}
+          variant="destructive"
+          isDisabled={remove.isPending}
+          onPress={() =>
+            remove.mutate(board.id, {
+              onSuccess: close,
+              onError: (error) => toast.error(error.message),
+            })
+          }
+        >
+          Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialog>
   );
+};
+
+export const openDeleteBoardDialog = (board: Board) => {
+  overlay.open((control) => <DeleteBoardDialog board={board} {...control} />);
 };

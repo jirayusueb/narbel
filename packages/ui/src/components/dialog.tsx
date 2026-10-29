@@ -1,23 +1,11 @@
 "use client";
 
 import { Button } from "@narbel/ui/components/button";
+import { ModalRoot, overlayClass } from "@narbel/ui/components/modal-motion";
 import { XIcon } from "@phosphor-icons/react";
 import { cn } from "cn";
 import * as React from "react";
-import {
-  Dialog as DialogPrimitive,
-  DialogTrigger as DialogTriggerPrimitive,
-  Heading,
-  ModalOverlay as ModalOverlayPrimitive,
-  Modal as ModalPrimitive,
-  type DialogProps as DialogPrimitiveProps,
-  type DialogTriggerProps as DialogTriggerPrimitiveProps,
-  type ModalOverlayProps as ModalOverlayPrimitiveProps,
-} from "react-aria-components";
-
-function DialogTrigger({ ...props }: DialogTriggerPrimitiveProps) {
-  return <DialogTriggerPrimitive data-slot="dialog-trigger" {...props} />;
-}
+import { Dialog as DialogPrimitive, Heading } from "react-aria-components";
 
 function DialogClose({
   className,
@@ -37,67 +25,60 @@ function DialogClose({
   );
 }
 
-function DialogOverlay({
-  className,
-  children,
-  ...props
-}: Omit<ModalOverlayPrimitiveProps, "className" | "children"> & {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <ModalOverlayPrimitive
-      data-slot="dialog-overlay"
-      className={cn(
-        "data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 ease-intent fixed inset-0 isolate z-50 bg-black/30 backdrop-blur-[2px] duration-200 motion-reduce:duration-0 dark:bg-black/50",
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </ModalOverlayPrimitive>
-  );
-}
-
 function Dialog({
   className,
   children,
+  isOpen,
+  onOpenChange,
+  onExitComplete,
   showCloseButton = true,
   isDismissable = true,
-  ...props
-}: Omit<ModalOverlayPrimitiveProps, "className" | "children"> &
-  Pick<React.ComponentProps<typeof ModalPrimitive>, "isDismissable"> & {
-    className?: string;
-    children: React.ReactNode;
-    showCloseButton?: boolean;
-  }) {
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onExitComplete?: () => void;
+  isDismissable?: boolean;
+  className?: string;
+  children: React.ReactNode;
+  showCloseButton?: boolean;
+}) {
   return (
-    <DialogOverlay isDismissable={isDismissable} {...props}>
-      <ModalPrimitive
-        data-slot="dialog-content"
-        className={cn(
-          "bg-popover text-popover-foreground shadow-elevated ring-border data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-[0.98] data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-[0.98] ease-intent fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[20px] p-6 text-sm ring-1 duration-200 outline-none motion-reduce:duration-0 sm:max-w-md sm:p-7",
-          className
-        )}
+    <ModalRoot
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      onExitComplete={onExitComplete}
+      isDismissable={isDismissable}
+      overlaySlot="dialog-overlay"
+      panelSlot="dialog-content"
+      overlayClassName={cn(
+        overlayClass,
+        "flex items-center justify-center p-4"
+      )}
+      hidden={(reduce) =>
+        reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }
+      }
+      panelClassName={cn(
+        "bg-popover text-popover-foreground shadow-elevated ring-border relative grid max-h-full w-full max-w-md gap-4 overflow-y-auto rounded-[20px] p-6 text-sm ring-1 outline-none sm:p-7",
+        className
+      )}
+    >
+      <DialogPrimitive
+        data-slot="dialog"
+        className="[display:inherit] [gap:inherit] outline-none"
       >
-        <DialogPrimitive
-          data-slot="dialog"
-          className="[display:inherit] [gap:inherit] outline-none"
-        >
-          {children}
-          {showCloseButton && (
-            <DialogClose
-              variant="ghost"
-              className="absolute top-3 right-3 rounded-[10px]"
-              size="icon-sm"
-            >
-              <XIcon />
-              <span className="sr-only">Close</span>
-            </DialogClose>
-          )}
-        </DialogPrimitive>
-      </ModalPrimitive>
-    </DialogOverlay>
+        {children}
+        {showCloseButton && (
+          <DialogClose
+            variant="ghost"
+            className="absolute top-3 right-3 rounded-[10px]"
+            size="icon-sm"
+          >
+            <XIcon />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+        )}
+      </DialogPrimitive>
+    </ModalRoot>
   );
 }
 
@@ -165,14 +146,10 @@ function DialogDescription({
 }
 
 export {
-  type DialogPrimitiveProps,
-  type DialogTriggerPrimitiveProps,
   Dialog,
   DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogOverlay,
   DialogTitle,
-  DialogTrigger,
 };

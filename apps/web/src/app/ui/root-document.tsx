@@ -6,6 +6,8 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { MotionConfig } from "motion/react";
+import { ViewTransition } from "react";
 
 import { Header } from "@/widgets/header";
 
@@ -26,17 +28,21 @@ export const RootDocument = () => {
       </head>
       <body>
         <Providers>
-          <div
-            className={
-              bare ? "h-svh" : "grid h-svh grid-rows-[auto_minmax(0,1fr)]"
-            }
-          >
-            {bare ? null : <Header />}
-            <main className="h-full min-h-0 overflow-hidden">
-              <Outlet />
-            </main>
-          </div>
-          <Toaster position="bottom-center" />
+          <MotionConfig reducedMotion="user">
+            <div
+              className={
+                bare ? "h-svh" : "grid h-svh grid-rows-[auto_minmax(0,1fr)]"
+              }
+            >
+              {bare ? null : <Header />}
+              <main className="h-full min-h-0 overflow-hidden">
+                <ViewTransition default="page-swap">
+                  <Outlet />
+                </ViewTransition>
+              </main>
+            </div>
+            <Toaster position="bottom-center" />
+          </MotionConfig>
         </Providers>
         <TanStackRouterDevtools position="bottom-left" />
         <Scripts />

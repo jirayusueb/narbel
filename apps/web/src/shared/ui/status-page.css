@@ -1,0 +1,62 @@
+@keyframes status-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes status-select {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes status-cursor {
+  from {
+    opacity: 0;
+    transform: translate(140px, 90px);
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+@keyframes status-bubble {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+}
+
+/* One sequence: the word lands, the agent selects it, then speaks. Every step ends visible. */
+.status-word {
+  animation: status-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.status-selection {
+  animation: status-select 360ms cubic-bezier(0.16, 1, 0.3, 1) 700ms both;
+}
+
+.status-cursor {
+  animation: status-cursor 900ms cubic-bezier(0.6, 0, 0.1, 1) 450ms both;
+}
+
+.status-bubble {
+  transform-origin: top left;
+  animation: status-bubble 320ms cubic-bezier(0.16, 1, 0.3, 1) 1250ms both;
+}
+
+.status-copy {
+  animation: status-rise 500ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-word,
+  .status-selection,
+  .status-cursor,
+  .status-bubble,
+  .status-copy {
+    animation: none;
+  }
+}
