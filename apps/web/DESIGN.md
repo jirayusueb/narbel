@@ -263,6 +263,13 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 The board is a full-viewport Excalidraw canvas. A name card (mark, serif title, status) floats beside Excalidraw's menu button; presence, comment toggle, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer; preferences, theme and export live in its main menu. Phones get one bottom drawer instead. Excalidraw's islands are re-tokenised to the same radii, Inter, white surfaces and citrus selection.
 
+### Loading
+
+- **Signature loader:** the mark drawn by its own pen. The arch stroke draws on, the collaborator's dot lands with a citrus ring ping, then the ink runs off the far end and the loop restarts (1.6s). The label under it uses the text shimmer. Reduced motion: the static mark breathes in opacity. Used for route pending states and inside the board skeleton.
+- **Skeletons:** recess-grey shapes with one shared sheen band that sweeps the whole viewport (`skeleton-sheen`, fixed background), so every skeleton on screen moves as one. Skeletons copy the real layout: board cards keep their sheet, title lines and meta line; the board skeleton places ghost islands where Excalidraw's islands will appear.
+- **Spinner:** a thin arc that lengthens and shortens as it turns, for button-level waits.
+- **Text shimmer:** in-progress labels ("Connecting", "Syncing", "Loading") carry a brighter band through their own ink (`text-shimmer`).
+
 ### Status Pages
 
 Not-found and error pages show their status word as a shape selected on a dotted canvas: a 1.5px selection box with Excalidraw-style corner and rotation handles (moss for missing, alert for errors), and the agent's cursor at the bottom-right handle saying one line in an ink bubble. One CSS sequence (word rises, box snaps on, cursor arrives, bubble appears) that ends visible and is skipped under reduced motion. The error page offers Try again (resets the boundary and reloads route data), Back home, and collapsible error details in a mono well.

@@ -1,8 +1,8 @@
 import { useBoard } from "@/entities/board";
 import { UnlockBoardForm } from "@/features/share-board";
 import { ApiError } from "@/shared/api";
-import { Loader, NotFound } from "@/shared/ui";
-import { BoardCanvas } from "@/widgets/board-canvas";
+import { NotFound } from "@/shared/ui";
+import { BoardCanvas, BoardSkeleton } from "@/widgets/board-canvas";
 import { Header } from "@/widgets/header";
 
 // The root hides the global header on board routes; states without the editor still need a way out.
@@ -23,7 +23,7 @@ export const BoardPage = ({
   const { data: board, isPending, error } = useBoard(boardId, shareToken);
 
   if (isPending) {
-    return <Loader />;
+    return <BoardSkeleton />;
   }
 
   if (error instanceof ApiError && error.status === 403) {

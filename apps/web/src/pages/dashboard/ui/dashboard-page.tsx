@@ -104,15 +104,26 @@ export const DashboardPage = () => {
                 <p className="text-muted-foreground text-sm">
                   {boards.length === 1 ? "1 board" : `${boards.length} boards`}
                 </p>
-              ) : null}
+              ) : (
+                <Skeleton className="mt-1 h-4 w-16 rounded-full" />
+              )}
             </div>
             {boards?.length ? <NewBoardButton /> : null}
           </div>
           {isPending ? (
-            <div className={GRID}>
-              <Skeleton className="h-36 rounded-[20px]" />
-              <Skeleton className="h-36 rounded-[20px]" />
-              <Skeleton className="hidden h-36 rounded-[20px] lg:block" />
+            <div className={GRID} aria-busy="true" aria-label="Loading boards">
+              {[0, 1, 2].map((index) => (
+                <div
+                  key={index}
+                  className={`bg-card shadow-surface flex min-h-36 flex-col justify-between rounded-[20px] p-5 ${index === 2 ? "max-lg:hidden" : ""}`}
+                >
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="h-5 w-3/4 rounded-full" />
+                    <Skeleton className="h-5 w-2/5 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-36 rounded-full" />
+                </div>
+              ))}
             </div>
           ) : null}
           {error ? (
