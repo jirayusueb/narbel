@@ -10,3 +10,4 @@ export type Database = ReturnType<typeof createDb>;
 
 // the server has no direct drizzle-orm dependency; query operators come through here
 export { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
+export { migrate } from "drizzle-orm/node-postgres/migrator";

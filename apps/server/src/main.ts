@@ -1,5 +1,5 @@
 import { createAuth } from "@narbel/auth";
-import { createDb } from "@narbel/db";
+import { createDb, migrate } from "@narbel/db";
 import Redis from "ioredis";
 
 import { createApp } from "./bootstrap/app";
@@ -8,6 +8,10 @@ import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { RedisPubSub } from "./shared/infrastructure/pubsub/RedisPubSub";
 
 const db = createDb(ENV);
+// set only in the deployed image, which ships the migrations folder; dev uses drizzle-kit
+if (process.env.MIGRATIONS_DIR) {
+  await migrate(db, { migrationsFolder: process.env.MIGRATIONS_DIR });
+}
 const auth = createAuth(ENV, db);
 const redis = new Redis(ENV.REDIS_URL);
 redis.on("error", (error) => {

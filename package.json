@@ -43,8 +43,6 @@
     "auth:generate": "cd apps/server && bun run auth:generate",
     "check": "ultracite check",
     "fix": "ultracite fix",
-    "docker:dokploy:config": "docker compose -f docker-compose.dokploy.yml config",
-    "docker:dokploy:build": "docker compose -f docker-compose.dokploy.yml build",
     "redproof": "redproof check",
     "redproof:prove": "redproof prove",
     "redproof:describe": "redproof describe"

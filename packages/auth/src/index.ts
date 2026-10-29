@@ -25,11 +25,11 @@ export const createAuth = (
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     advanced: {
-      defaultCookieAttributes: {
-        sameSite: "none",
-        secure: true,
-        httpOnly: true,
-      },
+      // https deploys put web and API on different sites (SameSite=None needs Secure);
+      // plain-http deploys (IP:port) are same-site, where Lax works and Secure would drop the cookie
+      defaultCookieAttributes: env.BETTER_AUTH_URL.startsWith("https:")
+        ? { sameSite: "none", secure: true, httpOnly: true }
+        : { sameSite: "lax", secure: false, httpOnly: true },
     },
     plugins: [
       apiKey({

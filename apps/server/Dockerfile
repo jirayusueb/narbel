@@ -15,11 +15,6 @@ WORKDIR /app/apps/server
 ENV NODE_ENV=production
 RUN bun run env:generate && bun run build
 
-# One-shot: applies packages/db migrations. Needs the dev dependencies for drizzle-kit.
-FROM installer AS migrate
-WORKDIR /app/packages/db
-CMD ["bun", "run", "db:migrate:deploy"]
-
 FROM base AS runner
 ENV NODE_ENV=production
 COPY --from=builder /app/out/json/ .
@@ -27,6 +22,8 @@ RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lock
 COPY --from=installer /app/apps/server/dist apps/server/dist
 # varlock/auto-load validates process env against the schema at startup.
 COPY --from=builder /app/out/full/apps/server/.env.schema apps/server/
+COPY --from=builder /app/out/full/packages/db/src/migrations /app/migrations
+ENV MIGRATIONS_DIR=/app/migrations
 
 EXPOSE 3000
 
