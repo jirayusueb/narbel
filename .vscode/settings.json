@@ -3,8 +3,8 @@
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
   "emmet.showExpandedAbbreviation": "never",
-  "js/ts.tsdk.path": "node_modules/typescript/lib",
-  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
+  "js/ts.experimental.useTsgo": true,
+  "js/ts.tsdk.path": "./node_modules/tsrs/tsdk",
   "[astro]": {
     "editor.defaultFormatter": "astro-build.astro-vscode"
   },

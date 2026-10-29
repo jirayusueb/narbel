@@ -70,14 +70,12 @@ export const usePreferences = ({
     }
   }, [api, prefs.stats]);
 
+  // shortcut: closing the stats panel with its own X leaves the menu toggle stale.
   // Excalidraw resets the lock whenever a tool is picked, so the preference is re-asserted on change.
   const onAppState = useCallback(
     (appState: AppState) => {
       if (!api) {
         return;
-      }
-      if (appState.stats.open !== prefs.stats) {
-        update({ ...prefs, stats: appState.stats.open });
       }
       const { activeTool } = appState;
       if (
@@ -90,7 +88,7 @@ export const usePreferences = ({
         });
       }
     },
-    [api, prefs, update]
+    [api, prefs.toolLock]
   );
 
   return {

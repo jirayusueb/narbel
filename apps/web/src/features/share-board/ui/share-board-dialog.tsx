@@ -54,31 +54,43 @@ const VisibilitySection = ({
 }) => {
   const patch = usePatchAccess(boardId);
   const [password, setPassword] = useState("");
+  // The server refuses "password" visibility without a password, so that choice waits for the form.
+  const [choice, setChoice] = useState(access.visibility);
 
   return (
     <Section title="Who can open this board">
       <Select
         aria-label="Visibility"
-        value={access.visibility}
+        value={choice}
         disabled={patch.isPending}
-        onChange={(e) =>
+        onChange={(e) => {
+          const next = e.target.value as Visibility;
+          setChoice(next);
+          if (next === "password" && !access.hasPassword) {
+            return;
+          }
           patch.mutate(
-            { visibility: e.target.value as Visibility },
-            { onError }
-          )
-        }
+            { visibility: next },
+            {
+              onError: (error) => {
+                setChoice(access.visibility);
+                onError(error);
+              },
+            }
+          );
+        }}
       >
         <option value="private">Private, only invited people</option>
         <option value="link">Anyone signed in with the link can view</option>
         <option value="password">Anyone signed in with the password</option>
       </Select>
-      {access.visibility === "password" ? (
+      {choice === "password" ? (
         <form
           className="flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             patch.mutate(
-              { password },
+              { visibility: "password", password },
               {
                 onError,
                 onSuccess: () => {

@@ -8,7 +8,7 @@
     ],
     "catalog": {
       "zod": "^4.5.4",
-      "typescript": "^6.0.3",
+      "tsrs": "0.20.1-ts7.1.0-beta",
       "@types/bun": "^1.4.3",
       "varlock": "1.23.0",
       "better-auth": "1.7.12",
@@ -61,8 +61,9 @@
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
     "redproof": "^0.12.0",
+    "tsrs": "catalog:",
     "turbo": "^2.11.7",
-    "typescript": "catalog:",
+    "typescript": "^6.0.3",
     "ultracite": "8.0.0",
     "varlock": "catalog:"
   },

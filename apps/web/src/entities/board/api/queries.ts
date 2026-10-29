@@ -83,7 +83,8 @@ const useAccessMutation = <V>(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: run,
-    onSuccess: () =>
+    // An invite whose email failed still created the access row, so errors refresh too.
+    onSettled: () =>
       queryClient.invalidateQueries({ queryKey: boardKeys.access(id) }),
   });
 };
@@ -105,7 +106,7 @@ export const useRemoveMember = (id: string) =>
     unwrap(
       await api.api
         .boards({ id })
-        .access.members({ userId: encodeURIComponent(member) })
+        .access.members({ member: encodeURIComponent(member) })
         .delete()
     )
   );
