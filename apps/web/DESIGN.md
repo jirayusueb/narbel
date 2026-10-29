@@ -60,6 +60,17 @@ typography:
     fontWeight: 500
     lineHeight: 1.15
     letterSpacing: "-0.01em"
+  chrome:
+    fontFamily: "Roboto Serif Variable, ui-serif, Georgia, serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "-0.02em"
+  badge:
+    fontFamily: "Inter Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.625rem"
+    fontWeight: 600
+    lineHeight: 1
   code:
     fontFamily: "JetBrains Mono Variable, ui-monospace, monospace"
     fontSize: "0.8125rem"
@@ -196,9 +207,12 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 - **Status word** (400, clamp(7rem, 24vw, 18rem), 1, -0.04em): the "404" and "Oops" words on the not-found and error pages only.
 - **Title** (400, 40px, 1, -0.035em): page titles ("Boards"), landing section headings on desktop.
 - **Headline** (400, 32px, 1, -0.035em): section headings, dialog titles, auth panel titles.
-- **Feature** (400, 24px, 1.05, -0.02em): board card titles, empty-state titles, card titles.
-- **Body** (400, 14px to 17px, 1.4 to 1.45, -0.01em): copy. Landing paragraphs run 17px.
-- **Label** (500, 14px or 13px, 1.15): buttons, field labels, tabs.
+- **Feature** (400, 24px, 1.05, -0.02em): board card titles, empty-state titles, card titles, and the titles of the board's comments panel and phone drawer.
+- **Chrome title** (400 serif, 17px, 1.5, -0.02em): the board name inside its 40px name card, the one serif small enough to sit in Excalidraw's chrome.
+- **Body** (400, 14px to 17px, 1.4 to 1.45, -0.01em): copy. Landing paragraphs run 17px; comment bodies run 14px.
+- **Label** (500, 14px or 13px, 1.15): buttons, field labels, tabs, page tabs, Excalidraw's Library label. Dense rows (thread authors, mention and assignee pickers, notifications) use 13px.
+- **Caption** (400, 12px, 1.33): timestamps, the Live status, composer hints, resolved-by lines.
+- **Badge** (600, 10px, 1, tabular figures): the unread count on the bell, and nothing else.
 
 ### Named Rules
 
