@@ -90,3 +90,29 @@ export const MentionSuggest = Extension.create<{
     ];
   },
 });
+
+export const EmptyPlaceholder = Extension.create<{ text: string }>({
+  name: "emptyPlaceholder",
+  addProseMirrorPlugins() {
+    const { text } = this.options;
+    return [
+      new Plugin({
+        props: {
+          decorations: ({ doc }) => {
+            const [block] = doc.children;
+            return doc.childCount === 1 &&
+              block?.isTextblock &&
+              block.content.size === 0
+              ? DecorationSet.create(doc, [
+                  Decoration.node(0, block.nodeSize, {
+                    class: "is-empty",
+                    "data-placeholder": text,
+                  }),
+                ])
+              : DecorationSet.empty;
+          },
+        },
+      }),
+    ];
+  },
+});

@@ -157,7 +157,7 @@ export const useCommentMutations = (boardId: string, share?: string) => {
         mine: boolean;
       }) => {
         const reaction = one(input.id).reactions({
-          emoji: encodeURIComponent(input.emoji),
+          emoji: input.emoji,
         });
         return unwrap(
           await (input.mine ? reaction.delete : reaction.put)(undefined, {

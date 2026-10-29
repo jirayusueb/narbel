@@ -9,7 +9,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { UserAvatar } from "@/entities/user";
 
 import { fromMarkdown, toMarkdown } from "../model/markdown";
-import { MentionHighlight, MentionSuggest } from "../model/mention";
+import {
+  EmptyPlaceholder,
+  MentionHighlight,
+  MentionSuggest,
+} from "../model/mention";
 import type { Mentionable, MentionQuery } from "../model/mention";
 import { useMention } from "../model/use-mention";
 
@@ -18,7 +22,7 @@ export const MAX_BODY = 2000;
 const starter = StarterKit.configure({ link: { openOnClick: false } });
 
 const proseClass =
-  "text-sm [&_a]:underline [&_a]:underline-offset-2 [&_code]:bg-muted [&_code]:font-mono [&_code]:text-[13px] [&_code]:rounded-[5px] [&_code]:px-1 [&_h2]:text-sm [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:bg-muted [&_pre]:rounded-[10px] [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-[13px] [&_ul]:list-disc [&_ul]:pl-5 outline-hidden";
+  "text-sm [&_a]:underline [&_a]:underline-offset-2 [&_code]:bg-muted [&_code]:font-mono [&_code]:text-[13px] [&_code]:rounded-[5px] [&_code]:px-1 [&_h2]:text-sm [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:bg-muted [&_pre]:rounded-[10px] [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-[13px] [&_ul]:list-disc [&_ul]:pl-5 [&_p.is-empty]:before:pointer-events-none [&_p.is-empty]:before:float-left [&_p.is-empty]:before:h-0 [&_p.is-empty]:before:text-subtle-foreground [&_p.is-empty]:before:content-[attr(data-placeholder)] outline-hidden";
 
 const Tool = ({
   label,
@@ -163,8 +167,13 @@ export const CommentComposer = ({
   const { mention, onQuery, matches, active, move, dismiss } =
     useMention(members);
   const extensions = useMemo(
-    () => [starter, MentionHighlight, MentionSuggest.configure({ onQuery })],
-    [onQuery]
+    () => [
+      starter,
+      MentionHighlight,
+      MentionSuggest.configure({ onQuery }),
+      EmptyPlaceholder.configure({ text: placeholder }),
+    ],
+    [onQuery, placeholder]
   );
   const editor = useEditor({
     extensions,
