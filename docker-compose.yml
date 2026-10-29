@@ -77,6 +77,8 @@ services:
       POSTGRES_DB: narbel
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      # pgrust's initdb defaults reject host TCP auth; this writes the pg_hba we need
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     ports:
       - "5432:5432"
     volumes:
