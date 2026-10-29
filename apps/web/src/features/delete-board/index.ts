@@ -1,1 +1,1 @@
-export { DeleteBoardDialog } from "./ui/delete-board-dialog";
+export { openDeleteBoardDialog } from "./ui/delete-board-dialog";

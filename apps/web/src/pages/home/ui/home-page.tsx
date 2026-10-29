@@ -1,8 +1,14 @@
 import { Button, buttonVariants } from "@narbel/ui/components/button";
+import {
+  useElementVisibility,
+  useIntersectionObserver,
+  useToggle,
+} from "@reactuses/core";
 import { Link } from "@tanstack/react-router";
 import { Bot, Files, Pause, PenLine, Play, Plug } from "lucide-react";
+import { motion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useRef } from "react";
 
 import { useSession } from "@/entities/session";
 import { SERVER_URL } from "@/shared/config";
@@ -72,6 +78,8 @@ const MCP_TOOLS = [
   "select",
   "edit_selection",
 ];
+
+const HERO_WORDS = "One board for your team and its agents.".split(" ");
 
 // Label swap on hover, the way intentapp.dev's buttons roll their text.
 const Roll = ({ children }: { children: ReactNode }) => (
@@ -217,25 +225,17 @@ const at = (seconds: number, extra?: Record<string, string>) =>
 // Illustrative scene: a teammate asks in a comment, an agent connected over MCP draws the answer.
 const Stage = () => {
   const ref = useRef<HTMLDivElement>(null);
-  const [play, setPlay] = useState(false);
+  const [play, setPlay] = useToggle(false);
 
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) {
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          setPlay(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.45 }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
+  useIntersectionObserver(
+    ref,
+    ([entry]) => {
+      if (entry?.isIntersecting) {
+        setPlay(true);
+      }
+    },
+    { threshold: 0.45 }
+  );
 
   return (
     <figure className="mx-auto w-full max-w-6xl px-5 md:px-[30px]">
@@ -449,56 +449,76 @@ const McpSnippet = () => (
 
 const Cta = ({ signedIn }: { signedIn: boolean }) => (
   <div className="flex flex-wrap items-center justify-center gap-2.5">
-    <Link
-      to={signedIn ? "/dashboard" : "/login"}
-      className={buttonVariants({ size: "lg" })}
-    >
-      <PenLine data-icon="inline-start" />
-      <Roll>{signedIn ? "Open your boards" : "Start drawing"}</Roll>
-    </Link>
-    <Link
-      to="/"
-      hash="agents"
-      className={buttonVariants({ variant: "secondary", size: "lg" })}
-    >
-      <Plug data-icon="inline-start" />
-      <Roll>Connect an agent</Roll>
-    </Link>
+    <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.12 }}>
+      <Link
+        to={signedIn ? "/dashboard" : "/login"}
+        className={buttonVariants({ size: "lg" })}
+      >
+        <PenLine data-icon="inline-start" />
+        <Roll>{signedIn ? "Open your boards" : "Start drawing"}</Roll>
+      </Link>
+    </motion.div>
+    <motion.div whileTap={{ scale: 0.98 }} transition={{ duration: 0.12 }}>
+      <Link
+        to="/"
+        hash="agents"
+        className={buttonVariants({ variant: "secondary", size: "lg" })}
+      >
+        <Plug data-icon="inline-start" />
+        <Roll>Connect an agent</Roll>
+      </Link>
+    </motion.div>
   </div>
 );
+
+const rise = (delay: number) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] as const },
+  "data-rise": "",
+});
 
 export const HomePage = () => {
   const { data: session } = useSession();
   const signedIn = Boolean(session);
-  const [marqueePaused, setMarqueePaused] = useState(false);
+  const [paused, togglePaused] = useToggle(false);
+  const bandRef = useRef<HTMLDivElement>(null);
+  const [bandVisible] = useElementVisibility(bandRef);
 
   return (
     <div className="h-full overflow-x-hidden overflow-y-auto motion-safe:scroll-smooth">
+      <noscript>
+        <style>
+          {"[data-rise]{opacity:1!important;transform:none!important}"}
+        </style>
+      </noscript>
       <section className="flex flex-col items-center px-5 pt-16 pb-20 text-center md:px-[30px] md:pt-24 md:pb-28">
-        <h1
-          className="home-rise font-display lg:text-display max-w-[13ch] text-[44px] leading-[0.95] font-normal tracking-[-0.04em] md:text-[72px]"
-          style={{ "--delay": "0ms" } as CSSProperties}
-        >
-          One board for your team and its agents.
+        <h1 className="font-display lg:text-display max-w-[13ch] text-[44px] leading-[0.95] font-normal tracking-[-0.04em] md:text-[72px]">
+          {HERO_WORDS.map((word, index) => (
+            <Fragment key={index}>
+              {index > 0 ? " " : null}
+              <motion.span className="inline-block" {...rise(index * 0.04)}>
+                {word}
+              </motion.span>
+            </Fragment>
+          ))}
         </h1>
-        <p
-          className="home-rise text-muted-foreground mt-8 max-w-[34rem] text-[17px] leading-[1.4] text-pretty md:text-lg"
-          style={{ "--delay": "120ms" } as CSSProperties}
+        <motion.p
+          className="text-muted-foreground mt-8 max-w-[34rem] text-[17px] leading-[1.4] text-pretty md:text-lg"
+          {...rise(0.2)}
         >
           Draw together in real time, drop in images, leave comments on the
           canvas, and let AI agents read and edit the same board over MCP.
-        </p>
-        <div
-          className="home-rise mt-10"
-          style={{ "--delay": "220ms" } as CSSProperties}
-        >
+        </motion.p>
+        <motion.div className="mt-10" {...rise(0.28)}>
           <Cta signedIn={signedIn} />
-        </div>
+        </motion.div>
       </section>
 
       <div
+        ref={bandRef}
         className="home-marquee-band"
-        data-paused={marqueePaused ? "" : undefined}
+        data-paused={paused || !bandVisible ? "" : undefined}
       >
         <div
           aria-hidden="true"
@@ -512,12 +532,10 @@ export const HomePage = () => {
           <Button
             variant="ghost"
             size="icon-xs"
-            aria-label={
-              marqueePaused ? "Play example boards" : "Pause example boards"
-            }
-            onPress={() => setMarqueePaused(!marqueePaused)}
+            aria-label={paused ? "Play example boards" : "Pause example boards"}
+            onPress={() => togglePaused()}
           >
-            {marqueePaused ? <Play /> : <Pause />}
+            {paused ? <Play /> : <Pause />}
           </Button>
         </div>
       </div>

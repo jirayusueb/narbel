@@ -4,12 +4,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@narbel/ui/components/dialog";
 import { Input } from "@narbel/ui/components/input";
 import { Skeleton } from "@narbel/ui/components/skeleton";
-import { Copy, KeyRound, Link2, Lock, Share2, X } from "lucide-react";
+import { Check, Copy, KeyRound, Link2, Lock, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { overlay } from "overlay-kit";
 import { useState } from "react";
 import type { ComponentProps } from "react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
   useRemoveMember,
 } from "@/entities/board";
 import type { Board, BoardAccess, Visibility } from "@/entities/board";
+import { useCopy } from "@/shared/lib";
 
 const selectClass =
   "h-10 rounded-[10px] border border-input bg-card px-3 text-sm outline-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40";
@@ -185,6 +186,7 @@ const LinkSection = ({
 }) => {
   const patch = usePatchAccess(boardId);
   const { share } = access;
+  const [copied, copy] = useCopy();
   const enabled = share?.enabled ?? false;
 
   return (
@@ -229,12 +231,9 @@ const LinkSection = ({
             variant="secondary"
             size="icon-sm"
             aria-label="Copy link"
-            onPress={async () => {
-              await navigator.clipboard.writeText(share.url);
-              toast.success("Link copied");
-            }}
+            onPress={() => copy(share.url)}
           >
-            <Copy />
+            {copied ? <Check /> : <Copy />}
           </Button>
         </div>
       ) : null}
@@ -341,36 +340,52 @@ const MembersSection = ({
   );
 };
 
-export const ShareBoardDialog = ({ board }: { board: Board }) => {
-  const [open, setOpen] = useState(false);
-  const { data: access } = useBoardAccess(board.id, open);
+const ShareBoardDialog = ({
+  board,
+  isOpen,
+  close,
+  unmount,
+}: {
+  board: Board;
+  isOpen: boolean;
+  close: () => void;
+  unmount: () => void;
+}) => {
+  const { data: access } = useBoardAccess(board.id, isOpen);
 
   return (
-    <DialogTrigger isOpen={open} onOpenChange={setOpen}>
-      <Button variant="citrus" size="sm">
-        <Share2 data-icon="inline-start" />
-        Share
-      </Button>
-      <Dialog className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-display text-[24px] font-normal tracking-[-0.02em]">
-            Share “{board.title}”
-          </DialogTitle>
-          <DialogDescription>
-            People you share with need a Narbel account.
-          </DialogDescription>
-        </DialogHeader>
-        {access ? (
-          <div className="flex max-h-[70vh] flex-col gap-8 overflow-y-auto px-1 py-1">
-            <VisibilitySection boardId={board.id} access={access} />
-            <LinkSection boardId={board.id} access={access} />
-            <InviteSection boardId={board.id} />
-            <MembersSection boardId={board.id} access={access} />
-          </div>
-        ) : (
-          <Skeleton className="h-40" />
-        )}
-      </Dialog>
-    </DialogTrigger>
+    <Dialog
+      className="sm:max-w-lg"
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          close();
+        }
+      }}
+      onExitComplete={unmount}
+    >
+      <DialogHeader>
+        <DialogTitle className="font-display text-[24px] font-normal tracking-[-0.02em]">
+          Share “{board.title}”
+        </DialogTitle>
+        <DialogDescription>
+          People you share with need a Narbel account.
+        </DialogDescription>
+      </DialogHeader>
+      {access ? (
+        <div className="flex max-h-[70vh] flex-col gap-8 overflow-y-auto px-1 py-1">
+          <VisibilitySection boardId={board.id} access={access} />
+          <LinkSection boardId={board.id} access={access} />
+          <InviteSection boardId={board.id} />
+          <MembersSection boardId={board.id} access={access} />
+        </div>
+      ) : (
+        <Skeleton className="h-40" />
+      )}
+    </Dialog>
   );
+};
+
+export const openShareBoardDialog = (board: Board) => {
+  overlay.open((control) => <ShareBoardDialog board={board} {...control} />);
 };

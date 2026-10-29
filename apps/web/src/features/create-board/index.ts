@@ -1,1 +1,1 @@
-export { CreateBoardDialog } from "./ui/create-board-dialog";
+export { openCreateBoardDialog } from "./ui/create-board-dialog";

@@ -10,6 +10,7 @@ import {
 import { Skeleton } from "@narbel/ui/components/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 
 import { useSession } from "@/entities/session";
@@ -96,6 +97,14 @@ export const UserMenu = () => {
             <DropdownMenuItem key={id} id={id} textValue={label}>
               <Icon />
               {label}
+              {theme === id ? (
+                <motion.span
+                  layoutId="theme-indicator"
+                  aria-hidden="true"
+                  className="bg-citrus ring-foreground/30 ml-auto size-2 rounded-full ring-1"
+                  transition={{ duration: 0.25, ease: [0.6, 0, 0.1, 1] }}
+                />
+              ) : null}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>

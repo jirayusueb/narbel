@@ -11,10 +11,10 @@ export const BrandMark = ({ className }: { className?: string }) => (
     <path
       d="M7 27V15.5a8.5 8.5 0 0 1 17 0V27"
       stroke="currentColor"
-      strokeWidth="4.5"
+      strokeWidth="5"
       strokeLinecap="round"
     />
-    <circle cx="26.5" cy="5.5" r="3.5" fill="currentColor" />
+    <circle cx="26.5" cy="5.5" r="3.75" fill="currentColor" />
   </svg>
 );
 

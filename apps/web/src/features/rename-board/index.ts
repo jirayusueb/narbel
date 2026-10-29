@@ -1,1 +1,1 @@
-export { RenameBoardDialog } from "./ui/rename-board-dialog";
+export { openRenameBoardDialog } from "./ui/rename-board-dialog";

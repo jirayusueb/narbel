@@ -1,6 +1,8 @@
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { Button } from "@narbel/ui/components/button";
+import { useEventListener, useToggle } from "@reactuses/core";
 import { Check, MessageCircle, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
@@ -41,12 +43,16 @@ const Popover = ({
   top: number;
   children: React.ReactNode;
 }) => (
-  <div
-    className="bg-popover text-popover-foreground shadow-elevated ring-border pointer-events-auto absolute z-20 w-80 max-w-[calc(100%-1.5rem)] rounded-[20px] p-4 ring-1"
+  <motion.div
+    initial={{ opacity: 0, scale: 0.94, y: 4 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
+    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+    className="bg-popover text-popover-foreground shadow-elevated ring-border pointer-events-auto absolute z-20 w-80 max-w-[calc(100%-1.5rem)] origin-top-left rounded-[20px] p-4 ring-1"
     style={{ left: left + 14, top }}
   >
     {children}
-  </div>
+  </motion.div>
 );
 
 const Pin = ({
@@ -62,11 +68,15 @@ const Pin = ({
   selected: boolean;
   onClick: () => void;
 }) => (
-  <button
+  <motion.button
+    initial={{ opacity: 0, scale: 0.4 }}
+    animate={{ opacity: 1, scale: selected ? 1.08 : 1 }}
+    exit={{ opacity: 0, scale: 0.4, transition: { duration: 0.12 } }}
+    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
     type="button"
     aria-label={`Comment by ${comment.authorName}`}
     onClick={onClick}
-    className={`shadow-elevated outline-ring pointer-events-auto absolute grid size-8 -translate-x-1/2 -translate-y-full cursor-pointer place-items-center rounded-full rounded-bl-[4px] text-xs font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid ${selected ? "ring-foreground ring-offset-background ring-2 ring-offset-2" : ""}`}
+    className={`shadow-elevated outline-ring pointer-events-auto absolute grid size-8 origin-bottom-left -translate-x-1/2 -translate-y-full cursor-pointer place-items-center rounded-full rounded-bl-[4px] text-xs font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid ${selected ? "ring-foreground ring-offset-background ring-2 ring-offset-2" : ""}`}
     style={{
       left,
       top,
@@ -74,7 +84,7 @@ const Pin = ({
     }}
   >
     {comment.authorName.slice(0, 1).toUpperCase()}
-  </button>
+  </motion.button>
 );
 
 export const CommentsLayer = ({
@@ -108,7 +118,7 @@ export const CommentsLayer = ({
   const [view, setView] = useState<View>({ scrollX: 0, scrollY: 0, zoom: 1 });
   const [draft, setDraft] = useState<{ x: number; y: number } | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [showResolved, setShowResolved] = useState(false);
+  const [showResolved, toggleResolved] = useToggle(false);
 
   useEffect(() => {
     if (!api) {
@@ -121,22 +131,18 @@ export const CommentsLayer = ({
     return api.onScrollChange(sync);
   }, [api]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) {
-        return;
-      }
-      if (e.key === "c" && canWrite) {
-        onModeChange(!mode);
-      } else if (e.key === "Escape") {
-        setDraft(null);
-        setOpenId(null);
-        onModeChange(false);
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [canWrite, mode, onModeChange]);
+  useEventListener("keydown", (e: KeyboardEvent) => {
+    if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) {
+      return;
+    }
+    if (e.key === "c" && canWrite) {
+      onModeChange(!mode);
+    } else if (e.key === "Escape") {
+      setDraft(null);
+      setOpenId(null);
+      onModeChange(false);
+    }
+  });
 
   const toScreen = (c: { x: number; y: number }) => ({
     left: (c.x + view.scrollX) * view.zoom,
@@ -169,18 +175,20 @@ export const CommentsLayer = ({
           onPointerDown={place}
         />
       ) : null}
-      {open.map((c) => (
-        <Pin
-          key={c.id}
-          comment={c}
-          {...toScreen(c)}
-          selected={c.id === openId}
-          onClick={() => {
-            setDraft(null);
-            setOpenId(c.id === openId ? null : c.id);
-          }}
-        />
-      ))}
+      <AnimatePresence>
+        {open.map((c) => (
+          <Pin
+            key={c.id}
+            comment={c}
+            {...toScreen(c)}
+            selected={c.id === openId}
+            onClick={() => {
+              setDraft(null);
+              setOpenId(c.id === openId ? null : c.id);
+            }}
+          />
+        ))}
+      </AnimatePresence>
       {draft ? (
         <>
           <span
@@ -200,55 +208,57 @@ export const CommentsLayer = ({
           </Popover>
         </>
       ) : null}
-      {active ? (
-        <Popover {...toScreen(active)}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-[13px] font-medium">
-              {active.authorName}
-            </span>
-            <span className="text-subtle-foreground shrink-0 text-xs">
-              {formatter.format(new Date(active.createdAt))}
-            </span>
-          </div>
-          <CommentBody markdown={active.body} />
-          <div className="mt-3 flex justify-end gap-1">
-            {canWrite ? (
-              <Button
-                variant="secondary"
-                size="xs"
-                isDisabled={resolve.isPending}
-                onPress={() =>
-                  resolve.mutate(active.id, {
-                    onError,
-                    onSuccess: () => setOpenId(null),
-                  })
-                }
-              >
-                <Check data-icon="inline-start" />
-                Resolve
-              </Button>
-            ) : null}
-            {active.authorId === userId || isOwner ? (
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label="Delete comment"
-                isDisabled={remove.isPending}
-                onPress={() =>
-                  remove.mutate(active.id, {
-                    onError,
-                    onSuccess: () => setOpenId(null),
-                  })
-                }
-              >
-                <Trash2 />
-              </Button>
-            ) : null}
-          </div>
-        </Popover>
-      ) : null}
+      <AnimatePresence>
+        {active ? (
+          <Popover key={active.id} {...toScreen(active)}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-[13px] font-medium">
+                {active.authorName}
+              </span>
+              <span className="text-subtle-foreground shrink-0 text-xs">
+                {formatter.format(new Date(active.createdAt))}
+              </span>
+            </div>
+            <CommentBody markdown={active.body} />
+            <div className="mt-3 flex justify-end gap-1">
+              {canWrite ? (
+                <Button
+                  variant="secondary"
+                  size="xs"
+                  isDisabled={resolve.isPending}
+                  onPress={() =>
+                    resolve.mutate(active.id, {
+                      onError,
+                      onSuccess: () => setOpenId(null),
+                    })
+                  }
+                >
+                  <Check data-icon="inline-start" />
+                  Resolve
+                </Button>
+              ) : null}
+              {active.authorId === userId || isOwner ? (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Delete comment"
+                  isDisabled={remove.isPending}
+                  onPress={() =>
+                    remove.mutate(active.id, {
+                      onError,
+                      onSuccess: () => setOpenId(null),
+                    })
+                  }
+                >
+                  <Trash2 />
+                </Button>
+              ) : null}
+            </div>
+          </Popover>
+        ) : null}
+      </AnimatePresence>
       {resolved.length > 0 ? (
-        <div className="pointer-events-auto absolute bottom-3 left-3 flex flex-col items-start gap-1">
+        <div className="pointer-events-auto absolute bottom-[68px] left-4 flex flex-col items-start gap-1">
           {showResolved ? (
             <ul className="bg-popover shadow-elevated ring-border flex max-h-64 w-80 flex-col gap-3 overflow-y-auto rounded-[20px] p-4 ring-1">
               {resolved.map((c) => (
@@ -268,7 +278,7 @@ export const CommentsLayer = ({
             variant="secondary"
             size="sm"
             aria-expanded={showResolved}
-            onPress={() => setShowResolved((v) => !v)}
+            onPress={toggleResolved}
           >
             <MessageCircle data-icon="inline-start" />
             Resolved ({resolved.length})

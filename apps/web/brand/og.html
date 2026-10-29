@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Roboto Serif";
+        font-weight: 100 900;
+        src: url("../../../node_modules/.bun/@fontsource-variable+roboto-serif@5.3.0/node_modules/@fontsource-variable/roboto-serif/files/roboto-serif-latin-wght-normal.woff2")
+          format("woff2");
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 100 900;
+        src: url("../../../node_modules/.bun/@fontsource-variable+inter@5.3.0/node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2")
+          format("woff2");
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      body {
+        width: 1200px;
+        height: 630px;
+        background: #f0f0eb;
+        color: #080808;
+        position: relative;
+        overflow: hidden;
+        font-family: Inter, system-ui, sans-serif;
+      }
+      .lockup {
+        position: absolute;
+        left: 72px;
+        top: 64px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .lockup svg {
+        width: 44px;
+        height: 44px;
+      }
+      .lockup span {
+        font: 400 36px/1 "Roboto Serif";
+        letter-spacing: -0.04em;
+      }
+      h1 {
+        position: absolute;
+        left: 72px;
+        bottom: 72px;
+        width: 560px;
+        font: 400 84px/0.98 "Roboto Serif";
+        letter-spacing: -0.04em;
+        font-variation-settings: "wght" 400;
+      }
+      .board {
+        position: absolute;
+        left: 688px;
+        top: 72px;
+        width: 560px;
+        height: 520px;
+        background: #fff;
+        border-radius: 20px;
+        box-shadow:
+          0 1px 2px rgba(8, 8, 8, 0.06),
+          0 12px 40px rgba(8, 8, 8, 0.08);
+      }
+      .box {
+        position: absolute;
+        width: 160px;
+        height: 64px;
+        border: 2px solid #080808;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: 500 20px Inter;
+        background: #fff;
+      }
+      .box.c {
+        background: #ddec61;
+      }
+      svg.lines {
+        position: absolute;
+        inset: 0;
+      }
+      .tag {
+        position: absolute;
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .tag b {
+        margin-top: 14px;
+        background: #ddec61;
+        border: 2px solid #080808;
+        border-radius: 8px;
+        padding: 4px 12px;
+        font: 600 18px Inter;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="lockup">
+      <svg viewBox="0 0 32 32" fill="none">
+        <path
+          d="M7 27V15.5a8.5 8.5 0 0 1 17 0V27"
+          stroke="#080808"
+          stroke-width="5"
+          stroke-linecap="round"
+        />
+        <circle cx="26.5" cy="5.5" r="3.75" fill="#080808" />
+      </svg>
+      <span>narbel</span>
+    </div>
+    <h1>One board for your team and its agents.</h1>
+    <div class="board">
+      <svg
+        class="lines"
+        width="560"
+        height="520"
+        fill="none"
+        stroke="#080808"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M240 118H300" />
+        <path d="M290 108l10 10-10 10" />
+        <path d="M380 150V240" />
+        <path d="M370 230l10 10 10-10" />
+        <path d="M300 342H240" />
+        <path d="M250 332l-10 10 10 10" />
+      </svg>
+      <div class="box" style="left: 80px; top: 86px">web</div>
+      <div class="box" style="left: 300px; top: 86px">server</div>
+      <div class="box" style="left: 300px; top: 240px">postgres</div>
+      <div class="box c" style="left: 80px; top: 310px">redis cache</div>
+      <div class="tag" style="left: 200px; top: 380px">
+        <svg width="26" height="26" viewBox="0 0 24 24">
+          <path d="M4 3l16 8-7 2-2 7z" fill="#080808" /></svg
+        ><b>Agent</b>
+      </div>
+    </div>
+  </body>
+</html>
