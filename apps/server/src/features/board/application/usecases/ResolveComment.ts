@@ -1,21 +1,27 @@
+import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
-import { err, ok } from "../../../../shared/kernel/types/Result";
+import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
+import { reopened, resolved } from "../../domain/entities/Comment";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { toCommentDto } from "../dtos/CommentDto";
+import { requirePerson } from "../BoardPeople";
+import { CommentEvents } from "../CommentEvents";
+import { presentOne } from "../CommentPresenter";
 import type { CommentDto } from "../dtos/CommentDto";
-import type { IBoardCommentRepository } from "../ports/IBoardCommentRepository";
+import type { BoardTx } from "../ports/BoardTx";
 
+/** Resolves or reopens the thread `commentId` belongs to. Repeating either is a no-op. */
 export class ResolveComment {
   constructor(
     private readonly guard: BoardAccessGuard,
-    private readonly comments: IBoardCommentRepository
+    private readonly uow: IUnitOfWork<BoardTx>
   ) {}
 
   async execute(input: {
     actor: Actor;
     boardId: string;
     commentId: string;
+    resolve: boolean;
   }): Promise<Result<CommentDto, AppError>> {
     const granted = await this.guard.require(
       input.boardId,
@@ -25,17 +31,35 @@ export class ResolveComment {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const comment = await this.comments.findById(
-      input.boardId,
-      input.commentId
-    );
-    if (!comment) {
-      return err(AppError.notFound("Comment"));
-    }
-    const resolved = comment.resolvedAt
-      ? comment
-      : { ...comment, resolvedAt: new Date() };
-    await this.comments.save(resolved);
-    return ok(toCommentDto(resolved));
+    const { board } = granted.value;
+    return await this.uow.run(async (tx) => {
+      const actor = await requirePerson(tx.profiles, input.actor.userId);
+      if (actor.isErr()) {
+        return err(actor.error);
+      }
+      const target = await tx.comments.findById(board.id, input.commentId);
+      const root = target?.parentId
+        ? await tx.comments.findById(board.id, target.parentId)
+        : target;
+      if (!root) {
+        return err(AppError.notFound("Comment"));
+      }
+      const next = input.resolve
+        ? resolved(root, actor.value.id, new Date())
+        : reopened(root);
+      if (next.resolvedAt?.getTime() !== root.resolvedAt?.getTime()) {
+        await tx.comments.save(next);
+        if (input.resolve) {
+          await new CommentEvents(tx, actor.value, next).resolved(next);
+        }
+      }
+      return await presentOne(
+        tx.comments,
+        tx.profiles,
+        board.id,
+        root.id,
+        actor.value.id
+      );
+    });
   }
 }

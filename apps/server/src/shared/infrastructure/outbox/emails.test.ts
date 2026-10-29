@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { buildInviteEmail } from "./inviteEmail";
+import { buildInviteEmail } from "./emails";
 
 describe("buildInviteEmail", () => {
   it("names the board, the inviter and the link", () => {

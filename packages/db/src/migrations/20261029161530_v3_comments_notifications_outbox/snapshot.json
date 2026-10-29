@@ -1,0 +1,1009 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "8d5a2f1d-1dcf-43d6-a684-e5af6df68804",
+  "prevIds": ["56a26030-fd2f-45af-92b1-90e3eeb31175"],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "comment_reaction"],
+      "writes": [
+        "s|tbl|public.comment_reaction",
+        "n|tbl|public.comment_reaction",
+        "e|tbl|public.comment_reaction",
+        "n|rel|public.comment_reaction",
+        "n|type|public.comment_reaction",
+        "n|rel|public.comment_reaction_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "notification"],
+      "writes": [
+        "s|tbl|public.notification",
+        "n|tbl|public.notification",
+        "e|tbl|public.notification",
+        "n|rel|public.notification",
+        "n|type|public.notification",
+        "n|rel|public.notification_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "outbox"],
+      "writes": [
+        "s|tbl|public.outbox",
+        "n|tbl|public.outbox",
+        "e|tbl|public.outbox",
+        "n|rel|public.outbox",
+        "n|type|public.outbox",
+        "n|rel|public.outbox_pkey",
+        "n|rel|public.outbox_dedupe_key_key"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "profile"],
+      "writes": [
+        "s|tbl|public.profile",
+        "n|tbl|public.profile",
+        "e|tbl|public.profile",
+        "n|rel|public.profile",
+        "n|type|public.profile",
+        "n|rel|public.profile_pkey",
+        "n|rel|public.profile_username_key"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "comment", "edited_at"],
+      "writes": [
+        "s|col|public.comment.edited_at",
+        "n|col|public.comment.edited_at",
+        "e|col|public.comment.edited_at"
+      ],
+      "reads": ["n|tbl|public.comment", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "comment", "resolved_by_id"],
+      "writes": [
+        "s|col|public.comment.resolved_by_id",
+        "n|col|public.comment.resolved_by_id",
+        "e|col|public.comment.resolved_by_id"
+      ],
+      "reads": ["n|tbl|public.comment", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "comment", "assignee_id"],
+      "writes": [
+        "s|col|public.comment.assignee_id",
+        "n|col|public.comment.assignee_id",
+        "e|col|public.comment.assignee_id"
+      ],
+      "reads": ["n|tbl|public.comment", "n|sch|public"]
+    },
+    {
+      "statementType": "drop_column",
+      "statementTarget": ["column", "public", "comment", "author_name"],
+      "writes": [
+        "s|col|public.comment.author_name",
+        "n|col|public.comment.author_name",
+        "e|col|public.comment.author_name"
+      ],
+      "reads": ["n|tbl|public.comment", "n|sch|public"]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": ["index", "public", "comment", "comment_parent_idx"],
+      "writes": [
+        "s|idx|public.comment_parent_idx",
+        "n|idx|public.comment_parent_idx",
+        "e|idx|public.comment_parent_idx",
+        "n|rel|public.comment_parent_idx"
+      ],
+      "reads": [
+        "n|tbl|public.comment",
+        "n|sch|public",
+        "n|col|public.comment.parent_id",
+        "n|col|public.comment.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "notification",
+        "notification_user_created_idx"
+      ],
+      "writes": [
+        "s|idx|public.notification_user_created_idx",
+        "n|idx|public.notification_user_created_idx",
+        "e|idx|public.notification_user_created_idx",
+        "n|rel|public.notification_user_created_idx"
+      ],
+      "reads": [
+        "n|tbl|public.notification",
+        "n|sch|public",
+        "n|col|public.notification.user_id",
+        "n|col|public.notification.created_at",
+        "n|col|public.notification.id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": ["index", "public", "outbox", "outbox_due_idx"],
+      "writes": [
+        "s|idx|public.outbox_due_idx",
+        "n|idx|public.outbox_due_idx",
+        "e|idx|public.outbox_due_idx",
+        "n|rel|public.outbox_due_idx"
+      ],
+      "reads": [
+        "n|tbl|public.outbox",
+        "n|sch|public",
+        "n|col|public.outbox.status",
+        "n|col|public.outbox.next_attempt_at"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "comment"],
+      "writes": [
+        "s|fk|public.comment.comment_resolved_by_id_user_id_fkey",
+        "n|fk|public.comment.comment_resolved_by_id_user_id_fkey",
+        "e|fk|public.comment.comment_resolved_by_id_user_id_fkey",
+        "n|con|public.comment.comment_resolved_by_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.comment",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.comment.resolved_by_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "comment"],
+      "writes": [
+        "s|fk|public.comment.comment_assignee_id_user_id_fkey",
+        "n|fk|public.comment.comment_assignee_id_user_id_fkey",
+        "e|fk|public.comment.comment_assignee_id_user_id_fkey",
+        "n|con|public.comment.comment_assignee_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.comment",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.comment.assignee_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "comment_reaction"],
+      "writes": [
+        "s|fk|public.comment_reaction.comment_reaction_comment_id_comment_id_fkey",
+        "n|fk|public.comment_reaction.comment_reaction_comment_id_comment_id_fkey",
+        "e|fk|public.comment_reaction.comment_reaction_comment_id_comment_id_fkey",
+        "n|con|public.comment_reaction.comment_reaction_comment_id_comment_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.comment_reaction",
+        "n|sch|public",
+        "n|tbl|public.comment",
+        "n|sch|public",
+        "n|col|public.comment_reaction.comment_id",
+        "n|col|public.comment.id",
+        "e|uniqueness|public.comment.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "comment_reaction"],
+      "writes": [
+        "s|fk|public.comment_reaction.comment_reaction_user_id_user_id_fkey",
+        "n|fk|public.comment_reaction.comment_reaction_user_id_user_id_fkey",
+        "e|fk|public.comment_reaction.comment_reaction_user_id_user_id_fkey",
+        "n|con|public.comment_reaction.comment_reaction_user_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.comment_reaction",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.comment_reaction.user_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "notification"],
+      "writes": [
+        "s|fk|public.notification.notification_user_id_user_id_fkey",
+        "n|fk|public.notification.notification_user_id_user_id_fkey",
+        "e|fk|public.notification.notification_user_id_user_id_fkey",
+        "n|con|public.notification.notification_user_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.notification",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.notification.user_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "profile"],
+      "writes": [
+        "s|fk|public.profile.profile_user_id_user_id_fkey",
+        "n|fk|public.profile.profile_user_id_user_id_fkey",
+        "e|fk|public.profile.profile_user_id_user_id_fkey",
+        "n|con|public.profile.profile_user_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.profile",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.profile.user_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "comment_reaction",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "notification",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "outbox",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "profile",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment",
+        "name": "edited_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment",
+        "name": "resolved_by_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment",
+        "name": "assignee_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment_reaction",
+        "name": "comment_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment_reaction",
+        "name": "user_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment_reaction",
+        "name": "emoji",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment_reaction",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "user_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "kind",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "payload",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "read_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "type",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "payload",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'pending'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "attempts",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "0",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "next_attempt_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "last_error",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "sent_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "dedupe_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "profile",
+        "name": "user_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "profile",
+        "name": "username",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "profile",
+        "name": "avatar_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "profile",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment",
+        "name": "comment_parent_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "parent_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "notification_user_created_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "user_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "id",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "outbox_due_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "status",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "next_attempt_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment",
+        "name": "comment_resolved_by_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["resolved_by_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment",
+        "name": "comment_assignee_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["assignee_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment_reaction",
+        "name": "comment_reaction_comment_id_comment_id_fkey",
+        "nameExplicit": false,
+        "columns": ["comment_id"],
+        "schemaTo": "public",
+        "tableTo": "comment",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment_reaction",
+        "name": "comment_reaction_user_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["user_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "notification_user_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["user_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "profile",
+        "name": "profile_user_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["user_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment_reaction",
+        "name": "comment_reaction_pkey",
+        "columns": ["comment_id", "user_id", "emoji"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "notification",
+        "name": "notification_pkey",
+        "columns": ["id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "outbox_pkey",
+        "columns": ["id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "profile",
+        "name": "profile_pkey",
+        "columns": ["user_id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "outbox",
+        "name": "outbox_dedupe_key_key",
+        "nameExplicit": false,
+        "columns": ["dedupe_key"],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "profile",
+        "name": "profile_username_key",
+        "nameExplicit": false,
+        "columns": ["username"],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "drop",
+      "key": "columns\u0000[\"public\",\"comment\",\"author_name\"]"
+    }
+  ]
+}

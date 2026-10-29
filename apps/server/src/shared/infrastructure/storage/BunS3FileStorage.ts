@@ -1,6 +1,6 @@
 import { S3Client } from "bun";
 
-import type { IFileStorage } from "../../application/ports/IFileStorage";
+import type { IFileStorage } from "../../application/interfaces/IFileStorage";
 
 export interface S3Config {
   S3_ENDPOINT: string;
@@ -33,6 +33,19 @@ export class BunS3FileStorage implements IFileStorage {
 
   stream(key: string) {
     return this.client.file(key).stream();
+  }
+
+  async stat(key: string) {
+    const file = this.client.file(key);
+    if (!(await file.exists())) {
+      return null;
+    }
+    const { size, type } = await file.stat();
+    return { size, type };
+  }
+
+  async delete(key: string) {
+    await this.client.delete(key);
   }
 
   async deletePrefix(prefix: string, continuationToken?: string) {

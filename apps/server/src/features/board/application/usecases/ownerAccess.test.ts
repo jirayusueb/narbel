@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
+import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
-import type { IFileStorage } from "../ports/IFileStorage";
 import { AddBoardElements } from "./AddBoardElements";
 import { CreateBoard } from "./CreateBoard";
 import { DeleteBoard } from "./DeleteBoard";
@@ -37,6 +37,8 @@ const setup = () => {
       return `https://s3.test/${key}?signed`;
     },
     stream: () => new ReadableStream(),
+    stat: () => Promise.resolve(null),
+    delete: () => Promise.resolve(),
     deletePrefix: (prefix) => {
       deleted.push(prefix);
       return Promise.resolve();
@@ -77,7 +79,7 @@ describe("owner access", () => {
   });
 
   it("refuses rename, delete, presign and scene edits for non-owners without side effects", async () => {
-    const { boards, guard, scenes, files, storage, presigned, deleted } =
+    const { boards, guard, scenes, files, storage, presigned, deleted, uow } =
       setup();
     const intruder = { actor: stranger, boardId: "b1" };
     expect(
@@ -89,9 +91,7 @@ describe("owner access", () => {
       )
     ).toBe("NotFound");
     expect(
-      code(
-        await new DeleteBoard(guard, boards, scenes, storage).execute(intruder)
-      )
+      code(await new DeleteBoard(guard, uow, scenes, storage).execute(intruder))
     ).toBe("NotFound");
     expect(
       code(
@@ -134,13 +134,11 @@ describe("owner access", () => {
   });
 
   it("deletes the board together with its live document and stored files", async () => {
-    const { boards, guard, scenes, storage, deleted } = setup();
-    const result = await new DeleteBoard(
-      guard,
-      boards,
-      scenes,
-      storage
-    ).execute({ actor: owner, boardId: "b1" });
+    const { boards, guard, scenes, storage, deleted, uow } = setup();
+    const result = await new DeleteBoard(guard, uow, scenes, storage).execute({
+      actor: owner,
+      boardId: "b1",
+    });
     expect(result.isOk()).toBe(true);
     expect(boards.rows.has("b1")).toBe(false);
     expect(scenes.discarded).toEqual(["b1"]);

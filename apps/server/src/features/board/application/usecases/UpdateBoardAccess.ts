@@ -1,4 +1,5 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
+import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
@@ -8,11 +9,8 @@ import { validatePassword } from "../../domain/values/Password";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { toAccessDto } from "../dtos/AccessDto";
 import type { BoardAccessDto } from "../dtos/AccessDto";
-import type {
-  IBoardAccessRepository,
-  Share,
-} from "../ports/IBoardAccessRepository";
-import type { IBoardRepository } from "../ports/IBoardRepository";
+import type { BoardTx } from "../ports/BoardTx";
+import type { Share } from "../ports/IBoardAccessRepository";
 import type { IPasswordHasher } from "../ports/IPasswordHasher";
 
 export interface AccessPatch {
@@ -35,8 +33,7 @@ const parseExpiry = (raw: string, now: Date): Result<Date, AppError> => {
 export class UpdateBoardAccess {
   constructor(
     private readonly guard: BoardAccessGuard,
-    private readonly boards: IBoardRepository,
-    private readonly grants: IBoardAccessRepository,
+    private readonly uow: IUnitOfWork<BoardTx>,
     private readonly hasher: IPasswordHasher,
     private readonly ids: IIdGenerator,
     private readonly webOrigin: string
@@ -56,23 +53,28 @@ export class UpdateBoardAccess {
       return err(granted.error);
     }
     const now = new Date();
-    const board = await this.applyProtection(
-      granted.value.board,
-      input.patch,
-      now
-    );
-    if (board.isErr()) {
-      return err(board.error);
-    }
-    const share = await this.applyShare(board.value, input.patch, now);
-    if (share.isErr()) {
-      return err(share.error);
-    }
-    const members = await this.grants.listMembers(board.value.id);
-    return ok(toAccessDto(board.value, share.value, members, this.webOrigin));
+    // protection and share link change together or not at all
+    return await this.uow.run(async (tx) => {
+      const board = await this.applyProtection(
+        tx,
+        granted.value.board,
+        input.patch,
+        now
+      );
+      if (board.isErr()) {
+        return err(board.error);
+      }
+      const share = await this.applyShare(tx, board.value, input.patch, now);
+      if (share.isErr()) {
+        return err(share.error);
+      }
+      const members = await tx.grants.listMembers(board.value.id);
+      return ok(toAccessDto(board.value, share.value, members, this.webOrigin));
+    });
   }
 
   private async applyProtection(
+    tx: BoardTx,
     board: Board,
     patch: AccessPatch,
     now: Date
@@ -100,19 +102,20 @@ export class UpdateBoardAccess {
       return ok(board);
     }
     const updated = board.withProtection(visibility, passwordHash, now);
-    await this.boards.save(updated);
+    await tx.boards.save(updated);
     return ok(updated);
   }
 
   private async applyShare(
+    tx: BoardTx,
     board: Board,
     patch: AccessPatch,
     now: Date
   ): Promise<Result<Share | null, AppError>> {
-    const existing = await this.grants.findShare(board.id);
+    const existing = await tx.grants.findShare(board.id);
     if (!(patch.shareTokenEnabled ?? existing !== null)) {
       if (existing) {
-        await this.grants.deleteShare(board.id);
+        await tx.grants.deleteShare(board.id);
       }
       return ok(null);
     }
@@ -140,7 +143,7 @@ export class UpdateBoardAccess {
       createdAt: existing?.createdAt ?? now,
       expiresAt,
     };
-    await this.grants.saveShare(share);
+    await tx.grants.saveShare(share);
     return ok(share);
   }
 }

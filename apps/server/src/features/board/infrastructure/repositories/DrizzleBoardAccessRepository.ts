@@ -1,5 +1,5 @@
-import { and, eq, isNull, or } from "@narbel/db";
-import type { Database } from "@narbel/db";
+import { and, eq, isNull, or, sql } from "@narbel/db";
+import type { DbExecutor } from "@narbel/db";
 import { user } from "@narbel/db/schema/auth";
 import { boardAccess, boardShare } from "@narbel/db/schema/board";
 
@@ -9,7 +9,7 @@ import type {
 } from "../../application/ports/IBoardAccessRepository";
 
 export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: DbExecutor) {}
 
   async findMemberRole(
     boardId: string,
@@ -58,6 +58,20 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
     return rows.map((row) => ({ ...row, name: row.name ?? row.email }));
   }
 
+  async listMemberRoles(boardId: string) {
+    const rows = await this.db
+      .select({
+        userId: sql<string | null>`coalesce(${boardAccess.userId}, ${user.id})`,
+        role: boardAccess.role,
+      })
+      .from(boardAccess)
+      .leftJoin(user, eq(user.email, boardAccess.email))
+      .where(eq(boardAccess.boardId, boardId));
+    return rows.flatMap(({ userId, role }) =>
+      userId ? [{ userId, role }] : []
+    );
+  }
+
   async upsertMember(
     boardId: string,
     member: { email: string; userId: string | null; role: "editor" | "viewer" }
@@ -83,8 +97,8 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
           )
         )
       )
-      .returning({ id: boardAccess.id });
-    return removed.length > 0;
+      .returning({ userId: boardAccess.userId });
+    return removed[0] ?? null;
   }
 
   async findUserIdByEmail(email: string) {

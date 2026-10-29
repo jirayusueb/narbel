@@ -1,24 +1,59 @@
-import { and, asc, eq } from "@narbel/db";
-import type { Database } from "@narbel/db";
-import { comment } from "@narbel/db/schema/board";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  isNotNull,
+  inArray,
+  isNull,
+  lt,
+  or,
+  sql,
+} from "@narbel/db";
+import type { DbExecutor } from "@narbel/db";
+import { comment, commentReaction } from "@narbel/db/schema/board";
 
-import type { IBoardCommentRepository } from "../../application/ports/IBoardCommentRepository";
+import type { Cursor } from "../../../../shared/kernel/types/Cursor";
+import type {
+  CommentView,
+  IBoardCommentRepository,
+  ReactionSummary,
+  ThreadQuery,
+} from "../../application/ports/IBoardCommentRepository";
 import type { Comment } from "../../domain/entities/Comment";
 
-export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
-  constructor(private readonly db: Database) {}
+type Row = typeof comment.$inferSelect;
 
-  async list(boardId: string, pageId?: string) {
-    return await this.db
-      .select()
-      .from(comment)
-      .where(
-        pageId === undefined
-          ? eq(comment.boardId, boardId)
-          : and(eq(comment.boardId, boardId), eq(comment.pageId, pageId))
+const toComment = (row: Row): Comment => row;
+
+const before = (cursor: Cursor | null) =>
+  cursor
+    ? or(
+        lt(comment.createdAt, cursor.at),
+        and(eq(comment.createdAt, cursor.at), lt(comment.id, cursor.id))
       )
-      .orderBy(asc(comment.createdAt));
+    : undefined;
+
+const after = (cursor: Cursor | null) =>
+  cursor
+    ? or(
+        gt(comment.createdAt, cursor.at),
+        and(eq(comment.createdAt, cursor.at), gt(comment.id, cursor.id))
+      )
+    : undefined;
+
+const statusFilter = (status: ThreadQuery["status"]) => {
+  if (status === "all") {
+    return;
   }
+  return status === "open"
+    ? isNull(comment.resolvedAt)
+    : isNotNull(comment.resolvedAt);
+};
+
+export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
+  constructor(private readonly db: DbExecutor) {}
 
   async findById(boardId: string, id: string) {
     const [row] = await this.db
@@ -26,7 +61,62 @@ export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
       .from(comment)
       .where(and(eq(comment.boardId, boardId), eq(comment.id, id)))
       .limit(1);
-    return row ?? null;
+    return row ? toComment(row) : null;
+  }
+
+  async view(boardId: string, id: string, viewerId?: string) {
+    const [row] = await this.db
+      .select()
+      .from(comment)
+      .where(and(eq(comment.boardId, boardId), eq(comment.id, id)))
+      .limit(1);
+    if (!row) {
+      return null;
+    }
+    const [view] = await this.decorate([row], viewerId);
+    return view ?? null;
+  }
+
+  async listThreads(query: ThreadQuery) {
+    const rows = await this.db
+      .select()
+      .from(comment)
+      .where(
+        and(
+          eq(comment.boardId, query.boardId),
+          isNull(comment.parentId),
+          query.pageId === undefined
+            ? undefined
+            : eq(comment.pageId, query.pageId),
+          statusFilter(query.status),
+          before(query.after)
+        )
+      )
+      .orderBy(desc(comment.createdAt), desc(comment.id))
+      .limit(query.limit);
+    return await this.decorate(rows, query.viewerId);
+  }
+
+  async listReplies(query: {
+    boardId: string;
+    threadId: string;
+    after: Cursor | null;
+    limit: number;
+    viewerId?: string;
+  }) {
+    const rows = await this.db
+      .select()
+      .from(comment)
+      .where(
+        and(
+          eq(comment.boardId, query.boardId),
+          eq(comment.parentId, query.threadId),
+          after(query.after)
+        )
+      )
+      .orderBy(asc(comment.createdAt), asc(comment.id))
+      .limit(query.limit);
+    return await this.decorate(rows, query.viewerId);
   }
 
   async save(entity: Comment) {
@@ -35,7 +125,13 @@ export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
       .values(entity)
       .onConflictDoUpdate({
         target: comment.id,
-        set: { resolvedAt: entity.resolvedAt },
+        set: {
+          body: entity.body,
+          editedAt: entity.editedAt,
+          resolvedAt: entity.resolvedAt,
+          resolvedById: entity.resolvedById,
+          assigneeId: entity.assigneeId,
+        },
       });
   }
 
@@ -43,5 +139,73 @@ export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
     await this.db
       .delete(comment)
       .where(and(eq(comment.boardId, boardId), eq(comment.id, id)));
+  }
+
+  async addReaction(commentId: string, userId: string, emoji: string) {
+    await this.db
+      .insert(commentReaction)
+      .values({ commentId, userId, emoji })
+      .onConflictDoNothing();
+  }
+
+  async removeReaction(commentId: string, userId: string, emoji: string) {
+    await this.db
+      .delete(commentReaction)
+      .where(
+        and(
+          eq(commentReaction.commentId, commentId),
+          eq(commentReaction.userId, userId),
+          eq(commentReaction.emoji, emoji)
+        )
+      );
+  }
+
+  async clearAssignee(boardId: string, userId: string) {
+    await this.db
+      .update(comment)
+      .set({ assigneeId: null })
+      .where(and(eq(comment.boardId, boardId), eq(comment.assigneeId, userId)));
+  }
+
+  /** Adds reply counts and reaction tallies for a whole page of rows in two queries. */
+  private async decorate(
+    rows: Row[],
+    viewerId?: string
+  ): Promise<CommentView[]> {
+    if (rows.length === 0) {
+      return [];
+    }
+    const ids = rows.map((row) => row.id);
+    const [replyCounts, reactionRows] = await Promise.all([
+      this.db
+        .select({
+          parentId: comment.parentId,
+          value: sql<number>`count(*)::int`,
+        })
+        .from(comment)
+        .where(inArray(comment.parentId, ids))
+        .groupBy(comment.parentId),
+      this.db
+        .select({
+          commentId: commentReaction.commentId,
+          emoji: commentReaction.emoji,
+          count: sql<number>`count(*)::int`,
+          mine: sql<boolean>`coalesce(bool_or(${commentReaction.userId} = ${viewerId ?? null}), false)`,
+        })
+        .from(commentReaction)
+        .where(inArray(commentReaction.commentId, ids))
+        .groupBy(commentReaction.commentId, commentReaction.emoji)
+        .orderBy(sql`min(${commentReaction.createdAt})`),
+    ]);
+    const replies = new Map(replyCounts.map((r) => [r.parentId, r.value]));
+    const reactions = new Map<string, ReactionSummary[]>();
+    for (const { commentId, ...summary } of reactionRows) {
+      reactions.set(commentId, [...(reactions.get(commentId) ?? []), summary]);
+    }
+    return rows.map((row) => ({
+      comment: toComment(row),
+      replyCount: replies.get(row.id) ?? 0,
+      reactions: reactions.get(row.id) ?? [],
+    }));
   }
 }
