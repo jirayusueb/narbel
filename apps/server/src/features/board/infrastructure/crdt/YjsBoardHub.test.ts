@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import * as awarenessProtocol from "y-protocols/awareness";
@@ -9,7 +10,10 @@ import type { SyncPeer } from "../../application/ports/IBoardSyncGateway";
 import { MemoryBus } from "./MemoryBus";
 import { YjsBoardHub } from "./YjsBoardHub";
 
-const store = { load: () => Promise.resolve(null), save: () => Promise.resolve() };
+const store = {
+  load: () => Promise.resolve(null),
+  save: () => Promise.resolve("owner"),
+};
 
 /** A browser stand-in: a local Y.Doc that speaks the y-websocket wire protocol to the hub. */
 class Client {
@@ -60,7 +64,9 @@ class Client {
     encoding.writeVarUint(e, 1);
     encoding.writeVarUint8Array(
       e,
-      awarenessProtocol.encodeAwarenessUpdate(this.awareness, [this.doc.clientID])
+      awarenessProtocol.encodeAwarenessUpdate(this.awareness, [
+        this.doc.clientID,
+      ])
     );
     this.session?.receive(encoding.toUint8Array(e));
   }
@@ -83,7 +89,9 @@ describe("YjsBoardHub roles", () => {
     await join(hub, editor, true);
     await join(hub, watcher, false);
     editor.doc.getMap("elements").set("page:main:a", { id: "a" });
-    expect(watcher.doc.getMap("elements").get("page:main:a")).toEqual({ id: "a" });
+    expect(watcher.doc.getMap("elements").get("page:main:a")).toEqual({
+      id: "a",
+    });
     expect(await hub.transact("b1", (s) => s.pages().length)).toBe(1);
   });
 
@@ -94,7 +102,9 @@ describe("YjsBoardHub roles", () => {
     await join(hub, editor, true);
     editor.doc.getMap("elements").set("page:main:a", { id: "a" });
     await join(hub, viewer, false);
-    expect(viewer.doc.getMap("elements").get("page:main:a")).toEqual({ id: "a" });
+    expect(viewer.doc.getMap("elements").get("page:main:a")).toEqual({
+      id: "a",
+    });
 
     viewer.doc.getMap("elements").set("page:main:evil", { id: "evil" });
     viewer.doc.getMap("elements").delete("page:main:a");
@@ -104,7 +114,9 @@ describe("YjsBoardHub roles", () => {
     expect(late.doc.getMap("elements").get("page:main:evil")).toBeUndefined();
     expect(late.doc.getMap("elements").get("page:main:a")).toEqual({ id: "a" });
     expect(editor.doc.getMap("elements").get("page:main:evil")).toBeUndefined();
-    const server = await hub.transact("b1", (s) => s.all("page:main").map((e) => e.id));
+    const server = await hub.transact("b1", (s) =>
+      s.all("page:main").map((e) => e.id)
+    );
     expect(server).toEqual(["a"]);
   });
 
@@ -119,7 +131,9 @@ describe("YjsBoardHub roles", () => {
     expect(await hub.getSelection("b1")).toEqual(["x"]);
     viewer.setSelection(["y", "z"]);
     expect(await hub.getSelection("b1")).toEqual(["y", "z"]);
-    expect(editor.awareness.getStates().get(viewer.doc.clientID)?.selection).toEqual(["y", "z"]);
+    expect(
+      editor.awareness.getStates().get(viewer.doc.clientID)?.selection
+    ).toEqual(["y", "z"]);
 
     await hub.setSelection("b1", ["m"]);
     expect(await hub.getSelection("b1")).toEqual(["m"]);
@@ -144,7 +158,11 @@ const settle = async () => {
 describe("YjsBoardHub across instances", () => {
   const instances = () => {
     const bus = new MemoryBus();
-    return { bus, a: new YjsBoardHub(store, bus), b: new YjsBoardHub(store, bus) };
+    return {
+      bus,
+      a: new YjsBoardHub(store, bus),
+      b: new YjsBoardHub(store, bus),
+    };
   };
 
   it("converges document edits and presence between two instances", async () => {
@@ -158,11 +176,16 @@ describe("YjsBoardHub across instances", () => {
     onB.doc.getMap("elements").set("page:main:b", { id: "b" });
     await settle();
     for (const client of [onA, onB]) {
-      expect([...client.doc.getMap("elements").keys()].sort()).toEqual(["page:main:a", "page:main:b"]);
+      expect([...client.doc.getMap("elements").keys()].sort()).toEqual([
+        "page:main:a",
+        "page:main:b",
+      ]);
     }
     onA.setSelection(["a"]);
     await settle();
-    expect(onB.awareness.getStates().get(onA.doc.clientID)?.selection).toEqual(["a"]);
+    expect(onB.awareness.getStates().get(onA.doc.clientID)?.selection).toEqual([
+      "a",
+    ]);
     expect(await b.getSelection("b1")).toEqual(["a"]);
   });
 
@@ -189,12 +212,14 @@ describe("YjsBoardHub across instances", () => {
     const lateClient = new Client();
     await join(late, lateClient, false);
     await settle();
-    expect(lateClient.doc.getMap("elements").get("page:main:a")).toEqual({ id: "a" });
+    expect(lateClient.doc.getMap("elements").get("page:main:a")).toEqual({
+      id: "a",
+    });
   });
 
   it("unsubscribes from the bus when the room is dropped", async () => {
     const { bus, a } = instances();
-    await a.transact("b1", () => undefined);
+    await a.transact("b1", () => {});
     expect(bus.subscribers("sync:b1")).toBe(1);
     await a.discard("b1");
     expect(bus.subscribers("sync:b1")).toBe(0);

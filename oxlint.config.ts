@@ -25,5 +25,21 @@ export default defineConfig({
         "eslint/max-classes-per-file": "off",
       },
     },
+    {
+      // test doubles and arrange helpers read better inline than hoisted
+      files: [
+        "apps/server/src/**/*.test.ts",
+        "apps/server/src/**/fakes.ts",
+        "apps/server/src/**/MemoryBus.ts",
+      ],
+      rules: {
+        "unicorn/no-await-expression-member": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "unicorn/no-array-sort": "off",
+        "eslint/no-await-in-loop": "off",
+        "promise/no-return-wrap": "off",
+        "eslint/no-useless-return": "off",
+      },
+    },
   ],
 });

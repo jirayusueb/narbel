@@ -5,8 +5,7 @@ import type { Actor } from "../../application/BoardAccess";
 /** Share links carry their token as `?share=`; declared so typed clients may pass it. */
 export const shareQuery = t.Object({ share: t.Optional(t.String()) });
 
-export const unlockCookieName = (boardId: string) =>
-  `board_unlock_${boardId}`;
+export const unlockCookieName = (boardId: string) => `board_unlock_${boardId}`;
 
 interface SessionUser {
   id: string;

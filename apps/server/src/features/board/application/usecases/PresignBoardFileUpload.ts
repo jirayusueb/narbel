@@ -23,7 +23,11 @@ export class PresignBoardFileUpload {
     mimeType: string;
     size: number;
   }): Promise<Result<{ fileId: string; uploadUrl: string }, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

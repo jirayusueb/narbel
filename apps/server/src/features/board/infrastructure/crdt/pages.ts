@@ -1,4 +1,4 @@
-import * as Y from "yjs";
+import type * as Y from "yjs";
 
 import type { SceneAccess } from "../../application/ports/IBoardScenes";
 import { MAIN_PAGE, elementKey } from "../../domain/entities/Page";
@@ -18,7 +18,8 @@ export const ensurePages = (doc: Y.Doc, origin: unknown): boolean => {
   const elements = doc.getMap<SceneElement>("elements");
   doc.transact(() => {
     pages.push([MAIN_PAGE]);
-    for (const [key, element] of [...elements.entries()]) {
+    // snapshot first: setting keys while iterating the live map would revisit them
+    for (const [key, element] of Object.entries(elements.toJSON())) {
       elements.delete(key);
       elements.set(elementKey(MAIN_PAGE.id, key), element);
     }
@@ -51,7 +52,7 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
       }
       pages.delete(index, 1);
       const prefix = `${id}:`;
-      for (const key of [...elements.keys()]) {
+      for (const key of Object.keys(elements.toJSON())) {
         if (key.startsWith(prefix)) {
           elements.delete(key);
         }
@@ -64,13 +65,11 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
         .filter(([key]) => key.startsWith(`${pageId}:`))
         .map(([, element]) => element),
     find: (id) => {
-      for (const page of pages) {
-        const element = elements.get(elementKey(page.id, id));
-        if (element) {
-          return { pageId: page.id, element };
-        }
-      }
-      return undefined;
+      const page = pages
+        .toArray()
+        .find((p) => elements.has(elementKey(p.id, id)));
+      const element = page && elements.get(elementKey(page.id, id));
+      return page && element && { pageId: page.id, element };
     },
     put: (pageId, element) => {
       const key = elementKey(pageId, element.id);

@@ -17,7 +17,11 @@ export class DeleteBoardElements {
     boardId: string;
     ids: string[];
   }): Promise<Result<{ deleted: number }, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

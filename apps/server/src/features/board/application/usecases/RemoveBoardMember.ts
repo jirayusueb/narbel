@@ -16,7 +16,11 @@ export class RemoveBoardMember {
     /** user id, or the invited email of a member who has not signed in yet */
     member: string;
   }): Promise<Result<undefined, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "owner");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "owner"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

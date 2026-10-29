@@ -14,6 +14,8 @@ export class HmacUnlockTokens implements IUnlockTokens {
   verify(boardId: string, passwordHash: string, proof: string) {
     const expected = Buffer.from(this.issue(boardId, passwordHash));
     const actual = Buffer.from(proof);
-    return expected.length === actual.length && timingSafeEqual(expected, actual);
+    return (
+      expected.length === actual.length && timingSafeEqual(expected, actual)
+    );
   }
 }

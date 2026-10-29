@@ -1,9 +1,15 @@
 import { describe, expect, it } from "bun:test";
+
 import * as Y from "yjs";
 
 import { ensurePages, sceneAccess } from "./pages";
 
-const el = (id: string) => ({ id, type: "rectangle", version: 1, versionNonce: 1 });
+const el = (id: string) => ({
+  id,
+  type: "rectangle",
+  version: 1,
+  versionNonce: 1,
+});
 
 describe("ensurePages", () => {
   it("moves a v1 document's bare element keys onto page:main", () => {
@@ -11,11 +17,15 @@ describe("ensurePages", () => {
     const elements = doc.getMap("elements");
     elements.set("a", el("a"));
     elements.set("b", el("b"));
-    doc.getMap("files").set("f1", { id: "f1", mimeType: "image/png", created: 1 });
+    doc
+      .getMap("files")
+      .set("f1", { id: "f1", mimeType: "image/png", created: 1 });
 
     expect(ensurePages(doc, "test")).toBe(true);
 
-    expect(doc.getArray("pages").toArray()).toEqual([{ id: "page:main", name: "Page 1" }]);
+    expect(doc.getArray("pages").toArray()).toEqual([
+      { id: "page:main", name: "Page 1" },
+    ]);
     expect([...elements.keys()].sort()).toEqual(["page:main:a", "page:main:b"]);
     expect(elements.get("page:main:a")).toEqual(el("a"));
     expect(doc.getMap("files").get("f1")).toBeDefined();

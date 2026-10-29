@@ -23,7 +23,10 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
         and(
           eq(boardAccess.boardId, boardId),
           email
-            ? or(eq(boardAccess.userId, who.userId), eq(boardAccess.email, email))
+            ? or(
+                eq(boardAccess.userId, who.userId),
+                eq(boardAccess.email, email)
+              )
             : eq(boardAccess.userId, who.userId)
         )
       )
@@ -74,7 +77,10 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
       .where(
         and(
           eq(boardAccess.boardId, boardId),
-          or(eq(boardAccess.userId, key), eq(boardAccess.email, key.toLowerCase()))
+          or(
+            eq(boardAccess.userId, key),
+            eq(boardAccess.email, key.toLowerCase())
+          )
         )
       )
       .returning({ id: boardAccess.id });

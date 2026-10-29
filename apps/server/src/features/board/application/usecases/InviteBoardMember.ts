@@ -22,7 +22,11 @@ export class InviteBoardMember {
     email: string;
     role: MemberRole;
   }): Promise<Result<{ emailSent: true }, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "owner");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "owner"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

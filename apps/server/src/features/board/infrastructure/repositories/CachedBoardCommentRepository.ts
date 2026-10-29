@@ -4,7 +4,7 @@ import type { Comment } from "../../domain/entities/Comment";
 
 const TTL_SECONDS = 30;
 
-export const commentsKey = (boardId: string, pageId: string | undefined) =>
+export const commentsKey = (boardId: string, pageId?: string) =>
   `comments:${boardId}:${pageId ?? "all"}`;
 
 type CommentRow = Omit<Comment, "createdAt" | "resolvedAt"> & {
@@ -30,7 +30,7 @@ export class CachedBoardCommentRepository implements IBoardCommentRepository {
     private readonly cache: ICache
   ) {}
 
-  async list(boardId: string, pageId: string | undefined) {
+  async list(boardId: string, pageId?: string) {
     const key = commentsKey(boardId, pageId);
     const hit = await this.cache.get<CommentRow[]>(key);
     if (hit) {
@@ -42,23 +42,23 @@ export class CachedBoardCommentRepository implements IBoardCommentRepository {
   }
 
   // single reads feed writes that must see the latest row
-  find(boardId: string, id: string) {
-    return this.inner.find(boardId, id);
+  findById(boardId: string, id: string) {
+    return this.inner.findById(boardId, id);
   }
 
   async save(comment: Comment) {
     await this.inner.save(comment);
     await this.cache.del(
       commentsKey(comment.boardId, comment.pageId),
-      commentsKey(comment.boardId, undefined)
+      commentsKey(comment.boardId)
     );
   }
 
   async delete(boardId: string, id: string) {
-    const comment = await this.inner.find(boardId, id);
+    const comment = await this.inner.findById(boardId, id);
     await this.inner.delete(boardId, id);
     await this.cache.del(
-      commentsKey(boardId, undefined),
+      commentsKey(boardId),
       ...(comment ? [commentsKey(boardId, comment.pageId)] : [])
     );
   }

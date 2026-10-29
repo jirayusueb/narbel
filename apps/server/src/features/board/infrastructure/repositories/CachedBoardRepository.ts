@@ -64,7 +64,11 @@ export class CachedBoardRepository implements IBoardRepository {
       return hit.map(fromRow);
     }
     const boards = await this.inner.listByOwner(ownerId);
-    await this.cache.set(userBoardsKey(ownerId), boards.map(toRow), TTL_SECONDS);
+    await this.cache.set(
+      userBoardsKey(ownerId),
+      boards.map(toRow),
+      TTL_SECONDS
+    );
     return boards;
   }
 

@@ -18,7 +18,11 @@ export class RenameBoard {
     boardId: string;
     title: string;
   }): Promise<Result<BoardDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "owner");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "owner"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

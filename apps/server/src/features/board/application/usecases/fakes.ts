@@ -74,10 +74,10 @@ export class FakeGrants implements IBoardAccessRepository {
     const index = this.members.findIndex(
       (m) => m.boardId === boardId && (m.userId === key || m.email === key)
     );
-    if (index >= 0) {
+    if (index !== -1) {
       this.members.splice(index, 1);
     }
-    return Promise.resolve(index >= 0);
+    return Promise.resolve(index !== -1);
   };
   findUserIdByEmail = () => Promise.resolve(null);
   findShare = () => Promise.resolve(this.share);
@@ -93,14 +93,14 @@ export class FakeGrants implements IBoardAccessRepository {
 
 export class FakeComments implements IBoardCommentRepository {
   readonly rows = new Map<string, Comment>();
-  list = (boardId: string, pageId: string | undefined) =>
+  list = (boardId: string, pageId?: string) =>
     Promise.resolve(
       [...this.rows.values()].filter(
         (c) =>
           c.boardId === boardId && (pageId === undefined || c.pageId === pageId)
       )
     );
-  find = (boardId: string, id: string) => {
+  findById = (boardId: string, id: string) => {
     const row = this.rows.get(id);
     return Promise.resolve(row?.boardId === boardId ? row : null);
   };
@@ -135,7 +135,7 @@ export class FakeScenes implements IBoardScenes {
     removePage: (id) => {
       const index = this.pageList.findIndex((p) => p.id === id);
       this.pageList.splice(index, 1);
-      return index >= 0;
+      return index !== -1;
     },
     get: (pageId, id) => this.elements.get(`${pageId}:${id}`),
     all: (pageId) =>
@@ -149,7 +149,7 @@ export class FakeScenes implements IBoardScenes {
           return { pageId: page.id, element };
         }
       }
-      return undefined;
+      return;
     },
     put: (pageId, el) => {
       this.elements.set(`${pageId}:${el.id}`, el);

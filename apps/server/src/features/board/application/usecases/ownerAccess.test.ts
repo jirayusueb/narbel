@@ -6,12 +6,12 @@ import { AddBoardElements } from "./AddBoardElements";
 import { CreateBoard } from "./CreateBoard";
 import { DeleteBoard } from "./DeleteBoard";
 import { DeleteBoardElements } from "./DeleteBoardElements";
+import { ids, setupAccess } from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { ListBoards } from "./ListBoards";
 import { PresignBoardFileUpload } from "./PresignBoardFileUpload";
 import { RenameBoard } from "./RenameBoard";
 import { UpdateBoardElement } from "./UpdateBoardElement";
-import { ids, setupAccess } from "./fakes";
 
 const owner = { userId: "owner" };
 const stranger = { userId: "stranger" };
@@ -82,7 +82,10 @@ describe("owner access", () => {
     const intruder = { actor: stranger, boardId: "b1" };
     expect(
       code(
-        await new RenameBoard(guard, boards).execute({ ...intruder, title: "x" })
+        await new RenameBoard(guard, boards).execute({
+          ...intruder,
+          title: "x",
+        })
       )
     ).toBe("NotFound");
     expect(
@@ -132,9 +135,12 @@ describe("owner access", () => {
 
   it("deletes the board together with its live document and stored files", async () => {
     const { boards, guard, scenes, storage, deleted } = setup();
-    const result = await new DeleteBoard(guard, boards, scenes, storage).execute(
-      { actor: owner, boardId: "b1" }
-    );
+    const result = await new DeleteBoard(
+      guard,
+      boards,
+      scenes,
+      storage
+    ).execute({ actor: owner, boardId: "b1" });
     expect(result.isOk()).toBe(true);
     expect(boards.rows.has("b1")).toBe(false);
     expect(scenes.discarded).toEqual(["b1"]);
@@ -154,9 +160,9 @@ describe("owner access", () => {
       fileId: "f1",
       uploadUrl: "https://s3.test/boards/b1/f1?signed",
     });
-    expect((await presign.execute({ ...base, mimeType: "image/png" })).isOk()).toBe(
-      true
-    );
+    expect(
+      (await presign.execute({ ...base, mimeType: "image/png" })).isOk()
+    ).toBe(true);
     expect(fileRows.size).toBe(1);
     expect(
       code(await presign.execute({ ...base, mimeType: "image/jpeg" }))

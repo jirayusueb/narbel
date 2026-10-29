@@ -15,11 +15,18 @@ export class DeleteComment {
     boardId: string;
     commentId: string;
   }): Promise<Result<undefined, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "read");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "read"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const comment = await this.comments.find(input.boardId, input.commentId);
+    const comment = await this.comments.findById(
+      input.boardId,
+      input.commentId
+    );
     if (!comment) {
       return err(AppError.notFound("Comment"));
     }

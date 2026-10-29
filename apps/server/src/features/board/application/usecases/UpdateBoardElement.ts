@@ -59,7 +59,11 @@ export class UpdateBoardElement {
     id: string;
     patch: Record<string, unknown>;
   }): Promise<Result<{ id: string }, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

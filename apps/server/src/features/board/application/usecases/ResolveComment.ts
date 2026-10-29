@@ -17,11 +17,18 @@ export class ResolveComment {
     boardId: string;
     commentId: string;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const comment = await this.comments.find(input.boardId, input.commentId);
+    const comment = await this.comments.findById(
+      input.boardId,
+      input.commentId
+    );
     if (!comment) {
       return err(AppError.notFound("Comment"));
     }

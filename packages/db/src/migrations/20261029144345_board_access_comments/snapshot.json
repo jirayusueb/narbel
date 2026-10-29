@@ -3,17 +3,11 @@
   "version": "9",
   "dialect": "postgres",
   "id": "56a26030-fd2f-45af-92b1-90e3eeb31175",
-  "prevIds": [
-    "c6a0e29d-9543-4d74-b6fd-02181af8997c"
-  ],
+  "prevIds": ["c6a0e29d-9543-4d74-b6fd-02181af8997c"],
   "footprints": [
     {
       "statementType": "create_table",
-      "statementTarget": [
-        "table",
-        "public",
-        "board_access"
-      ],
+      "statementTarget": ["table", "public", "board_access"],
       "writes": [
         "s|tbl|public.board_access",
         "n|tbl|public.board_access",
@@ -24,17 +18,11 @@
         "n|rel|public.board_access_board_email_uq",
         "n|rel|public.board_access_board_user_uq"
       ],
-      "reads": [
-        "n|sch|public"
-      ]
+      "reads": ["n|sch|public"]
     },
     {
       "statementType": "create_table",
-      "statementTarget": [
-        "table",
-        "public",
-        "board_share"
-      ],
+      "statementTarget": ["table", "public", "board_share"],
       "writes": [
         "s|tbl|public.board_share",
         "n|tbl|public.board_share",
@@ -44,17 +32,11 @@
         "n|rel|public.board_share_pkey",
         "n|rel|public.board_share_token_key"
       ],
-      "reads": [
-        "n|sch|public"
-      ]
+      "reads": ["n|sch|public"]
     },
     {
       "statementType": "create_table",
-      "statementTarget": [
-        "table",
-        "public",
-        "comment"
-      ],
+      "statementTarget": ["table", "public", "comment"],
       "writes": [
         "s|tbl|public.comment",
         "n|tbl|public.comment",
@@ -63,45 +45,27 @@
         "n|type|public.comment",
         "n|rel|public.comment_pkey"
       ],
-      "reads": [
-        "n|sch|public"
-      ]
+      "reads": ["n|sch|public"]
     },
     {
       "statementType": "add_column",
-      "statementTarget": [
-        "column",
-        "public",
-        "board",
-        "visibility"
-      ],
+      "statementTarget": ["column", "public", "board", "visibility"],
       "writes": [
         "s|col|public.board.visibility",
         "n|col|public.board.visibility",
         "e|col|public.board.visibility"
       ],
-      "reads": [
-        "n|tbl|public.board",
-        "n|sch|public"
-      ]
+      "reads": ["n|tbl|public.board", "n|sch|public"]
     },
     {
       "statementType": "add_column",
-      "statementTarget": [
-        "column",
-        "public",
-        "board",
-        "password_hash"
-      ],
+      "statementTarget": ["column", "public", "board", "password_hash"],
       "writes": [
         "s|col|public.board.password_hash",
         "n|col|public.board.password_hash",
         "e|col|public.board.password_hash"
       ],
-      "reads": [
-        "n|tbl|public.board",
-        "n|sch|public"
-      ]
+      "reads": ["n|tbl|public.board", "n|sch|public"]
     },
     {
       "statementType": "create_index",
@@ -166,11 +130,7 @@
     },
     {
       "statementType": "create_fk",
-      "statementTarget": [
-        "table",
-        "public",
-        "board_access"
-      ],
+      "statementTarget": ["table", "public", "board_access"],
       "writes": [
         "s|fk|public.board_access.board_access_board_id_board_id_fkey",
         "n|fk|public.board_access.board_access_board_id_board_id_fkey",
@@ -189,11 +149,7 @@
     },
     {
       "statementType": "create_fk",
-      "statementTarget": [
-        "table",
-        "public",
-        "board_access"
-      ],
+      "statementTarget": ["table", "public", "board_access"],
       "writes": [
         "s|fk|public.board_access.board_access_user_id_user_id_fkey",
         "n|fk|public.board_access.board_access_user_id_user_id_fkey",
@@ -212,11 +168,7 @@
     },
     {
       "statementType": "create_fk",
-      "statementTarget": [
-        "table",
-        "public",
-        "board_share"
-      ],
+      "statementTarget": ["table", "public", "board_share"],
       "writes": [
         "s|fk|public.board_share.board_share_board_id_board_id_fkey",
         "n|fk|public.board_share.board_share_board_id_board_id_fkey",
@@ -235,11 +187,7 @@
     },
     {
       "statementType": "create_fk",
-      "statementTarget": [
-        "table",
-        "public",
-        "comment"
-      ],
+      "statementTarget": ["table", "public", "comment"],
       "writes": [
         "s|fk|public.comment.comment_board_id_board_id_fkey",
         "n|fk|public.comment.comment_board_id_board_id_fkey",
@@ -258,11 +206,7 @@
     },
     {
       "statementType": "create_fk",
-      "statementTarget": [
-        "table",
-        "public",
-        "comment"
-      ],
+      "statementTarget": ["table", "public", "comment"],
       "writes": [
         "s|fk|public.comment.comment_author_id_user_id_fkey",
         "n|fk|public.comment.comment_author_id_user_id_fkey",
@@ -281,11 +225,7 @@
     },
     {
       "statementType": "create_fk",
-      "statementTarget": [
-        "table",
-        "public",
-        "comment"
-      ],
+      "statementTarget": ["table", "public", "comment"],
       "writes": [
         "s|fk|public.comment.comment_parent_id_comment_id_fkey",
         "n|fk|public.comment.comment_parent_id_comment_id_fkey",
@@ -801,14 +741,10 @@
         "table": "board_access",
         "name": "board_access_board_id_board_id_fkey",
         "nameExplicit": false,
-        "columns": [
-          "board_id"
-        ],
+        "columns": ["board_id"],
         "schemaTo": "public",
         "tableTo": "board",
-        "columnsTo": [
-          "id"
-        ],
+        "columnsTo": ["id"],
         "onUpdate": "NO ACTION",
         "onDelete": "CASCADE",
         "entityType": "fks"
@@ -821,14 +757,10 @@
         "table": "board_access",
         "name": "board_access_user_id_user_id_fkey",
         "nameExplicit": false,
-        "columns": [
-          "user_id"
-        ],
+        "columns": ["user_id"],
         "schemaTo": "public",
         "tableTo": "user",
-        "columnsTo": [
-          "id"
-        ],
+        "columnsTo": ["id"],
         "onUpdate": "NO ACTION",
         "onDelete": "CASCADE",
         "entityType": "fks"
@@ -841,14 +773,10 @@
         "table": "board_share",
         "name": "board_share_board_id_board_id_fkey",
         "nameExplicit": false,
-        "columns": [
-          "board_id"
-        ],
+        "columns": ["board_id"],
         "schemaTo": "public",
         "tableTo": "board",
-        "columnsTo": [
-          "id"
-        ],
+        "columnsTo": ["id"],
         "onUpdate": "NO ACTION",
         "onDelete": "CASCADE",
         "entityType": "fks"
@@ -861,14 +789,10 @@
         "table": "comment",
         "name": "comment_board_id_board_id_fkey",
         "nameExplicit": false,
-        "columns": [
-          "board_id"
-        ],
+        "columns": ["board_id"],
         "schemaTo": "public",
         "tableTo": "board",
-        "columnsTo": [
-          "id"
-        ],
+        "columnsTo": ["id"],
         "onUpdate": "NO ACTION",
         "onDelete": "CASCADE",
         "entityType": "fks"
@@ -881,14 +805,10 @@
         "table": "comment",
         "name": "comment_author_id_user_id_fkey",
         "nameExplicit": false,
-        "columns": [
-          "author_id"
-        ],
+        "columns": ["author_id"],
         "schemaTo": "public",
         "tableTo": "user",
-        "columnsTo": [
-          "id"
-        ],
+        "columnsTo": ["id"],
         "onUpdate": "NO ACTION",
         "onDelete": "CASCADE",
         "entityType": "fks"
@@ -901,14 +821,10 @@
         "table": "comment",
         "name": "comment_parent_id_comment_id_fkey",
         "nameExplicit": false,
-        "columns": [
-          "parent_id"
-        ],
+        "columns": ["parent_id"],
         "schemaTo": "public",
         "tableTo": "comment",
-        "columnsTo": [
-          "id"
-        ],
+        "columnsTo": ["id"],
         "onUpdate": "NO ACTION",
         "onDelete": "CASCADE",
         "entityType": "fks"
@@ -920,9 +836,7 @@
         "schema": "public",
         "table": "board_access",
         "name": "board_access_pkey",
-        "columns": [
-          "id"
-        ],
+        "columns": ["id"],
         "nameExplicit": false,
         "entityType": "pks"
       }
@@ -933,9 +847,7 @@
         "schema": "public",
         "table": "board_share",
         "name": "board_share_pkey",
-        "columns": [
-          "board_id"
-        ],
+        "columns": ["board_id"],
         "nameExplicit": false,
         "entityType": "pks"
       }
@@ -946,9 +858,7 @@
         "schema": "public",
         "table": "comment",
         "name": "comment_pkey",
-        "columns": [
-          "id"
-        ],
+        "columns": ["id"],
         "nameExplicit": false,
         "entityType": "pks"
       }
@@ -960,10 +870,7 @@
         "table": "board_access",
         "name": "board_access_board_email_uq",
         "nameExplicit": true,
-        "columns": [
-          "board_id",
-          "email"
-        ],
+        "columns": ["board_id", "email"],
         "nullsNotDistinct": false,
         "entityType": "uniques"
       }
@@ -975,10 +882,7 @@
         "table": "board_access",
         "name": "board_access_board_user_uq",
         "nameExplicit": true,
-        "columns": [
-          "board_id",
-          "user_id"
-        ],
+        "columns": ["board_id", "user_id"],
         "nullsNotDistinct": false,
         "entityType": "uniques"
       }
@@ -990,9 +894,7 @@
         "table": "board_share",
         "name": "board_share_token_key",
         "nameExplicit": false,
-        "columns": [
-          "token"
-        ],
+        "columns": ["token"],
         "nullsNotDistinct": false,
         "entityType": "uniques"
       }

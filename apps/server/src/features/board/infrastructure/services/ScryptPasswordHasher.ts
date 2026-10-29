@@ -1,20 +1,19 @@
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 
 import type { IPasswordHasher } from "../../application/ports/IPasswordHasher";
 
 const SALT_BYTES = 16;
 const KEY_BYTES = 64;
 
+const scryptAsync = promisify(scrypt) as (
+  password: string,
+  salt: Buffer,
+  keylen: number
+) => Promise<Buffer>;
+
 const derive = (plain: string, salt: Buffer) =>
-  new Promise<Buffer>((resolve, reject) => {
-    scrypt(plain.normalize("NFKC"), salt, KEY_BYTES, (error, key) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(key);
-      }
-    });
-  });
+  scryptAsync(plain.normalize("NFKC"), salt, KEY_BYTES);
 
 /** `scrypt$<salt>$<key>`, both base64url; cost parameters are node's defaults. */
 export class ScryptPasswordHasher implements IPasswordHasher {
@@ -31,6 +30,8 @@ export class ScryptPasswordHasher implements IPasswordHasher {
     }
     const expected = Buffer.from(key, "base64url");
     const actual = await derive(plain, Buffer.from(salt, "base64url"));
-    return expected.length === actual.length && timingSafeEqual(expected, actual);
+    return (
+      expected.length === actual.length && timingSafeEqual(expected, actual)
+    );
   }
 }

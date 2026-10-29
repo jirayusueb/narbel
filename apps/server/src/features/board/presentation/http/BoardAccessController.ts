@@ -20,13 +20,16 @@ export const createBoardAccessController = (
   new Elysia({ name: "board/access", prefix: "/api/boards/:id" })
     .use(betterAuth)
     .use(resultPlugin)
-    .get("/access", { auth: true, params }, async ({ user, request, params: { id } }) =>
-      asWire(
-        await uc.getBoardAccess.execute({
-          actor: actorFrom(request, user, id),
-          boardId: id,
-        })
-      )
+    .get(
+      "/access",
+      { auth: true, params },
+      async ({ user, request, params: { id } }) =>
+        asWire(
+          await uc.getBoardAccess.execute({
+            actor: actorFrom(request, user, id),
+            boardId: id,
+          })
+        )
     )
     .patch(
       "/access",
@@ -41,7 +44,9 @@ export const createBoardAccessController = (
               t.Literal("password"),
             ])
           ),
-          password: t.Optional(t.Union([t.String({ maxLength: 1000 }), t.Null()])),
+          password: t.Optional(
+            t.Union([t.String({ maxLength: 1000 }), t.Null()])
+          ),
           shareTokenEnabled: t.Optional(t.Boolean()),
           shareRole: t.Optional(role),
           shareExpiresAt: t.Optional(t.Union([t.String(), t.Null()])),
@@ -72,7 +77,11 @@ export const createBoardAccessController = (
     )
     .post(
       "/invite",
-      { auth: true, params, body: t.Object({ email: t.String({ maxLength: 320 }), role }) },
+      {
+        auth: true,
+        params,
+        body: t.Object({ email: t.String({ maxLength: 320 }), role }),
+      },
       async ({ user, request, params: { id }, body }) =>
         asWire(
           await uc.inviteBoardMember.execute({
@@ -87,8 +96,12 @@ export const createBoardAccessController = (
       "/unlock",
       { params, body: t.Object({ password: t.String({ maxLength: 1000 }) }) },
       async ({ request, server, params: { id }, body }) => {
-        const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-        const ip = forwarded ?? server?.requestIP(request)?.address ?? "unknown";
+        const forwarded = request.headers
+          .get("x-forwarded-for")
+          ?.split(",")[0]
+          ?.trim();
+        const ip =
+          forwarded ?? server?.requestIP(request)?.address ?? "unknown";
         const result = await uc.unlockBoard.execute({
           boardId: id,
           password: body.password,
@@ -100,13 +113,17 @@ export const createBoardAccessController = (
             status: code === "NotFound" ? 404 : 403,
           });
         }
-        const cookie = new Bun.Cookie(unlockCookieName(id), result.value.proof, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "none",
-          path: "/",
-          maxAge: UNLOCK_MAX_AGE_SECONDS,
-        });
+        const cookie = new Bun.Cookie(
+          unlockCookieName(id),
+          result.value.proof,
+          {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            path: "/",
+            maxAge: UNLOCK_MAX_AGE_SECONDS,
+          }
+        );
         return Response.json(
           { unlocked: true },
           { headers: { "Set-Cookie": cookie.serialize() } }

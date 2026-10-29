@@ -18,19 +18,25 @@ export class GetBoardScene {
     boardId: string;
     pageId?: string;
   }): Promise<Result<SceneDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "read");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "read"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }
     const scene = await this.scenes.transact(input.boardId, (s) => {
       const page = resolvePage(s.pages(), input.pageId);
-      return page && {
-        pageId: page.id,
-        elements: s
-          .all(page.id)
-          .filter((e) => !e.isDeleted)
-          .map(toSceneElementDto),
-      };
+      return (
+        page && {
+          pageId: page.id,
+          elements: s
+            .all(page.id)
+            .filter((e) => !e.isDeleted)
+            .map(toSceneElementDto),
+        }
+      );
     });
     return scene
       ? ok({ title: granted.value.board.title.value, ...scene })

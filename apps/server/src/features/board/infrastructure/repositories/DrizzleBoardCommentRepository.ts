@@ -8,7 +8,7 @@ import type { Comment } from "../../domain/entities/Comment";
 export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
   constructor(private readonly db: Database) {}
 
-  async list(boardId: string, pageId: string | undefined) {
+  async list(boardId: string, pageId?: string) {
     return await this.db
       .select()
       .from(comment)
@@ -20,7 +20,7 @@ export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
       .orderBy(asc(comment.createdAt));
   }
 
-  async find(boardId: string, id: string) {
+  async findById(boardId: string, id: string) {
     const [row] = await this.db
       .select()
       .from(comment)

@@ -24,7 +24,11 @@ export class AddComment {
     body: string;
     parentId?: string;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }
@@ -34,7 +38,7 @@ export class AddComment {
     }
     if (
       input.parentId &&
-      !(await this.comments.find(input.boardId, input.parentId))
+      !(await this.comments.findById(input.boardId, input.parentId))
     ) {
       return err(AppError.notFound("Comment"));
     }

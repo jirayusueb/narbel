@@ -15,32 +15,21 @@ export const createBoardController = (
   betterAuth: BetterAuthPlugin,
   uc: BoardUseCases
 ) =>
-  new Elysia({ name: "board/http", prefix: "/api" })
+  // the prefix must stay below /api/boards: betterAuth mounts a catch-all under the prefix of whoever uses it first
+  new Elysia({ name: "board/http", prefix: "/api/boards" })
     .use(betterAuth)
     .use(resultPlugin)
-    .get("/boards", { auth: true }, async ({ user }) =>
+    .get("/", { auth: true }, async ({ user }) =>
       asWire(await uc.listBoards.execute({ userId: user.id }))
     )
-    .get("/shared-boards", { auth: true }, async ({ user }) =>
-      asWire(
-        await uc.listSharedBoards.execute({
-          userId: user.id,
-          email: user.email,
-        })
-      )
-    )
-    .post(
-      "/boards",
-      { auth: true, body: titleBody },
-      async ({ user, body, set }) => {
-        set.status = 201;
-        return asWire(
-          await uc.createBoard.execute({ userId: user.id, title: body.title })
-        );
-      }
-    )
+    .post("/", { auth: true, body: titleBody }, async ({ user, body, set }) => {
+      set.status = 201;
+      return asWire(
+        await uc.createBoard.execute({ userId: user.id, title: body.title })
+      );
+    })
     .get(
-      "/boards/:id",
+      "/:id",
       { authOptional: true, params, query: shareQuery },
       async ({ user, request, params: { id } }) =>
         asWire(
@@ -51,7 +40,7 @@ export const createBoardController = (
         )
     )
     .patch(
-      "/boards/:id",
+      "/:id",
       { auth: true, params, body: titleBody },
       async ({ user, request, params: { id }, body }) =>
         asWire(
@@ -63,7 +52,7 @@ export const createBoardController = (
         )
     )
     .delete(
-      "/boards/:id",
+      "/:id",
       { auth: true, params },
       async ({ user, request, params: { id }, set }) => {
         set.status = 204;
@@ -74,4 +63,20 @@ export const createBoardController = (
           })
         );
       }
+    );
+
+export const createSharedBoardsController = (
+  betterAuth: BetterAuthPlugin,
+  uc: BoardUseCases
+) =>
+  new Elysia({ name: "board/shared", prefix: "/api/shared-boards" })
+    .use(betterAuth)
+    .use(resultPlugin)
+    .get("/", { auth: true }, async ({ user }) =>
+      asWire(
+        await uc.listSharedBoards.execute({
+          userId: user.id,
+          email: user.email,
+        })
+      )
     );

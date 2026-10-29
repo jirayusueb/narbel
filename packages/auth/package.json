@@ -6,7 +6,7 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsrs --noEmit"
   },
   "dependencies": {
     "@better-auth/api-key": "1.7.12",
@@ -19,6 +19,6 @@
   },
   "devDependencies": {
     "@narbel/config": "workspace:*",
-    "typescript": "catalog:"
+    "tsrs": "catalog:"
   }
 }

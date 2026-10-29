@@ -21,7 +21,11 @@ export class AddBoardElements {
     pageId?: string;
     shapes: Shape[];
   }): Promise<Result<{ ids: string[] }, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

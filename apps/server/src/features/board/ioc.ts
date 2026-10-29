@@ -1,5 +1,6 @@
 import type { Database } from "@narbel/db";
 import { Elysia } from "elysia";
+
 import type { ICache } from "../../shared/application/interfaces/ICache";
 import type { IPubSub } from "../../shared/application/interfaces/IPubSub";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
@@ -54,7 +55,10 @@ import type { ResendConfig } from "./infrastructure/services/ResendEmailSender";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
 import { createBoardAccessController } from "./presentation/http/BoardAccessController";
 import { createBoardCommentController } from "./presentation/http/BoardCommentController";
-import { createBoardController } from "./presentation/http/BoardController";
+import {
+  createBoardController,
+  createSharedBoardsController,
+} from "./presentation/http/BoardController";
 import { createBoardFileController } from "./presentation/http/BoardFileController";
 import { createMcpController } from "./presentation/mcp/McpController";
 import { createBoardSyncController } from "./presentation/ws/BoardSyncController";
@@ -82,7 +86,10 @@ const createUseCases = ({
   cache,
   pubsub,
 }: Omit<BoardDeps, "betterAuth">) => {
-  const boards = new CachedBoardRepository(new DrizzleBoardRepository(db), cache);
+  const boards = new CachedBoardRepository(
+    new DrizzleBoardRepository(db),
+    cache
+  );
   const grants = new DrizzleBoardAccessRepository(db);
   const comments = new CachedBoardCommentRepository(
     new DrizzleBoardCommentRepository(db),
@@ -158,5 +165,6 @@ export const createBoardModule = ({ betterAuth, ...deps }: BoardDeps) => {
     .use(createBoardCommentController(betterAuth, uc))
     .use(createBoardAccessController(betterAuth, uc))
     .use(createBoardController(betterAuth, uc))
+    .use(createSharedBoardsController(betterAuth, uc))
     .use(createMcpController(betterAuth, uc));
 };

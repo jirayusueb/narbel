@@ -19,7 +19,11 @@ export class ConnectBoardSync {
     boardId: string;
     peer: SyncPeer;
   }): Promise<Result<SyncSession, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "read");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "read"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

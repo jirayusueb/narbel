@@ -1,7 +1,4 @@
-import type {
-  Email,
-  IEmailSender,
-} from "../../application/ports/IEmailSender";
+import type { Email, IEmailSender } from "../../application/ports/IEmailSender";
 
 export interface ResendConfig {
   RESEND_API_KEY: string;

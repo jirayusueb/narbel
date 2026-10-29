@@ -4,6 +4,7 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 
+import type { IPubSub } from "../../../../shared/application/interfaces/IPubSub";
 import type {
   IBoardScenes,
   SceneAccess,
@@ -13,7 +14,6 @@ import type {
   SyncPeer,
   SyncSession,
 } from "../../application/ports/IBoardSyncGateway";
-import type { IPubSub } from "../../../../shared/application/interfaces/IPubSub";
 import type { IBoardDocumentStore } from "../repositories/DrizzleBoardDocumentStore";
 import { ensurePages, sceneAccess } from "./pages";
 
@@ -281,16 +281,29 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       );
     } catch (error) {
       // without the bus this instance still serves its own peers
-      console.error(`Board ${boardId} could not subscribe to the sync bus`, error);
+      console.error(
+        `Board ${boardId} could not subscribe to the sync bus`,
+        error
+      );
     }
 
     return room;
   }
 
   private publish(room: Room, message: Uint8Array) {
-    this.bus.publish(channel(room.boardId), message).catch((error: unknown) => {
-      console.error(`Board ${room.boardId} could not publish to the sync bus`, error);
-    });
+    this.attempt(
+      `Board ${room.boardId} could not publish to the sync bus`,
+      () => this.bus.publish(channel(room.boardId), message)
+    );
+  }
+
+  // fire-and-forget: a bus outage must never break local editing
+  private async attempt(failure: string, run: () => Promise<void>) {
+    try {
+      await run();
+    } catch (error) {
+      console.error(failure, error);
+    }
   }
 
   private receiveFromBus(room: Room, message: Uint8Array) {
@@ -328,7 +341,10 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
         }
       }
     } catch (error) {
-      console.error(`Board ${room.boardId} dropped a malformed bus message`, error);
+      console.error(
+        `Board ${room.boardId} dropped a malformed bus message`,
+        error
+      );
     }
   }
 
@@ -424,9 +440,12 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
   }
 
   private destroy(room: Room) {
-    room.unsubscribe?.().catch((error: unknown) => {
-      console.error(`Board ${room.boardId} could not unsubscribe`, error);
-    });
+    if (room.unsubscribe) {
+      this.attempt(
+        `Board ${room.boardId} could not unsubscribe`,
+        room.unsubscribe
+      );
+    }
     room.awareness.destroy();
     room.doc.destroy();
   }

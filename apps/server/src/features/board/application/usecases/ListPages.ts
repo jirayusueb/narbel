@@ -15,7 +15,11 @@ export class ListPages {
     actor: Actor;
     boardId: string;
   }): Promise<Result<Page[], AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "read");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "read"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

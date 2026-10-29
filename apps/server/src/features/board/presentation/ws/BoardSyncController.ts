@@ -1,9 +1,7 @@
 import { Elysia, status, t } from "elysia";
 import { websocket } from "elysia/websocket";
 
-import {
-  STATUS_BY_CODE,
-} from "../../../../shared/kernel/errors/AppError";
+import { STATUS_BY_CODE } from "../../../../shared/kernel/errors/AppError";
 import { errorBody } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import type { SyncSession } from "../../application/ports/IBoardSyncGateway";

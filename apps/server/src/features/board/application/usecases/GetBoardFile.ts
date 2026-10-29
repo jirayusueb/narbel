@@ -23,7 +23,11 @@ export class GetBoardFile {
     boardId: string;
     fileId: string;
   }): Promise<Result<BoardFileContent, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "read");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "read"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

@@ -2,12 +2,16 @@ import type { IIdGenerator } from "../../../../shared/application/interfaces/IId
 import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
+import type { Board } from "../../domain/entities/Board";
 import type { MemberRole, Visibility } from "../../domain/values/Access";
 import { validatePassword } from "../../domain/values/Password";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { toAccessDto } from "../dtos/AccessDto";
 import type { BoardAccessDto } from "../dtos/AccessDto";
-import type { IBoardAccessRepository } from "../ports/IBoardAccessRepository";
+import type {
+  IBoardAccessRepository,
+  Share,
+} from "../ports/IBoardAccessRepository";
 import type { IBoardRepository } from "../ports/IBoardRepository";
 import type { IPasswordHasher } from "../ports/IPasswordHasher";
 
@@ -43,15 +47,37 @@ export class UpdateBoardAccess {
     boardId: string;
     patch: AccessPatch;
   }): Promise<Result<BoardAccessDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "owner");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "owner"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const { patch } = input;
     const now = new Date();
-    let { board } = granted.value;
+    const board = await this.applyProtection(
+      granted.value.board,
+      input.patch,
+      now
+    );
+    if (board.isErr()) {
+      return err(board.error);
+    }
+    const share = await this.applyShare(board.value, input.patch, now);
+    if (share.isErr()) {
+      return err(share.error);
+    }
+    const members = await this.grants.listMembers(board.value.id);
+    return ok(toAccessDto(board.value, share.value, members, this.webOrigin));
+  }
 
-    let passwordHash = board.passwordHash;
+  private async applyProtection(
+    board: Board,
+    patch: AccessPatch,
+    now: Date
+  ): Promise<Result<Board, AppError>> {
+    let { passwordHash } = board;
     if (typeof patch.password === "string") {
       const valid = validatePassword(patch.password);
       if (valid.isErr()) {
@@ -63,46 +89,58 @@ export class UpdateBoardAccess {
     }
     const visibility = patch.visibility ?? board.visibility;
     if (visibility === "password" && passwordHash === null) {
-      return err(AppError.validation("Set a password before locking the board"));
+      return err(
+        AppError.validation("Set a password before locking the board")
+      );
     }
-    if (visibility !== board.visibility || passwordHash !== board.passwordHash) {
-      board = board.withProtection(visibility, passwordHash, now);
-      await this.boards.save(board);
+    if (
+      visibility === board.visibility &&
+      passwordHash === board.passwordHash
+    ) {
+      return ok(board);
     }
+    const updated = board.withProtection(visibility, passwordHash, now);
+    await this.boards.save(updated);
+    return ok(updated);
+  }
 
-    let share = await this.grants.findShare(board.id);
-    const wantShare = patch.shareTokenEnabled ?? share !== null;
-    if (!wantShare) {
-      if (share) {
+  private async applyShare(
+    board: Board,
+    patch: AccessPatch,
+    now: Date
+  ): Promise<Result<Share | null, AppError>> {
+    const existing = await this.grants.findShare(board.id);
+    if (!(patch.shareTokenEnabled ?? existing !== null)) {
+      if (existing) {
         await this.grants.deleteShare(board.id);
       }
-      share = null;
-    } else if (
+      return ok(null);
+    }
+    const touched =
       patch.shareTokenEnabled ||
       patch.shareRole ||
-      patch.shareExpiresAt !== undefined
-    ) {
-      let expiresAt = share?.expiresAt ?? null;
-      if (typeof patch.shareExpiresAt === "string") {
-        const parsed = parseExpiry(patch.shareExpiresAt, now);
-        if (parsed.isErr()) {
-          return err(parsed.error);
-        }
-        expiresAt = parsed.value;
-      } else if (patch.shareExpiresAt === null) {
-        expiresAt = null;
-      }
-      share = {
-        boardId: board.id,
-        token: share?.token ?? this.ids.token(),
-        role: patch.shareRole ?? share?.role ?? "viewer",
-        createdAt: share?.createdAt ?? now,
-        expiresAt,
-      };
-      await this.grants.saveShare(share);
+      patch.shareExpiresAt !== undefined;
+    if (!touched) {
+      return ok(existing);
     }
-
-    const members = await this.grants.listMembers(board.id);
-    return ok(toAccessDto(board, share, members, this.webOrigin));
+    let expiresAt = existing?.expiresAt ?? null;
+    if (typeof patch.shareExpiresAt === "string") {
+      const parsed = parseExpiry(patch.shareExpiresAt, now);
+      if (parsed.isErr()) {
+        return err(parsed.error);
+      }
+      expiresAt = parsed.value;
+    } else if (patch.shareExpiresAt === null) {
+      expiresAt = null;
+    }
+    const share: Share = {
+      boardId: board.id,
+      token: existing?.token ?? this.ids.token(),
+      role: patch.shareRole ?? existing?.role ?? "viewer",
+      createdAt: existing?.createdAt ?? now,
+      expiresAt,
+    };
+    await this.grants.saveShare(share);
+    return ok(share);
   }
 }

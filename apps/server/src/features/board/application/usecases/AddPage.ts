@@ -30,7 +30,11 @@ export class AddPage {
     boardId: string;
     name: string;
   }): Promise<Result<Page, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

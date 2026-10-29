@@ -17,7 +17,11 @@ export class GetBoardAccess {
     actor: Actor;
     boardId: string;
   }): Promise<Result<BoardAccessDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "owner");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "owner"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

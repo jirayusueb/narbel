@@ -27,7 +27,11 @@ export class GetSelection {
     actor: Actor;
     boardId: string;
   }): Promise<Result<SelectionDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "read");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "read"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }
@@ -58,7 +62,11 @@ export class SelectElements {
     boardId: string;
     ids: string[];
   }): Promise<Result<SelectionDto, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }
@@ -88,7 +96,11 @@ export class EditSelection {
     boardId: string;
     patch: Record<string, unknown>;
   }): Promise<Result<{ updated: string[] }, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

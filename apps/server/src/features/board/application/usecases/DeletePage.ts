@@ -15,7 +15,11 @@ export class DeletePage {
     boardId: string;
     pageId: string;
   }): Promise<Result<undefined, AppError>> {
-    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    const granted = await this.guard.require(
+      input.boardId,
+      input.actor,
+      "write"
+    );
     if (granted.isErr()) {
       return err(granted.error);
     }

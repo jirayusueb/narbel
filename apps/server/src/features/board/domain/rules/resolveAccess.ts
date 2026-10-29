@@ -1,9 +1,4 @@
-import type {
-  Access,
-  MemberRole,
-  Role,
-  Visibility,
-} from "../values/Access";
+import type { Access, MemberRole, Role, Visibility } from "../values/Access";
 
 export interface AccessGrants {
   isOwner: boolean;
