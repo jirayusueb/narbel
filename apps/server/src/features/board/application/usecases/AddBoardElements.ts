@@ -1,32 +1,29 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
-import type { AppError } from "../../../../shared/kernel/errors/AppError";
+import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
+import { resolvePage } from "../../domain/entities/Page";
 import { buildElement } from "../../domain/shapes/ShapeRegistry";
 import type { Shape } from "../../domain/shapes/ShapeRegistry";
-import { loadOwnedBoard } from "../BoardAccess";
-import type { IBoardRepository } from "../ports/IBoardRepository";
+import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 export class AddBoardElements {
   constructor(
-    private readonly boards: IBoardRepository,
+    private readonly guard: BoardAccessGuard,
     private readonly scenes: IBoardScenes,
     private readonly ids: IIdGenerator
   ) {}
 
   async execute(input: {
-    userId: string;
+    actor: Actor;
     boardId: string;
+    pageId?: string;
     shapes: Shape[];
   }): Promise<Result<{ ids: string[] }, AppError>> {
-    const board = await loadOwnedBoard(
-      this.boards,
-      input.boardId,
-      input.userId
-    );
-    if (board.isErr()) {
-      return err(board.error);
+    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    if (granted.isErr()) {
+      return err(granted.error);
     }
     const now = Date.now();
     const elements = input.shapes.map((shape) =>
@@ -37,11 +34,18 @@ export class AddBoardElements {
         updated: now,
       })
     );
-    await this.scenes.transact(input.boardId, (scene) => {
-      for (const element of elements) {
-        scene.put(element);
+    const found = await this.scenes.transact(input.boardId, (scene) => {
+      const page = resolvePage(scene.pages(), input.pageId);
+      if (!page) {
+        return false;
       }
+      for (const element of elements) {
+        scene.put(page.id, element);
+      }
+      return true;
     });
-    return ok({ ids: elements.map((e) => e.id) });
+    return found
+      ? ok({ ids: elements.map((e) => e.id) })
+      : err(AppError.notFound("Page"));
   }
 }

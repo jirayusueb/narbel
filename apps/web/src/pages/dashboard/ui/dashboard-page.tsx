@@ -9,7 +9,7 @@ import {
 import { Skeleton } from "@narbel/ui/components/skeleton";
 import { LayoutDashboard } from "lucide-react";
 
-import { BoardCard, useBoards } from "@/entities/board";
+import { BoardCard, useBoards, useSharedBoards } from "@/entities/board";
 import { CreateBoardDialog } from "@/features/create-board";
 import { DeleteBoardDialog } from "@/features/delete-board";
 import { McpKeysPanel } from "@/features/mcp-keys";
@@ -17,6 +17,7 @@ import { RenameBoardDialog } from "@/features/rename-board";
 
 export const DashboardPage = () => {
   const { data: boards, isPending, error } = useBoards();
+  const { data: shared } = useSharedBoards();
 
   return (
     <div className="h-full overflow-y-auto">
@@ -66,6 +67,18 @@ export const DashboardPage = () => {
             </div>
           ) : null}
         </section>
+        {shared?.length ? (
+          <section className="flex flex-col gap-4">
+            <h2 className="font-heading text-lg font-medium">
+              Shared with you
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {shared.map((board) => (
+                <BoardCard key={board.id} board={board} />
+              ))}
+            </div>
+          </section>
+        ) : null}
         <McpKeysPanel />
       </div>
     </div>

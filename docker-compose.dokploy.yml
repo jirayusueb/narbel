@@ -1,5 +1,7 @@
 # Dokploy "Docker Compose" service. No host ports: Traefik routes via the domains
-# set in the Dokploy UI (web -> 3001, server -> 3000). Values come from the Environment tab.
+# set in the Dokploy UI (web -> 3001, server -> 3000).
+# All secrets come from .env.deploy, a file mounted by Dokploy (Advanced > Mounts),
+# because Dokploy's Environment-tab interpolation did not reach every service.
 name: narbel
 
 x-healthcheck-fetch: &fetch-check
@@ -10,27 +12,55 @@ x-healthcheck-fetch: &fetch-check
 
 services:
   postgres:
-    image: postgres:18
-    environment:
-      POSTGRES_DB: narbel
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    # pgrust: Postgres rebuilt in Rust, drop-in for the official image (same env vars)
+    image: malisper/pgrust:v0.4-beta
+    env_file: [.env.deploy]
     volumes:
-      - narbel_postgres_data:/var/lib/postgresql
+      - narbel_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d narbel"]
+      test: ["CMD-SHELL", "psql -U postgres -d narbel -c 'select 1' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - narbel_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  s3:
+    # MinIO no longer publishes images to Docker Hub; RustFS is an S3-compatible drop-in.
+    image: rustfs/rustfs
+    env_file: [.env.deploy]
+    volumes:
+      - narbel_s3_data:/data
+    restart: unless-stopped
+
+  s3-setup:
+    image: amazon/aws-cli
+    env_file: [.env.deploy]
+    depends_on:
+      - s3
+    entrypoint:
+      - /bin/sh
+      - -c
+      - until aws --endpoint-url http://s3:9000 s3api head-bucket --bucket "$${S3_BUCKET}" 2>/dev/null || aws --endpoint-url http://s3:9000 s3api create-bucket --bucket "$${S3_BUCKET}"; do sleep 2; done
+    restart: "no"
 
   migrate:
     build:
       context: .
       dockerfile: apps/server/Dockerfile
       target: migrate
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/narbel
+    env_file: [.env.deploy]
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,23 +72,19 @@ services:
       dockerfile: apps/server/Dockerfile
       target: runner
     init: true
+    env_file: [.env.deploy]
+    environment:
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://s3:9000
     expose:
       - "3000"
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/narbel
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL}
-      CORS_ORIGIN: ${CORS_ORIGIN:?set CORS_ORIGIN}
-      S3_ENDPOINT: ${S3_ENDPOINT:-http://s3:9000}
-      S3_REGION: ${S3_REGION:-us-east-1}
-      S3_BUCKET: ${S3_BUCKET:?set S3_BUCKET}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
     depends_on:
       migrate:
         condition: service_completed_successfully
       s3-setup:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     healthcheck:
       <<: *fetch-check
       test:
@@ -76,13 +102,13 @@ services:
       dockerfile: apps/web/Dockerfile
       target: runner
       args:
-        VITE_SERVER_URL: ${VITE_SERVER_URL:?set VITE_SERVER_URL}
+        # replaced by the real API domain when domains are added
+        VITE_SERVER_URL: ${VITE_SERVER_URL:-http://84.247.158.105:3000}
     init: true
+    environment:
+      SERVER_URL: http://server:3000
     expose:
       - "3001"
-    environment:
-      VITE_SERVER_URL: ${VITE_SERVER_URL}
-      SERVER_URL: http://server:3000
     depends_on:
       server:
         condition: service_healthy
@@ -97,30 +123,7 @@ services:
         ]
     restart: unless-stopped
 
-  # MinIO no longer publishes images to Docker Hub; RustFS is an S3-compatible drop-in.
-  s3:
-    image: rustfs/rustfs
-    environment:
-      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
-      RUSTFS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
-    volumes:
-      - narbel_s3_data:/data
-    restart: unless-stopped
-
-  s3-setup:
-    image: amazon/aws-cli
-    depends_on:
-      - s3
-    environment:
-      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
-      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - until aws --endpoint-url http://s3:9000 s3api head-bucket --bucket ${S3_BUCKET:?set S3_BUCKET} 2>/dev/null || aws --endpoint-url http://s3:9000 s3api create-bucket --bucket ${S3_BUCKET}; do sleep 2; done
-    restart: "no"
-
 volumes:
   narbel_postgres_data:
+  narbel_redis_data:
   narbel_s3_data:

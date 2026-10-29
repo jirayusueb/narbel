@@ -6,20 +6,39 @@ import { Elysia } from "elysia";
 import { createAuthModule, createBetterAuthPlugin } from "../features/auth";
 import { createBoardModule } from "../features/board";
 import type { S3Config } from "../features/board/infrastructure/services/BunS3FileStorage";
+import type { ResendConfig } from "../features/board/infrastructure/services/ResendEmailSender";
+import type { ICache } from "../shared/application/interfaces/ICache";
+import type { IPubSub } from "../shared/application/interfaces/IPubSub";
 import { errorPlugin } from "../shared/presentation/plugins/errorPlugin";
 import { originGuard } from "../shared/presentation/plugins/originGuard";
 
-// Uploads cap at 10 MiB; reject bigger bodies before Bun buffers them (default 128 MiB).
-const MAX_REQUEST_BODY_BYTES = 11 * 1024 * 1024;
+// Image bytes go straight to S3, so API bodies are small JSON; reject anything bigger before Bun buffers it.
+const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
 
 export interface AppDeps {
   auth: Parameters<typeof createBetterAuthPlugin>[0];
   db: Database;
   corsOrigin: string;
   s3: S3Config;
+  resend: ResendConfig;
+  webOrigin: string;
+  /** signs unlock cookies */
+  secret: string;
+  cache: ICache;
+  pubsub: IPubSub;
 }
 
-export const createApp = ({ auth, db, corsOrigin, s3 }: AppDeps) => {
+export const createApp = ({
+  auth,
+  db,
+  corsOrigin,
+  s3,
+  resend,
+  webOrigin,
+  secret,
+  cache,
+  pubsub,
+}: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
   return new Elysia({ serve: { maxRequestBodySize: MAX_REQUEST_BODY_BYTES } })
     .use(originGuard(corsOrigin))
@@ -35,7 +54,18 @@ export const createApp = ({ auth, db, corsOrigin, s3 }: AppDeps) => {
     .use(errorPlugin)
     .get("/", () => "OK")
     .use(createAuthModule({ auth }))
-    .use(createBoardModule({ db, s3, betterAuth }));
+    .use(
+      createBoardModule({
+        db,
+        s3,
+        resend,
+        webOrigin,
+        secret,
+        cache,
+        pubsub,
+        betterAuth,
+      })
+    );
 };
 
 export type App = ReturnType<typeof createApp>;

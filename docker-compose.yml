@@ -69,8 +69,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # pgrust: Postgres rebuilt in Rust, drop-in for the official image (same env vars)
   postgres:
-    image: postgres:18
+    image: malisper/pgrust:v0.4-beta
     container_name: narbel-postgres
     environment:
       POSTGRES_DB: narbel
@@ -79,9 +80,23 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - narbel_postgres_data:/var/lib/postgresql
+      - narbel_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "psql -U postgres -d narbel -c 'select 1' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: narbel-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - narbel_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -117,8 +132,8 @@ services:
 
 volumes:
   narbel_postgres_data:
+  narbel_redis_data:
   narbel_s3_data:
-
 # BuildKit makes these available only while install/build commands run.
 secrets:
   web_env:

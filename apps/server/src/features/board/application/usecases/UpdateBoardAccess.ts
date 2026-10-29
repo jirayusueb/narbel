@@ -1,0 +1,108 @@
+import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
+import { AppError } from "../../../../shared/kernel/errors/AppError";
+import { err, ok } from "../../../../shared/kernel/types/Result";
+import type { Result } from "../../../../shared/kernel/types/Result";
+import type { MemberRole, Visibility } from "../../domain/values/Access";
+import { validatePassword } from "../../domain/values/Password";
+import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import { toAccessDto } from "../dtos/AccessDto";
+import type { BoardAccessDto } from "../dtos/AccessDto";
+import type { IBoardAccessRepository } from "../ports/IBoardAccessRepository";
+import type { IBoardRepository } from "../ports/IBoardRepository";
+import type { IPasswordHasher } from "../ports/IPasswordHasher";
+
+export interface AccessPatch {
+  visibility?: Visibility;
+  /** a string sets the password, null removes it */
+  password?: string | null;
+  shareTokenEnabled?: boolean;
+  shareRole?: MemberRole;
+  /** ISO date, or null for a link that never expires */
+  shareExpiresAt?: string | null;
+}
+
+const parseExpiry = (raw: string, now: Date): Result<Date, AppError> => {
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) || date <= now
+    ? err(AppError.validation("shareExpiresAt must be a future date"))
+    : ok(date);
+};
+
+export class UpdateBoardAccess {
+  constructor(
+    private readonly guard: BoardAccessGuard,
+    private readonly boards: IBoardRepository,
+    private readonly grants: IBoardAccessRepository,
+    private readonly hasher: IPasswordHasher,
+    private readonly ids: IIdGenerator,
+    private readonly webOrigin: string
+  ) {}
+
+  async execute(input: {
+    actor: Actor;
+    boardId: string;
+    patch: AccessPatch;
+  }): Promise<Result<BoardAccessDto, AppError>> {
+    const granted = await this.guard.require(input.boardId, input.actor, "owner");
+    if (granted.isErr()) {
+      return err(granted.error);
+    }
+    const { patch } = input;
+    const now = new Date();
+    let { board } = granted.value;
+
+    let passwordHash = board.passwordHash;
+    if (typeof patch.password === "string") {
+      const valid = validatePassword(patch.password);
+      if (valid.isErr()) {
+        return err(valid.error);
+      }
+      passwordHash = await this.hasher.hash(patch.password);
+    } else if (patch.password === null) {
+      passwordHash = null;
+    }
+    const visibility = patch.visibility ?? board.visibility;
+    if (visibility === "password" && passwordHash === null) {
+      return err(AppError.validation("Set a password before locking the board"));
+    }
+    if (visibility !== board.visibility || passwordHash !== board.passwordHash) {
+      board = board.withProtection(visibility, passwordHash, now);
+      await this.boards.save(board);
+    }
+
+    let share = await this.grants.findShare(board.id);
+    const wantShare = patch.shareTokenEnabled ?? share !== null;
+    if (!wantShare) {
+      if (share) {
+        await this.grants.deleteShare(board.id);
+      }
+      share = null;
+    } else if (
+      patch.shareTokenEnabled ||
+      patch.shareRole ||
+      patch.shareExpiresAt !== undefined
+    ) {
+      let expiresAt = share?.expiresAt ?? null;
+      if (typeof patch.shareExpiresAt === "string") {
+        const parsed = parseExpiry(patch.shareExpiresAt, now);
+        if (parsed.isErr()) {
+          return err(parsed.error);
+        }
+        expiresAt = parsed.value;
+      } else if (patch.shareExpiresAt === null) {
+        expiresAt = null;
+      }
+      share = {
+        boardId: board.id,
+        token: share?.token ?? this.ids.token(),
+        role: patch.shareRole ?? share?.role ?? "viewer",
+        createdAt: share?.createdAt ?? now,
+        expiresAt,
+      };
+      await this.grants.saveShare(share);
+    }
+
+    const members = await this.grants.listMembers(board.id);
+    return ok(toAccessDto(board, share, members, this.webOrigin));
+  }
+}

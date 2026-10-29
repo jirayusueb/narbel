@@ -12,6 +12,6 @@ export class ListBoards {
     userId: string;
   }): Promise<Result<BoardDto[], AppError>> {
     const boards = await this.boards.listByOwner(input.userId);
-    return ok(boards.map(toBoardDto));
+    return ok(boards.map((board) => toBoardDto(board, "owner")));
   }
 }

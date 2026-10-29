@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type * as Y from "yjs";
 
-import { api as http } from "@/shared/api";
+import { api as http, unwrap } from "@/shared/api";
 import { SERVER_URL } from "@/shared/config";
 
 interface FileMeta {
@@ -28,12 +28,15 @@ const blobToDataUrl = async (blob: Blob) => {
   return `data:${blob.type};base64,${btoa(binary)}`;
 };
 
-const downloadAsDataUrl = async (boardId: string, fileId: string) => {
+const downloadAsDataUrl = async (
+  boardId: string,
+  fileId: string,
+  shareToken?: string
+) => {
+  const query = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
   const res = await fetch(
-    `${SERVER_URL}/api/boards/${boardId}/files/${fileId}`,
-    {
-      credentials: "include",
-    }
+    `${SERVER_URL}/api/boards/${boardId}/files/${fileId}${query}`,
+    { credentials: "include" }
   );
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
@@ -41,14 +44,28 @@ const downloadAsDataUrl = async (boardId: string, fileId: string) => {
   return blobToDataUrl(await res.blob());
 };
 
-const upload = async (boardId: string, file: BinaryFileData) => {
+const upload = async (
+  boardId: string,
+  file: BinaryFileData,
+  shareToken?: string
+) => {
   const source = await fetch(file.dataURL);
   const blob = await source.blob();
-  const res = await http.api.boards({ id: boardId }).files.post({
-    fileId: file.id,
-    file: new File([blob], file.id, { type: file.mimeType }),
+  const { uploadUrl } = unwrap(
+    await http.api
+      .boards({ id: boardId })
+      .files.presign.post(
+        { fileId: file.id, mimeType: file.mimeType, size: blob.size },
+        { query: { share: shareToken } }
+      )
+  );
+  // The URL is signed for this exact content type and length; S3 gets the bytes directly, no cookies.
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "content-type": file.mimeType },
+    body: blob,
   });
-  if (res.error) {
+  if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
 };
@@ -57,10 +74,14 @@ export const useBoardMedia = ({
   boardId,
   doc,
   api,
+  canWrite,
+  shareToken,
 }: {
   boardId: string;
   doc: Y.Doc | null;
   api: ExcalidrawImperativeAPI | null;
+  canWrite: boolean;
+  shareToken?: string;
 }) => {
   // shortcut: a failed upload/download is not retried until reload; add backoff if flaky storage matters.
   const attempted = useRef(new Set<string>());
@@ -75,7 +96,7 @@ export const useBoardMedia = ({
     const download = async (meta: FileMeta) => {
       attempted.current.add(meta.id);
       try {
-        const dataURL = await downloadAsDataUrl(boardId, meta.id);
+        const dataURL = await downloadAsDataUrl(boardId, meta.id, shareToken);
         api.addFiles([
           {
             id: meta.id,
@@ -104,17 +125,17 @@ export const useBoardMedia = ({
       files.unobserve(pull);
       tried.clear();
     };
-  }, [doc, api, boardId]);
+  }, [doc, api, boardId, shareToken]);
 
   const onFiles = useCallback(
     (scene: BinaryFiles) => {
-      if (!doc) {
+      if (!(doc && canWrite)) {
         return;
       }
       const files = doc.getMap<FileMeta>("files");
       const syncFile = async (file: BinaryFileData) => {
         try {
-          await upload(boardId, file);
+          await upload(boardId, file, shareToken);
           doc.transact(() => {
             files.set(file.id, {
               id: file.id,
@@ -134,7 +155,7 @@ export const useBoardMedia = ({
         syncFile(file);
       }
     },
-    [doc, boardId]
+    [doc, boardId, canWrite, shareToken]
   );
 
   return { onFiles };

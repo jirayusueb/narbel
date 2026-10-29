@@ -10,12 +10,18 @@ const BoardEditor = lazy(async () => {
   return { default: mod.BoardEditor };
 });
 
-export const BoardCanvas = ({ board }: { board: Board }) => {
+export const BoardCanvas = ({
+  board,
+  shareToken,
+}: {
+  board: Board;
+  shareToken?: string;
+}) => {
   const placeholder = <Skeleton className="size-full" />;
   return (
     <ClientOnly fallback={placeholder}>
       <Suspense fallback={placeholder}>
-        <BoardEditor board={board} />
+        <BoardEditor board={board} shareToken={shareToken} />
       </Suspense>
     </ClientOnly>
   );

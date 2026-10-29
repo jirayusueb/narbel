@@ -24,6 +24,9 @@ Set these in the service's **Environment** tab. Compose fails fast if a required
 | `S3_BUCKET` | yes | Bucket name, e.g. `narbel`. |
 | `S3_ACCESS_KEY_ID` | yes | Access key. |
 | `S3_SECRET_ACCESS_KEY` | yes | Secret key. |
+| `RESEND_API_KEY` | yes | Resend API key, used for board invite emails. |
+| `RESEND_FROM` | no | Sender, defaults to `Narbel <onboarding@resend.dev>`. Use a verified domain to mail anyone. |
+| `WEB_ORIGIN` | no | Public web origin used in invite and share links. Defaults to `CORS_ORIGIN`. |
 
 `DATABASE_URL` and `SERVER_URL` are set inside the compose file. Do not add them.
 
@@ -42,7 +45,7 @@ Set these in the service's **Environment** tab. Compose fails fast if a required
 
 - **HTTPS is required.** Web and API sit on different subdomains, so the session cookie is cross-site and browsers only send secure cookies over HTTPS. `BETTER_AUTH_URL`, `CORS_ORIGIN` and `VITE_SERVER_URL` must all use `https://`, with no trailing slash.
 - **WebSockets.** Realtime sync uses `wss://api.example.com/api/boards/sync/:id`. Traefik proxies upgrades with no extra configuration. If sync fails behind another proxy or CDN in front of Traefik (e.g. Cloudflare), make sure WebSockets are enabled there.
-- **Images.** Uploads go through the server to S3. Viewing redirects the browser to a presigned S3 URL, so `S3_ENDPOINT` must be reachable from the user's browser.
+- **Images.** The browser uploads straight to S3 through a presigned PUT URL and the server streams images back after an access check, so `S3_ENDPOINT` must be reachable from the user's browser and the bucket must allow cross-origin PUT from the web origin.
 - **Redeploys** rerun `migrate` first; it is a no-op when nothing changed. Data lives in the `narbel_postgres_data` volume.
 
 ## MCP for AI agents
@@ -61,4 +64,4 @@ Set these in the service's **Environment** tab. Compose fails fast if a required
    ```sh
    claude mcp add --transport http narbel https://api.example.com/mcp --header "x-api-key: <key>"
    ```
-3. Tools: `list_boards`, `create_board`, `get_board`, `add_elements`, `update_element`, `delete_elements`. Edits show up live in open browsers.
+3. Tools: `list_boards`, `create_board`, `get_board`, `list_pages`, `add_page`, `rename_page`, `delete_page`, `add_elements`, `update_element`, `delete_elements`, `get_selection`, `select`, `edit_selection`. Edits show up live in open browsers.

@@ -6,6 +6,7 @@ import {
 } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import type { BoardUseCases } from "../../ioc";
+import { actorFrom, shareQuery } from "./actor";
 
 export const createBoardFileController = (
   betterAuth: BetterAuthPlugin,
@@ -15,44 +16,49 @@ export const createBoardFileController = (
     .use(betterAuth)
     .use(resultPlugin)
     .post(
-      "/",
+      "/presign",
       {
         auth: true,
         params: t.Object({ id: t.String() }),
-        body: t.Object({ fileId: t.String(), file: t.File() }),
+        query: shareQuery,
+        body: t.Object({
+          fileId: t.String({ maxLength: 200 }),
+          mimeType: t.String({ maxLength: 100 }),
+          size: t.Number(),
+        }),
       },
-      async ({ user, params: { id }, body, set }) => {
+      async ({ user, request, params: { id }, body, set }) => {
         set.status = 201;
         return asWire(
-          await uc.uploadBoardFile.execute({
-            userId: user.id,
+          await uc.presignBoardFileUpload.execute({
+            actor: actorFrom(request, user, id),
             boardId: id,
-            fileId: body.fileId,
-            mimeType: body.file.type,
-            size: body.file.size,
-            read: async () => new Uint8Array(await body.file.arrayBuffer()),
+            ...body,
           })
         );
       }
     )
     .get(
       "/:fileId",
-      { auth: true, params: t.Object({ id: t.String(), fileId: t.String() }) },
-      async ({ user, params: { id, fileId } }) => {
+      {
+        authOptional: true,
+        params: t.Object({ id: t.String(), fileId: t.String() }),
+        query: shareQuery,
+      },
+      async ({ user, request, params: { id, fileId } }) => {
         const result = await uc.getBoardFile.execute({
-          userId: user.id,
+          actor: actorFrom(request, user, id),
           boardId: id,
           fileId,
         });
         if (result.isErr()) {
           return asWire(result);
         }
-        const { stream, mimeType, size } = result.value;
+        const { stream, mimeType } = result.value;
         // fileIds are content-addressed by Excalidraw, so the bytes behind one never change
         return new Response(stream, {
           headers: {
             "Content-Type": mimeType,
-            "Content-Length": String(size),
             "Cache-Control": "private, max-age=31536000, immutable",
             // the client only reads bytes via fetch; never let an uploaded SVG run as a page here
             "Content-Security-Policy": "sandbox",

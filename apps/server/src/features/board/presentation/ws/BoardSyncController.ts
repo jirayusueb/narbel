@@ -1,10 +1,14 @@
 import { Elysia, status, t } from "elysia";
 import { websocket } from "elysia/websocket";
 
+import {
+  STATUS_BY_CODE,
+} from "../../../../shared/kernel/errors/AppError";
 import { errorBody } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import type { SyncSession } from "../../application/ports/IBoardSyncGateway";
 import type { BoardUseCases } from "../../ioc";
+import { actorFrom, shareQuery } from "../http/actor";
 
 const WS_POLICY_VIOLATION = 1008;
 
@@ -29,23 +33,28 @@ export const createBoardSyncController = (
     .use(betterAuth)
     .use(websocket())
     .ws("/api/boards/sync/:id", {
-      auth: true,
+      authOptional: true,
       params: t.Object({ id: t.String() }),
-      // owner check at upgrade time, so strangers get a plain HTTP 404 instead of a socket
-      beforeHandle: async ({ user, params }) => {
+      query: shareQuery,
+      // same access resolution as HTTP, at upgrade time, so strangers get a plain HTTP error instead of a socket
+      beforeHandle: async ({ user, request, params }) => {
         const board = await uc.getBoard.execute({
-          userId: user.id,
+          actor: actorFrom(request, user, params.id),
           boardId: params.id,
         });
         if (board.isErr()) {
-          return status(404, errorBody("NotFound", "Board not found"));
+          const { code, message, details } = board.error;
+          return status(
+            STATUS_BY_CODE[code] as 403 | 404,
+            errorBody(code, message, details)
+          );
         }
       },
       parse: (_ws, message) => message,
       open(ws) {
         const connect = async () => {
           const result = await uc.connectBoardSync.execute({
-            userId: ws.user.id,
+            actor: actorFrom(ws.request, ws.user, ws.params.id),
             boardId: ws.params.id,
             peer: {
               send: (data) => {

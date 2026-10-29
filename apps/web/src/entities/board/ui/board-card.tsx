@@ -1,3 +1,4 @@
+import { Badge } from "@narbel/ui/components/badge";
 import {
   Card,
   CardAction,
@@ -36,6 +37,11 @@ export const BoardCard = ({
       <CardDescription>
         Updated {formatter.format(new Date(board.updatedAt))}
       </CardDescription>
+      {board.shared ? (
+        <CardAction>
+          <Badge variant="secondary">{board.role}</Badge>
+        </CardAction>
+      ) : null}
       {actions ? (
         <CardAction className="flex gap-1">{actions}</CardAction>
       ) : null}

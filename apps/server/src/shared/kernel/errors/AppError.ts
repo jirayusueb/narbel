@@ -6,6 +6,7 @@ export type AppErrorCode =
   | "Conflict"
   | "PayloadTooLarge"
   | "UnsupportedMediaType"
+  | "BadGateway"
   | "InternalError";
 
 export class AppError {
@@ -39,6 +40,9 @@ export class AppError {
   ) {
     return new AppError("UnsupportedMediaType", message, details);
   }
+  static badGateway(message: string, details?: Record<string, unknown>) {
+    return new AppError("BadGateway", message, details);
+  }
   static internal(message = "Internal server error") {
     return new AppError("InternalError", message);
   }
@@ -52,5 +56,6 @@ export const STATUS_BY_CODE: Record<AppErrorCode, number> = {
   Conflict: 409,
   PayloadTooLarge: 413,
   UnsupportedMediaType: 415,
+  BadGateway: 502,
   InternalError: 500,
 };

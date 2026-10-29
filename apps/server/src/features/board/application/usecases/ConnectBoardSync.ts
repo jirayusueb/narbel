@@ -1,8 +1,7 @@
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { loadOwnedBoard } from "../BoardAccess";
-import type { IBoardRepository } from "../ports/IBoardRepository";
+import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import type {
   IBoardSyncGateway,
   SyncPeer,
@@ -11,23 +10,25 @@ import type {
 
 export class ConnectBoardSync {
   constructor(
-    private readonly boards: IBoardRepository,
+    private readonly guard: BoardAccessGuard,
     private readonly gateway: IBoardSyncGateway
   ) {}
 
   async execute(input: {
-    userId: string;
+    actor: Actor;
     boardId: string;
     peer: SyncPeer;
   }): Promise<Result<SyncSession, AppError>> {
-    const board = await loadOwnedBoard(
-      this.boards,
-      input.boardId,
-      input.userId
-    );
-    if (board.isErr()) {
-      return err(board.error);
+    const granted = await this.guard.require(input.boardId, input.actor, "read");
+    if (granted.isErr()) {
+      return err(granted.error);
     }
-    return ok(await this.gateway.connect(input.boardId, input.peer));
+    return ok(
+      await this.gateway.connect(
+        input.boardId,
+        input.peer,
+        granted.value.access.canWrite
+      )
+    );
   }
 }

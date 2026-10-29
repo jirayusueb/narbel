@@ -29,6 +29,6 @@ export class CreateBoard {
       new Date()
     );
     await this.boards.save(board);
-    return ok(toBoardDto(board));
+    return ok(toBoardDto(board, "owner"));
   }
 }

@@ -2,9 +2,9 @@ import type { IIdGenerator } from "../../../../shared/application/interfaces/IId
 import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { loadOwnedBoard } from "../BoardAccess";
-import type { IBoardRepository } from "../ports/IBoardRepository";
-import type { IBoardScenes } from "../ports/IBoardScenes";
+import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 
 // Identity and versioning belong to the system; a patch must not be able to rewrite them.
 const RESERVED = new Set([
@@ -16,47 +16,57 @@ const RESERVED = new Set([
   "updated",
 ]);
 
+export const stripReserved = (patch: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(patch).filter(([key]) => !RESERVED.has(key))
+  );
+
+/** Writes `patch` over the element as a new version; false when it is missing or deleted. */
+export const patchElement = (
+  scene: SceneAccess,
+  ids: IIdGenerator,
+  id: string,
+  patch: Record<string, unknown>
+): boolean => {
+  const found = scene.find(id);
+  if (!found || found.element.isDeleted) {
+    return false;
+  }
+  const local: SceneElement = found.element;
+  scene.put(found.pageId, {
+    ...local,
+    ...patch,
+    ...(local.type === "text" && typeof patch.text === "string"
+      ? { originalText: patch.text }
+      : {}),
+    version: local.version + 1,
+    versionNonce: ids.int(),
+    updated: Date.now(),
+  });
+  return true;
+};
+
 export class UpdateBoardElement {
   constructor(
-    private readonly boards: IBoardRepository,
+    private readonly guard: BoardAccessGuard,
     private readonly scenes: IBoardScenes,
     private readonly ids: IIdGenerator
   ) {}
 
   async execute(input: {
-    userId: string;
+    actor: Actor;
     boardId: string;
     id: string;
     patch: Record<string, unknown>;
   }): Promise<Result<{ id: string }, AppError>> {
-    const board = await loadOwnedBoard(
-      this.boards,
-      input.boardId,
-      input.userId
-    );
-    if (board.isErr()) {
-      return err(board.error);
+    const granted = await this.guard.require(input.boardId, input.actor, "write");
+    if (granted.isErr()) {
+      return err(granted.error);
     }
-    const patch = Object.fromEntries(
-      Object.entries(input.patch).filter(([key]) => !RESERVED.has(key))
+    const patch = stripReserved(input.patch);
+    const found = await this.scenes.transact(input.boardId, (scene) =>
+      patchElement(scene, this.ids, input.id, patch)
     );
-    const found = await this.scenes.transact(input.boardId, (scene) => {
-      const local = scene.get(input.id);
-      if (!local || local.isDeleted) {
-        return false;
-      }
-      scene.put({
-        ...local,
-        ...patch,
-        ...(local.type === "text" && typeof patch.text === "string"
-          ? { originalText: patch.text }
-          : {}),
-        version: local.version + 1,
-        versionNonce: this.ids.int(),
-        updated: Date.now(),
-      });
-      return true;
-    });
     return found ? ok({ id: input.id }) : err(AppError.notFound("Element"));
   }
 }

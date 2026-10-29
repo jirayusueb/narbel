@@ -11,5 +11,10 @@ export interface SyncSession {
 
 /** Speaks the realtime sync protocol for one connected peer. */
 export interface IBoardSyncGateway {
-  connect(boardId: string, peer: SyncPeer): Promise<SyncSession>;
+  /** A peer without `canWrite` receives the document but none of its updates are ever applied. */
+  connect(
+    boardId: string,
+    peer: SyncPeer,
+    canWrite: boolean
+  ): Promise<SyncSession>;
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Result } from "../../../../shared/kernel/types/Result";
+import type { Actor } from "../../application/BoardAccess";
 import { SHAPE_TYPES } from "../../domain/shapes/ShapeRegistry";
 import type { BoardUseCases } from "../../ioc";
 
@@ -55,12 +56,15 @@ const patch = z
 const boardId = z
   .string()
   .describe("Board id from list_boards or create_board");
+const pageId = z
+  .string()
+  .optional()
+  .describe("Page id from list_pages; defaults to the first page");
+const pageName = z.string().describe("1 to 80 characters");
 
-export const createMcpServer = (
-  uc: BoardUseCases,
-  userId: string
-): McpServer => {
-  const server = new McpServer({ name: "narbel", version: "0.1.0" });
+export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
+  const server = new McpServer({ name: "narbel", version: "0.2.0" });
+  const userId = actor.userId ?? "";
 
   server.registerTool(
     "list_boards",
@@ -79,24 +83,91 @@ export const createMcpServer = (
     "get_board",
     {
       description:
-        "Get a board's title and its (non-deleted) elements as compact JSON.",
+        "Get a board's title and the (non-deleted) elements of one page as compact JSON.",
+      inputSchema: { boardId, pageId },
+    },
+    async (input) =>
+      reply(
+        await uc.getBoardScene.execute({
+          actor,
+          boardId: input.boardId,
+          pageId: input.pageId,
+        })
+      )
+  );
+  server.registerTool(
+    "list_pages",
+    {
+      description: "List a board's pages in order.",
       inputSchema: { boardId },
     },
     async (input) =>
-      reply(await uc.getBoardScene.execute({ userId, boardId: input.boardId }))
+      reply(await uc.listPages.execute({ actor, boardId: input.boardId }))
+  );
+  server.registerTool(
+    "add_page",
+    {
+      description: "Add a page to a board. Returns the new page.",
+      inputSchema: { boardId, name: pageName },
+    },
+    async (input) =>
+      reply(
+        await uc.addPage.execute({
+          actor,
+          boardId: input.boardId,
+          name: input.name,
+        })
+      )
+  );
+  server.registerTool(
+    "rename_page",
+    {
+      description: "Rename a page.",
+      inputSchema: { boardId, pageId: z.string(), name: pageName },
+    },
+    async (input) =>
+      reply(
+        await uc.renamePage.execute({
+          actor,
+          boardId: input.boardId,
+          pageId: input.pageId,
+          name: input.name,
+        })
+      )
+  );
+  server.registerTool(
+    "delete_page",
+    {
+      description:
+        "Delete a page and every element on it (nothing is moved). The last page cannot be deleted.",
+      inputSchema: { boardId, pageId: z.string() },
+    },
+    async (input) =>
+      reply(
+        await uc.deletePage.execute({
+          actor,
+          boardId: input.boardId,
+          pageId: input.pageId,
+        })
+      )
   );
   server.registerTool(
     "add_elements",
     {
       description:
-        "Add shapes to a board; connected browsers see them live. Returns the new element ids.",
-      inputSchema: { boardId, elements: z.array(shape).min(1).max(200) },
+        "Add shapes to a page; connected browsers see them live. Returns the new element ids.",
+      inputSchema: {
+        boardId,
+        pageId,
+        elements: z.array(shape).min(1).max(200),
+      },
     },
     async (input) =>
       reply(
         await uc.addBoardElements.execute({
-          userId,
+          actor,
           boardId: input.boardId,
+          pageId: input.pageId,
           shapes: input.elements,
         })
       )
@@ -111,7 +182,7 @@ export const createMcpServer = (
     async (input) =>
       reply(
         await uc.updateBoardElement.execute({
-          userId,
+          actor,
           boardId: input.boardId,
           id: input.id,
           patch: input.patch,
@@ -127,9 +198,51 @@ export const createMcpServer = (
     async (input) =>
       reply(
         await uc.deleteBoardElements.execute({
-          userId,
+          actor,
           boardId: input.boardId,
           ids: input.ids,
+        })
+      )
+  );
+  server.registerTool(
+    "get_selection",
+    {
+      description:
+        "Get the elements currently selected on the board. Selection follows the client that changed its selection most recently; errors when no browser is connected.",
+      inputSchema: { boardId },
+    },
+    async (input) =>
+      reply(await uc.getSelection.execute({ actor, boardId: input.boardId }))
+  );
+  server.registerTool(
+    "select",
+    {
+      description:
+        "Select elements by id, shown to collaborators as an MCP selection and used as the newest selection by get_selection and edit_selection. Returns the selected elements.",
+      inputSchema: { boardId, ids: z.array(z.string()).min(1).max(500) },
+    },
+    async (input) =>
+      reply(
+        await uc.selectElements.execute({
+          actor,
+          boardId: input.boardId,
+          ids: input.ids,
+        })
+      )
+  );
+  server.registerTool(
+    "edit_selection",
+    {
+      description:
+        "Apply a patch (position, size, text, colors) to every element in the current selection. Selection follows the newest client selection, see get_selection.",
+      inputSchema: { boardId, patch },
+    },
+    async (input) =>
+      reply(
+        await uc.editSelection.execute({
+          actor,
+          boardId: input.boardId,
+          patch: input.patch,
         })
       )
   );

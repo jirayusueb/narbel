@@ -1,12 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
-import { Board } from "../../domain/entities/Board";
-import type { SceneElement } from "../../domain/entities/SceneElement";
-import { BoardTitle } from "../../domain/values/BoardTitle";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
-import type { IBoardRepository } from "../ports/IBoardRepository";
-import type { IBoardScenes } from "../ports/IBoardScenes";
 import type { IFileStorage } from "../ports/IFileStorage";
 import { AddBoardElements } from "./AddBoardElements";
 import { CreateBoard } from "./CreateBoard";
@@ -14,68 +8,18 @@ import { DeleteBoard } from "./DeleteBoard";
 import { DeleteBoardElements } from "./DeleteBoardElements";
 import { GetBoard } from "./GetBoard";
 import { ListBoards } from "./ListBoards";
+import { PresignBoardFileUpload } from "./PresignBoardFileUpload";
 import { RenameBoard } from "./RenameBoard";
 import { UpdateBoardElement } from "./UpdateBoardElement";
-import { UploadBoardFile } from "./UploadBoardFile";
+import { ids, setupAccess } from "./fakes";
 
-let counter = 0;
-const ids: IIdGenerator = {
-  generate: () => {
-    counter += 1;
-    return `id${counter}`;
-  },
-  int: () => {
-    counter += 1;
-    return counter;
-  },
-};
-
-class FakeBoards implements IBoardRepository {
-  readonly rows = new Map<string, Board>();
-  findById = (id: string) => Promise.resolve(this.rows.get(id) ?? null);
-  listByOwner = (ownerId: string) =>
-    Promise.resolve(
-      [...this.rows.values()].filter((b) => b.ownerId === ownerId)
-    );
-  save = (board: Board) => {
-    this.rows.set(board.id, board);
-    return Promise.resolve();
-  };
-  delete = (id: string) => {
-    this.rows.delete(id);
-    return Promise.resolve();
-  };
-}
-
-class FakeScenes implements IBoardScenes {
-  readonly elements = new Map<string, SceneElement>();
-  discarded: string[] = [];
-  transact = <T>(
-    _: string,
-    fn: Parameters<IBoardScenes["transact"]>[1] extends (s: infer S) => unknown
-      ? (s: S) => T
-      : never
-  ) =>
-    Promise.resolve(
-      fn({
-        get: (id) => this.elements.get(id),
-        all: () => [...this.elements.values()],
-        put: (el) => {
-          this.elements.set(el.id, el);
-        },
-      })
-    );
-  discard = (id: string) => {
-    this.discarded.push(id);
-    return Promise.resolve();
-  };
-}
+const owner = { userId: "owner" };
+const stranger = { userId: "stranger" };
 
 const setup = () => {
-  const boards = new FakeBoards();
-  const scenes = new FakeScenes();
-  const stored: string[] = [];
+  const base = setupAccess();
   const deleted: string[] = [];
+  const presigned: string[] = [];
   const fileRows = new Map<
     string,
     { id: string; mimeType: string; size: number }
@@ -88,9 +32,9 @@ const setup = () => {
     },
   };
   const storage: IFileStorage = {
-    put: (key) => {
-      stored.push(key);
-      return Promise.resolve();
+    presignUpload: (key) => {
+      presigned.push(key);
+      return `https://s3.test/${key}?signed`;
     },
     stream: () => new ReadableStream(),
     deletePrefix: (prefix) => {
@@ -98,29 +42,32 @@ const setup = () => {
       return Promise.resolve();
     },
   };
-  boards.rows.set(
-    "b1",
-    Board.create("b1", "owner", BoardTitle.restore("Mine"), new Date())
-  );
-  return { boards, scenes, files, storage, stored, deleted };
+  return { ...base, files, storage, presigned, deleted, fileRows };
 };
 
-const notFound = (result: { isErr(): boolean; error?: { code: string } }) =>
-  result.isErr() &&
-  (result as { error: { code: string } }).error.code === "NotFound";
+const code = (result: { isErr(): boolean; error?: { code: string } }) =>
+  result.isErr() ? (result as { error: { code: string } }).error.code : "ok";
 
 describe("owner access", () => {
   it("lets the owner read and hides the board from everyone else", async () => {
-    const { boards } = setup();
-    const get = new GetBoard(boards);
-    const ownerView = await get.execute({ userId: "owner", boardId: "b1" });
-    expect(ownerView.isOk()).toBe(true);
-    expect(
-      notFound(await get.execute({ userId: "stranger", boardId: "b1" }))
-    ).toBe(true);
-    expect(
-      notFound(await get.execute({ userId: "owner", boardId: "missing" }))
-    ).toBe(true);
+    const { guard } = setup();
+    const get = new GetBoard(guard);
+    const view = await get.execute({ actor: owner, boardId: "b1" });
+    expect(view.isOk() && view.value).toMatchObject({
+      role: "owner",
+      canWrite: true,
+      shared: false,
+      visibility: "private",
+    });
+    expect(code(await get.execute({ actor: stranger, boardId: "b1" }))).toBe(
+      "NotFound"
+    );
+    expect(code(await get.execute({ actor: {}, boardId: "b1" }))).toBe(
+      "NotFound"
+    );
+    expect(code(await get.execute({ actor: owner, boardId: "nope" }))).toBe(
+      "NotFound"
+    );
   });
 
   it("lists only the caller's boards", async () => {
@@ -129,53 +76,54 @@ describe("owner access", () => {
     expect(result.isOk() && result.value).toEqual([]);
   });
 
-  it("refuses rename, delete, upload and scene edits for non-owners without side effects", async () => {
-    const { boards, scenes, files, storage, stored, deleted } = setup();
-    const intruder = { userId: "stranger", boardId: "b1" };
+  it("refuses rename, delete, presign and scene edits for non-owners without side effects", async () => {
+    const { boards, guard, scenes, files, storage, presigned, deleted } =
+      setup();
+    const intruder = { actor: stranger, boardId: "b1" };
     expect(
-      notFound(
-        await new RenameBoard(boards).execute({ ...intruder, title: "x" })
+      code(
+        await new RenameBoard(guard, boards).execute({ ...intruder, title: "x" })
       )
-    ).toBe(true);
+    ).toBe("NotFound");
     expect(
-      notFound(await new DeleteBoard(boards, scenes, storage).execute(intruder))
-    ).toBe(true);
+      code(
+        await new DeleteBoard(guard, boards, scenes, storage).execute(intruder)
+      )
+    ).toBe("NotFound");
     expect(
-      notFound(
-        await new UploadBoardFile(boards, files, storage).execute({
+      code(
+        await new PresignBoardFileUpload(guard, files, storage).execute({
           ...intruder,
           fileId: "f",
           mimeType: "image/png",
           size: 1,
-          read: () => Promise.resolve(new Uint8Array(1)),
         })
       )
-    ).toBe(true);
+    ).toBe("NotFound");
     expect(
-      notFound(
-        await new AddBoardElements(boards, scenes, ids).execute({
+      code(
+        await new AddBoardElements(guard, scenes, ids).execute({
           ...intruder,
           shapes: [{ type: "rectangle", x: 0, y: 0 }],
         })
       )
-    ).toBe(true);
+    ).toBe("NotFound");
     expect(boards.rows.get("b1")?.title.value).toBe("Mine");
-    expect(boards.rows.has("b1")).toBe(true);
-    expect(stored).toEqual([]);
+    expect(presigned).toEqual([]);
     expect(deleted).toEqual([]);
     expect(scenes.discarded).toEqual([]);
     expect(scenes.elements.size).toBe(0);
   });
 
   it("validates the title on create and rename", async () => {
-    const { boards } = setup();
+    const { boards, guard } = setup();
     const blank = await new CreateBoard(boards, ids).execute({
       userId: "owner",
       title: "  ",
     });
     expect(blank.isErr()).toBe(true);
-    const renamed = await new RenameBoard(boards).execute({
-      userId: "owner",
+    const renamed = await new RenameBoard(guard, boards).execute({
+      actor: owner,
       boardId: "b1",
       title: " New ",
     });
@@ -183,59 +131,57 @@ describe("owner access", () => {
   });
 
   it("deletes the board together with its live document and stored files", async () => {
-    const { boards, scenes, storage, deleted } = setup();
-    const result = await new DeleteBoard(boards, scenes, storage).execute({
-      userId: "owner",
-      boardId: "b1",
-    });
+    const { boards, guard, scenes, storage, deleted } = setup();
+    const result = await new DeleteBoard(guard, boards, scenes, storage).execute(
+      { actor: owner, boardId: "b1" }
+    );
     expect(result.isOk()).toBe(true);
     expect(boards.rows.has("b1")).toBe(false);
     expect(scenes.discarded).toEqual(["b1"]);
     expect(deleted).toEqual(["boards/b1/"]);
   });
 
-  it("uploads once per (board, file) and rejects bad types before touching storage", async () => {
-    const { boards, files, storage, stored } = setup();
-    const upload = new UploadBoardFile(boards, files, storage);
-    const base = {
-      userId: "owner",
-      boardId: "b1",
+  it("presigns once per (board, file), rejects bad types before signing", async () => {
+    const { guard, files, storage, presigned, fileRows } = setup();
+    const presign = new PresignBoardFileUpload(guard, files, storage);
+    const base = { actor: owner, boardId: "b1", fileId: "f1", size: 3 };
+    expect(
+      (await presign.execute({ ...base, mimeType: "text/plain" })).isErr()
+    ).toBe(true);
+    expect(presigned).toEqual([]);
+    const first = await presign.execute({ ...base, mimeType: "image/png" });
+    expect(first.isOk() && first.value).toEqual({
       fileId: "f1",
-      size: 3,
-      read: () => Promise.resolve(new Uint8Array(3)),
-    };
-    const wrongType = await upload.execute({ ...base, mimeType: "text/plain" });
-    expect(wrongType.isErr()).toBe(true);
-    expect(stored).toEqual([]);
-    await upload.execute({ ...base, mimeType: "image/png" });
-    const again = await upload.execute({ ...base, mimeType: "image/png" });
-    expect(again.isOk() && again.value).toEqual({
-      id: "f1",
-      mimeType: "image/png",
-      size: 3,
+      uploadUrl: "https://s3.test/boards/b1/f1?signed",
     });
-    expect(stored).toEqual(["boards/b1/f1"]);
+    expect((await presign.execute({ ...base, mimeType: "image/png" })).isOk()).toBe(
+      true
+    );
+    expect(fileRows.size).toBe(1);
+    expect(
+      code(await presign.execute({ ...base, mimeType: "image/jpeg" }))
+    ).toBe("Conflict");
   });
 });
 
 describe("scene editing", () => {
   it("adds, updates and tombstones elements with bumped versions", async () => {
-    const { boards, scenes } = setup();
-    const actor = { userId: "owner", boardId: "b1" };
-    const added = await new AddBoardElements(boards, scenes, ids).execute({
+    const { guard, scenes } = setup();
+    const actor = { actor: owner, boardId: "b1" };
+    const added = await new AddBoardElements(guard, scenes, ids).execute({
       ...actor,
       shapes: [{ type: "text", x: 1, y: 2, text: "hi" }],
     });
     const id = (added.isOk() && added.value.ids[0]) || "";
-    expect(scenes.elements.get(id)?.version).toBe(1);
+    expect(scenes.elements.get(`page:main:${id}`)?.version).toBe(1);
 
-    const update = new UpdateBoardElement(boards, scenes, ids);
+    const update = new UpdateBoardElement(guard, scenes, ids);
     await update.execute({
       ...actor,
       id,
       patch: { text: "yo", x: 5, version: 99, id: "hijack" },
     });
-    expect(scenes.elements.get(id)).toMatchObject({
+    expect(scenes.elements.get(`page:main:${id}`)).toMatchObject({
       id,
       text: "yo",
       originalText: "yo",
@@ -243,17 +189,34 @@ describe("scene editing", () => {
       version: 2,
     });
 
-    const removed = await new DeleteBoardElements(boards, scenes, ids).execute({
+    const removed = await new DeleteBoardElements(guard, scenes, ids).execute({
       ...actor,
       ids: [id, "nope"],
     });
     expect(removed.isOk() && removed.value.deleted).toBe(1);
-    expect(scenes.elements.get(id)).toMatchObject({
+    expect(scenes.elements.get(`page:main:${id}`)).toMatchObject({
       isDeleted: true,
       version: 3,
     });
-    expect(
-      notFound(await update.execute({ ...actor, id, patch: { x: 1 } }))
-    ).toBe(true);
+    expect(code(await update.execute({ ...actor, id, patch: { x: 1 } }))).toBe(
+      "NotFound"
+    );
+  });
+
+  it("targets the requested page and rejects an unknown one", async () => {
+    const { guard, scenes } = setup();
+    scenes.pageList.push({ id: "page:two", name: "Two" });
+    const add = new AddBoardElements(guard, scenes, ids);
+    const input = {
+      actor: owner,
+      boardId: "b1",
+      shapes: [{ type: "rectangle" as const, x: 0, y: 0 }],
+    };
+    const added = await add.execute({ ...input, pageId: "page:two" });
+    const id = (added.isOk() && added.value.ids[0]) || "";
+    expect(scenes.elements.has(`page:two:${id}`)).toBe(true);
+    expect(code(await add.execute({ ...input, pageId: "page:nope" }))).toBe(
+      "NotFound"
+    );
   });
 });

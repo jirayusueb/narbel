@@ -8,14 +8,26 @@ import {
 import { Link } from "@tanstack/react-router";
 
 import { useBoard } from "@/entities/board";
+import { UnlockBoardForm } from "@/features/share-board";
+import { ApiError } from "@/shared/api";
 import { Loader } from "@/shared/ui";
 import { BoardCanvas } from "@/widgets/board-canvas";
 
-export const BoardPage = ({ boardId }: { boardId: string }) => {
-  const { data: board, isPending, error } = useBoard(boardId);
+export const BoardPage = ({
+  boardId,
+  shareToken,
+}: {
+  boardId: string;
+  shareToken?: string;
+}) => {
+  const { data: board, isPending, error } = useBoard(boardId, shareToken);
 
   if (isPending) {
     return <Loader />;
+  }
+
+  if (error instanceof ApiError && error.status === 403) {
+    return <UnlockBoardForm boardId={boardId} />;
   }
 
   if (error || !board) {
@@ -37,5 +49,5 @@ export const BoardPage = ({ boardId }: { boardId: string }) => {
     );
   }
 
-  return <BoardCanvas board={board} />;
+  return <BoardCanvas board={board} shareToken={shareToken} />;
 };

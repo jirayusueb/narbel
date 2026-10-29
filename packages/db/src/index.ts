@@ -9,4 +9,4 @@ export const createDb = (env: DatabaseConfig) =>
 export type Database = ReturnType<typeof createDb>;
 
 // the server has no direct drizzle-orm dependency; query operators come through here
-export { and, desc, eq } from "drizzle-orm";
+export { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
