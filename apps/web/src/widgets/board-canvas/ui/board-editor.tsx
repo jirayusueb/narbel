@@ -18,6 +18,7 @@ import { PagesBar, usePages } from "@/features/board-pages";
 import { PreferencesMenu, usePreferences } from "@/features/board-preferences";
 import { PresenceBar, usePresence } from "@/features/board-presence";
 import { ShareBoardDialog } from "@/features/share-board";
+import { UserMenu } from "@/features/user-menu";
 import { BrandMark } from "@/shared/ui";
 
 const STATUS_LABEL: Record<CollabStatus, string> = {
@@ -101,15 +102,15 @@ export const BoardEditor = ({
         <h1 className="font-display min-w-0 truncate text-[20px] font-normal tracking-[-0.02em]">
           {board.title}
         </h1>
-        <output className="bg-card shadow-surface flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs max-sm:px-2">
+        <output className="bg-card shadow-surface flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs">
           <span
             className={`size-1.5 rounded-full ${STATUS_DOT[status]}`}
             aria-hidden="true"
           />
-          <span className="max-sm:sr-only">{STATUS_LABEL[status]}</span>
+          <span>{STATUS_LABEL[status]}</span>
         </output>
         {canWrite ? null : (
-          <span className="border-border-strong text-muted-foreground flex h-6 shrink-0 items-center rounded-full border px-2.5 text-xs max-sm:hidden">
+          <span className="border-border-strong text-muted-foreground flex h-6 shrink-0 items-center rounded-full border px-2.5 text-xs">
             View only
           </span>
         )}
@@ -152,6 +153,9 @@ export const BoardEditor = ({
             />
           </div>
           {board.role === "owner" ? <ShareBoardDialog board={board} /> : null}
+          <div className="max-sm:hidden">
+            <UserMenu />
+          </div>
         </div>
       </div>
       <PagesBar

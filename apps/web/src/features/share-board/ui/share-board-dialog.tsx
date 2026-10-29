@@ -23,7 +23,7 @@ import {
 import type { Board, BoardAccess, Visibility } from "@/entities/board";
 
 const selectClass =
-  "h-10 rounded-[10px] border border-input bg-card px-3 text-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40";
+  "h-10 rounded-[10px] border border-input bg-card px-3 text-sm outline-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40";
 
 const Select = (props: ComponentProps<"select">) => (
   <select className={selectClass} {...props} />
@@ -84,41 +84,39 @@ const VisibilitySection = ({
 
   return (
     <Section title="Who can open this board">
-      <div
-        role="radiogroup"
+      <fieldset
         aria-label="Visibility"
-        className="bg-muted flex flex-col gap-1 rounded-[20px] p-1.5"
+        className="bg-muted m-0 flex min-w-0 flex-col gap-1 rounded-[20px] border-0 p-1.5"
       >
         {VISIBILITY_OPTIONS.map(({ value, label, hint, Icon }) => (
-          <label
+          <button
             key={value}
-            className={`has-focus-visible:outline-ring flex cursor-pointer items-center gap-3 rounded-[15px] p-2.5 transition-colors duration-150 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-disabled:cursor-default has-disabled:opacity-60 ${
+            type="button"
+            aria-pressed={choice === value}
+            aria-disabled={patch.isPending}
+            className={`focus-visible:outline-ring flex cursor-pointer items-center gap-3 rounded-[15px] p-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid aria-disabled:cursor-default aria-disabled:opacity-60 ${
               choice === value ? "bg-card shadow-surface" : "hover:bg-card/60"
             }`}
-          >
-            <input
-              type="radio"
-              name="visibility"
-              className="sr-only"
-              value={value}
-              checked={choice === value}
-              disabled={patch.isPending}
-              onChange={() => {
-                setChoice(value);
-                if (value === "password" && !access.hasPassword) {
-                  return;
+            onClick={() => {
+              // Explicit press per choice: no save while the user is still moving between options.
+              if (patch.isPending || choice === value) {
+                return;
+              }
+              setChoice(value);
+              if (value === "password" && !access.hasPassword) {
+                return;
+              }
+              patch.mutate(
+                { visibility: value },
+                {
+                  onError: (error) => {
+                    setChoice(access.visibility);
+                    onError(error);
+                  },
                 }
-                patch.mutate(
-                  { visibility: value },
-                  {
-                    onError: (error) => {
-                      setChoice(access.visibility);
-                      onError(error);
-                    },
-                  }
-                );
-              }}
-            />
+              );
+            }}
+          >
             <span
               className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] ${
                 choice === value
@@ -132,9 +130,9 @@ const VisibilitySection = ({
               <span className="text-sm font-medium">{label}</span>
               <span className="text-muted-foreground text-[13px]">{hint}</span>
             </span>
-          </label>
+          </button>
         ))}
-      </div>
+      </fieldset>
       {choice === "password" ? (
         <form
           className="flex gap-2"
@@ -225,7 +223,7 @@ const LinkSection = ({
             readOnly
             aria-label="Share link"
             value={share.url}
-            className="text-foreground min-w-0 flex-1 truncate bg-transparent font-mono text-[13px] outline-none"
+            className="text-foreground min-w-0 flex-1 truncate bg-transparent font-mono text-[13px] outline-hidden"
           />
           <Button
             variant="secondary"

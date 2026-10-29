@@ -72,7 +72,7 @@ function BubbleContent({
       ...props,
       "data-slot": "bubble-content",
       className: cn(
-        "[button,a]:focus-visible:outline-ring w-fit max-w-full min-w-0 overflow-hidden rounded-[15px] border border-transparent px-3.5 py-2.5 text-sm leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:transition-colors [button,a]:outline-none [button,a]:focus-visible:outline-2 [button,a]:focus-visible:outline-offset-2",
+        "[button,a]:focus-visible:outline-ring w-fit max-w-full min-w-0 overflow-hidden rounded-[15px] border border-transparent px-3.5 py-2.5 text-sm leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:outline-hidden [button,a]:transition-colors [button,a]:focus-visible:outline-2 [button,a]:focus-visible:outline-offset-2 [button,a]:focus-visible:outline-solid",
         className
       ),
       children,
@@ -86,7 +86,7 @@ function BubbleContent({
       {...props}
       data-slot="bubble-content"
       className={cn(
-        "[button,a]:focus-visible:outline-ring w-fit max-w-full min-w-0 overflow-hidden rounded-[15px] border border-transparent px-3.5 py-2.5 text-sm leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:transition-colors [button,a]:outline-none [button,a]:focus-visible:outline-2 [button,a]:focus-visible:outline-offset-2",
+        "[button,a]:focus-visible:outline-ring w-fit max-w-full min-w-0 overflow-hidden rounded-[15px] border border-transparent px-3.5 py-2.5 text-sm leading-relaxed wrap-break-word group-data-[align=end]/bubble:self-end [button]:text-left [button,a]:outline-hidden [button,a]:transition-colors [button,a]:focus-visible:outline-2 [button,a]:focus-visible:outline-offset-2 [button,a]:focus-visible:outline-solid",
         className
       )}
     >

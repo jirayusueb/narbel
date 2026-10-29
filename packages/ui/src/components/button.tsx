@@ -11,7 +11,7 @@ import {
 } from "react-aria-components";
 
 const buttonVariants = cva(
-  "group/button aria-invalid:outline-destructive focus-visible:outline-ring data-focus-visible:outline-ring inline-flex shrink-0 cursor-pointer items-center justify-center font-medium tracking-[-0.01em] whitespace-nowrap outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-3 disabled:pointer-events-none disabled:opacity-40 data-disabled:pointer-events-none data-disabled:opacity-40 data-focus-visible:outline-2 data-focus-visible:outline-offset-3 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button aria-invalid:outline-destructive focus-visible:outline-ring data-focus-visible:outline-ring inline-flex shrink-0 cursor-pointer items-center justify-center font-medium tracking-[-0.01em] whitespace-nowrap outline-hidden select-none focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-40 data-disabled:pointer-events-none data-disabled:opacity-40 data-focus-visible:outline-2 data-focus-visible:outline-offset-3 data-focus-visible:outline-solid [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -26,7 +26,7 @@ const buttonVariants = cva(
         ghost:
           "text-foreground hover:bg-accent aria-expanded:bg-accent aria-pressed:bg-accent transition-colors duration-150",
         destructive:
-          "bg-destructive/12 text-destructive hover:bg-destructive transition-colors duration-300 hover:text-white",
+          "bg-destructive/12 text-destructive hover:bg-destructive hover:text-background transition-colors duration-300",
         link: "text-foreground decoration-border-strong hover:decoration-foreground underline underline-offset-4 transition-colors",
       },
       size: {

@@ -21,7 +21,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
         success: <CheckCircleIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
         warning: <WarningIcon className="size-4" />,
-        error: <XCircleIcon className="size-4 text-[#f0955a]" />,
+        error: (
+          <XCircleIcon className="size-4 text-[#f0955a] dark:text-[#b8461a]" />
+        ),
         loading: <SpinnerIcon className="size-4 animate-spin" />,
       }}
       style={

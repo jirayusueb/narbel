@@ -4,7 +4,7 @@ import { cn } from "cn";
 import * as React from "react";
 
 const attachmentVariants = cva(
-  "group/attachment bg-card text-card-foreground has-[>a,>button]:hover:bg-accent shadow-surface data-[state=error]:ring-destructive/30 focus-within:outline-ring data-[state=idle]:border-border-strong relative flex w-fit max-w-full min-w-0 shrink-0 flex-wrap rounded-[15px] transition-colors focus-within:outline-2 focus-within:outline-offset-2 data-[state=error]:ring-1 data-[state=idle]:border data-[state=idle]:border-dashed data-[state=idle]:shadow-none",
+  "group/attachment bg-card text-card-foreground has-[>a,>button]:hover:bg-accent shadow-surface data-[state=error]:ring-destructive/30 focus-within:outline-ring data-[state=idle]:border-border-strong relative flex w-fit max-w-full min-w-0 shrink-0 flex-wrap rounded-[15px] transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid data-[state=error]:ring-1 data-[state=idle]:border data-[state=idle]:border-dashed data-[state=idle]:shadow-none",
   {
     variants: {
       size: {
@@ -171,7 +171,7 @@ function AttachmentTrigger({
     const renderProps = {
       ...props,
       "data-slot": "attachment-trigger",
-      className: cn("absolute inset-0 z-10 outline-none", className),
+      className: cn("absolute inset-0 z-10 outline-hidden", className),
       children,
     };
 
@@ -183,7 +183,7 @@ function AttachmentTrigger({
       {...props}
       type={type ?? "button"}
       data-slot="attachment-trigger"
-      className={cn("absolute inset-0 z-10 outline-none", className)}
+      className={cn("absolute inset-0 z-10 outline-hidden", className)}
     >
       {children}
     </button>

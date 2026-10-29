@@ -2,7 +2,6 @@ import { colorFromName, initials } from "@/shared/lib";
 
 import type { Peer } from "../model/use-presence";
 
-const MAX_SHOWN = 4;
 export const PresenceBar = ({
   peers,
   followId,
@@ -13,12 +12,10 @@ export const PresenceBar = ({
   onFollow: (clientId: number | null) => void;
 }) => {
   const followed = peers.find((peer) => peer.clientId === followId);
-  const shown = peers.slice(0, MAX_SHOWN);
-  const extra = peers.length - shown.length;
   return (
     <div data-presence className="flex items-center gap-2">
       {followed ? (
-        <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-1 text-xs max-md:hidden">
+        <span className="bg-primary text-primary-foreground max-w-48 truncate rounded-full px-2.5 py-1 text-xs">
           Following {followed.name} · Esc to stop
         </span>
       ) : null}
@@ -26,7 +23,7 @@ export const PresenceBar = ({
         className="flex -space-x-2"
         aria-label={`${peers.length} others here`}
       >
-        {shown.map((peer) => (
+        {peers.map((peer) => (
           <li key={peer.clientId}>
             <button
               type="button"
@@ -36,8 +33,10 @@ export const PresenceBar = ({
               onClick={() =>
                 onFollow(peer.clientId === followId ? null : peer.clientId)
               }
-              className={`outline-ring grid size-8 cursor-pointer place-items-center rounded-full text-xs font-medium text-white ring-2 focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                peer.clientId === followId ? "ring-citrus" : "ring-background"
+              className={`outline-ring grid size-8 cursor-pointer place-items-center rounded-full text-xs font-medium text-white ring-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid ${
+                peer.clientId === followId
+                  ? "ring-foreground dark:ring-citrus"
+                  : "ring-background"
               }`}
               style={{ backgroundColor: colorFromName(peer.name).background }}
             >
@@ -45,17 +44,6 @@ export const PresenceBar = ({
             </button>
           </li>
         ))}
-        {extra > 0 ? (
-          <li
-            title={peers
-              .slice(MAX_SHOWN)
-              .map((peer) => peer.name)
-              .join(", ")}
-            className="bg-muted text-muted-foreground ring-background grid size-8 place-items-center rounded-full text-xs font-medium ring-2"
-          >
-            +{extra}
-          </li>
-        ) : null}
       </ul>
     </div>
   );

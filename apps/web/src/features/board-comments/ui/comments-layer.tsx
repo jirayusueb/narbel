@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 
+import { colorFromName } from "@/shared/lib";
+
 import { useCommentMutations, useComments } from "../api/comments";
 import type { BoardComment } from "../api/comments";
 import { CommentBody, CommentComposer } from "./comment-editor";
@@ -64,8 +66,12 @@ const Pin = ({
     type="button"
     aria-label={`Comment by ${comment.authorName}`}
     onClick={onClick}
-    className={`shadow-elevated outline-ring pointer-events-auto absolute grid size-8 -translate-x-1/2 -translate-y-full cursor-pointer place-items-center rounded-full rounded-bl-[4px] text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 ${selected ? "bg-citrus text-citrus-foreground" : "bg-primary text-primary-foreground"}`}
-    style={{ left, top }}
+    className={`shadow-elevated outline-ring pointer-events-auto absolute grid size-8 -translate-x-1/2 -translate-y-full cursor-pointer place-items-center rounded-full rounded-bl-[4px] text-xs font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid ${selected ? "ring-foreground ring-offset-background ring-2 ring-offset-2" : ""}`}
+    style={{
+      left,
+      top,
+      backgroundColor: colorFromName(comment.authorName).background,
+    }}
   >
     {comment.authorName.slice(0, 1).toUpperCase()}
   </button>

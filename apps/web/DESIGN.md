@@ -8,8 +8,8 @@ colors:
   surface-dark: "#272727"
   surface-muted: "#e1e1de"
   surface-muted-dark: "#1a1a19"
-  hover-fill: "#f0f0eb"
-  hover-fill-dark: "#3d3d3c"
+  hover-fill: "rgb(8 8 8 / 0.06)"
+  hover-fill-dark: "rgb(255 255 255 / 0.1)"
   ink: "#080808"
   ink-dark: "#f0f0eb"
   ink-muted: "#525250"
@@ -143,7 +143,7 @@ components:
 
 narbel borrows its whole visual language from intentapp.dev, by the owner's choice: a warm grey desk surface, white sheets laid on it, a serif voice for names and headlines, and Inter for everything you operate. Nothing on the desk has an outline. Sheets lift off the desk with a soft shadow, and the only colour is citrus, used like a highlighter on the one thing that matters in a region.
 
-The app follows the system theme. Light is a sunlit desk (`#f0f0eb` under white sheets); dark is the same desk at night (`#161616` under `#272727` sheets) with citrus taking over as the focus colour. The canvas itself stays a whiteboard, so chrome around it is quiet, small, and grouped into a few soft islands.
+The app follows the system theme. Light is a sunlit desk (`#f0f0eb` under white sheets); dark is the same desk at night (`#161616` under `#272727` sheets) with citrus taking over as the focus colour. The canvas follows Excalidraw's own light and dark themes, so chrome around it is quiet, small, and grouped into a few soft islands.
 
 The landing page is the one loud surface: display serif at 90px, a marquee of example boards, and an illustrated board where a teammate's comment is answered by an agent drawing on the canvas.
 
@@ -161,7 +161,7 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 
 ### Primary
 
-- **Citrus** (#ddec61): the primary call to action in a region (header "Start drawing", board "Share"), the selected Excalidraw tool, the live sync dot, the active comment pin, the agent in illustrations, and text selection. Always with ink text (#080808, 15.5:1).
+- **Citrus** (#ddec61): the primary call to action in a region (header "Start drawing", board "Share"), the selected Excalidraw tool, the live sync dot, the pressed comment toggle, the agent in illustrations, and text selection. Always with ink text (#080808, 15.5:1). Never the only cue for state on light surfaces (1.1 to 1.3:1 against the desk); pair it with ink.
 
 ### Secondary
 
@@ -173,7 +173,7 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 - **Desk** (#f0f0eb light, #161616 dark): page canvas.
 - **Sheet** (#ffffff light, #272727 dark): cards, dialogs, popovers, inputs, toolbar islands.
 - **Recess** (#e1e1de light, #1a1a19 dark): muted fills, skeletons, code wells, grouped choices.
-- **Hover Fill** (#f0f0eb light, #3d3d3c dark): ghost and menu hover.
+- **Hover Fill** (ink at 6% / white at 10%): ghost, tab and menu hover. Translucent so it shows on both the desk and sheets.
 - **Ink** (#080808 / #f0f0eb): text and primary buttons. In dark mode the primary button inverts to white.
 - **Muted Ink** (#525250 / #babab7): secondary copy. 6.8:1 on the light desk.
 - **Subtle Ink** (#696967 / #979794): timestamps and meta. Tuned from Intent's #757575 to reach 4.8:1 on the desk.
@@ -182,7 +182,7 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 
 ### Named Rules
 
-**The Highlighter Rule.** Citrus marks one thing per region. Two citrus elements side by side means one of them is wrong.
+**The Highlighter Rule.** Citrus marks the primary action and live state. It never fills a large region of app UI, and it never carries meaning alone.
 
 ## Typography
 
@@ -230,7 +230,7 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 - **Shape:** 15px radius at 40px tall; 20px at 60px (landing); 10px at 32px; 8px at 28px.
 - **Primary:** ink background, desk-coloured text, 20px horizontal padding, 14px medium Inter.
-- **Hover / Focus:** primary and secondary swap to citrus over 500ms with `cubic-bezier(.6,0,.1,1)`; citrus swaps to ink. Large landing buttons also roll their label upward. Focus is a 2px outline in the ring colour (ink light, citrus dark) offset by 3px.
+- **Hover / Focus:** primary and secondary swap to citrus over 500ms with `cubic-bezier(.6,0,.1,1)`; citrus swaps to ink. Large landing buttons also roll their label upward. Focus is a 2px solid outline in the ring colour (ink light, citrus dark) offset by 3px. Tailwind v4's `outline-none` and `outline-hidden` both zero the outline style, so every focus variant pairs `outline-2` with `outline-solid`.
 - **Secondary:** sheet background with the surface shadow. **Ghost:** transparent with hover fill, 150ms. **Outline:** 15% ink hairline. **Destructive:** alert at 12% tint, solid on hover.
 
 ### Chips
@@ -266,7 +266,7 @@ The board's top bar mirrors Intent's app window: mark as the way home, serif boa
 
 ### Do:
 
-- **Do** keep one citrus element per region and pair it with ink text.
+- **Do** reserve citrus for the primary action and live state, always with ink text.
 - **Do** separate surfaces by tone and the surface shadow, not borders.
 - **Do** set every name and heading in the serif at weight 400, and every control in Inter.
 - **Do** follow the system theme and check both themes before shipping.
@@ -278,4 +278,5 @@ The board's top bar mirrors Intent's app window: mark as the way home, serif boa
 - **Don't** use mono for anything that isn't a key, URL, or code.
 - **Don't** add eyebrow labels above headings or gradient text.
 - **Don't** paint large citrus fields in app UI; citrus is a highlighter, not a background.
-- **Don't** recolour the drawing canvas; a whiteboard stays white.
+- **Don't** recolour the drawing canvas beyond Excalidraw's own light and dark themes.
+- **Don't** write a focus `outline-2` without `outline-solid` next to it; on a control with `outline-none` or `outline-hidden` it renders nothing.

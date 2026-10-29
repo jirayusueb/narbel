@@ -1,6 +1,6 @@
-import { buttonVariants } from "@narbel/ui/components/button";
+import { Button, buttonVariants } from "@narbel/ui/components/button";
 import { Link } from "@tanstack/react-router";
-import { Bot, Files, PenLine, Plug } from "lucide-react";
+import { Bot, Files, Pause, PenLine, Play, Plug } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -61,9 +61,16 @@ const MCP_TOOLS = [
   "list_boards",
   "create_board",
   "get_board",
+  "list_pages",
+  "add_page",
+  "rename_page",
+  "delete_page",
   "add_elements",
   "update_element",
   "delete_elements",
+  "get_selection",
+  "select",
+  "edit_selection",
 ];
 
 // Label swap on hover, the way intentapp.dev's buttons roll their text.
@@ -237,7 +244,7 @@ const Stage = () => {
         data-play={play}
         className="home-stage bg-muted shadow-elevated overflow-hidden rounded-[25px] p-2 pt-0"
       >
-        <div className="flex h-12 items-center gap-3 px-3">
+        <div className="flex h-12 items-center gap-3 px-3" aria-hidden="true">
           <span className="flex gap-1.5" aria-hidden="true">
             <span className="bg-border-strong size-2.5 rounded-full" />
             <span className="bg-border-strong size-2.5 rounded-full" />
@@ -419,7 +426,7 @@ const FEATURES: { id?: string; title: string; body: string }[] = [
   },
   {
     title: "Share on your terms.",
-    body: "Keep a board private, open it to anyone with the link, lock it behind a password, or invite people by email. Viewers get a read-only board.",
+    body: "Keep a board private, open it to signed-in people with the link, lock it behind a password, or invite people by email. Viewers get a read-only board.",
   },
 ];
 
@@ -463,9 +470,10 @@ const Cta = ({ signedIn }: { signedIn: boolean }) => (
 export const HomePage = () => {
   const { data: session } = useSession();
   const signedIn = Boolean(session);
+  const [marqueePaused, setMarqueePaused] = useState(false);
 
   return (
-    <div className="h-full overflow-x-hidden overflow-y-auto scroll-smooth">
+    <div className="h-full overflow-x-hidden overflow-y-auto motion-safe:scroll-smooth">
       <section className="flex flex-col items-center px-5 pt-16 pb-20 text-center md:px-[30px] md:pt-24 md:pb-28">
         <h1
           className="home-rise font-display lg:text-display max-w-[13ch] text-[44px] leading-[0.95] font-normal tracking-[-0.04em] md:text-[72px]"
@@ -489,11 +497,29 @@ export const HomePage = () => {
       </section>
 
       <div
-        aria-hidden="true"
-        className="flex flex-col gap-2.5 [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]"
+        className="home-marquee-band"
+        data-paused={marqueePaused ? "" : undefined}
       >
-        <MarqueeRow tiles={TILES_TOP} duration="80s" />
-        <MarqueeRow tiles={TILES_BOTTOM} duration="95s" reverse />
+        <div
+          aria-hidden="true"
+          className="flex flex-col gap-2.5 [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]"
+        >
+          <MarqueeRow tiles={TILES_TOP} duration="80s" />
+          <MarqueeRow tiles={TILES_BOTTOM} duration="95s" reverse />
+        </div>
+        <div className="text-subtle-foreground mt-3 flex items-center justify-center gap-1.5 text-[13px] motion-reduce:hidden">
+          Example boards
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label={
+              marqueePaused ? "Play example boards" : "Pause example boards"
+            }
+            onPress={() => setMarqueePaused(!marqueePaused)}
+          >
+            {marqueePaused ? <Play /> : <Pause />}
+          </Button>
+        </div>
       </div>
 
       <div className="pt-24 md:pt-32">

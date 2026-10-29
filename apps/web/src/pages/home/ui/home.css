@@ -76,6 +76,10 @@
   animation-play-state: paused;
 }
 
+.home-marquee-band[data-paused] .home-marquee {
+  animation-play-state: paused;
+}
+
 .home-rise {
   animation: home-rise 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--delay, 0ms);
@@ -119,7 +123,8 @@
   .home-stage[data-play="true"] .home-stage-agent {
     animation: none;
   }
-  .home-stage .home-stage-draw {
+  .home-stage[data-play="true"] .home-stage-draw {
+    stroke-dasharray: none;
     stroke-dashoffset: 0;
   }
 }

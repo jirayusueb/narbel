@@ -1,4 +1,4 @@
-/* Maps Excalidraw's UI tokens onto the Intent system. The canvas background stays white. */
+/* Maps Excalidraw's UI tokens onto the Intent system. Canvas colours stay Excalidraw's own per theme. */
 .excalidraw {
   --ui-font: "Inter Variable", system-ui, sans-serif;
   --border-radius-md: 10px;

@@ -21,7 +21,7 @@ export const BoardCard = ({
       <Link
         to="/boards/$boardId"
         params={{ boardId: board.id }}
-        className="focus-visible:outline-ring rounded-[8px] after:absolute after:inset-0 after:rounded-[20px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3"
+        className="focus-visible:outline-ring rounded-[8px] after:absolute after:inset-0 after:rounded-[20px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
       >
         {board.title}
       </Link>

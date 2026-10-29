@@ -63,7 +63,7 @@ export const SignUpForm = ({
       <CardHeader className="gap-2">
         <CardTitle className="text-headline">Create account</CardTitle>
         <CardDescription>
-          Start a board, then invite your team or an agent.
+          Start a board, invite your team, and connect an agent.
         </CardDescription>
       </CardHeader>
       <CardContent>

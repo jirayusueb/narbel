@@ -25,7 +25,7 @@
   --muted: #e1e1de;
   --muted-foreground: #525250;
   --subtle-foreground: #696967;
-  --accent: #f0f0eb;
+  --accent: rgb(8 8 8 / 0.06);
   --accent-foreground: #080808;
   --citrus: #ddec61;
   --citrus-foreground: #080808;
@@ -68,7 +68,7 @@
   --muted: #1a1a19;
   --muted-foreground: #babab7;
   --subtle-foreground: #979794;
-  --accent: #3d3d3c;
+  --accent: rgb(255 255 255 / 0.1);
   --accent-foreground: #f0f0eb;
   --moss: #c5d357;
   --destructive: #f0955a;
