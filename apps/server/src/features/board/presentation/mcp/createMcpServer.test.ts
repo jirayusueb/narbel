@@ -40,6 +40,7 @@ test("an MCP client sees every board tool and the drawing guide", async () => {
       "list_shared_boards",
       "rename_board",
       "rename_page",
+      "list_viewers",
       "reply_comment",
       "resolve_comment",
       "search_boards",

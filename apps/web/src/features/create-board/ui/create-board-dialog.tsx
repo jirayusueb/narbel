@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useCreateBoard } from "@/entities/board";
+import { useDraftKey } from "@/shared/lib";
 
 interface DialogControl {
   isOpen: boolean;
@@ -27,6 +28,7 @@ const CreateBoardDialog = ({ isOpen, close, unmount }: DialogControl) => {
   const [title, setTitle] = useState("");
   const navigate = useNavigate();
   const create = useCreateBoard();
+  const draftKey = useDraftKey();
   const trimmed = title.trim();
 
   return (
@@ -43,16 +45,20 @@ const CreateBoardDialog = ({ isOpen, close, unmount }: DialogControl) => {
         className="contents"
         onSubmit={(e) => {
           e.preventDefault();
-          create.mutate(trimmed, {
-            onSuccess: (board) => {
-              close();
-              navigate({
-                to: "/boards/$boardId",
-                params: { boardId: board.id },
-              });
-            },
-            onError: (error) => toast.error(error.message),
-          });
+          create.mutate(
+            { title: trimmed, key: draftKey.get(trimmed) },
+            {
+              onSuccess: (board) => {
+                draftKey.rotate();
+                close();
+                navigate({
+                  to: "/boards/$boardId",
+                  params: { boardId: board.id },
+                });
+              },
+              onError: (error) => toast.error(error.message),
+            }
+          );
         }}
       >
         <DialogHeader>

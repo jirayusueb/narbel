@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
 import { HmacUnlockTokens } from "./HmacUnlockTokens";
-import { MemoryAttemptLimiter } from "./MemoryAttemptLimiter";
 import { ScryptPasswordHasher } from "./ScryptPasswordHasher";
 
 describe("ScryptPasswordHasher", () => {
@@ -45,20 +44,5 @@ describe("HmacUnlockTokens", () => {
     ).toBe(false);
     expect(tokens.verify("b1", "hash", "")).toBe(false);
     expect(tokens.verify("b1", "hash", `${proof}x`)).toBe(false);
-  });
-});
-
-describe("MemoryAttemptLimiter", () => {
-  it("blocks after the limit within the window and recovers after it", () => {
-    let now = 0;
-    const limiter = new MemoryAttemptLimiter(3, 1000, () => now);
-    for (let i = 0; i < 3; i += 1) {
-      expect(limiter.isBlocked("k")).toBe(false);
-      limiter.recordFailure("k");
-    }
-    expect(limiter.isBlocked("k")).toBe(true);
-    expect(limiter.isBlocked("other")).toBe(false);
-    now = 1001;
-    expect(limiter.isBlocked("k")).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import type { Database, DbExecutor } from "@narbel/db";
 import { Elysia } from "elysia";
+import type Redis from "ioredis";
 
 import type { ICache } from "../../shared/application/interfaces/ICache";
 import type { IFileStorage } from "../../shared/application/interfaces/IFileStorage";
@@ -36,6 +37,7 @@ import { GroupElements } from "./application/usecases/GroupElements";
 import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
 import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
 import { ListBoards } from "./application/usecases/ListBoards";
+import { ListBoardViewers } from "./application/usecases/ListBoardViewers";
 import { ListComments } from "./application/usecases/ListComments";
 import { ListPages } from "./application/usecases/ListPages";
 import { ListReplies } from "./application/usecases/ListReplies";
@@ -67,7 +69,8 @@ import { DrizzleBoardFileRepository } from "./infrastructure/repositories/Drizzl
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
 import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
-import { MemoryAttemptLimiter } from "./infrastructure/services/MemoryAttemptLimiter";
+import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
+import { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence";
 import { ResvgRasterizer } from "./infrastructure/services/ResvgRasterizer";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
 import { createBoardAccessController } from "./presentation/http/BoardAccessController";
@@ -92,6 +95,8 @@ export interface BoardDeps {
   /** shared by every server instance: cache-aside reads and the realtime sync bus */
   cache: ICache;
   pubsub: IPubSub;
+  /** shared by every server instance: unlock failure counts and who has which board open */
+  redis: Redis;
   betterAuth: BetterAuthPlugin;
 }
 
@@ -103,6 +108,7 @@ const createUseCases = ({
   secret,
   cache,
   pubsub,
+  redis,
 }: Omit<BoardDeps, "betterAuth">) => {
   const boards = new CachedBoardRepository(
     new DrizzleBoardRepository(db),
@@ -139,6 +145,7 @@ const createUseCases = ({
   const hasher = new ScryptPasswordHasher();
   const unlockTokens = new HmacUnlockTokens(secret);
   const guard = new BoardAccessGuard(boards, grants, unlockTokens);
+  const presence = new RedisBoardPresence(redis);
   return {
     createBoard: new CreateBoard(boards, ids),
     listBoards: new ListBoards(boards),
@@ -172,7 +179,8 @@ const createUseCases = ({
     getSelection: new GetSelection(guard, hub),
     selectElements: new SelectElements(guard, hub),
     editSelection: new EditSelection(guard, hub, ids),
-    connectBoardSync: new ConnectBoardSync(guard, hub),
+    connectBoardSync: new ConnectBoardSync(guard, hub, presence),
+    listBoardViewers: new ListBoardViewers(guard, presence),
     getBoardAccess: new GetBoardAccess(guard, grants, webOrigin),
     updateBoardAccess: new UpdateBoardAccess(
       guard,
@@ -188,7 +196,7 @@ const createUseCases = ({
       boards,
       hasher,
       unlockTokens,
-      new MemoryAttemptLimiter()
+      new RedisAttemptLimiter(redis)
     ),
     listComments: new ListComments(guard, comments, profiles),
     listReplies: new ListReplies(guard, comments, profiles),

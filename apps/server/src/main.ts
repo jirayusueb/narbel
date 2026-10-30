@@ -5,8 +5,11 @@ import Redis from "ioredis";
 import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
 import { backfillBoardText } from "./features/board";
+import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
+import { RedisIdempotencyStore } from "./shared/infrastructure/idempotency/RedisIdempotencyStore";
+import { RedisJobLock } from "./shared/infrastructure/lock/RedisJobLock";
 import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
 import {
   DEFAULT_OUTBOX_POLICY,
@@ -20,12 +23,22 @@ const db = createDb(ENV);
 if (process.env.MIGRATIONS_DIR) {
   await migrate(db, { migrationsFolder: process.env.MIGRATIONS_DIR });
 }
-await backfillBoardText(db);
-const auth = createAuth(ENV, db);
-const redis = new Redis(ENV.REDIS_URL);
+// fail fast in an outage: ioredis defaults queue a command through 20 reconnects, so requests hung for a minute.
+// A queued command waits for the next reconnect attempt, so the backoff cap bounds each Redis call's outage delay.
+const redis = new Redis(ENV.REDIS_URL, {
+  maxRetriesPerRequest: 1,
+  commandTimeout: 2000,
+  retryStrategy: (attempt) => Math.min(attempt * 50, 500),
+});
 redis.on("error", (error) => {
   console.error("Redis error", error);
 });
+await new RedisJobLock(redis).runExclusive(
+  "boot:backfill-board-text",
+  60_000,
+  () => backfillBoardText(db)
+);
+const auth = createAuth(ENV, db, [], new RedisSecondaryStorage(redis));
 const pubsub = new RedisPubSub(redis);
 
 const app = createApp({
@@ -38,6 +51,8 @@ const app = createApp({
   secret: ENV.BETTER_AUTH_SECRET,
   cache: new RedisCache(redis),
   pubsub,
+  redis,
+  idempotency: new RedisIdempotencyStore(redis),
 }).listen(Number(process.env.PORT ?? 3000), ({ url }) => {
   console.log(`Server is running on ${url}`);
 });

@@ -8,7 +8,7 @@ Narbel runs on Dokploy as five services in the `narbel` project:
 | `narbel-api` | Application (git, Dockerfile `apps/server/Dockerfile`, stage `runner`) | Elysia API, websockets (`/api/boards/sync/:id`), MCP (`/mcp`) | `api.<BASE_DOMAIN>` → 3000 |
 | `narbel-store` | Application (Docker image `rustfs/rustfs`, volume `narbel-store-data` on `/data`) | S3-compatible object store for board images | `store.<BASE_DOMAIN>` → 9000 |
 | `narbel-db` | Postgres (`postgres:18-alpine`) | database | internal only |
-| `narbel-cache` | Redis (`redis:7-alpine`) | cache-aside and cross-instance websocket fan-out | internal only |
+| `narbel-cache` | Redis (`redis:7-alpine`; 7+ required for `EXPIRE ... NX`) | cache-aside, cross-instance websocket fan-out, Better Auth session read path and login rate-limit counters, boot job lock | internal only |
 
 Current deployment: `BASE_DOMAIN=narbel.84-247-158-105.sslip.io` (sslip.io resolves the name to the embedded IP, so no DNS records are needed). Domains go through Dokploy's Traefik with Let's Encrypt certificates; no service publishes a host port.
 

@@ -6,7 +6,7 @@ import type { MouseEvent } from "react";
 import { toast } from "sonner";
 
 import { UserAvatar, handle } from "@/entities/user";
-import { timeAgo } from "@/shared/lib";
+import { timeAgo, useDraftKey } from "@/shared/lib";
 
 import { useReplies } from "../api/comments";
 import type { Comment } from "../api/comments";
@@ -163,6 +163,7 @@ const Replies = ({ thread, env }: { thread: Comment; env: ThreadEnv }) => {
   const replies = useReplies(env.boardId, thread.id, true, env.share);
   const items = replies.data?.pages.flatMap((page) => page.items) ?? [];
   const { reply } = env.mutations;
+  const draftKey = useDraftKey();
   // Re-keying remounts an empty composer after a send; it takes focus so a second reply can follow.
   const [sent, setSent] = useState(0);
 
@@ -203,8 +204,14 @@ const Replies = ({ thread, env }: { thread: Comment; env: ThreadEnv }) => {
           disabled={reply.isPending}
           onSubmit={(body) =>
             reply.mutate(
-              { threadId: thread.id, body },
-              { onError, onSuccess: () => setSent((n) => n + 1) }
+              { threadId: thread.id, body, key: draftKey.get(body) },
+              {
+                onError,
+                onSuccess: () => {
+                  draftKey.rotate();
+                  setSent((n) => n + 1);
+                },
+              }
             )
           }
         />

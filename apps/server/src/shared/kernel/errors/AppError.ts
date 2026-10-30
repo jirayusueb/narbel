@@ -4,6 +4,7 @@ export type AppErrorCode =
   | "Forbidden"
   | "NotFound"
   | "Conflict"
+  | "IdempotencyKeyReused"
   | "PayloadTooLarge"
   | "UnsupportedMediaType"
   | "BadGateway"
@@ -54,6 +55,7 @@ export const STATUS_BY_CODE: Record<AppErrorCode, number> = {
   Forbidden: 403,
   NotFound: 404,
   Conflict: 409,
+  IdempotencyKeyReused: 422,
   PayloadTooLarge: 413,
   UnsupportedMediaType: 415,
   BadGateway: 502,

@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { api, unwrap } from "@/shared/api";
+import { api, retryWhileInProgress, unwrap } from "@/shared/api";
 
 const PAGE = 20;
 const POLL_MS = 5000;
@@ -113,18 +113,33 @@ export const useCommentMutations = (boardId: string, share?: string) => {
         y: number;
         body: string;
         assigneeId?: string;
-      }) => unwrap(await board().comments.post(input, { query })),
+        key: string;
+      }) => {
+        const { key, ...body } = input;
+        return unwrap(
+          await board().comments.post(body, {
+            query,
+            headers: { "idempotency-key": key },
+          })
+        );
+      },
       onSuccess,
+      ...retryWhileInProgress,
     }),
     reply: useMutation({
-      mutationFn: async (input: { threadId: string; body: string }) =>
+      mutationFn: async (input: {
+        threadId: string;
+        body: string;
+        key: string;
+      }) =>
         unwrap(
           await one(input.threadId).replies.post(
             { body: input.body },
-            { query }
+            { query, headers: { "idempotency-key": input.key } }
           )
         ),
       onSuccess,
+      ...retryWhileInProgress,
     }),
     edit: useMutation({
       mutationFn: async (input: { id: string; body: string }) =>

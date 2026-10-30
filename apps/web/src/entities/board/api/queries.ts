@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, unwrap } from "@/shared/api";
+import { api, retryWhileInProgress, unwrap } from "@/shared/api";
 
 import type { BoardAccess, BoardSearchResult } from "../model/types";
 
@@ -54,9 +54,15 @@ export const useBoardMembers = (id: string, share?: string, enabled = true) =>
 export const useCreateBoard = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (title: string) =>
-      unwrap(await api.api.boards.post({ title })),
+    mutationFn: async ({ title, key }: { title: string; key: string }) =>
+      unwrap(
+        await api.api.boards.post(
+          { title },
+          { headers: { "idempotency-key": key } }
+        )
+      ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+    ...retryWhileInProgress,
   });
 };
 

@@ -108,6 +108,7 @@ const MCP_TOOLS = [
   "distribute_elements",
   "export_scene",
   "add_image",
+  "list_viewers",
 ];
 
 const HERO_WORDS = "One board for your team and its agents.".split(" ");
