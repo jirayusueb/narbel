@@ -192,7 +192,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
       if (result.isErr()) {
         return reply(result);
       }
-      const { pageId: id, pageName: name, image } = result.value;
+      const { pageId: id, pageName: name, image, omittedFiles } = result.value;
       if (!image) {
         return text({ pageId: id, pageName: name, empty: true });
       }
@@ -207,6 +207,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
           width: roundCoord(image.bounds.width),
           height: roundCoord(image.bounds.height),
         },
+        ...(omittedFiles.length > 0 && { omittedFiles }),
       });
       return {
         content: [
