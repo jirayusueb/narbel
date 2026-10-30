@@ -4,7 +4,8 @@ import type { Bounds } from "./geometry";
 
 export const FRAME_PADDING = 40;
 
-/** Where a new auto-laid-out group starts: right of everything in `fixed`, at its top edge. */
+export const CLEARANCE = 120;
+
 export const besideContent = (
   fixed: Bounds[],
   clearance: number
@@ -16,7 +17,6 @@ export const besideContent = (
         top: Math.min(...fixed.map((b) => b.y)),
       };
 
-/** A frame fitted around its children: their union plus FRAME_PADDING on every side. */
 export const wrapFrame = (children: Bounds[]): Bounds => {
   const inner = union(children);
   return {
@@ -38,14 +38,11 @@ export interface LayoutNode {
 export interface LayoutEdge {
   from: string;
   to: string;
-  /** size of the text sitting on the edge; the rank gap grows to keep the line visible around it */
   label?: { width: number; height: number };
 }
 
 const RANK_GAP = 80;
 const NODE_GAP = 40;
-// shortcut: only labels on edges between adjacent ranks widen a gap, an edge skipping ranks does not
-// line kept visible on each side of a label; an arrow stops BINDING_GAP short of each shape
 const LABEL_MARGIN = 24;
 
 /** Forward edges per node, dropping the ones that would close a cycle, and a topological order. */

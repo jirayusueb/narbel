@@ -8,6 +8,7 @@ import {
   existingGroup,
   outermostGroups,
   withGroup,
+  withGroupMates,
   withoutGroup,
 } from "../../domain/rules/groups";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
@@ -19,7 +20,6 @@ export interface Operands {
   elements: SceneElement[];
 }
 
-/** Live, non-label elements named by `ids`; a label id stands for its container. */
 export const resolveOperands = (
   scene: SceneAccess,
   ids: string[]
@@ -80,15 +80,20 @@ export class GroupElements {
         return err(operands.error);
       }
       const { pageId, elements } = operands.value;
-      const members = elements.filter((e) => e.locked !== true);
-      const locked = elements.filter((e) => e.locked === true).map((e) => e.id);
-      if (members.length < 2) {
+      const given = elements.filter((e) => e.locked !== true);
+      if (given.length < 2) {
         return err(
           AppError.validation("Grouping needs at least two unlocked elements")
         );
       }
-      const memberIds = members.map((m) => m.id);
       const page = scene.all(pageId);
+      const expanded = withGroupMates(given, page);
+      const members = expanded.filter((e) => e.locked !== true);
+      const locked = [
+        ...elements.filter((e) => e.locked === true),
+        ...expanded.filter((e) => e.locked === true),
+      ].map((e) => e.id);
+      const memberIds = members.map((m) => m.id);
       const existing = existingGroup(members, page);
       const groupId = existing ?? this.ids.generate();
       if (!existing) {
@@ -131,7 +136,6 @@ export class GroupElements {
       }
       const { pageId, elements } = operands.value;
       const groupIds = outermostGroups(elements);
-      // every holder of the group leaves it, not only the ids the caller named
       for (const element of scene.all(pageId)) {
         for (const groupId of groupIds) {
           if (

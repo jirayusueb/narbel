@@ -23,10 +23,6 @@ export const withoutGroup = (
   groupIds: groupIdsOf(element).filter((g) => g !== groupId),
 });
 
-/**
- * The group that already holds exactly `members` (labels aside) as its outermost level,
- * so grouping the same set again keeps its id.
- */
 export const existingGroup = (
   members: SceneElement[],
   page: SceneElement[]
@@ -49,7 +45,22 @@ export const existingGroup = (
     : undefined;
 };
 
-/** Distinct outermost group ids of `elements`, in first-seen order. */
 export const outermostGroups = (elements: SceneElement[]): string[] => [
   ...new Set(elements.flatMap((e) => outermostGroup(e) ?? [])),
 ];
+
+/** `members` plus every live holder of their outermost groups; a label follows its container. */
+export const withGroupMates = (
+  members: SceneElement[],
+  page: SceneElement[]
+): SceneElement[] => {
+  const outer = new Set(outermostGroups(members));
+  const ids = new Set(members.map((m) => m.id));
+  const mates = page.filter(
+    (e) =>
+      !(e.isDeleted || ids.has(e.id)) &&
+      typeof e.containerId !== "string" &&
+      groupIdsOf(e).some((g) => outer.has(g))
+  );
+  return [...members, ...mates];
+};

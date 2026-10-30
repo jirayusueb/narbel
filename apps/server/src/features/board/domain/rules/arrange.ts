@@ -19,7 +19,6 @@ export interface Move {
   dy: number;
 }
 
-// below float noise, so a second run over an arranged selection yields no moves
 const EPSILON = 1e-6;
 
 const ALIGN: Record<Edge, (sel: Bounds, b: Bounds) => [number, number]> = {
@@ -39,14 +38,19 @@ const align = (items: ArrangeItem[], edge: Edge): Move[] => {
   });
 };
 
-// Excalidraw's rule: order by leading edge, keep the first and the selection's far edge, equal gaps between.
+const sortedBy = (items: ArrangeItem[], key: (item: ArrangeItem) => number) => {
+  const copy = [...items];
+  copy.sort((a, b) => key(a) - key(b));
+  return copy;
+};
 const distribute = (items: ArrangeItem[], axis: Axis): Move[] => {
   const horizontal = axis === "horizontal";
   const lead = (b: Bounds) => (horizontal ? b.x : b.y);
   const size = (b: Bounds) => (horizontal ? b.width : b.height);
-  // sorted in place on a copy: the web app type-checks this file without lib toSorted
-  const sorted = items.map((i) => i);
-  sorted.sort((a, b) => lead(a.bounds) - lead(b.bounds));
+  const mid = (b: Bounds) => lead(b) + size(b) / 2;
+  const move = (id: string, delta: number): Move =>
+    horizontal ? { id, dx: delta, dy: 0 } : { id, dx: 0, dy: delta };
+  const sorted = sortedBy(items, (i) => lead(i.bounds));
   const [head] = sorted;
   if (!head) {
     return [];
@@ -55,15 +59,32 @@ const distribute = (items: ArrangeItem[], axis: Axis): Move[] => {
   const end = Math.max(...sorted.map((i) => lead(i.bounds) + size(i.bounds)));
   const taken = sorted.reduce((sum, i) => sum + size(i.bounds), 0);
   const gap = (end - first - taken) / (sorted.length - 1);
+  if (gap < 0) {
+    const byMid = sortedBy(items, (i) => mid(i.bounds));
+    const startAt = byMid.findIndex((i) => lead(i.bounds) === first);
+    const endAt = byMid.findIndex(
+      (i) => lead(i.bounds) + size(i.bounds) === end
+    );
+    const from = mid(byMid[startAt]?.bounds ?? head.bounds);
+    const step =
+      (mid(byMid[endAt]?.bounds ?? head.bounds) - from) / (byMid.length - 1);
+    let centre = from;
+    return byMid.map(({ id, bounds }, index) => {
+      if (index === startAt || index === endAt) {
+        return move(id, 0);
+      }
+      centre += step;
+      return move(id, centre - mid(bounds));
+    });
+  }
   let cursor = first;
   return sorted.map(({ id, bounds }) => {
     const delta = cursor - lead(bounds);
     cursor += size(bounds) + gap;
-    return horizontal ? { id, dx: delta, dy: 0 } : { id, dx: 0, dy: delta };
+    return move(id, delta);
   });
 };
 
-/** Only the elements that have to move, so arranging an arranged selection returns []. */
 export const arrangeMoves = (
   items: ArrangeItem[],
   how: Arrangement

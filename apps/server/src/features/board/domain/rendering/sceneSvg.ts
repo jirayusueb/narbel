@@ -1,6 +1,5 @@
 import type { SceneElement } from "../entities/SceneElement";
 import {
-  box,
   elementBounds,
   geometryBox,
   isLinear,
@@ -11,9 +10,6 @@ import {
 } from "../rules/geometry";
 import type { Bounds, Point } from "../rules/geometry";
 import { STYLE } from "../shapes/ElementStyle";
-
-// RenderBoardImage still imports Bounds from here
-export type { Bounds } from "../rules/geometry";
 
 export const FONT_FAMILY = "Sarabun";
 export const DEFAULT_MAX_SIZE = 1600;
@@ -220,7 +216,7 @@ const textNode = (e: SceneElement, area: TextArea) => {
 };
 
 const label = (e: SceneElement, container: SceneElement) => {
-  const c = box(container);
+  const c = geometryBox(container);
   return textNode(e, {
     x: c.x + LABEL_PADDING,
     y: c.y + LABEL_PADDING,
@@ -230,7 +226,7 @@ const label = (e: SceneElement, container: SceneElement) => {
 };
 
 const imageNode = (e: SceneElement, images: Map<string, ImageData>) => {
-  const b = box(e);
+  const b = geometryBox(e);
   const data = typeof e.fileId === "string" ? images.get(e.fileId) : undefined;
   if (!data) {
     return (
@@ -247,7 +243,7 @@ const imageNode = (e: SceneElement, images: Map<string, ImageData>) => {
 };
 
 const shapeNode = (e: SceneElement, images: Map<string, ImageData>) => {
-  const b = box(e);
+  const b = geometryBox(e);
   switch (e.type) {
     case "rectangle": {
       const r = cornerRadius(e);
@@ -296,7 +292,6 @@ const byZOrder = (a: SceneElement, b: SceneElement) => {
   return ai < bi ? -1 : 1;
 };
 
-/** The shape a label sits centered in; a connector's label is placed on its own box instead. */
 const boxContainer = (e: SceneElement, byId: Map<string, SceneElement>) => {
   const container =
     typeof e.containerId === "string" ? byId.get(e.containerId) : undefined;
@@ -315,9 +310,8 @@ const element = (
   } else if (container) {
     inner = label(e, container);
   } else {
-    const own = box(e);
+    const own = geometryBox(e);
     const host = byId.get(String(e.containerId));
-    // like Excalidraw, an arrow's label hides the line behind it
     inner =
       (host && isLinear(host)
         ? `<rect x="${round(own.x - ARROW_LABEL_PADDING)}" y="${round(own.y - ARROW_LABEL_PADDING)}" width="${round(own.width + ARROW_LABEL_PADDING * 2)}" height="${round(own.height + ARROW_LABEL_PADDING * 2)}" fill="${BACKGROUND}"/>`
@@ -326,7 +320,7 @@ const element = (
   if (inner === "") {
     return "";
   }
-  const b = container ? box(container) : geometryBox(e);
+  const b = geometryBox(container ?? e);
   const angle = num(container ? container.angle : e.angle);
   const opacity = num(e.opacity, 100) / 100;
   const attrs =
@@ -339,9 +333,8 @@ const element = (
 
 const drawnBounds = (e: SceneElement, byId: Map<string, SceneElement>) => {
   const container = boxContainer(e, byId);
-  // a box label never extends past its container, whose own box already counts
   return container
-    ? rotatedBounds(container, box(container))
+    ? rotatedBounds(container, geometryBox(container))
     : elementBounds(e);
 };
 

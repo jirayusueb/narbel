@@ -43,16 +43,18 @@ export class ArrangeElements {
         return err(operands.error);
       }
       const skipped: ArrangeResult["skipped"] = [];
-      const movable = operands.value.elements.filter((e) => {
-        // connectors follow the shapes they are bound to; a free arrow can still move
-        const bound =
-          connectorCapable(e) && Boolean(e.startBinding ?? e.endBinding);
-        const reason = e.locked === true ? "locked" : bound && "connector";
-        if (reason) {
-          skipped.push({ id: e.id, reason });
-        }
-        return !reason;
-      });
+      const named = new Set(operands.value.elements.map((e) => e.id));
+      const movable = operands.value.elements
+        .filter((e) => !(typeof e.frameId === "string" && named.has(e.frameId)))
+        .filter((e) => {
+          const bound =
+            connectorCapable(e) && Boolean(e.startBinding ?? e.endBinding);
+          const reason = e.locked === true ? "locked" : bound && "connector";
+          if (reason) {
+            skipped.push({ id: e.id, reason });
+          }
+          return !reason;
+        });
       const moves = arrangeMoves(
         movable.map((e) => ({ id: e.id, bounds: elementBounds(e) })),
         input.how
@@ -61,8 +63,6 @@ export class ArrangeElements {
       const moved: string[] = [];
       for (const { id, dx, dy } of moves) {
         const e = byId.get(id);
-        // shortcut: a group's members align one by one, not as a unit; upgrade when agents need rigid groups
-        // shortcut: patchElement rebuilds its page lookup per call, O(moves x page); upgrade if boards get huge
         if (
           e &&
           patchElement(scene, this.ids, id, {

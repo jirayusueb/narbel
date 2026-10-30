@@ -25,7 +25,6 @@ import {
   text,
 } from "./toolKit";
 
-/** Every Excalidraw element type a board can hold. */
 const ELEMENT_TYPES = [
   "rectangle",
   "diamond",
@@ -76,7 +75,7 @@ const shape = z.object({
   frameId: elementId
     .optional()
     .describe(
-      "Put this element in a frame (id of a frame on the page or in this call). Without x/y it is laid out inside the frame"
+      "Put this element in a frame (id of a frame on the page or in this call). Without x/y it is laid out inside the frame. With x/y that lie completely outside a frame that has a size, the element is stored without the frame, since Excalidraw would clip it away"
     ),
 });
 

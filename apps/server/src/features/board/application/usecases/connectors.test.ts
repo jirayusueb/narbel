@@ -596,3 +596,153 @@ describe("frame membership follows geometry", () => {
     expect(t.el("c").frameId).toBe("f");
   });
 });
+
+describe("frames and connectors", () => {
+  it("unbinds an arrow attached to a deleted frame", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "f", type: "frame", x: 0, y: 0, width: 300, height: 200 },
+        { id: "o", type: "rectangle", x: 600, y: 50, width: 100, height: 100 },
+        { id: "fo", type: "arrow", startElementId: "f", endElementId: "o" },
+      ],
+    });
+    expect(t.ends("fo").start).toBe("f");
+    await t.remove.execute({ actor: owner, boardId: "b1", ids: ["f"] });
+    expect(t.ends("fo")).toEqual({ start: null, end: "o" });
+  });
+
+  it("carries a locked child along when its frame moves", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "f", type: "frame", x: 0, y: 0, width: 300, height: 200 },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 50,
+          y: 50,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+      ],
+    });
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "c",
+      patch: { locked: true },
+    });
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "f",
+      patch: { x: 1000 },
+    });
+    expect(t.el("c")).toMatchObject({ x: 1050, frameId: "f", locked: true });
+  });
+
+  it("fits a frame without geometry before routing an arrow bound to it", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "f", type: "frame" },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 50,
+          y: 50,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+        { id: "o", type: "rectangle", x: 1000, y: 50, width: 100, height: 100 },
+        { id: "fo", type: "arrow", startElementId: "f", endElementId: "o" },
+      ],
+    });
+    expect(t.bound("f")).toEqual(["fo"]);
+    const frame = t.el("f");
+    expect(Number(t.el("fo").x)).toBeGreaterThanOrEqual(
+      Number(frame.x) + Number(frame.width)
+    );
+  });
+});
+
+describe("add_elements and frame membership", () => {
+  const frame = {
+    id: "f",
+    type: "frame" as const,
+    x: 0,
+    y: 0,
+    width: 300,
+    height: 200,
+  };
+
+  it("stores frameId null for a placed element that lies outside a sized frame", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        frame,
+        {
+          id: "out",
+          type: "rectangle",
+          x: 2000,
+          y: 2000,
+          width: 50,
+          height: 50,
+          text: "o",
+          frameId: "f",
+        },
+        {
+          id: "in",
+          type: "rectangle",
+          x: 20,
+          y: 20,
+          width: 50,
+          height: 50,
+          frameId: "f",
+        },
+      ],
+    });
+    expect(t.el("out").frameId).toBeNull();
+    expect(t.el(t.bound("out")[0] ?? "").frameId).toBeNull();
+    expect(t.el("in").frameId).toBe("f");
+  });
+
+  it("finds the page of a frame the call only references by frameId", async () => {
+    const t = setup();
+    t.scenes.pageList.push({ id: "page:2", name: "Page 2" });
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      pageId: "page:2",
+      shapes: [frame],
+    });
+    const result = await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        {
+          id: "c",
+          type: "rectangle",
+          x: 10,
+          y: 10,
+          width: 20,
+          height: 20,
+          frameId: "f",
+        },
+      ],
+    });
+    expect(result.isOk()).toBe(true);
+    expect(t.scenes.elements.get("page:2:c")?.frameId).toBe("f");
+  });
+});
