@@ -325,7 +325,7 @@ export const patchElement = (
     ids
   );
   labelling.writes = labelling.writes.map((w) =>
-    w.containerId === id ? { ...w, frameId: next.frameId } : w
+    w.containerId === id ? { ...w, frameId: next.frameId ?? null } : w
   );
   const following = others
     .filter((c) => connectorCapable(c))

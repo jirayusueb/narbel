@@ -1,3 +1,4 @@
+import { GAP as BINDING_GAP } from "./bindings";
 import { union } from "./geometry";
 import type { Bounds } from "./geometry";
 
@@ -46,7 +47,6 @@ const NODE_GAP = 40;
 // shortcut: only labels on edges between adjacent ranks widen a gap, an edge skipping ranks does not
 // line kept visible on each side of a label; an arrow stops BINDING_GAP short of each shape
 const LABEL_MARGIN = 24;
-const BINDING_GAP = 8;
 
 /** Forward edges per node, dropping the ones that would close a cycle, and a topological order. */
 const acyclic = (nodes: LayoutNode[], edges: LayoutEdge[]) => {

@@ -4,7 +4,7 @@ import type { SceneElement } from "../entities/SceneElement";
 // target's edge and moves it when the target moves. We approximate the snap with the target's
 // bounding box, which is what a fresh arrow looks like anyway; the client's editor recomputes
 // the exact elbow/edge geometry the first time either end moves.
-const GAP = 8;
+export const GAP = 8;
 
 export interface ConnectorRefs {
   startElementId?: string;
