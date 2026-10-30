@@ -141,3 +141,18 @@ describe("styleDiff", () => {
     expect(styleDiff(box, label)).toEqual({ fontSize: 28 });
   });
 });
+
+describe("toStored roundness per Excalidraw 0.18.1", () => {
+  it("uses the adaptive radius for image, iframe and embeddable too", () => {
+    for (const type of ["rectangle", "image", "iframe", "embeddable"]) {
+      expect(toStored(type, { roundness: true })).toEqual({
+        roundness: { type: 3 },
+      });
+    }
+    for (const type of ["diamond", "arrow", "line", "ellipse"]) {
+      expect(toStored(type, { roundness: true })).toEqual({
+        roundness: { type: 2 },
+      });
+    }
+  });
+});

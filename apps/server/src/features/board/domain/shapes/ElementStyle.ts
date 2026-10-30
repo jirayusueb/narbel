@@ -9,7 +9,6 @@ export const FILL_STYLES = [
 export const STROKE_STYLES = ["solid", "dashed", "dotted"] as const;
 export const ROUGHNESS = [0, 1, 2] as const;
 export const TEXT_ALIGNS = ["left", "center", "right"] as const;
-/** Excalidraw 0.18.1 font ids: Virgil 1, Helvetica 2, Cascadia 3, Excalifont 5, Nunito 6, Lilita One 7, Comic Shanns 8, Liberation Sans 9. */
 export const FONT_FAMILIES = [1, 2, 3, 5, 6, 7, 8, 9] as const;
 export const ARROWHEADS = [
   "arrow",
@@ -26,12 +25,6 @@ export const ARROWHEADS = [
   "crowfoot_one_or_many",
 ] as const;
 
-/**
- * Where a field lands when written:
- * - "element": the element itself, every type
- * - "text": a text element, or the bound label of a rectangle/ellipse/diamond/arrow
- * - "arrow": arrows only
- */
 export type Target = "element" | "text" | "arrow";
 
 type Field =
@@ -63,10 +56,8 @@ export const STYLE = {
     on: "element",
   },
   roughness: { kind: "enum", values: ROUGHNESS, default: 1, on: "element" },
-  /** boolean in the API; stored as Excalidraw's `{type}` object or null, see `toStored` */
   roundness: { kind: "flag", default: false, on: "element" },
   opacity: { kind: "number", min: 0, max: 100, default: 100, on: "element" },
-  /** radians */
   angle: {
     kind: "number",
     min: -6.2832,
@@ -117,7 +108,6 @@ type ValueOf<F> = F extends {
         ? string
         : boolean;
 
-/** Every style field in its API form (roundness is a boolean here). */
 export type Style = {
   -readonly [K in keyof typeof STYLE]: ValueOf<(typeof STYLE)[K]>;
 };
@@ -133,10 +123,8 @@ const LABELLED: Record<string, true> = {
   arrow: true,
 };
 
-/** Shapes whose `text` becomes a bound label, like Excalidraw's "double-click to type". */
 export const hasLabelSlot = (type: string): boolean => Boolean(LABELLED[type]);
 
-/** Whether a field of `key` can land on an element of `type` (its own, or its label). */
 const applies = (type: string, key: StyleKey): boolean => {
   const { on } = STYLE[key];
   if (on === "element") {
@@ -147,10 +135,6 @@ const applies = (type: string, key: StyleKey): boolean => {
     : type === "text" || hasLabelSlot(type);
 };
 
-/**
- * The defaults a new element of `type` gets. `role: "label"` is a bound text, which
- * Excalidraw centers. Fields that cannot land on `type` are absent.
- */
 export const defaultsFor = (
   type: string,
   role: "element" | "label" = "element"
@@ -172,7 +156,6 @@ export const defaultsFor = (
   return defaults as Partial<Style>;
 };
 
-/** The style keys of `fields` that cannot land on an element of `type`. */
 export const misplacedStyle = (
   type: string,
   fields: Record<string, unknown>
@@ -182,7 +165,6 @@ export const misplacedStyle = (
       fields[key] !== undefined && isStyleKey(key) && !applies(type, key)
   );
 
-/** The style fields of any object that carries them, absent ones left out. */
 export const pickStyle = (source: object): Partial<Style> =>
   Object.fromEntries(
     Object.entries(source).filter(
@@ -190,11 +172,6 @@ export const pickStyle = (source: object): Partial<Style> =>
     )
   );
 
-/**
- * Splits caller fields for an element of `type`: `own` keeps non-style keys and the style
- * keys that land on the element itself, `label` gets the "text" keys when the element is
- * a label container. Style keys that apply nowhere for this type are dropped.
- */
 export const routeStyle = (
   type: string,
   fields: Record<string, unknown>
@@ -218,7 +195,15 @@ export const routeStyle = (
   return { own, label: label as Partial<Style> };
 };
 
-/** API form to stored Excalidraw form. Only roundness differs: true is {type: 3} on a rectangle, {type: 2} elsewhere. */
+const PROPORTIONAL_RADIUS = 2;
+const ADAPTIVE_RADIUS = 3;
+const ADAPTIVE_TYPES: Record<string, true> = {
+  rectangle: true,
+  image: true,
+  iframe: true,
+  embeddable: true,
+};
+
 export const toStored = (
   type: string,
   fields: Record<string, unknown>
@@ -229,15 +214,12 @@ export const toStored = (
   }
   return {
     ...rest,
-    roundness: roundness ? { type: type === "rectangle" ? 3 : 2 } : null,
+    roundness: roundness
+      ? { type: ADAPTIVE_TYPES[type] ? ADAPTIVE_RADIUS : PROPORTIONAL_RADIUS }
+      : null,
   };
 };
 
-/**
- * The style fields of a stored element that differ from its defaults, in API form. A
- * container's text fields come from its live `label`. An absent stored field counts as its
- * default, so hand-made or browser-restored elements stay compact; an explicit null stays null.
- */
 export const styleDiff = (
   element: SceneElement,
   label?: SceneElement
