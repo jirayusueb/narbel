@@ -15,7 +15,7 @@ import { useTheme } from "next-themes";
 
 import { useSession } from "@/entities/session";
 import { UserAvatar, useMe } from "@/entities/user";
-import { authClient } from "@/shared/lib";
+import { authClient, deleteAllBoardCaches } from "@/shared/lib";
 
 const THEMES = [
   { id: "system", label: "System", Icon: Monitor },
@@ -138,7 +138,12 @@ export const UserMenu = ({
             textValue="Sign out"
             onAction={() => {
               authClient.signOut({
-                fetchOptions: { onSuccess: () => navigate({ to: "/" }) },
+                fetchOptions: {
+                  onSuccess: async () => {
+                    await deleteAllBoardCaches();
+                    navigate({ to: "/" });
+                  },
+                },
               });
             }}
           >

@@ -278,6 +278,7 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 ### Chips
 
 - **Status pill:** 24px tall, full radius, sheet background with a 6px dot. Live: citrus dot. Connecting and Syncing: subtle-ink dot, pulsing, with shimmering text. Offline (once the socket has closed and a reconnect is pending) and No access: alert dot with its label. No access means the server refused the socket ("forbidden") or the board endpoint now answers 403/404; reconnecting stops, the canvas turns read-only, and the board page swaps to its Unlock or Not found screen. One polite live region announces Offline, No access and "Back online"; the visible pills stay silent. "View only" is a recess-tone pill, never a bordered one.
+- **Offline cache:** for signed-in users the board's doc is kept in IndexedDB (`narbel:<userId>:<boardId>`), so a returning visit paints the scene from disk while the pill still reads Connecting or Syncing until the server syncs; edits made while Offline are kept there and merge on reconnect. Guests on a share link are never cached. Signing out, or the server refusing the board, deletes the cache.
 - **Method chip:** citrus, 8px radius, 12px medium text ("POST").
 
 ### Cards / Containers

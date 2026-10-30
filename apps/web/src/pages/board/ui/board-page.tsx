@@ -1,10 +1,11 @@
 import { useLocation } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { useBoard } from "@/entities/board";
 import { useSession } from "@/entities/session";
 import { UnlockBoardForm } from "@/features/share-board";
 import { ApiError } from "@/shared/api";
-import { safeRedirect } from "@/shared/lib";
+import { deleteBoardCache, safeRedirect } from "@/shared/lib";
 import { NotFound } from "@/shared/ui";
 import { BoardCanvas, BoardSkeleton } from "@/widgets/board-canvas";
 import { Header } from "@/widgets/header";
@@ -33,14 +34,21 @@ export const BoardPage = ({
   const { data: board, isPending, error } = useBoard(boardId, shareToken);
   const { data: session } = useSession();
   const href = useLocation({ select: (location) => location.href });
+  // A failed background refetch keeps `data`; only a real 403/404 may replace a board already on screen.
+  const gone =
+    error instanceof ApiError && (error.status === 403 || error.status === 404);
+  const userId = session?.user.id;
+  // The cached copy is no longer the user's to read once the server refuses it.
+  useEffect(() => {
+    if (gone && userId) {
+      deleteBoardCache(userId, boardId);
+    }
+  }, [gone, userId, boardId]);
 
   if (isPending) {
     return <BoardSkeleton />;
   }
 
-  // A failed background refetch keeps `data`; only a real 403/404 may replace a board already on screen.
-  const gone =
-    error instanceof ApiError && (error.status === 403 || error.status === 404);
   if (board && !gone) {
     return (
       <BoardCanvas
