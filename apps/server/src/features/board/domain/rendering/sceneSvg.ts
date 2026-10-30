@@ -22,6 +22,8 @@ export const MAX_MAX_SIZE = 4096;
 const MAX_PIXELS = 8_000_000;
 const PADDING = 40;
 const LABEL_PADDING = 5;
+const ARROW_LABEL_PADDING = 4;
+const BACKGROUND = "#ffffff";
 const DEFAULT_LINE_HEIGHT = 1.25;
 const ARROWHEAD_BASE = 14;
 
@@ -313,7 +315,13 @@ const element = (
   } else if (container) {
     inner = label(e, container);
   } else {
-    inner = textNode(e, box(e));
+    const own = box(e);
+    const host = byId.get(String(e.containerId));
+    // like Excalidraw, an arrow's label hides the line behind it
+    inner =
+      (host && isLinear(host)
+        ? `<rect x="${round(own.x - ARROW_LABEL_PADDING)}" y="${round(own.y - ARROW_LABEL_PADDING)}" width="${round(own.width + ARROW_LABEL_PADDING * 2)}" height="${round(own.height + ARROW_LABEL_PADDING * 2)}" fill="${BACKGROUND}"/>`
+        : "") + textNode(e, own);
   }
   if (inner === "") {
     return "";
@@ -376,7 +384,7 @@ export const buildSceneSvg = (
   const height = Math.max(1, Math.round(viewH * scale));
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${round(bounds.x - PADDING)} ${round(bounds.y - PADDING)} ${round(viewW)} ${round(viewH)}">` +
-    `<rect x="${round(bounds.x - PADDING)}" y="${round(bounds.y - PADDING)}" width="${round(viewW)}" height="${round(viewH)}" fill="#ffffff"/>${visible
+    `<rect x="${round(bounds.x - PADDING)}" y="${round(bounds.y - PADDING)}" width="${round(viewW)}" height="${round(viewH)}" fill="${BACKGROUND}"/>${visible
       .map((n) => n.node)
       .join("")}</svg>`;
   return { svg, width, height, bounds };

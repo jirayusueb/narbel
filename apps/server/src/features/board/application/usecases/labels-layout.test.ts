@@ -299,6 +299,32 @@ describe("automatic layout", () => {
     expect(t.center(t.labelOf("b") as SceneElement)).toEqual(t.center(b));
   });
 
+  it("leaves room for an arrow's label between auto-placed shapes", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      direction: "right",
+      shapes: [
+        { id: "a", type: "rectangle", text: "A" },
+        { id: "b", type: "rectangle", text: "B" },
+        {
+          id: "ab",
+          type: "arrow",
+          text: "submit the form",
+          startElementId: "a",
+          endElementId: "b",
+        },
+      ],
+    });
+    const arrow = t.el("ab");
+    const [, tip] = arrow.points as number[][];
+    const length = Math.hypot(tip?.[0] ?? 0, tip?.[1] ?? 0);
+    expect(length).toBeGreaterThanOrEqual(
+      Number(t.labelOf("ab")?.width) + 2 * 24
+    );
+  });
+
   it("lays out a cycle in finite ranks", async () => {
     const t = setup();
     const result = await t.add.execute({
