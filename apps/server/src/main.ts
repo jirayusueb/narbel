@@ -22,7 +22,13 @@ const db = createDb(ENV);
 if (process.env.MIGRATIONS_DIR) {
   await migrate(db, { migrationsFolder: process.env.MIGRATIONS_DIR });
 }
-const redis = new Redis(ENV.REDIS_URL);
+// fail fast in an outage: ioredis defaults queue a command through 20 reconnects, so requests hung for a minute.
+// A queued command waits for the next reconnect attempt, so the backoff cap bounds each Redis call's outage delay.
+const redis = new Redis(ENV.REDIS_URL, {
+  maxRetriesPerRequest: 1,
+  commandTimeout: 2000,
+  retryStrategy: (attempt) => Math.min(attempt * 50, 500),
+});
 redis.on("error", (error) => {
   console.error("Redis error", error);
 });
