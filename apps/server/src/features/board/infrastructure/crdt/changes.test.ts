@@ -207,6 +207,30 @@ describe("changesSince on a live board", () => {
     expect(browser.inbox).toBe(inboxBefore);
     await hub.discard("b1");
   });
+
+  it("never reports a pruned deletion, before or after the prune", async () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const first = new YjsBoardHub(emptyStore, new MemoryBus());
+    const browser = new Browser();
+    await browser.join(first);
+    browser.put("keep", 0);
+    browser.put("a", 0);
+    const before = await now(first);
+    browser.put("a", 0, { isDeleted: true, updated: Date.now() - 2 * DAY });
+    const stored = Y.encodeStateAsUpdate(browser.doc);
+    await first.discard("b1");
+    const second = new YjsBoardHub(
+      { load: () => Promise.resolve(stored), save: emptyStore.save },
+      new MemoryBus()
+    );
+
+    expect(await second.transact("b1", (s) => s.get("page:main", "a"))).toBe(
+      undefined
+    );
+    expect((await since(second, before)).touches).toEqual([]);
+    expect((await since(second, await now(second))).touches).toEqual([]);
+    await second.discard("b1");
+  });
 });
 
 /** Applies everything `from` has to `to`, the way a synced peer would. */

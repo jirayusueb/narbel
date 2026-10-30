@@ -12,4 +12,9 @@ export { useDraftKey } from "./use-draft-key";
 export { useDebounced } from "./use-debounced";
 export { useLoadMore } from "./use-load-more";
 export { safeRedirect } from "./safe-redirect";
-export { CURSOR_SYNC_MS, createThrottleLatest } from "./throttle-latest";
+export {
+  CURSOR_SYNC_MS,
+  ELEMENT_SYNC_MS,
+  createThrottleLatest,
+  type ThrottleLatest,
+} from "./throttle-latest";

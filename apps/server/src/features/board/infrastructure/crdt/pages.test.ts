@@ -2,13 +2,82 @@ import { describe, expect, it } from "bun:test";
 
 import * as Y from "yjs";
 
-import { ensurePages, sceneAccess } from "./pages";
+import {
+  TOMBSTONE_TTL_MS,
+  ensurePages,
+  pruneTombstones,
+  sceneAccess,
+} from "./pages";
 
 const el = (id: string) => ({
   id,
   type: "rectangle",
   version: 1,
   versionNonce: 1,
+});
+
+const NOW = 1_000_000_000_000;
+const dead = (id: string, updated?: unknown) => ({
+  ...el(id),
+  isDeleted: true,
+  updated,
+});
+
+describe("pruneTombstones", () => {
+  it("removes only tombstones older than the window, and is idempotent", () => {
+    const doc = new Y.Doc();
+    const elements = doc.getMap("elements");
+    elements.set("p:live", { ...el("live"), updated: 1 });
+    elements.set("p:old", dead("old", NOW - TOMBSTONE_TTL_MS - 1));
+    elements.set("p:young", dead("young", NOW - TOMBSTONE_TTL_MS + 1));
+    elements.set("p:blank", dead("blank"));
+    elements.set("p:text", dead("text", "yesterday"));
+    elements.set("p:null", null);
+    elements.set("p:num", 7);
+
+    expect(pruneTombstones(doc, NOW, null)).toBe(1);
+    expect([...elements.keys()].sort()).toEqual([
+      "p:blank",
+      "p:live",
+      "p:null",
+      "p:num",
+      "p:text",
+      "p:young",
+    ]);
+    expect(pruneTombstones(doc, NOW, null)).toBe(0);
+  });
+
+  it("lets an offline undo of a deletion win in either client-id order", () => {
+    for (const [serverId, browserId] of [
+      [1, 2],
+      [2, 1],
+    ] as const) {
+      const author = new Y.Doc();
+      author.clientID = 9;
+      author
+        .getMap("elements")
+        .set("p:a", dead("a", NOW - 2 * TOMBSTONE_TTL_MS));
+      const stored = Y.encodeStateAsUpdate(author);
+
+      const server = new Y.Doc();
+      server.clientID = serverId;
+      Y.applyUpdate(server, stored);
+      const browser = new Y.Doc();
+      browser.clientID = browserId;
+      Y.applyUpdate(browser, stored);
+
+      pruneTombstones(server, NOW, null);
+      browser.getMap("elements").set("p:a", { ...el("a"), version: 3 });
+      Y.applyUpdate(server, Y.encodeStateAsUpdate(browser));
+      Y.applyUpdate(browser, Y.encodeStateAsUpdate(server));
+
+      for (const doc of [server, browser]) {
+        expect(doc.getMap("elements").get("p:a")).toMatchObject({
+          version: 3,
+        });
+      }
+    }
+  });
 });
 
 describe("ensurePages", () => {

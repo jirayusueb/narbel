@@ -1,5 +1,7 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
+import { elementIdOf, isOnPage } from "@/shared/lib/page-keys";
+
 type Versioned = Pick<ExcalidrawElement, "version" | "versionNonce">;
 
 // Excalidraw's own reconciliation rule.
@@ -11,6 +13,32 @@ export const shouldTakeIncoming = (
   incoming.version > local.version ||
   (incoming.version === local.version &&
     incoming.versionNonce < local.versionNonce);
+
+export const incomingFor = (
+  pageId: string,
+  keys: Iterable<string>,
+  get: (key: string) => ExcalidrawElement | undefined,
+  local: ReadonlyMap<string, ExcalidrawElement>
+) => {
+  const incoming: ExcalidrawElement[] = [];
+  for (const key of keys) {
+    if (!isOnPage(pageId, key)) {
+      continue;
+    }
+    const remote = get(key);
+    if (remote) {
+      if (shouldTakeIncoming(local.get(remote.id), remote)) {
+        incoming.push({ ...remote });
+      }
+      continue;
+    }
+    const shown = local.get(elementIdOf(pageId, key));
+    if (shown && !shown.isDeleted) {
+      incoming.push({ ...shown, isDeleted: true });
+    }
+  }
+  return incoming;
+};
 
 type Indexed = Pick<ExcalidrawElement, "id"> & { index?: string | null };
 

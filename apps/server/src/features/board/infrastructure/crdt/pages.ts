@@ -29,6 +29,39 @@ export const ensurePages = (doc: Y.Doc, origin: unknown): boolean => {
   return true;
 };
 
+export const TOMBSTONE_TTL_MS = 24 * 60 * 60 * 1000;
+
+const isExpiredTombstone = (value: unknown, cutoff: number) =>
+  typeof value === "object" &&
+  value !== null &&
+  "isDeleted" in value &&
+  value.isDeleted === true &&
+  "updated" in value &&
+  typeof value.updated === "number" &&
+  value.updated < cutoff;
+
+// A key delete creates no Item, so it cannot beat a concurrent offline edit or undo.
+export const pruneTombstones = (
+  doc: Y.Doc,
+  now: number,
+  origin: unknown
+): number => {
+  const elements = doc.getMap<unknown>("elements");
+  const cutoff = now - TOMBSTONE_TTL_MS;
+  const expired: string[] = [];
+  for (const [key, value] of elements) {
+    if (isExpiredTombstone(value, cutoff)) {
+      expired.push(key);
+    }
+  }
+  doc.transact(() => {
+    for (const key of expired) {
+      elements.delete(key);
+    }
+  }, origin);
+  return expired.length;
+};
+
 const orderKeyOf = (element: SceneElement | undefined) =>
   typeof element?.index === "string" ? element.index : undefined;
 

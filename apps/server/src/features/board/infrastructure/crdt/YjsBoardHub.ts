@@ -19,7 +19,7 @@ import type { IBoardDocumentStore } from "../repositories/DrizzleBoardDocumentSt
 import { diffTexts, extractBoardText, indexTexts } from "./boardText";
 import type { BoardText, TextIndex } from "./boardText";
 import { markAgentWriter } from "./changes";
-import { ensurePages, sceneAccess } from "./pages";
+import { ensurePages, pruneTombstones, sceneAccess } from "./pages";
 import { ROOM_TIMING, RoomTimers } from "./RoomTimers";
 import type { RoomTiming } from "./RoomTimers";
 
@@ -28,6 +28,7 @@ const MESSAGE_AWARENESS = 1;
 const SERVER_ORIGIN = Symbol("server");
 // updates that arrived from another instance: shown to local peers, never re-published
 const BUS_ORIGIN = Symbol("bus");
+const UNSAVED_ORIGIN = Symbol("unsaved");
 
 const channel = (boardId: string) => `sync:${boardId}`;
 
@@ -238,8 +239,10 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       }
       // the instance that took the edit persists it
       if (origin !== BUS_ORIGIN) {
-        room.dirty = true;
-        room.timers.changed();
+        if (origin !== UNSAVED_ORIGIN) {
+          room.dirty = true;
+          room.timers.changed();
+        }
         this.publish(room, message);
       }
     });
@@ -313,6 +316,8 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
         error
       );
     }
+
+    pruneTombstones(doc, Date.now(), UNSAVED_ORIGIN);
 
     return room;
   }

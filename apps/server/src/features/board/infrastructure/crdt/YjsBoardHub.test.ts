@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, setSystemTime } from "bun:test";
 
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
@@ -268,9 +268,9 @@ describe("YjsBoardHub across instances", () => {
 });
 
 const sleep = (ms: number) => Bun.sleep(ms);
+const timing = { debounceMs: 20, maxDelayMs: 100, graceMs: 150 };
 
 describe("YjsBoardHub persistence", () => {
-  const timing = { debounceMs: 20, maxDelayMs: 100, graceMs: 150 };
   const recorder = () => {
     const saves: { state: Uint8Array; texts: TextChange | undefined }[] = [];
     let loads = 0;
@@ -390,5 +390,66 @@ describe("YjsBoardHub persistence", () => {
     expect(saves.length).toBeGreaterThan(0);
     expect(Date.now() - start).toBeLessThan(200);
     await hub.discard("b1");
+  });
+
+  describe("tombstone pruning on load", () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const stateWith = (updated: number) => {
+      const doc = new Y.Doc();
+      doc.getArray("pages").push([{ id: "page:main", name: "Page 1" }]);
+      const elements = doc.getMap("elements");
+      elements.set("page:main:live", { id: "live", version: 1 });
+      elements.set("page:main:gone", {
+        id: "gone",
+        version: 2,
+        isDeleted: true,
+        updated,
+      });
+      return Y.encodeStateAsUpdate(doc);
+    };
+
+    it("drops expired tombstones without saving, and the next edit's save omits them", async () => {
+      const saves: Uint8Array[] = [];
+      const stored = stateWith(Date.now() - 12 * 60 * 60 * 1000);
+      const db = {
+        load: () => Promise.resolve(stored),
+        save: (_id: string, state: Uint8Array) => {
+          saves.push(state);
+          return Promise.resolve("owner");
+        },
+      };
+      const bus = new MemoryBus();
+      const b = new YjsBoardHub(db, bus);
+      const a = new YjsBoardHub(db, bus, timing);
+      expect(await b.transact("b1", (s) => s.all("page:main").length)).toBe(2);
+
+      setSystemTime(new Date(Date.now() + DAY + 12 * 60 * 60 * 1000));
+      try {
+        expect(await a.transact("b1", (s) => s.all("page:main").length)).toBe(
+          1
+        );
+      } finally {
+        setSystemTime();
+      }
+      await settle();
+      expect(await b.transact("b1", (s) => s.all("page:main").length)).toBe(1);
+
+      await sleep(60);
+      expect(saves).toHaveLength(0);
+
+      await a.transact("b1", (s) =>
+        s.put("page:main", { id: "fresh", version: 1 } as never)
+      );
+      await sleep(60);
+      expect(saves).toHaveLength(1);
+      const saved = new Y.Doc();
+      Y.applyUpdate(saved, saves[0] as Uint8Array);
+      expect([...saved.getMap("elements").keys()].sort()).toEqual([
+        "page:main:fresh",
+        "page:main:live",
+      ]);
+      await a.discard("b1");
+      await b.discard("b1");
+    });
   });
 });
