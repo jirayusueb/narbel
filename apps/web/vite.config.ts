@@ -16,7 +16,10 @@ export default defineConfig({
     varlockVitePlugin({ ssrInjectMode: "auto-load" }),
     tailwindcss(),
     tanstackStart(),
-    nitro({ preset: "bun" }),
+    nitro({
+      preset: "bun",
+      compressPublicAssets: { gzip: true, brotli: true },
+    }),
     viteReact(),
   ],
 });
