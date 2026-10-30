@@ -39,6 +39,7 @@ import { PresignBoardFileUpload } from "./application/usecases/PresignBoardFileU
 import { RemoveBoardMember } from "./application/usecases/RemoveBoardMember";
 import { RenameBoard } from "./application/usecases/RenameBoard";
 import { RenamePage } from "./application/usecases/RenamePage";
+import { RenderBoardImage } from "./application/usecases/RenderBoardImage";
 import { ReplyToComment } from "./application/usecases/ReplyToComment";
 import { ResolveComment } from "./application/usecases/ResolveComment";
 import {
@@ -60,6 +61,7 @@ import { DrizzleBoardFileRepository } from "./infrastructure/repositories/Drizzl
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { MemoryAttemptLimiter } from "./infrastructure/services/MemoryAttemptLimiter";
+import { ResvgRasterizer } from "./infrastructure/services/ResvgRasterizer";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
 import { createBoardAccessController } from "./presentation/http/BoardAccessController";
 import { createBoardCommentController } from "./presentation/http/BoardCommentController";
@@ -140,6 +142,13 @@ const createUseCases = ({
     presignBoardFileUpload: new PresignBoardFileUpload(guard, files, storage),
     getBoardFile: new GetBoardFile(guard, files, storage),
     getBoardScene: new GetBoardScene(guard, hub),
+    renderBoardImage: new RenderBoardImage(
+      guard,
+      hub,
+      files,
+      storage,
+      new ResvgRasterizer()
+    ),
     addBoardElements: new AddBoardElements(guard, hub, ids),
     updateBoardElement: new UpdateBoardElement(guard, hub, ids),
     deleteBoardElements: new DeleteBoardElements(guard, hub, ids),

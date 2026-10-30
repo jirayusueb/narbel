@@ -22,6 +22,8 @@ RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lock
 COPY --from=installer /app/apps/server/dist apps/server/dist
 # varlock/auto-load validates process env against the schema at startup.
 COPY --from=builder /app/out/full/apps/server/.env.schema apps/server/
+# resvg loads these by path at render time; they are not part of the bundle.
+COPY --from=builder /app/out/full/apps/server/assets apps/server/assets
 COPY --from=builder /app/out/full/packages/db/src/migrations /app/migrations
 ENV MIGRATIONS_DIR=/app/migrations
 
