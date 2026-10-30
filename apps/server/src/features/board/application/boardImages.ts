@@ -1,6 +1,6 @@
 import type { IFileStorage } from "../../../shared/application/interfaces/IFileStorage";
 import type { ImageData } from "../domain/rendering/sceneSvg";
-import { readImageHeader } from "../domain/rules/imageHeader";
+import { NEEDS_MORE, parseImageHeader } from "../domain/rules/imageHeader";
 import { MAX_IMAGE_PIXELS } from "../domain/rules/UploadRules";
 import { boardFileKey } from "../domain/values/FileKey";
 import type { IBoardFileRepository } from "./ports/IBoardFileRepository";
@@ -9,24 +9,35 @@ export const MAX_RENDER_BYTES = 32 * 1024 * 1024;
 export const MAX_EXPORT_BYTES = 8 * 1024 * 1024;
 
 const HEADER_BYTES = 64 * 1024;
+// a JPEG's size marker can sit behind large EXIF, XMP or ICC segments
+const MAX_HEADER_BYTES = 1024 * 1024;
 
-const readHead = async (storage: IFileStorage, key: string) => {
+const readHeader = async (storage: IFileStorage, key: string) => {
   const chunks: Uint8Array[] = [];
   let length = 0;
+  let header: ReturnType<typeof parseImageHeader> = null;
   // breaking out of for-await cancels the stream, so a large object is not downloaded
   for await (const chunk of storage.stream(key)) {
     chunks.push(chunk);
     length += chunk.length;
     if (length >= HEADER_BYTES) {
-      break;
+      header = parseImageHeader(
+        Buffer.concat(chunks).subarray(0, MAX_HEADER_BYTES)
+      );
+      if (header !== NEEDS_MORE || length >= MAX_HEADER_BYTES) {
+        break;
+      }
     }
   }
-  return Buffer.concat(chunks).subarray(0, HEADER_BYTES);
+  if (length < HEADER_BYTES) {
+    header = parseImageHeader(Buffer.concat(chunks));
+  }
+  return header === NEEDS_MORE ? null : header;
 };
 
 // Uploads through the presigned PUT are never inspected, so the declared pixel count is checked here before any decode.
 const withinPixelLimit = async (storage: IFileStorage, key: string) => {
-  const header = readImageHeader(await readHead(storage, key));
+  const header = await readHeader(storage, key);
   const size = header?.size;
   return (
     header !== null && (!size || size.width * size.height <= MAX_IMAGE_PIXELS)

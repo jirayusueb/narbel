@@ -562,3 +562,42 @@ describe("images declared over the pixel limit", () => {
     expect(result.isOk() && result.value.omittedFiles).toEqual([bigId]);
   });
 });
+
+describe("JPEGs whose size marker sits behind large segments", () => {
+  // SOI, `segments` APP1 segments of 60000 bytes, then a SOF0 declaring 3x2
+  const jpegAfter = (segments: number) =>
+    Buffer.concat([
+      Buffer.from([0xff, 0xd8]),
+      ...Array.from({ length: segments }, () =>
+        Buffer.concat([
+          Buffer.from([0xff, 0xe1, 0xea, 0x60]),
+          Buffer.alloc(60_000 - 2),
+        ])
+      ),
+      Buffer.from([0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x02, 0x00, 0x03]),
+      Buffer.from([0x01, 0x01, 0x11, 0x00]),
+    ]);
+  const render = async (bytes: Uint8Array) => {
+    const t = setup();
+    const added = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2),
+      id: "photo",
+    });
+    const fileId = added.isOk() ? added.value.fileId : "";
+    t.stored.set(`boards/b1/${fileId}`, { bytes, mimeType: "image/jpeg" });
+    const result = await t.render.execute({ actor, boardId: "b1" });
+    return { fileId, omitted: result.isOk() ? result.value.omittedFiles : [] };
+  };
+
+  it("keeps one whose SOF is past the first 64 KiB", async () => {
+    const { omitted } = await render(jpegAfter(2));
+    expect(omitted).toEqual([]);
+  });
+
+  it("drops one still unresolved at the 1 MiB cap", async () => {
+    const { fileId, omitted } = await render(jpegAfter(20));
+    expect(omitted).toEqual([fileId]);
+  });
+});

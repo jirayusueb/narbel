@@ -36,6 +36,9 @@ const SOF_EXCLUDED = new Set([0xc4, 0xc8, 0xcc]);
 const STANDALONE = (marker: number) =>
   marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7);
 
+/** The bytes end before a JPEG's size marker, so more of the file could still answer. */
+export const NEEDS_MORE = "needs-more";
+
 const jpeg = (b: Uint8Array) => {
   let at = 2;
   while (at + 4 <= b.length) {
@@ -52,14 +55,14 @@ const jpeg = (b: Uint8Array) => {
             view(b).getUint16(at + 7),
             view(b).getUint16(at + 5)
           )
-        : null;
+        : NEEDS_MORE;
     } else if (STANDALONE(marker)) {
       at += 2;
     } else {
       at += 2 + view(b).getUint16(at + 2);
     }
   }
-  return null;
+  return NEEDS_MORE;
 };
 
 const FOURTEEN_BITS = 16_384;
@@ -121,7 +124,9 @@ const svg = (b: Uint8Array): ImageHeader | null => {
     : { mimeType: "image/svg+xml" };
 };
 
-export const readImageHeader = (b: Uint8Array): ImageHeader | null => {
+export const parseImageHeader = (
+  b: Uint8Array
+): ImageHeader | typeof NEEDS_MORE | null => {
   if (b[0] === 0x89 && ascii(b, 1, "PNG")) {
     return png(b);
   }
@@ -135,4 +140,9 @@ export const readImageHeader = (b: Uint8Array): ImageHeader | null => {
     return webp(b);
   }
   return svg(b);
+};
+
+export const readImageHeader = (b: Uint8Array): ImageHeader | null => {
+  const header = parseImageHeader(b);
+  return header === NEEDS_MORE ? null : header;
 };
