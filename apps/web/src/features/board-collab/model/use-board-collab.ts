@@ -18,6 +18,8 @@ import { SYNC_URL } from "@/shared/config";
 import {
   boardCacheName,
   colorFromName,
+  CURSOR_SYNC_MS,
+  createThrottleLatest,
   deleteBoardCache,
   elementKey,
   isOnPage,
@@ -192,9 +194,30 @@ export const useBoardCollab = ({
     });
   }, [session, userId, userName, username, avatarUrl]);
 
-  const pendingPointer = useRef<PointerUpdate | null>(null);
-  const pointerFrame = useRef(0);
-  useEffect(() => () => cancelAnimationFrame(pointerFrame.current), []);
+  const pointerThrottle = useRef<ReturnType<
+    typeof createThrottleLatest<PointerUpdate>
+  > | null>(null);
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+    const { awareness } = session.provider;
+    const throttle = createThrottleLatest<PointerUpdate>((next) => {
+      const local = awareness.getLocalState();
+      if (local) {
+        awareness.setLocalState({
+          ...local,
+          pointer: next.pointer,
+          button: next.button,
+        });
+      }
+    }, CURSOR_SYNC_MS);
+    pointerThrottle.current = throttle;
+    return () => {
+      throttle.cancel();
+      pointerThrottle.current = null;
+    };
+  }, [session]);
   useEffect(() => {
     if (!(session && api && sceneReady && pageId)) {
       return;
@@ -270,9 +293,7 @@ export const useBoardCollab = ({
     const local = awareness.getLocalState();
     if (local && local.pageId !== pageId) {
       // the pointer belongs to the page being left; carried over, peers would draw it on this one
-      cancelAnimationFrame(pointerFrame.current);
-      pointerFrame.current = 0;
-      pendingPointer.current = null;
+      pointerThrottle.current?.cancel();
       awareness.setLocalState({
         ...local,
         pageId,
@@ -351,29 +372,9 @@ export const useBoardCollab = ({
     [session, sceneReady, canWrite]
   );
 
-  // One awareness write per frame, latest value wins.
-  const onPointerUpdate = useCallback(
-    (update: PointerUpdate) => {
-      pendingPointer.current = update;
-      if (!session || pointerFrame.current) {
-        return;
-      }
-      pointerFrame.current = requestAnimationFrame(() => {
-        pointerFrame.current = 0;
-        const next = pendingPointer.current;
-        const { awareness } = session.provider;
-        const local = awareness.getLocalState();
-        if (next && local) {
-          awareness.setLocalState({
-            ...local,
-            pointer: next.pointer,
-            button: next.button,
-          });
-        }
-      });
-    },
-    [session]
-  );
+  const onPointerUpdate = useCallback((update: PointerUpdate) => {
+    pointerThrottle.current?.push(update);
+  }, []);
 
   return {
     api: sceneReady ? api : null,
