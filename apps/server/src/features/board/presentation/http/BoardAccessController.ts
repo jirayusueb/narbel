@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 
+import { clientAddress } from "../../../../shared/presentation/http/clientAddress";
 import {
   asWire,
   errorBody,
@@ -107,12 +108,7 @@ export const createBoardAccessController = (
       "/unlock",
       { params, body: t.Object({ password: t.String({ maxLength: 1000 }) }) },
       async ({ request, server, params: { id }, body }) => {
-        const forwarded = request.headers
-          .get("x-forwarded-for")
-          ?.split(",")[0]
-          ?.trim();
-        const ip =
-          forwarded ?? server?.requestIP(request)?.address ?? "unknown";
+        const ip = clientAddress(request, server?.requestIP(request)?.address);
         const result = await uc.unlockBoard.execute({
           boardId: id,
           password: body.password,
