@@ -48,3 +48,6 @@ export const validateUpload = (input: {
   }
   return okEmpty();
 };
+
+/** Decoded size an MCP agent may inline in a tool call; larger images go through the presigned upload. */
+export const MAX_INLINE_IMAGE_BYTES = 700 * 1024;

@@ -112,3 +112,17 @@ describe("sceneAccess", () => {
     expect(order).toEqual(["under", "one", "label", "two", "frame", "top"]);
   });
 });
+
+describe("putFile", () => {
+  it("registers a file once and keeps the existing entry", () => {
+    const doc = new Y.Doc();
+    const scene = sceneAccess(doc);
+    scene.putFile({ id: "f1", mimeType: "image/png", created: 1 });
+    scene.putFile({ id: "f1", mimeType: "image/jpeg", created: 2 });
+    expect(doc.getMap("files").get("f1")).toEqual({
+      id: "f1",
+      mimeType: "image/png",
+      created: 1,
+    });
+  });
+});
