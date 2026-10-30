@@ -46,7 +46,7 @@ const CreateBoardDialog = ({ isOpen, close, unmount }: DialogControl) => {
         onSubmit={(e) => {
           e.preventDefault();
           create.mutate(
-            { title: trimmed, key: draftKey.get() },
+            { title: trimmed, key: draftKey.get(trimmed) },
             {
               onSuccess: (board) => {
                 draftKey.rotate();

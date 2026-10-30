@@ -204,7 +204,7 @@ const Replies = ({ thread, env }: { thread: Comment; env: ThreadEnv }) => {
           disabled={reply.isPending}
           onSubmit={(body) =>
             reply.mutate(
-              { threadId: thread.id, body, key: draftKey.get() },
+              { threadId: thread.id, body, key: draftKey.get(body) },
               {
                 onError,
                 onSuccess: () => {
