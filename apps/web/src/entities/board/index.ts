@@ -10,6 +10,7 @@ export {
   usePatchAccess,
   useRemoveMember,
   useRenameBoard,
+  useSearchBoards,
   useSharedBoards,
   useUnlockBoard,
 } from "./api/queries";
@@ -18,6 +19,8 @@ export type {
   BoardAccess,
   BoardMember,
   BoardRole,
+  BoardSearchMatch,
+  BoardSearchResult,
   Visibility,
 } from "./model/types";
 export { BoardCard } from "./ui/board-card";

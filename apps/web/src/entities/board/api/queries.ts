@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, unwrap } from "@/shared/api";
 
-import type { BoardAccess } from "../model/types";
+import type { BoardAccess, BoardSearchResult } from "../model/types";
 
 export const boardKeys = {
   all: ["boards"] as const,
@@ -10,6 +10,7 @@ export const boardKeys = {
   detail: (id: string, share?: string) =>
     ["boards", id, share ?? null] as const,
   access: (id: string) => ["boards", id, "access"] as const,
+  search: (q: string) => ["boards", "search", q] as const,
   members: (id: string) => ["boards", id, "members"] as const,
 };
 
@@ -23,6 +24,14 @@ export const useSharedBoards = () =>
   useQuery({
     queryKey: boardKeys.shared,
     queryFn: async () => unwrap(await api.api["shared-boards"].get()),
+  });
+
+export const useSearchBoards = (q: string) =>
+  useQuery({
+    queryKey: boardKeys.search(q),
+    queryFn: async (): Promise<BoardSearchResult[]> =>
+      unwrap(await api.api.boards.search.get({ query: { q } })),
+    staleTime: 10_000,
   });
 
 export const useBoard = (id: string, share?: string) =>
