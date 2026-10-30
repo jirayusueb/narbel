@@ -36,3 +36,26 @@ describe("layered rank gap", () => {
     expect((at.get("b")?.x ?? 0) - 100).toBe(80);
   });
 });
+
+describe("layered skipped ranks", () => {
+  it("widens every gap a labelled edge crosses", () => {
+    const chain = [
+      { id: "a", width: 100, height: 60 },
+      { id: "b", width: 100, height: 60 },
+      { id: "c", width: 100, height: 60 },
+    ];
+    const at = layered(
+      chain,
+      [
+        { from: "a", to: "b" },
+        { from: "b", to: "c" },
+        { from: "a", to: "c", label: { width: 10, height: 100 } },
+      ],
+      "down"
+    );
+    const gap = (upper: string, lower: string) =>
+      (at.get(lower)?.y ?? 0) - ((at.get(upper)?.y ?? 0) + 60);
+    expect(gap("a", "b")).toBe(164);
+    expect(gap("b", "c")).toBe(164);
+  });
+});

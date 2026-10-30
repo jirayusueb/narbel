@@ -154,6 +154,41 @@ describe("buildSceneSvg", () => {
     );
   });
 
+  it("renders each wrapped line of an arrow label as its own tspan", () => {
+    const arrow: SceneElement = {
+      id: "a1",
+      type: "arrow",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 0,
+      points: [
+        [0, 0],
+        [200, 0],
+      ],
+      version: 1,
+      versionNonce: 1,
+    };
+    const label: SceneElement = {
+      id: "t1",
+      type: "text",
+      containerId: "a1",
+      text: "one two\nthree",
+      originalText: "one two three",
+      textAlign: "center",
+      verticalAlign: "middle",
+      x: 70,
+      y: -25,
+      width: 60,
+      height: 50,
+      version: 1,
+      versionNonce: 1,
+    };
+    const { svg } = build([arrow, label]);
+    expect(svg).toContain(">one two</tspan>");
+    expect(svg).toContain(">three</tspan>");
+  });
+
   it("hides the line behind an arrow's label with a backdrop, and gives a box label none", () => {
     const arrow: SceneElement = {
       id: "a1",

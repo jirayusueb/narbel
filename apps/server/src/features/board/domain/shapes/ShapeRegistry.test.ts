@@ -199,3 +199,44 @@ describe("fitLabel", () => {
     );
   });
 });
+
+describe("arrow label wrapping", () => {
+  const long = "alpha bravo charlie delta echo foxtrot golf hotel india juliet";
+  const arrow = (width: number) =>
+    ({
+      ...buildElement(
+        { type: "arrow", x: 0, y: 0, width, height: 0 },
+        identity
+      ),
+    }) as SceneElement;
+
+  it("wraps at word boundaries within max(0.7 x width, 11 x fontSize) and keeps originalText", () => {
+    expect(long).toHaveLength(62);
+    const label = buildLabel(arrow(100), long, {}, { ...identity, id: "t" });
+    const lines = String(label.text).split("\n");
+    expect(lines.length).toBeGreaterThan(2);
+    expect(lines.join(" ")).toBe(long);
+    expect(Number(label.width)).toBeLessThanOrEqual(220);
+    expect(label.originalText).toBe(long);
+  });
+
+  it("rewraps from originalText when the arrow widens and keeps a long word whole", () => {
+    const label = buildLabel(arrow(100), long, {}, { ...identity, id: "t" });
+    const wide = fitLabel(label, arrow(2000));
+    expect(String(wide.text).split("\n").length).toBe(1);
+    expect(wide.originalText).toBe(long);
+    const word = buildLabel(
+      arrow(100),
+      "supercalifragilisticexpialidocious ok",
+      {},
+      { ...identity, id: "t" }
+    );
+    expect(String(word.text)).toBe("supercalifragilisticexpialidocious\nok");
+  });
+
+  it("leaves a box label's text alone", () => {
+    const box = buildElement({ type: "rectangle", x: 0, y: 0 }, identity);
+    const label = buildLabel(box, long, {}, { ...identity, id: "t" });
+    expect(label.text).toBe(long);
+  });
+});

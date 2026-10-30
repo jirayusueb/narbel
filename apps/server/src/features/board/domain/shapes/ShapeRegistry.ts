@@ -77,6 +77,36 @@ export const measure = (text: string, fontSize: number): Size => {
   };
 };
 
+// Excalidraw 0.18.1 getBoundTextMaxWidth: max(0.7 x arrow width, 11 x fontSize)
+const arrowLabelMaxWidth = (arrowWidth: number, fontSize: number) =>
+  Math.max(0.7 * arrowWidth, fontSize * 11);
+
+/** Greedy word wrap; a word longer than maxWidth stays unbroken. */
+const wrapText = (text: string, fontSize: number, maxWidth: number): string => {
+  const perLine = Math.max(1, Math.floor(maxWidth / (fontSize * 0.6)));
+  return text
+    .split("\n")
+    .map((paragraph) => {
+      const lines: string[] = [];
+      let line = "";
+      for (const word of paragraph.split(/\s+/u).filter(Boolean)) {
+        if (line && line.length + 1 + word.length > perLine) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = line ? `${line} ${word}` : word;
+        }
+      }
+      lines.push(line);
+      return lines.join("\n");
+    })
+    .join("\n");
+};
+
+/** Size an arrow label takes at the narrowest wrap, before the arrow's width is known. */
+export const arrowLabelSize = (text: string, fontSize: number): Size =>
+  measure(wrapText(text, fontSize, arrowLabelMaxWidth(0, fontSize)), fontSize);
+
 const fontSizeOf = (shape: object) =>
   "fontSize" in shape && typeof shape.fontSize === "number"
     ? shape.fontSize
@@ -199,8 +229,17 @@ export const fitLabel = (
   label: SceneElement,
   container: SceneElement
 ): SceneElement => {
-  const size = measure(String(label.text ?? ""), fontSizeOf(label));
-  const center = isLinear(container)
+  const onArrow = isLinear(container);
+  const fontSize = fontSizeOf(label);
+  const text = onArrow
+    ? wrapText(
+        String(label.originalText ?? label.text ?? ""),
+        fontSize,
+        arrowLabelMaxWidth(Number(container.width), fontSize)
+      )
+    : String(label.text ?? "");
+  const size = measure(text, fontSize);
+  const center = onArrow
     ? polylineMidpoint(container)
     : {
         x: Number(container.x) + Number(container.width) / 2,
@@ -209,6 +248,8 @@ export const fitLabel = (
   return {
     ...label,
     ...size,
+    text,
+    ...(onArrow ? { originalText: label.originalText ?? label.text } : {}),
     x: center.x - size.width / 2,
     y: center.y - size.height / 2,
     ...Object.fromEntries(
