@@ -39,8 +39,7 @@ export interface SceneAccess {
   find(id: string): { pageId: string; element: SceneElement } | undefined;
   /** Writes the element if it wins the merge rule against the stored one. */
   put(pageId: string, element: SceneElement): void;
-  /** Registers an uploaded image in the document's file map for browsers; an existing entry stays. */
-  putFile(file: { id: string; mimeType: string; created: number }): void;
+  ensureFile(file: { id: string; mimeType: string; created: number }): void;
   /**
    * Element keys at least one non-agent client wrote after `since` (null = now: no touches).
    * Undefined when `since` is not a decodable version.

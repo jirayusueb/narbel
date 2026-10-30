@@ -121,7 +121,7 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
       const element = page && elements.get(elementKey(page.id, id));
       return page && element && { pageId: page.id, element };
     },
-    putFile: (file) => {
+    ensureFile: (file) => {
       if (!files.has(file.id)) {
         files.set(file.id, file);
       }

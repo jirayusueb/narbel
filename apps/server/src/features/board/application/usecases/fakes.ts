@@ -412,7 +412,7 @@ export class FakeScenes implements IBoardScenes {
       }
       return;
     },
-    putFile: (file) => {
+    ensureFile: (file) => {
       if (!this.files.has(file.id)) {
         this.files.set(file.id, file);
       }

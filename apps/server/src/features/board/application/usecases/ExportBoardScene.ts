@@ -4,8 +4,9 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { ImageData } from "../../domain/rendering/sceneSvg";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { loadBoardImages } from "../boardImages";
+import { MAX_EXPORT_BYTES, loadBoardImages } from "../boardImages";
 import { byZOrder } from "../dtos/SceneDto";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardScenes } from "../ports/IBoardScenes";
@@ -20,6 +21,7 @@ export interface ExcalidrawFile {
     string,
     { id: string; mimeType: string; dataURL: string; created: number }
   >;
+  omittedFiles: string[];
 }
 
 export class ExportBoardScene {
@@ -52,16 +54,17 @@ export class ExportBoardScene {
       return err(AppError.notFound("Page"));
     }
     elements.sort(byZOrder);
-    const images = input.includeFiles
+    const { images, omitted } = input.includeFiles
       ? await loadBoardImages(
           this.files,
           this.storage,
           input.boardId,
           elements.flatMap((e) =>
             e.type === "image" && typeof e.fileId === "string" ? [e.fileId] : []
-          )
+          ),
+          MAX_EXPORT_BYTES
         )
-      : new Map();
+      : { images: new Map<string, ImageData>(), omitted: [] };
     const created = Date.now();
     return ok({
       type: "excalidraw",
@@ -80,6 +83,7 @@ export class ExportBoardScene {
           },
         ])
       ),
+      omittedFiles: omitted,
     });
   }
 }
