@@ -10,7 +10,12 @@ export const useDraftKey = () => {
   return {
     get: (content: string) => {
       if (draft.current?.content !== content) {
-        draft.current = { content, key: crypto.randomUUID() };
+        // getRandomValues, not randomUUID: plain-http IP:port deploys are not a secure context
+        const key = Array.from(
+          crypto.getRandomValues(new Uint8Array(16)),
+          (b) => b.toString(16).padStart(2, "0")
+        ).join("");
+        draft.current = { content, key };
       }
       return draft.current.key;
     },

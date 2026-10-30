@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, unwrap } from "@/shared/api";
+import { api, retryWhileInProgress, unwrap } from "@/shared/api";
 
 import type { BoardAccess, BoardSearchResult } from "../model/types";
 
@@ -62,6 +62,7 @@ export const useCreateBoard = () => {
         )
       ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+    ...retryWhileInProgress,
   });
 };
 
