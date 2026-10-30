@@ -9,7 +9,8 @@ Scaffolded with [Better-T-Stack](https://github.com/AmanVarshney01/create-better
 - **Boards**: Excalidraw canvas per board; create, rename, delete from the dashboard
 - **Realtime (CRDT)**: one Yjs doc per board, `elements` map keyed by element id, merged with Excalidraw's version/versionNonce rule; presence (cursors, names) via Yjs awareness over `WS /api/boards/sync/:id`
 - **Media**: images upload to S3 (`POST /api/boards/:id/files`) and stream back through the API; any S3-compatible store works (RustFS locally)
-- **MCP**: `POST /mcp` (Streamable HTTP, stateless) with tools `list_boards`, `create_board`, `get_board`, `add_elements`, `update_element`, `delete_elements`; authenticated with a Better Auth API key in `x-api-key`, created from the dashboard
+- **MCP**: `POST /mcp` (Streamable HTTP, stateless) with board, page, element, selection and comment tools (`list_boards`, `get_board`, `add_elements`, `update_element`, `delete_elements`, `get_selection`, `edit_selection`, `list_comments`, `reply_comment`, ...); authenticated with a Better Auth API key in `x-api-key`, created from the dashboard
+  - **Arrow connectors**: give shapes an `id` in `add_elements` and add an `arrow`/`line` with `startElementId`/`endElementId`; it becomes a real Excalidraw binding, drawn edge to edge, re-routed when either shape moves (from MCP or by dragging in the browser), rebound or detached with `update_element`, and cleaned up on delete. `get_board` reports each connector's ends.
 - **Auth**: Better Auth (email/password, API keys) mounted in Elysia the way Better Auth's own Elysia integration does it, with an `auth` macro
 - **Stack**: TanStack Start, Elysia 2 (rc), Bun, Drizzle + PostgreSQL, shadcn/ui on React Aria, Oxlint + Oxfmt (Ultracite), Turborepo, Lefthook
 

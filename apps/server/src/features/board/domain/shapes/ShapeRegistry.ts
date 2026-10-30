@@ -19,6 +19,11 @@ export interface Shape {
   text?: string;
   strokeColor?: string;
   backgroundColor?: string;
+  /** optional client-chosen id, so a later element in the same batch can bind to this one */
+  id?: string;
+  /** arrow/line only: element ids (or batch ids) this connector attaches to */
+  startElementId?: string;
+  endElementId?: string;
 }
 
 export interface ElementIdentity {

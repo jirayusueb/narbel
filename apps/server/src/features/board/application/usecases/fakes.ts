@@ -17,6 +17,7 @@ import { Board } from "../../domain/entities/Board";
 import type { Comment } from "../../domain/entities/Comment";
 import type { Page } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
+import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
 import type { MemberRole } from "../../domain/values/Access";
 import { BoardTitle } from "../../domain/values/BoardTitle";
 import { BoardAccessGuard } from "../BoardAccess";
@@ -363,8 +364,12 @@ export class FakeScenes implements IBoardScenes {
       }
       return;
     },
+    // same merge rule as the live hub, so a write without a version bump is dropped here too
     put: (pageId, el) => {
-      this.elements.set(`${pageId}:${el.id}`, el);
+      const key = `${pageId}:${el.id}`;
+      if (shouldAcceptIncoming(this.elements.get(key), el)) {
+        this.elements.set(key, el);
+      }
     },
   };
 

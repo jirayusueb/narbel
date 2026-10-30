@@ -8,6 +8,9 @@ export interface SceneElementDto {
   text?: unknown;
   strokeColor: unknown;
   backgroundColor: unknown;
+  /** arrows/lines: what each end is attached to, so agents can read the diagram's graph */
+  startElementId?: string | null;
+  endElementId?: string | null;
 }
 
 export interface SceneDto {
@@ -15,6 +18,11 @@ export interface SceneDto {
   pageId: string;
   elements: SceneElementDto[];
 }
+
+const boundId = (binding: unknown) =>
+  (binding as { elementId?: string } | null)?.elementId ?? null;
+
+const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
 export const toSceneElementDto = (e: {
   id: string;
@@ -30,4 +38,10 @@ export const toSceneElementDto = (e: {
   ...(e.type === "text" ? { text: e.text } : {}),
   strokeColor: e.strokeColor,
   backgroundColor: e.backgroundColor,
+  ...(CONNECTOR_TYPES[e.type]
+    ? {
+        startElementId: boundId(e.startBinding),
+        endElementId: boundId(e.endBinding),
+      }
+    : {}),
 });

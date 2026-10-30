@@ -28,6 +28,10 @@ const reply = <T>(result: Result<T, AppError>) =>
 const elementText = z.string().max(10_000);
 const elementColor = z.string().max(32);
 
+const elementId = z
+  .string()
+  .regex(/^[\w-]{1,64}$/u, "letters, digits, _ or -, at most 64");
+
 const shape = z.object({
   type: z.enum(SHAPE_TYPES),
   x: z.number(),
@@ -37,6 +41,19 @@ const shape = z.object({
   text: elementText.optional(),
   strokeColor: elementColor.optional(),
   backgroundColor: elementColor.optional(),
+  id: elementId
+    .optional()
+    .describe(
+      "Optional id you choose so arrows later in the same call can connect to this shape"
+    ),
+  startElementId: elementId
+    .optional()
+    .describe(
+      "arrow/line only: id of the element the tail attaches to (on the page or in this call)"
+    ),
+  endElementId: elementId
+    .optional()
+    .describe("arrow/line only: id of the element the head attaches to"),
 });
 
 const patch = z
@@ -155,7 +172,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "add_elements",
     {
       description:
-        "Add shapes to a page; connected browsers see them live. Returns the new element ids.",
+        "Add shapes to a page; connected browsers see them live. Returns the new element ids. To connect two shapes, give them ids and add an arrow with startElementId/endElementId: the arrow is drawn edge to edge and stays attached when either shape moves (x/y/width/height on the arrow are then ignored).",
       inputSchema: {
         boardId,
         pageId,
@@ -176,8 +193,14 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "update_element",
     {
       description:
-        "Change properties of one element (position, size, text, colors).",
-      inputSchema: { boardId, id: z.string(), patch },
+        "Change properties of one element (position, size, text, colors). Moving a shape re-routes the arrows attached to it. For an arrow/line, startElementId/endElementId reattach that end to another element, null detaches it.",
+      inputSchema: {
+        boardId,
+        id: z.string(),
+        patch,
+        startElementId: elementId.nullable().optional(),
+        endElementId: elementId.nullable().optional(),
+      },
     },
     async (input) =>
       reply(
@@ -186,6 +209,10 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
           boardId: input.boardId,
           id: input.id,
           patch: input.patch,
+          rebind: {
+            startElementId: input.startElementId,
+            endElementId: input.endElementId,
+          },
         })
       )
   );

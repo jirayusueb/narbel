@@ -3,6 +3,7 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import { deleteElement } from "../connectors";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 export class DeleteBoardElements {
@@ -25,24 +26,11 @@ export class DeleteBoardElements {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const deleted = await this.scenes.transact(input.boardId, (scene) => {
-      let count = 0;
-      for (const id of input.ids) {
-        const found = scene.find(id);
-        if (found && !found.element.isDeleted) {
-          // tombstone, so concurrent edits and late joiners converge on the deletion
-          scene.put(found.pageId, {
-            ...found.element,
-            isDeleted: true,
-            version: found.element.version + 1,
-            versionNonce: this.ids.int(),
-            updated: Date.now(),
-          });
-          count += 1;
-        }
-      }
-      return count;
-    });
+    const deleted = await this.scenes.transact(
+      input.boardId,
+      (scene) =>
+        input.ids.filter((id) => deleteElement(scene, this.ids, id)).length
+    );
     return ok({ deleted });
   }
 }

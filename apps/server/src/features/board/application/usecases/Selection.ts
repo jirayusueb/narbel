@@ -3,10 +3,10 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import { patchElement, stripReserved } from "../connectors";
 import { toSceneElementDto } from "../dtos/SceneDto";
 import type { SceneElementDto } from "../dtos/SceneDto";
 import type { IBoardScenes } from "../ports/IBoardScenes";
-import { patchElement, stripReserved } from "./UpdateBoardElement";
 
 export interface SelectionDto {
   ids: string[];
@@ -110,7 +110,7 @@ export class EditSelection {
     }
     const patch = stripReserved(input.patch);
     const updated = await this.scenes.transact(input.boardId, (s) =>
-      selected.filter((id) => patchElement(s, this.ids, id, patch))
+      selected.filter((id) => patchElement(s, this.ids, id, patch) === "ok")
     );
     return ok({ updated });
   }
