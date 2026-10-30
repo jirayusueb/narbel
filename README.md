@@ -7,6 +7,7 @@ Scaffolded with [Better-T-Stack](https://github.com/AmanVarshney01/create-better
 ## Features
 
 - **Boards**: Excalidraw canvas per board; create, rename, delete from the dashboard
+- **Search**: the dashboard search field (`GET /api/boards/search?q=`) finds boards you own or are invited to by title, element text (shape labels included) and comment text, as a case-insensitive substring so Thai works. Element text is mirrored into `board_text` (with page ids, pg_trgm GIN index) each time a board is persisted, and boards saved before search existed are indexed on API start
 - **Realtime (CRDT)**: one Yjs doc per board, `elements` map keyed by element id, merged with Excalidraw's version/versionNonce rule; presence (cursors, names) via Yjs awareness over `WS /api/boards/sync/:id`
 - **Media**: images upload to S3 (`POST /api/boards/:id/files`) and stream back through the API; PNG/JPEG/WebP are re-encoded client-side to WebP (long side capped at 2048 px) before upload, GIF and SVG are stored untouched, and a page only downloads the images it shows; any S3-compatible store works (RustFS locally)
 - **MCP**: `POST /mcp` (Streamable HTTP, stateless) with board, page, element, selection and comment tools (`list_boards`, `get_board`, `get_board_image`, `add_elements`, `update_element`, `delete_elements`, `get_selection`, `edit_selection`, `list_comments`, `reply_comment`, ...); authenticated with a Better Auth API key in `x-api-key`, created from the dashboard

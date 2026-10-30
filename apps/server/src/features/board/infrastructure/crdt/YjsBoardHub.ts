@@ -15,6 +15,8 @@ import type {
   SyncSession,
 } from "../../application/ports/IBoardSyncGateway";
 import type { IBoardDocumentStore } from "../repositories/DrizzleBoardDocumentStore";
+import { extractBoardText } from "./boardText";
+import type { BoardText } from "./boardText";
 import { ensurePages, sceneAccess } from "./pages";
 
 const MESSAGE_SYNC = 0;
@@ -412,7 +414,7 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     if (room.dirty) {
       room.dirty = false;
       const state = Y.encodeStateAsUpdate(room.doc);
-      room.saving = this.persist(room, state);
+      room.saving = this.persist(room, state, extractBoardText(room.doc));
     }
     if (room.peers.size === 0) {
       const done = room.saving;
@@ -428,10 +430,10 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     }
   }
 
-  private async persist(room: Room, state: Uint8Array) {
+  private async persist(room: Room, state: Uint8Array, texts: BoardText[]) {
     try {
       await room.saving;
-      await this.store.save(room.boardId, state);
+      await this.store.save(room.boardId, state, texts);
     } catch (error) {
       // keep the changes; the next update or disconnect retries
       room.dirty = true;

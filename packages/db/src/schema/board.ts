@@ -1,5 +1,6 @@
 import { defineRelationsPart } from "drizzle-orm";
 import {
+  boolean,
   customType,
   doublePrecision,
   index,
@@ -35,7 +36,10 @@ export const board = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("board_ownerId_idx").on(table.ownerId)]
+  (table) => [
+    index("board_ownerId_idx").on(table.ownerId),
+    index("board_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
+  ]
 );
 
 const memberRole = (name: string) =>
@@ -102,6 +106,7 @@ export const comment = pgTable(
   (table) => [
     index("comment_board_page_idx").on(table.boardId, table.pageId),
     index("comment_parent_idx").on(table.parentId, table.createdAt),
+    index("comment_body_trgm_idx").using("gin", table.body.op("gin_trgm_ops")),
   ]
 );
 
@@ -128,7 +133,26 @@ export const boardDocument = pgTable("board_document", {
     .references(() => board.id, { onDelete: "cascade" }),
   state: bytea("state").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  // false until board_text mirrors this state; the startup backfill picks these rows up
+  textIndexed: boolean("text_indexed").default(false).notNull(),
 });
+
+// Search mirror of the text elements inside board_document.state, one row per element.
+export const boardText = pgTable(
+  "board_text",
+  {
+    boardId: text("board_id")
+      .notNull()
+      .references(() => board.id, { onDelete: "cascade" }),
+    pageId: text("page_id").notNull(),
+    elementId: text("element_id").notNull(),
+    text: text("text").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.boardId, table.pageId, table.elementId] }),
+    index("board_text_trgm_idx").using("gin", table.text.op("gin_trgm_ops")),
+  ]
+);
 
 export const boardFile = pgTable(
   "board_file",

@@ -4,6 +4,7 @@ import Redis from "ioredis";
 
 import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
+import { backfillBoardText } from "./features/board";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
 import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
@@ -19,6 +20,7 @@ const db = createDb(ENV);
 if (process.env.MIGRATIONS_DIR) {
   await migrate(db, { migrationsFolder: process.env.MIGRATIONS_DIR });
 }
+await backfillBoardText(db);
 const auth = createAuth(ENV, db);
 const redis = new Redis(ENV.REDIS_URL);
 redis.on("error", (error) => {

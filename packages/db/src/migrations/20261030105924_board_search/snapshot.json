@@ -1,0 +1,305 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "67d3a986-a678-4025-8e69-5dc1f96413e4",
+  "prevIds": ["8d5a2f1d-1dcf-43d6-a684-e5af6df68804"],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "board_text"],
+      "writes": [
+        "s|tbl|public.board_text",
+        "n|tbl|public.board_text",
+        "e|tbl|public.board_text",
+        "n|rel|public.board_text",
+        "n|type|public.board_text",
+        "n|rel|public.board_text_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "board_document", "text_indexed"],
+      "writes": [
+        "s|col|public.board_document.text_indexed",
+        "n|col|public.board_document.text_indexed",
+        "e|col|public.board_document.text_indexed"
+      ],
+      "reads": ["n|tbl|public.board_document", "n|sch|public"]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": ["index", "public", "board", "board_title_trgm_idx"],
+      "writes": [
+        "s|idx|public.board_title_trgm_idx",
+        "n|idx|public.board_title_trgm_idx",
+        "e|idx|public.board_title_trgm_idx",
+        "n|rel|public.board_title_trgm_idx"
+      ],
+      "reads": [
+        "n|tbl|public.board",
+        "n|sch|public",
+        "n|col|public.board.title"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "board_text",
+        "board_text_trgm_idx"
+      ],
+      "writes": [
+        "s|idx|public.board_text_trgm_idx",
+        "n|idx|public.board_text_trgm_idx",
+        "e|idx|public.board_text_trgm_idx",
+        "n|rel|public.board_text_trgm_idx"
+      ],
+      "reads": [
+        "n|tbl|public.board_text",
+        "n|sch|public",
+        "n|col|public.board_text.text"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "comment",
+        "comment_body_trgm_idx"
+      ],
+      "writes": [
+        "s|idx|public.comment_body_trgm_idx",
+        "n|idx|public.comment_body_trgm_idx",
+        "e|idx|public.comment_body_trgm_idx",
+        "n|rel|public.comment_body_trgm_idx"
+      ],
+      "reads": [
+        "n|tbl|public.comment",
+        "n|sch|public",
+        "n|col|public.comment.body"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "board_text"],
+      "writes": [
+        "s|fk|public.board_text.board_text_board_id_board_id_fkey",
+        "n|fk|public.board_text.board_text_board_id_board_id_fkey",
+        "e|fk|public.board_text.board_text_board_id_board_id_fkey",
+        "n|con|public.board_text.board_text_board_id_board_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.board_text",
+        "n|sch|public",
+        "n|tbl|public.board",
+        "n|sch|public",
+        "n|col|public.board_text.board_id",
+        "n|col|public.board.id",
+        "e|uniqueness|public.board.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "board_text",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_document",
+        "name": "text_indexed",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text",
+        "name": "board_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text",
+        "name": "page_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text",
+        "name": "element_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text",
+        "name": "text",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board",
+        "name": "board_title_trgm_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "title",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text",
+        "name": "board_text_trgm_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "text",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "comment",
+        "name": "comment_body_trgm_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "body",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text",
+        "name": "board_text_board_id_board_id_fkey",
+        "nameExplicit": false,
+        "columns": ["board_id"],
+        "schemaTo": "public",
+        "tableTo": "board",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text",
+        "name": "board_text_pkey",
+        "columns": ["board_id", "page_id", "element_id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}
