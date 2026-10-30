@@ -40,6 +40,7 @@ pre-commit:
       run: bun oxlint --fix {staged_files}
       stage_fixed: true
     - name: oxfmt
+      glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc}"
       run: bun oxfmt --write {staged_files}
       stage_fixed: true
     - name: react-doctor
