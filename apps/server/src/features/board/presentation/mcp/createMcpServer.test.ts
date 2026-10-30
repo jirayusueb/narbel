@@ -3,14 +3,21 @@ import { expect, test } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
+import { ok } from "../../../../shared/kernel/types/Result";
 import type { BoardUseCases } from "../../ioc";
 import { createMcpServer } from "./createMcpServer";
 
-test("an MCP client sees every board tool and the drawing guide", async () => {
-  const server = createMcpServer({} as BoardUseCases, { userId: "u1" });
+const connect = async (uc: Partial<BoardUseCases> = {}) => {
+  // registration never touches the use cases; only calls do
+  const server = createMcpServer(uc as BoardUseCases, { userId: "u1" });
   const [serverSide, clientSide] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test", version: "0" });
   await Promise.all([server.connect(serverSide), client.connect(clientSide)]);
+  return client;
+};
+
+test("an MCP client sees every board tool and the drawing guide", async () => {
+  const client = await connect();
 
   const { tools } = await client.listTools();
   expect(tools.map((t) => t.name).toSorted()).toEqual(
@@ -50,4 +57,15 @@ test("an MCP client sees every board tool and the drawing guide", async () => {
     ].toSorted()
   );
   expect(client.getInstructions()).toContain("add_image");
+});
+
+test("a tool whose use case returns nothing still answers the client", async () => {
+  const client = await connect({
+    deletePage: { execute: () => Promise.resolve(ok()) },
+  } as unknown as Partial<BoardUseCases>);
+  const res = await client.callTool({
+    name: "delete_page",
+    arguments: { boardId: "b", pageId: "p" },
+  });
+  expect(res.isError).toBeUndefined();
 });
