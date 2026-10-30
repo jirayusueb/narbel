@@ -30,7 +30,11 @@ export const SignInForm = ({
     defaultValues: { email: "", password: "" },
     onSubmit: async ({ value }) => {
       await authClient.signIn.email(value, {
-        onSuccess: () => {
+        onSuccess: (ctx) => {
+          // an OAuth authorize request is waiting: the client follows `url` itself
+          if (ctx.data?.redirect) {
+            return;
+          }
           router.history.push(redirectTo ?? "/dashboard");
           toast.success("Signed in");
         },

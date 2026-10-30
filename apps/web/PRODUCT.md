@@ -27,7 +27,7 @@ The board is a shared surface for people and agents at once. An agent connected 
 
 - Boards are created, renamed, deleted from the dashboard; each board has pages, comments, presence (cursors, names, follow), undo/redo, and per-user preferences (grid, tool lock, snap, zen, stats).
 - Sharing: visibility, password-protected boards, share links, email invites (Resend). Viewers get read-only boards.
-- MCP: `POST /mcp` (Streamable HTTP) with tools `list_boards`, `create_board`, `get_board`, `add_elements`, `update_element`, `delete_elements`, plus selection tools; authenticated with an API key in `x-api-key`, created from the dashboard.
+- MCP: `POST /mcp` (Streamable HTTP) with tools `list_boards`, `create_board`, `get_board`, `add_elements`, `update_element`, `delete_elements`, plus selection tools; signs in with OAuth 2.1 (the client discovers it from the 401 `WWW-Authenticate` header, registers itself, and the user approves on `/consent`), or with an API key in `x-api-key` created from the dashboard for clients without OAuth.
 - Auth: email and password (Better Auth).
 
 ## Capabilities and Constraints

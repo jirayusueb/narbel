@@ -85,6 +85,7 @@ const MCP_TOOLS = [
   "rename_page",
   "delete_page",
   "add_elements",
+  "connect",
   "update_element",
   "delete_elements",
   "get_selection",

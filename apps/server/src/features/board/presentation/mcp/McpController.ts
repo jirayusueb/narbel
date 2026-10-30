@@ -19,15 +19,17 @@ export const createMcpController = (
 ) =>
   new Elysia({ name: "board/mcp" })
     .use(betterAuth)
-    .post("/mcp", { auth: true }, async ({ request, body, user }) => {
-      // stateless: a fresh server + transport per request, nothing to clean up between calls
-      const server = createMcpServer(uc, userActor(user));
-      const transport = new WebStandardStreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-        enableJsonResponse: true,
-      });
-      await server.connect(transport);
-      return transport.handleRequest(request, { parsedBody: body });
-    })
+    .post("/mcp", ({ request, body, withMcpUser }) =>
+      withMcpUser(request, async (user) => {
+        // stateless: a fresh server + transport per request, nothing to clean up between calls
+        const server = createMcpServer(uc, userActor(user));
+        const transport = new WebStandardStreamableHTTPServerTransport({
+          sessionIdGenerator: undefined,
+          enableJsonResponse: true,
+        });
+        await server.connect(transport);
+        return transport.handleRequest(request, { parsedBody: body });
+      })
+    )
     .get("/mcp", methodNotAllowed)
     .delete("/mcp", methodNotAllowed);

@@ -11,7 +11,7 @@
       "tsrs": "0.20.1-ts7.1.0-beta",
       "@types/bun": "^1.4.3",
       "varlock": "1.23.0",
-      "better-auth": "1.7.12",
+      "better-auth": "1.7.14",
       "next-themes": "^0.4.6",
       "sonner": "^2.0.8",
       "tailwindcss": "^4.3.3",

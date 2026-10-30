@@ -72,8 +72,9 @@ export const McpKeysPanel = () => {
             Connect an agent
           </h2>
           <p className="text-muted-foreground max-w-prose text-sm">
-            Let AI agents read and edit your boards. Point an MCP client at the
-            URL below and send the key in the{" "}
+            Let AI agents read and edit your boards. Paste the URL below into an
+            MCP client and it signs you in with OAuth. For clients without
+            OAuth, create a key and send it in the{" "}
             <code className="font-mono text-[13px]">x-api-key</code> header.
           </p>
         </div>

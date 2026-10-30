@@ -244,6 +244,34 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
       )
   );
   server.registerTool(
+    "connect",
+    {
+      description:
+        "Draw an arrow from one existing element to another, bound at both ends so it stays attached when either moves. Returns the arrow id. The page is taken from the elements.",
+      inputSchema: {
+        boardId,
+        from: elementId.describe("Element id the arrow starts at (tail)"),
+        to: elementId.describe("Element id the arrow points to (head)"),
+        pageId,
+      },
+    },
+    async (input) =>
+      reply(
+        await uc.addBoardElements.execute({
+          actor,
+          boardId: input.boardId,
+          pageId: input.pageId,
+          shapes: [
+            {
+              type: "arrow",
+              startElementId: input.from,
+              endElementId: input.to,
+            },
+          ],
+        })
+      )
+  );
+  server.registerTool(
     "add_elements",
     {
       description:
