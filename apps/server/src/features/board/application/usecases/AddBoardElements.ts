@@ -101,6 +101,8 @@ const FAILURES: Record<
 
 interface Built {
   shape: Shape;
+  /** the agent gave startElementId/endElementId to a shape that cannot connect */
+  strayEnds: boolean;
   element: SceneElement;
 }
 
@@ -226,7 +228,10 @@ const referenceProblem = (
   batch: Built[],
   known: Map<string, SceneElement>
 ): Exclude<AddOutcome, "ok"> | undefined => {
-  for (const { shape } of batch) {
+  for (const { shape, strayEnds } of batch) {
+    if (strayEnds) {
+      return "not-connector";
+    }
     const { startElementId, endElementId } = endsOf(shape);
     if (
       [startElementId, endElementId].some(
@@ -375,6 +380,13 @@ export class AddBoardElements {
     }
     const now = Date.now();
     const shapes: Shape[] = [];
+    const strayEnds = input.shapes.map(
+      (flat) =>
+        (flat.startElementId !== undefined ||
+          flat.endElementId !== undefined) &&
+        flat.type !== "arrow" &&
+        flat.type !== "line"
+    );
     for (const flat of input.shapes) {
       const parsed = parseShape(flat);
       if (parsed.isErr()) {
@@ -382,8 +394,9 @@ export class AddBoardElements {
       }
       shapes.push(parsed.value);
     }
-    const batch = shapes.map((shape) => ({
+    const batch = shapes.map((shape, i) => ({
       shape,
+      strayEnds: strayEnds[i] ?? false,
       element: buildElement(shape, {
         id: shape.id ?? this.ids.generate(),
         seed: this.ids.int(),

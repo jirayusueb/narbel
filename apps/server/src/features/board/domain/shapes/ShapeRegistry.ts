@@ -76,7 +76,6 @@ export interface ShapeInput extends BaseShape, Ends {
 export interface ShapeRejection {
   outcome:
     | "bad-style"
-    | "not-connector"
     | "nested-frame"
     | "frame-geometry"
     | "connector-text"
@@ -295,20 +294,14 @@ export const parseShape = (
   if (rejected) {
     return err(rejected);
   }
-  const hasEnds = startElementId !== undefined || endElementId !== undefined;
   switch (input.type) {
     case "rectangle":
     case "ellipse":
     case "diamond":
     case "text": {
-      return hasEnds
-        ? err({ outcome: "not-connector" })
-        : ok({ ...base, type: input.type, text, frameId });
+      return ok({ ...base, type: input.type, text, frameId });
     }
     case "frame": {
-      if (hasEnds) {
-        return err({ outcome: "not-connector" });
-      }
       if (frameId !== undefined) {
         return err({ outcome: "nested-frame" });
       }
