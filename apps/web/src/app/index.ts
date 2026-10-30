@@ -1,5 +1,6 @@
 export {
   onboardedIfSignedIn,
+  redirectSearch,
   requireNotOnboarded,
   requireOnboarded,
 } from "./guards/require-session";

@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { requireNotOnboarded } from "@/app";
+import { redirectSearch, requireNotOnboarded } from "@/app";
 import { OnboardingPage } from "@/pages/onboarding";
-import { safeRedirect } from "@/shared/lib";
 
 const OnboardingRoute = () => (
   <OnboardingPage redirectTo={Route.useSearch().redirect} />
@@ -10,9 +9,7 @@ const OnboardingRoute = () => (
 
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
-    redirect: safeRedirect(search.redirect),
-  }),
+  validateSearch: redirectSearch,
   beforeLoad: requireNotOnboarded,
   component: OnboardingRoute,
 });

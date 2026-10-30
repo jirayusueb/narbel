@@ -8,6 +8,11 @@ interface Where {
   href: string;
 }
 
+// Routes stay thin: login and onboarding validate their `redirect` search param through here.
+export const redirectSearch = (
+  search: Record<string, unknown>
+): { redirect?: string } => ({ redirect: safeRedirect(search.redirect) });
+
 // The destination rides along as `redirect` so a shared link survives sign-in and onboarding.
 export const requireSession = async (from: Where) => {
   const session = await fetchSession();
