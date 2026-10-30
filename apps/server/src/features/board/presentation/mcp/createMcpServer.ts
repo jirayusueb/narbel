@@ -1,8 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { AppError } from "../../../../shared/kernel/errors/AppError";
-import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor } from "../../application/BoardAccess";
 import { roundCoord } from "../../application/dtos/SceneDto";
 import {
@@ -12,31 +10,16 @@ import {
 } from "../../domain/rendering/sceneSvg";
 import { SHAPE_TYPES } from "../../domain/shapes/ShapeRegistry";
 import type { BoardUseCases } from "../../ioc";
+import {
+  boardId,
+  elementId,
+  elementText,
+  pageId,
+  reply,
+  text,
+} from "./toolKit";
 
-const text = (value: unknown) => ({
-  content: [{ type: "text" as const, text: JSON.stringify(value) }],
-});
-
-const reply = <T>(result: Result<T, AppError>) =>
-  result.isOk()
-    ? text(result.value)
-    : {
-        isError: true as const,
-        content: [
-          {
-            type: "text" as const,
-            text: `${result.error.code}: ${result.error.message}`,
-          },
-        ],
-      };
-
-// bounds keep a runaway agent from bloating the shared doc every browser downloads
-const elementText = z.string().max(10_000);
 const elementColor = z.string().max(32);
-
-const elementId = z
-  .string()
-  .regex(/^[\w-]{1,64}$/u, "letters, digits, _ or -, at most 64");
 
 const shape = z.object({
   type: z.enum(SHAPE_TYPES),
@@ -88,13 +71,6 @@ const patch = z
   })
   .partial();
 
-const boardId = z
-  .string()
-  .describe("Board id from list_boards or create_board");
-const pageId = z
-  .string()
-  .optional()
-  .describe("Page id from list_pages; defaults to the first page");
 const pageName = z.string().describe("1 to 80 characters");
 
 export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
