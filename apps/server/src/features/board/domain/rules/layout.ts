@@ -138,10 +138,13 @@ export const layered = (
   const gaps = ranks.map(() => RANK_GAP);
   for (const { from, to, label } of edges) {
     const at = rankOf.get(from);
-    if (label && at !== undefined && rankOf.get(to) === at + 1) {
+    const end = rankOf.get(to);
+    if (label && at !== undefined && end !== undefined) {
       const need =
         (down ? label.height : label.width) + 2 * (LABEL_MARGIN + BINDING_GAP);
-      gaps[at] = Math.max(gaps[at] ?? RANK_GAP, need);
+      for (let rank = at; rank < end; rank += 1) {
+        gaps[rank] = Math.max(gaps[rank] ?? RANK_GAP, need);
+      }
     }
   }
   const widest = Math.max(...ranks.map(span));

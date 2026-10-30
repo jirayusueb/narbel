@@ -31,8 +31,8 @@ import {
 import {
   buildElement,
   buildLabel,
+  arrowLabelSize,
   fitLabel,
-  measure,
 } from "../../domain/shapes/ShapeRegistry";
 import type { Shape } from "../../domain/shapes/ShapeRegistry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
@@ -199,7 +199,7 @@ const arrange = (
                 from: startElementId,
                 to: endElementId,
                 label: text
-                  ? measure(text, fontSize ?? STYLE.fontSize.default)
+                  ? arrowLabelSize(text, fontSize ?? STYLE.fontSize.default)
                   : undefined,
               },
             ]
