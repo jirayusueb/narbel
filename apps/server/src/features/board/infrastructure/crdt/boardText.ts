@@ -34,3 +34,50 @@ export const extractBoardText = (doc: Y.Doc): BoardText[] =>
         : [];
     }
   );
+
+/** The `board_text` rows to write to bring a stored board up to date; `replaceAll` ignores what is stored. */
+export interface TextChange {
+  replaceAll: boolean;
+  upsert: BoardText[];
+  remove: Pick<BoardText, "pageId" | "elementId">[];
+}
+
+export type TextIndex = Map<string, BoardText>;
+
+export const indexTexts = (texts: BoardText[]): TextIndex =>
+  new Map(
+    texts.map((entry) => [`${entry.pageId}\u0000${entry.elementId}`, entry])
+  );
+
+export const replaceAllTexts = (texts: BoardText[]): TextChange => ({
+  replaceAll: true,
+  upsert: texts,
+  remove: [],
+});
+
+/**
+ * What to write given the rows last written (undefined when unknown, which rewrites everything),
+ * or undefined when the stored text is already current.
+ */
+export const diffTexts = (
+  written: TextIndex | undefined,
+  next: TextIndex
+): TextChange | undefined => {
+  if (!written) {
+    return replaceAllTexts([...next.values()]);
+  }
+  const upsert = [...next].filter(
+    ([key, entry]) => written.get(key)?.text !== entry.text
+  );
+  const remove = [...written].filter(([key]) => !next.has(key));
+  return upsert.length === 0 && remove.length === 0
+    ? undefined
+    : {
+        replaceAll: false,
+        upsert: upsert.map(([, entry]) => entry),
+        remove: remove.map(([, { pageId, elementId }]) => ({
+          pageId,
+          elementId,
+        })),
+      };
+};

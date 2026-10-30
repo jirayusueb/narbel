@@ -7,6 +7,7 @@ import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 
 import type { SyncPeer } from "../../application/ports/IBoardSyncGateway";
+import type { TextChange } from "./boardText";
 import { MemoryBus } from "./MemoryBus";
 import { YjsBoardHub } from "./YjsBoardHub";
 
@@ -223,5 +224,131 @@ describe("YjsBoardHub across instances", () => {
     expect(bus.subscribers("sync:b1")).toBe(1);
     await a.discard("b1");
     expect(bus.subscribers("sync:b1")).toBe(0);
+  });
+});
+
+const sleep = (ms: number) => Bun.sleep(ms);
+
+describe("YjsBoardHub persistence", () => {
+  const timing = { debounceMs: 20, maxDelayMs: 100, graceMs: 150 };
+  const recorder = () => {
+    const saves: { state: Uint8Array; texts: TextChange | undefined }[] = [];
+    let loads = 0;
+    return {
+      saves,
+      loads: () => loads,
+      store: {
+        load: () => {
+          loads += 1;
+          return Promise.resolve(null);
+        },
+        save: (
+          _id: string,
+          state: Uint8Array,
+          texts: TextChange | undefined
+        ) => {
+          saves.push({ state, texts });
+          return Promise.resolve("owner");
+        },
+      },
+    };
+  };
+  const text = (id: string, value: string, version = 1) => ({
+    id,
+    version,
+    versionNonce: version,
+    type: "text",
+    text: value,
+  });
+
+  it("writes text rows only when the text changed, and only the difference", async () => {
+    const { saves, store: db } = recorder();
+    const hub = new YjsBoardHub(db, new MemoryBus(), timing);
+    await hub.transact("b1", (s) => {
+      s.put("page:main", text("a", "one"));
+      s.put("page:main", text("b", "two"));
+    });
+    await sleep(60);
+    expect(saves).toHaveLength(1);
+    expect(saves[0]?.texts?.replaceAll).toBe(true);
+    expect(saves[0]?.texts?.upsert).toHaveLength(2);
+
+    await hub.transact("b1", (s) => {
+      s.put("page:main", {
+        id: "r",
+        version: 1,
+        versionNonce: 1,
+        type: "rectangle",
+        x: 1,
+      });
+    });
+    await sleep(60);
+    expect(saves).toHaveLength(2);
+    expect(saves[1]?.texts).toBeUndefined();
+
+    await hub.transact("b1", (s) => s.put("page:main", text("a", "uno", 2)));
+    await sleep(60);
+    expect(saves[2]?.texts).toEqual({
+      replaceAll: false,
+      upsert: [{ pageId: "page:main", elementId: "a", text: "uno" }],
+      remove: [],
+    });
+
+    await hub.transact("b1", (s) =>
+      s.put("page:main", { ...text("b", "two", 2), isDeleted: true })
+    );
+    await sleep(60);
+    expect(saves[3]?.texts).toEqual({
+      replaceAll: false,
+      upsert: [],
+      remove: [{ pageId: "page:main", elementId: "b" }],
+    });
+    await hub.discard("b1");
+  });
+
+  it("keeps an unused room loaded for the grace period, then saves and unloads it", async () => {
+    const { saves, loads, store: db } = recorder();
+    const hub = new YjsBoardHub(db, new MemoryBus(), timing);
+    await hub.transact("b1", (s) => s.put("page:main", text("a", "one")));
+    await sleep(80);
+    expect(saves).toHaveLength(1);
+    await hub.transact("b1", () => {});
+    await sleep(100);
+    // 180ms since the first call, but the second one restarted the grace
+    await hub.transact("b1", () => {});
+    expect(loads()).toBe(1);
+    await sleep(220);
+    await hub.transact("b1", () => {});
+    expect(loads()).toBe(2);
+    await hub.discard("b1");
+  });
+
+  it("saves pending changes before unloading", async () => {
+    const { saves, store: db } = recorder();
+    const hub = new YjsBoardHub(db, new MemoryBus(), {
+      debounceMs: 500,
+      maxDelayMs: 1000,
+      graceMs: 30,
+    });
+    await hub.transact("b1", (s) => s.put("page:main", text("a", "one")));
+    await sleep(80);
+    expect(saves).toHaveLength(1);
+  });
+
+  it("saves continuous edits within the maximum delay", async () => {
+    const { saves, store: db } = recorder();
+    const hub = new YjsBoardHub(db, new MemoryBus(), timing);
+    const editor = new Client();
+    await join(hub, editor, true);
+    const map = editor.doc.getMap("elements");
+    const start = Date.now();
+    // updates arrive more often than the debounce, so only the cap can trigger a save
+    while (saves.length === 0 && Date.now() - start < 400) {
+      map.set("page:main:a", { id: "a", x: Date.now() });
+      await sleep(5);
+    }
+    expect(saves.length).toBeGreaterThan(0);
+    expect(Date.now() - start).toBeLessThan(200);
+    await hub.discard("b1");
   });
 });
