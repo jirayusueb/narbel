@@ -421,7 +421,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "get_changes",
     {
       description:
-        "What people changed on a board since your last look: elements they added, updated or deleted in the browser, and comment activity (new threads, replies, edits, resolves). Call it without `since` first and keep the returned `cursor`; pass the latest cursor as `since` on every later call and keep the new one. omitted > 0 means more elements changed than are listed: call get_board for the full page. moreComments true means call again with the new cursor. Your own element edits are not reported; comments include your own replies. Not reported: elements removed by deleting a whole page, reopened or deleted comments, reactions.",
+        "What people changed on a board since your last look: elements they added, updated or deleted in the browser, and comment activity (new threads, replies, edits, resolves). Call it without `since` first and keep the returned `cursor`; pass the latest cursor as `since` on every later call and keep the new one. Deletions older than a day may be missing when your cursor is older than a day; call get_board after a long gap. omitted > 0 means more elements changed than are listed: call get_board for the full page. moreComments true means call again with the new cursor. Your own element edits are not reported; comments include your own replies. Not reported: elements removed by deleting a whole page, reopened or deleted comments, reactions.",
       inputSchema: {
         boardId,
         since: z
