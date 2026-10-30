@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { nextCompact, topRowSlack } from "./chrome-fit";
@@ -26,6 +26,11 @@ export const useCompactChrome = ({
   liveStatus: boolean;
 }) => {
   const [compact, setCompact] = useState(false);
+  // Compact mode empties Excalidraw's top-right slot, which re-centres the toolbar. Measured from there the
+  // way back always looks free and the two layouts flip each other until React aborts, so the exit check
+  // shifts the toolbar back by the move seen on the last switch.
+  const wideToolbarLeft = useRef<number | null>(null);
+  const toolbarShift = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -48,12 +53,19 @@ export const useCompactChrome = ({
       const natural = Math.min(titleText?.scrollWidth ?? 0, TITLE_CAP);
       const chrome = card.offsetWidth - title.offsetWidth;
       const isCompactCard = card.dataset.compact === "true";
+      if (!isCompactCard) {
+        wideToolbarLeft.current = bar.left;
+      } else if (wideToolbarLeft.current !== null) {
+        toolbarShift.current = bar.left - wideToolbarLeft.current;
+        wideToolbarLeft.current = null;
+      }
+      const shift = isCompactCard ? toolbarShift.current : 0;
       const slack = topRowSlack({
         cardLeft: canvas.getBoundingClientRect().left + CARD_LEFT,
         cardNeeded:
           chrome + natural + (isCompactCard && liveStatus ? LIVE_LABEL : 0),
-        toolbarLeft: bar.left,
-        toolbarRight: bar.right,
+        toolbarLeft: bar.left - shift,
+        toolbarRight: bar.right - shift,
         clusterLeft: right - cluster.scrollWidth,
       });
       setCompact((was) => nextCompact(was, slack));
