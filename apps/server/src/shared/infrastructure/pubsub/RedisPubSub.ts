@@ -31,7 +31,13 @@ export class RedisPubSub implements IPubSub {
     if (!set) {
       set = new Set();
       this.handlers.set(channel, set);
-      await this.subscriber.subscribe(channel);
+      try {
+        await this.subscriber.subscribe(channel);
+      } catch (error) {
+        // ioredis only re-subscribes confirmed channels on reconnect, so a stale set would block every later SUBSCRIBE
+        this.handlers.delete(channel);
+        throw error;
+      }
     }
     set.add(handler);
     return async () => {

@@ -29,7 +29,8 @@ export class RedisSecondaryStorage implements SecondaryStorage {
     try {
       return await this.redis.get(key);
     } catch (error) {
-      console.error(`Auth storage get failed for ${key}`, error);
+      // no key in the log: session keys are the raw session tokens
+      console.error("Auth storage get failed", error);
       return null;
     }
   };
@@ -40,7 +41,7 @@ export class RedisSecondaryStorage implements SecondaryStorage {
         ? this.redis.set(key, value, "EX", ttl)
         : this.redis.set(key, value));
     } catch (error) {
-      console.error(`Auth storage set failed for ${key}`, error);
+      console.error("Auth storage set failed", error);
     }
   };
 
@@ -66,7 +67,7 @@ export class RedisSecondaryStorage implements SecondaryStorage {
       }
       return Number(count);
     } catch (error) {
-      console.error(`Auth storage increment failed for ${key}`, error);
+      console.error("Auth storage increment failed", error);
       return 1;
     }
   };

@@ -41,6 +41,7 @@ export class RedisAttemptLimiter implements IAttemptLimiter {
   }
 
   private redisKey(key: string) {
-    return `board:unlock-failures:${key}`;
+    // outside the board cache's `board:<id>` namespace, which is built from a raw URL param
+    return `unlock-failures:${key}`;
   }
 }
