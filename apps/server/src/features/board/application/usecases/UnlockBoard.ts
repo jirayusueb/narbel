@@ -28,11 +28,11 @@ export class UnlockBoard {
     ) {
       return err(AppError.notFound("Board"));
     }
-    if (this.limiter.isBlocked(input.attemptKey)) {
+    if (await this.limiter.isBlocked(input.attemptKey)) {
       return err(AppError.forbidden("Too many attempts, try again later"));
     }
     if (!(await this.hasher.verify(input.password, board.passwordHash))) {
-      this.limiter.recordFailure(input.attemptKey);
+      await this.limiter.recordFailure(input.attemptKey);
       return err(AppError.forbidden("Wrong password"));
     }
     return ok({ proof: this.tokens.issue(board.id, board.passwordHash) });

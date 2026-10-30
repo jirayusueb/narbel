@@ -158,8 +158,12 @@ describe("unlock", () => {
     );
     const failures: string[] = [];
     const limiter = {
-      isBlocked: (key: string) => failures.filter((k) => k === key).length >= 2,
-      recordFailure: (key: string) => failures.push(key),
+      isBlocked: (key: string) =>
+        Promise.resolve(failures.filter((k) => k === key).length >= 2),
+      recordFailure: (key: string) => {
+        failures.push(key);
+        return Promise.resolve();
+      },
     };
     return {
       ...base,

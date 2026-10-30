@@ -1,4 +1,4 @@
 export interface IAttemptLimiter {
-  isBlocked(key: string): boolean;
-  recordFailure(key: string): void;
+  isBlocked(key: string): Promise<boolean>;
+  recordFailure(key: string): Promise<void>;
 }

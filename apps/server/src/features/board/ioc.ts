@@ -1,5 +1,6 @@
 import type { Database, DbExecutor } from "@narbel/db";
 import { Elysia } from "elysia";
+import type Redis from "ioredis";
 
 import type { ICache } from "../../shared/application/interfaces/ICache";
 import type { IFileStorage } from "../../shared/application/interfaces/IFileStorage";
@@ -62,7 +63,7 @@ import { DrizzleBoardFileRepository } from "./infrastructure/repositories/Drizzl
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
 import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
-import { MemoryAttemptLimiter } from "./infrastructure/services/MemoryAttemptLimiter";
+import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
 import { ResvgRasterizer } from "./infrastructure/services/ResvgRasterizer";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
 import { createBoardAccessController } from "./presentation/http/BoardAccessController";
@@ -87,6 +88,8 @@ export interface BoardDeps {
   /** shared by every server instance: cache-aside reads and the realtime sync bus */
   cache: ICache;
   pubsub: IPubSub;
+  /** counts unlock failures across server instances */
+  redis: Redis;
   betterAuth: BetterAuthPlugin;
 }
 
@@ -98,6 +101,7 @@ const createUseCases = ({
   secret,
   cache,
   pubsub,
+  redis,
 }: Omit<BoardDeps, "betterAuth">) => {
   const boards = new CachedBoardRepository(
     new DrizzleBoardRepository(db),
@@ -178,7 +182,7 @@ const createUseCases = ({
       boards,
       hasher,
       unlockTokens,
-      new MemoryAttemptLimiter()
+      new RedisAttemptLimiter(redis)
     ),
     listComments: new ListComments(guard, comments, profiles),
     listReplies: new ListReplies(guard, comments, profiles),
