@@ -12,6 +12,7 @@ import { SHAPE_TYPES } from "../../domain/shapes/ShapeRegistry";
 import type { BoardUseCases } from "../../ioc";
 import { registerCollabTools } from "./collabTools";
 import { DESIGN_GUIDE } from "./designGuide";
+import { registerLayoutTools } from "./layoutTools";
 import { registerMediaTools } from "./mediaTools";
 import { style } from "./styleSchema";
 import {
@@ -444,5 +445,6 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
   );
   registerCollabTools(server, uc, actor);
   registerMediaTools(server, uc, actor);
+  registerLayoutTools(server, uc, actor);
   return server;
 };
