@@ -54,6 +54,44 @@ module.exports = {
       from: { path: `${S}/features/([^/]+)/` },
       to: { path: FEATURE_INTERNAL, pathNot: `${S}/features/$1/` },
     },
+    {
+      // step 3 of docs/architecture/contexts.md: only the owning context imports a schema file
+      name: "server-schema-board-owner",
+      comment:
+        "schema/board.ts belongs to features/board until the boards context exists",
+      severity: "error",
+      from: {
+        path: `${S}/`,
+        pathNot: `${S}/features/board/`,
+      },
+      to: { path: "packages/db/src/schema/board\\.ts$" },
+    },
+    {
+      name: "server-schema-auth-owner",
+      comment:
+        "schema/auth.ts belongs to features/auth and the profile reader in shared; DrizzleBoardAccessRepository keeps one legacy read until step 6 replaces it with PeopleDirectory",
+      severity: "error",
+      from: {
+        path: `${S}/`,
+        pathNot: [
+          `${S}/features/auth/`,
+          `${S}/shared/infrastructure/profile/`,
+          "features/board/infrastructure/repositories/DrizzleBoardAccessRepository\\.ts$",
+        ],
+      },
+      to: { path: "packages/db/src/schema/auth\\.ts$" },
+    },
+    {
+      name: "server-schema-account-owner",
+      comment:
+        "schema/account.ts (notification, outbox, profile tables) stays with shared and features/notification until step 4 splits it",
+      severity: "error",
+      from: {
+        path: `${S}/`,
+        pathNot: [`${S}/shared/`, `${S}/features/notification/`],
+      },
+      to: { path: "packages/db/src/schema/account\\.ts$" },
+    },
   ],
   options: {
     tsPreCompilationDeps: true,

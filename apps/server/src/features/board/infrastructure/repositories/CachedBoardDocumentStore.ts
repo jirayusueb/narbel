@@ -1,7 +1,9 @@
 import type { ICache } from "../../../../shared/application/interfaces/ICache";
-import type { TextChange } from "../crdt/boardText";
+import type {
+  IBoardDocumentStore,
+  TextChange,
+} from "../../application/ports/IBoardDocumentStore";
 import { boardKey, userBoardsKey } from "./CachedBoardRepository";
-import type { IBoardDocumentStore } from "./DrizzleBoardDocumentStore";
 
 /** Saving a document bumps the board's updatedAt, so the cached board and its owner's list go stale. */
 export class CachedBoardDocumentStore implements IBoardDocumentStore {

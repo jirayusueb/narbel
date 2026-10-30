@@ -3,26 +3,16 @@ import type { Database, DbExecutor } from "@narbel/db";
 import { board, boardDocument, boardText } from "@narbel/db/schema/board";
 import * as Y from "yjs";
 
+import type {
+  IBoardDocumentStore,
+  TextChange,
+} from "../../application/ports/IBoardDocumentStore";
 import {
   diffTexts,
   extractBoardText,
   indexTexts,
   replaceAllTexts,
 } from "../crdt/boardText";
-import type { TextChange } from "../crdt/boardText";
-
-export interface IBoardDocumentStore {
-  load(boardId: string): Promise<Uint8Array | null>;
-  /**
-   * Persists the state together with the change to the search mirror of its text (none when unchanged).
-   * Resolves to the owner of the board (for cache invalidation), or undefined if the board is gone.
-   */
-  save(
-    boardId: string,
-    state: Uint8Array,
-    texts?: TextChange
-  ): Promise<string | undefined>;
-}
 
 const BACKFILL_BATCH = 50;
 

@@ -6,8 +6,8 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 
+import type { TextChange } from "../../application/ports/IBoardDocumentStore";
 import type { SyncPeer } from "../../application/ports/IBoardSyncGateway";
-import type { TextChange } from "./boardText";
 import { MemoryBus } from "./MemoryBus";
 import { YjsBoardHub } from "./YjsBoardHub";
 

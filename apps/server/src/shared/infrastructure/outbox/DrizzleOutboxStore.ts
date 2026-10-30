@@ -2,7 +2,10 @@ import { and, eq, lte } from "@narbel/db";
 import type { Database } from "@narbel/db";
 import { outbox } from "@narbel/db/schema/account";
 
-import type { ClaimedMessage, IOutboxStore } from "./OutboxStore";
+import type {
+  ClaimedMessage,
+  IOutboxStore,
+} from "../../application/interfaces/IOutboxStore";
 
 export class DrizzleOutboxStore implements IOutboxStore {
   constructor(private readonly db: Database) {}

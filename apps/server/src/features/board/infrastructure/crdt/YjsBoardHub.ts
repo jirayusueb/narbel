@@ -6,6 +6,10 @@ import * as Y from "yjs";
 
 import type { IPubSub } from "../../../../shared/application/interfaces/IPubSub";
 import type {
+  BoardText,
+  IBoardDocumentStore,
+} from "../../application/ports/IBoardDocumentStore";
+import type {
   IBoardScenes,
   AgentSelection,
   SceneAccess,
@@ -15,9 +19,8 @@ import type {
   SyncPeer,
   SyncSession,
 } from "../../application/ports/IBoardSyncGateway";
-import type { IBoardDocumentStore } from "../repositories/DrizzleBoardDocumentStore";
+import type { TextIndex } from "./boardText";
 import { diffTexts, extractBoardText, indexTexts } from "./boardText";
-import type { BoardText, TextIndex } from "./boardText";
 import { markAgentWriter } from "./changes";
 import { ensurePages, pruneTombstones, sceneAccess } from "./pages";
 import { ROOM_TIMING, RoomTimers } from "./RoomTimers";

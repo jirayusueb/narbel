@@ -4,7 +4,10 @@ import type {
   Email,
   IEmailSender,
 } from "../../application/interfaces/IEmailSender";
-import type { ClaimedMessage, IOutboxStore } from "./OutboxStore";
+import type {
+  ClaimedMessage,
+  IOutboxStore,
+} from "../../application/interfaces/IOutboxStore";
 import { renderOutboxMessage } from "./registry";
 import type { RenderContext } from "./registry";
 
