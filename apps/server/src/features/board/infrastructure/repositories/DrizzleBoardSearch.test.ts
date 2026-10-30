@@ -5,7 +5,7 @@ import { board, boardAccess, comment } from "@narbel/db/schema/board";
 import * as Y from "yjs";
 
 import { SearchQuery } from "../../domain/values/SearchQuery";
-import { extractBoardText } from "../crdt/boardText";
+import { extractBoardText, replaceAllTexts } from "../crdt/boardText";
 import { DrizzleBoardDocumentStore } from "./DrizzleBoardDocumentStore";
 import { DrizzleBoardSearch } from "./DrizzleBoardSearch";
 
@@ -51,7 +51,7 @@ describe.skipIf(!reachable)("board search (postgres)", () => {
     return store.save(
       boardId,
       Y.encodeStateAsUpdate(doc),
-      extractBoardText(doc)
+      replaceAllTexts(extractBoardText(doc))
     );
   };
   const find = async (user: typeof alice, raw: string) =>

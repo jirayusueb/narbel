@@ -156,7 +156,7 @@ describe("CachedBoardRepository", () => {
       },
       cache
     );
-    await store.save("b1", new Uint8Array(), []);
+    await store.save("b1", new Uint8Array());
     expect(redis.data.has("board:b1")).toBe(false);
     expect(redis.data.has("boards:user:owner")).toBe(false);
   });

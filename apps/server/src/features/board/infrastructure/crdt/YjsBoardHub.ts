@@ -15,13 +15,14 @@ import type {
   SyncSession,
 } from "../../application/ports/IBoardSyncGateway";
 import type { IBoardDocumentStore } from "../repositories/DrizzleBoardDocumentStore";
-import { extractBoardText } from "./boardText";
-import type { BoardText } from "./boardText";
+import { diffTexts, extractBoardText, indexTexts } from "./boardText";
+import type { BoardText, TextIndex } from "./boardText";
 import { ensurePages, sceneAccess } from "./pages";
+import { ROOM_TIMING, RoomTimers } from "./RoomTimers";
+import type { RoomTiming } from "./RoomTimers";
 
 const MESSAGE_SYNC = 0;
 const MESSAGE_AWARENESS = 1;
-const PERSIST_DEBOUNCE_MS = 1000;
 const SERVER_ORIGIN = Symbol("server");
 // updates that arrived from another instance: shown to local peers, never re-published
 const BUS_ORIGIN = Symbol("bus");
@@ -44,7 +45,9 @@ interface Room {
   selectionKeys: Map<number, string>;
   dirty: boolean;
   saving: Promise<void>;
-  timer: ReturnType<typeof setTimeout> | undefined;
+  timers: RoomTimers;
+  /** the `board_text` rows as last written by this instance; unknown until the first save */
+  writtenTexts: TextIndex | undefined;
   unsubscribe: (() => Promise<void>) | undefined;
 }
 
@@ -60,7 +63,8 @@ const encodeMessage = (
 
 /**
  * In-memory registry of live board documents. A document is loaded on first use,
- * persisted ~1s after changes, and unloaded once nobody is connected and it is saved.
+ * persisted ~1s after changes (at most 10s after the first unsaved one), and unloaded once it has
+ * had no peers and no use for the grace period.
  */
 export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
   private readonly rooms = new Map<string, Promise<Room>>();
@@ -69,7 +73,8 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
 
   constructor(
     private readonly store: IBoardDocumentStore,
-    private readonly bus: IPubSub
+    private readonly bus: IPubSub,
+    private readonly timing: RoomTiming = ROOM_TIMING
   ) {}
 
   async transact<T>(
@@ -77,31 +82,22 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     fn: (scene: SceneAccess) => T
   ): Promise<T> {
     const room = await this.room(boardId);
-    try {
-      return room.doc.transact(() => fn(sceneAccess(room.doc)), SERVER_ORIGIN);
-    } finally {
-      // also unloads rooms that only this call kept alive
-      this.schedulePersist(room);
-    }
+    return room.doc.transact(() => fn(sceneAccess(room.doc)), SERVER_ORIGIN);
   }
 
   async getSelection(boardId: string): Promise<string[] | undefined> {
     const room = await this.room(boardId);
-    try {
-      if (room.peers.size === 0) {
-        return undefined;
-      }
-      const selection = (clientId: number | undefined) => {
-        const value =
-          clientId === undefined
-            ? undefined
-            : room.awareness.getStates().get(clientId)?.selection;
-        return Array.isArray(value) ? (value as string[]) : undefined;
-      };
-      return selection(room.selectionClient) ?? [];
-    } finally {
-      this.schedulePersist(room);
+    if (room.peers.size === 0) {
+      return undefined;
     }
+    const selection = (clientId: number | undefined) => {
+      const value =
+        clientId === undefined
+          ? undefined
+          : room.awareness.getStates().get(clientId)?.selection;
+      return Array.isArray(value) ? (value as string[]) : undefined;
+    };
+    return selection(room.selectionClient) ?? [];
   }
 
   async setSelection(boardId: string, ids: string[]): Promise<void> {
@@ -111,7 +107,6 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       mcp: true,
       selection: ids,
     });
-    this.schedulePersist(room);
   }
 
   async connect(
@@ -152,7 +147,7 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     }
     const room = await pending;
     this.rooms.delete(boardId);
-    clearTimeout(room.timer);
+    room.timers.stop();
     room.dirty = false;
     const peers = [...room.peers.keys()];
     room.peers.clear();
@@ -162,14 +157,17 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     }
   }
 
-  private room(boardId: string): Promise<Room> {
+  /** Every use of a room goes through here, which restarts its idle grace period. */
+  private async room(boardId: string): Promise<Room> {
     let pending = this.rooms.get(boardId);
     if (!pending) {
       pending = this.load(boardId);
       this.rooms.set(boardId, pending);
       this.dropOnLoadFailure(boardId, pending);
     }
-    return pending;
+    const room = await pending;
+    room.timers.used();
+    return room;
   }
 
   private async dropOnLoadFailure(boardId: string, pending: Promise<Room>) {
@@ -198,9 +196,16 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       selectionKeys: new Map(),
       dirty: ensurePages(doc, SERVER_ORIGIN),
       saving: Promise.resolve(),
-      timer: undefined,
+      timers: new RoomTimers(this.timing, {
+        save: () => this.flush(room),
+        idle: () => this.unload(room),
+      }),
+      writtenTexts: undefined,
       unsubscribe: undefined,
     };
+    if (room.dirty) {
+      room.timers.changed();
+    }
 
     doc.on("update", (update: Uint8Array, origin: unknown) => {
       const message = encodeMessage(MESSAGE_SYNC, (e) => {
@@ -214,9 +219,9 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       // the instance that took the edit persists it
       if (origin !== BUS_ORIGIN) {
         room.dirty = true;
+        room.timers.changed();
         this.publish(room, message);
       }
-      this.schedulePersist(room);
     });
 
     awareness.on(
@@ -400,40 +405,49 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       null
     );
     if (room.peers.size === 0) {
-      this.schedulePersist(room, 0);
+      this.flush(room);
+      room.timers.used();
     }
   }
 
-  private schedulePersist(room: Room, delay = PERSIST_DEBOUNCE_MS) {
-    clearTimeout(room.timer);
-    room.timer = setTimeout(() => this.flush(room), delay);
-  }
-
-  private async flush(room: Room) {
-    room.timer = undefined;
+  private flush(room: Room) {
+    room.timers.saved();
     if (room.dirty) {
       room.dirty = false;
       const state = Y.encodeStateAsUpdate(room.doc);
       room.saving = this.persist(room, state, extractBoardText(room.doc));
     }
-    if (room.peers.size === 0) {
-      const done = room.saving;
-      this.flushing.set(room.boardId, done);
-      this.rooms.delete(room.boardId);
-      await done;
-      this.flushing.delete(room.boardId);
-      if (room.dirty) {
-        // the final save failed; nothing else holds this state, so surface it
-        console.error(`Board ${room.boardId} unloaded with unsaved changes`);
-      }
-      this.destroy(room);
+  }
+
+  private async unload(room: Room) {
+    if (room.peers.size > 0) {
+      return;
     }
+    this.flush(room);
+    const done = room.saving;
+    this.flushing.set(room.boardId, done);
+    this.rooms.delete(room.boardId);
+    await done;
+    this.flushing.delete(room.boardId);
+    if (room.dirty) {
+      // the final save failed; nothing else holds this state, so surface it
+      console.error(`Board ${room.boardId} unloaded with unsaved changes`);
+    }
+    room.timers.stop();
+    this.destroy(room);
   }
 
   private async persist(room: Room, state: Uint8Array, texts: BoardText[]) {
     try {
       await room.saving;
-      await this.store.save(room.boardId, state, texts);
+      const next = indexTexts(texts);
+      // text rows are rewritten only when they differ from what this instance last wrote
+      await this.store.save(
+        room.boardId,
+        state,
+        diffTexts(room.writtenTexts, next)
+      );
+      room.writtenTexts = next;
     } catch (error) {
       // keep the changes; the next update or disconnect retries
       room.dirty = true;

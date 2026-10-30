@@ -1,36 +1,58 @@
-import { eq } from "@narbel/db";
+import { and, eq, or, sql } from "@narbel/db";
 import type { Database, DbExecutor } from "@narbel/db";
 import { board, boardDocument, boardText } from "@narbel/db/schema/board";
 import * as Y from "yjs";
 
-import { extractBoardText } from "../crdt/boardText";
-import type { BoardText } from "../crdt/boardText";
+import { extractBoardText, replaceAllTexts } from "../crdt/boardText";
+import type { TextChange } from "../crdt/boardText";
 
 export interface IBoardDocumentStore {
   load(boardId: string): Promise<Uint8Array | null>;
   /**
-   * Persists the state together with the search mirror of its text.
+   * Persists the state together with the change to the search mirror of its text (none when unchanged).
    * Resolves to the owner of the board (for cache invalidation), or undefined if the board is gone.
    */
   save(
     boardId: string,
     state: Uint8Array,
-    texts: BoardText[]
+    texts?: TextChange
   ): Promise<string | undefined>;
 }
 
 const BACKFILL_BATCH = 50;
 
-const replaceTexts = async (
+const writeTexts = async (
   db: DbExecutor,
   boardId: string,
-  texts: BoardText[]
+  { replaceAll, upsert, remove }: TextChange
 ) => {
-  await db.delete(boardText).where(eq(boardText.boardId, boardId));
-  if (texts.length > 0) {
+  if (replaceAll) {
+    await db.delete(boardText).where(eq(boardText.boardId, boardId));
+  } else if (remove.length > 0) {
+    await db
+      .delete(boardText)
+      .where(
+        and(
+          eq(boardText.boardId, boardId),
+          or(
+            ...remove.map((key) =>
+              and(
+                eq(boardText.pageId, key.pageId),
+                eq(boardText.elementId, key.elementId)
+              )
+            )
+          )
+        )
+      );
+  }
+  if (upsert.length > 0) {
     await db
       .insert(boardText)
-      .values(texts.map((text) => ({ boardId, ...text })));
+      .values(upsert.map((text) => ({ boardId, ...text })))
+      .onConflictDoUpdate({
+        target: [boardText.boardId, boardText.pageId, boardText.elementId],
+        set: { text: sql`excluded.text` },
+      });
   }
 };
 
@@ -46,7 +68,7 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
     return row?.state ?? null;
   }
 
-  save(boardId: string, state: Uint8Array, texts: BoardText[]) {
+  save(boardId: string, state: Uint8Array, texts?: TextChange) {
     return this.db.transaction(async (tx) => {
       const now = new Date();
       await tx
@@ -56,7 +78,9 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
           target: boardDocument.boardId,
           set: { state, updatedAt: now, textIndexed: true },
         });
-      await replaceTexts(tx, boardId, texts);
+      if (texts) {
+        await writeTexts(tx, boardId, texts);
+      }
       // keeps "newest-updated first" in the board list honest for canvas edits
       const [row] = await tx
         .update(board)
@@ -92,7 +116,7 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
       if (row) {
         const doc = new Y.Doc();
         Y.applyUpdate(doc, row.state);
-        await replaceTexts(tx, boardId, extractBoardText(doc));
+        await writeTexts(tx, boardId, replaceAllTexts(extractBoardText(doc)));
       }
     });
   }
