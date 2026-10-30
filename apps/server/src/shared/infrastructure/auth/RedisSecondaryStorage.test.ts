@@ -30,7 +30,7 @@ describe("RedisSecondaryStorage with Redis down", () => {
     log.mockRestore();
   });
 
-  test("deletes propagate so a revoke never reports success", async () => {
+  test("a delete error reaches Better Auth instead of reporting success", async () => {
     await expect(storage.delete("k")).rejects.toThrow("redis down");
     await expect(storage.getAndDelete("k")).rejects.toThrow("redis down");
   });
@@ -40,4 +40,29 @@ describe("RedisSecondaryStorage with Redis down", () => {
     expect(await storage.increment("k", 60)).toBe(1);
     log.mockRestore();
   });
+});
+
+test("increment counts when Better Auth calls it detached", async () => {
+  const counts = new Map<string, number>();
+  const redis: SecondaryRedisLike = {
+    ...brokenRedis,
+    multi: () => {
+      let key = "";
+      const chain = {
+        incr: (k: string) => {
+          key = k;
+          return chain;
+        },
+        expire: () => chain,
+        exec: () => {
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+          return Promise.resolve([[null, counts.get(key)]] as [null, number][]);
+        },
+      };
+      return chain;
+    },
+  };
+  const { increment } = new RedisSecondaryStorage(redis);
+  expect(await increment("ip|/sign-in", 10)).toBe(1);
+  expect(await increment("ip|/sign-in", 10)).toBe(2);
 });

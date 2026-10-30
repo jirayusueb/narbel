@@ -17,22 +17,24 @@ export interface SecondaryRedisLike {
 }
 
 // Postgres holds every session and verification row, so a failed read or write only
-// costs a cache miss. A failed delete must propagate: swallowing it would let a revoked
-// session stay valid in Redis. A failed rate-limit increment fails open (login must
-// survive a cache outage).
+// costs a cache miss. A failed delete propagates: Better Auth deletes from Redis before
+// Postgres, so swallowing it would leave the session valid in Redis while Postgres
+// forgets it. A failed rate-limit increment fails open (login must survive a cache outage).
+// Arrow properties, not methods: Better Auth calls some of these detached (the rate limiter
+// reads `secondaryStorage.increment` and calls it bare), which would lose `this`.
 export class RedisSecondaryStorage implements SecondaryStorage {
   constructor(private readonly redis: SecondaryRedisLike) {}
 
-  async get(key: string) {
+  get = async (key: string) => {
     try {
       return await this.redis.get(key);
     } catch (error) {
       console.error(`Auth storage get failed for ${key}`, error);
       return null;
     }
-  }
+  };
 
-  async set(key: string, value: string, ttl?: number) {
+  set = async (key: string, value: string, ttl?: number) => {
     try {
       await (ttl
         ? this.redis.set(key, value, "EX", ttl)
@@ -40,17 +42,15 @@ export class RedisSecondaryStorage implements SecondaryStorage {
     } catch (error) {
       console.error(`Auth storage set failed for ${key}`, error);
     }
-  }
+  };
 
-  async delete(key: string) {
+  delete = async (key: string) => {
     await this.redis.del(key);
-  }
+  };
 
-  getAndDelete(key: string) {
-    return this.redis.getdel(key);
-  }
+  getAndDelete = (key: string) => this.redis.getdel(key);
 
-  async increment(key: string, ttl: number) {
+  increment = async (key: string, ttl: number) => {
     try {
       const results = await this.redis
         .multi()
@@ -69,5 +69,5 @@ export class RedisSecondaryStorage implements SecondaryStorage {
       console.error(`Auth storage increment failed for ${key}`, error);
       return 1;
     }
-  }
+  };
 }
