@@ -10,6 +10,9 @@ import {
 } from "../../domain/rendering/sceneSvg";
 import { SHAPE_TYPES } from "../../domain/shapes/ShapeRegistry";
 import type { BoardUseCases } from "../../ioc";
+import { registerCollabTools } from "./collabTools";
+import { DESIGN_GUIDE } from "./designGuide";
+import { registerMediaTools } from "./mediaTools";
 import { style } from "./styleSchema";
 import {
   boardId,
@@ -97,7 +100,10 @@ const patch = z
 const pageName = z.string().describe("1 to 80 characters");
 
 export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
-  const server = new McpServer({ name: "narbel", version: "0.2.0" });
+  const server = new McpServer(
+    { name: "narbel", version: "0.3.0" },
+    { instructions: DESIGN_GUIDE }
+  );
   const userId = actor.userId ?? "";
 
   server.registerTool(
@@ -436,5 +442,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
         })
       )
   );
+  registerCollabTools(server, uc, actor);
+  registerMediaTools(server, uc, actor);
   return server;
 };
