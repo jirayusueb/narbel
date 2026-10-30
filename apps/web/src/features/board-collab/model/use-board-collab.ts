@@ -22,7 +22,7 @@ import {
   WS_POLICY_VIOLATION,
 } from "./collab-status";
 import type { CollabStatus } from "./collab-status";
-import { shouldTakeIncoming } from "./merge";
+import { byZOrder, shouldTakeIncoming } from "./merge";
 
 export type { CollabStatus } from "./collab-status";
 
@@ -192,6 +192,7 @@ export const useBoardCollab = ({
           found.push({ ...value });
         }
       }
+      found.sort(byZOrder);
       return restoreElements(found, null);
     };
 
@@ -226,13 +227,17 @@ export const useBoardCollab = ({
       if (incoming.length === 0) {
         return;
       }
+      incoming.sort(byZOrder);
       const restored = restoreElements(incoming, null);
       for (const el of restored) {
         sentVersions.current.set(el.id, el.version);
         local.set(el.id, el);
       }
+      // a remote reorder only changes `index`; the array position must follow it
+      const next = [...local.values()];
+      next.sort(byZOrder);
       api.updateScene({
-        elements: [...local.values()],
+        elements: next,
         captureUpdate: CaptureUpdateAction.NEVER,
       });
     };

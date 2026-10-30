@@ -1,3 +1,4 @@
+import { generateKeyBetween } from "fractional-indexing";
 import type * as Y from "yjs";
 
 import type { SceneAccess } from "../../application/ports/IBoardScenes";
@@ -27,9 +28,39 @@ export const ensurePages = (doc: Y.Doc, origin: unknown): boolean => {
   return true;
 };
 
+const orderKeyOf = (element: SceneElement | undefined) =>
+  typeof element?.index === "string" ? element.index : undefined;
+
+/**
+ * Excalidraw's z-order key (fractional `index`) for an element new to the page: a label goes
+ * right above its container, anything else on top. Clients would otherwise each invent one
+ * from their own element order and overwrite each other's.
+ */
+const newOrderKey = (keys: string[], container: SceneElement | undefined) => {
+  const below = orderKeyOf(container);
+  let bound: string | null = null;
+  for (const key of keys) {
+    const higher = bound === null || key > bound;
+    const lowerAbove =
+      below !== undefined && key > below && (bound === null || key < bound);
+    if (below === undefined ? higher : lowerAbove) {
+      bound = key;
+    }
+  }
+  // no container: above the topmost key; label: between its container and the next key up
+  return below === undefined
+    ? generateKeyBetween(bound, null)
+    : generateKeyBetween(below, bound);
+};
+
 export const sceneAccess = (doc: Y.Doc): SceneAccess => {
   const pages = doc.getArray<Page>("pages");
   const elements = doc.getMap<SceneElement>("elements");
+  const pageKeys = (pageId: string) =>
+    [...elements.entries()].flatMap(([key, element]) => {
+      const order = orderKeyOf(element);
+      return key.startsWith(`${pageId}:`) && order !== undefined ? [order] : [];
+    });
   const indexOf = (id: string) => pages.toArray().findIndex((p) => p.id === id);
   return {
     pages: () => pages.toArray(),
@@ -73,8 +104,18 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
     },
     put: (pageId, element) => {
       const key = elementKey(pageId, element.id);
-      if (shouldAcceptIncoming(elements.get(key), element)) {
-        elements.set(key, element);
+      const current = elements.get(key);
+      const container =
+        typeof element.containerId === "string"
+          ? elements.get(elementKey(pageId, element.containerId))
+          : undefined;
+      // an update keeps the key it has, so editing never reorders
+      const ordered =
+        current || orderKeyOf(element) !== undefined
+          ? element
+          : { ...element, index: newOrderKey(pageKeys(pageId), container) };
+      if (shouldAcceptIncoming(current, ordered)) {
+        elements.set(key, ordered);
       }
     },
   };

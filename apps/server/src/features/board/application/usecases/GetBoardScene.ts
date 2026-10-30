@@ -3,7 +3,7 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { toSceneElementDto } from "../dtos/SceneDto";
+import { toSceneDtos } from "../dtos/SceneDto";
 import type { SceneDto } from "../dtos/SceneDto";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
@@ -31,10 +31,7 @@ export class GetBoardScene {
       return (
         page && {
           pageId: page.id,
-          elements: s
-            .all(page.id)
-            .filter((e) => !e.isDeleted)
-            .map(toSceneElementDto),
+          elements: toSceneDtos(s.all(page.id)),
         }
       );
     });

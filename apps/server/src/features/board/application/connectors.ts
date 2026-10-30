@@ -5,10 +5,13 @@ import {
   connectorCapable,
   currentRefs,
   detachDeleted,
-  forgetConnector,
+  forgetBound,
+  labelIdOf,
   rerouteAround,
+  withLabel,
 } from "../domain/rules/bindings";
 import type { ConnectorRefs } from "../domain/rules/bindings";
+import { LABELLED, buildLabel, fitLabel } from "../domain/shapes/ShapeRegistry";
 import type { SceneAccess } from "./ports/IBoardScenes";
 
 // Identity, versioning and binding records belong to the system; bindings change only
@@ -109,7 +112,7 @@ const rebound = (
       (target): target is SceneElement =>
         target !== undefined && !target.isDeleted
     )
-    .map((target) => forgetConnector(target, next.id));
+    .map((target) => forgetBound(target, next.id));
   const [connector, ...targets] = attached.writes;
   return [
     connector ?? next,
@@ -117,10 +120,55 @@ const rebound = (
   ];
 };
 
+export const newIdentity = (ids: IIdGenerator, updated = Date.now()) => ({
+  id: ids.generate(),
+  seed: ids.int(),
+  versionNonce: ids.int(),
+  updated,
+});
+
 /**
- * Writes `fields` over the element as a new version and keeps connectors consistent:
- * rebinding a connector updates both ends' `boundElements`, and moving or resizing a
- * shape re-routes the connectors attached to it.
+ * The container after its label changes, and the label writes that takes: `text` sets
+ * the label (`""` removes it), `refit` re-centers it after the container moved or resized.
+ */
+const relabel = (
+  container: SceneElement,
+  text: string | undefined,
+  refit: boolean,
+  lookup: Map<string, SceneElement>,
+  ids: IIdGenerator
+): { container: SceneElement; writes: SceneElement[] } => {
+  const labelId = labelIdOf(container);
+  const found = labelId === undefined ? undefined : lookup.get(labelId);
+  const label = found?.isDeleted ? undefined : found;
+  if (text === "") {
+    return label
+      ? {
+          container: forgetBound(container, label.id),
+          writes: [bumped({ ...label, isDeleted: true }, ids)],
+        }
+      : { container, writes: [] };
+  }
+  if (text !== undefined && !label) {
+    const created = buildLabel(container, text, newIdentity(ids));
+    return { container: withLabel(container, created.id), writes: [created] };
+  }
+  if (label && (text !== undefined || refit)) {
+    const changed =
+      text === undefined ? label : { ...label, text, originalText: text };
+    return {
+      container,
+      writes: [bumped(fitLabel(changed, container), ids)],
+    };
+  }
+  return { container, writes: [] };
+};
+
+/**
+ * Writes `fields` over the element as a new version and keeps connectors and labels
+ * consistent: rebinding a connector updates both ends' `boundElements`, moving or
+ * resizing a shape re-routes the connectors attached to it and re-centers its label,
+ * and `text` on a rectangle/ellipse/diamond sets that label.
  */
 export const patchElement = (
   scene: SceneAccess,
@@ -139,21 +187,30 @@ export const patchElement = (
   if (problem) {
     return problem;
   }
-  const next = bumped(
-    {
-      ...local,
-      ...fields,
-      ...(local.type === "text" && typeof fields.text === "string"
-        ? { originalText: fields.text }
-        : {}),
-    },
+  const labelled = Boolean(LABELLED[local.type]);
+  // a shape's text lives in its bound label, never on the shape itself
+  const { text, ...shapeFields } = fields;
+  const geometryChanged = Object.keys(fields).some((key) => GEOMETRY[key]);
+  const labelling = relabel(
+    bumped(
+      {
+        ...local,
+        ...(labelled ? shapeFields : fields),
+        ...(local.type === "text" && typeof text === "string"
+          ? { originalText: text }
+          : {}),
+      },
+      ids
+    ),
+    labelled && typeof text === "string" ? text : undefined,
+    labelled && geometryChanged,
+    lookup,
     ids
   );
+  const next = labelling.container;
   const wantsRebind =
     rebind.startElementId !== undefined || rebind.endElementId !== undefined;
-  const movesShape =
-    !connectorCapable(local) &&
-    Object.keys(fields).some((key) => GEOMETRY[key]);
+  const movesShape = !connectorCapable(local) && geometryChanged;
   lookup.set(next.id, next);
   const writes = wantsRebind
     ? rebound(next, resolveRefs(currentRefs(local), rebind), lookup, ids)
@@ -163,7 +220,7 @@ export const patchElement = (
           ? rerouteAround(next, lookup).map((c) => bumped(c, ids))
           : []),
       ];
-  for (const write of writes) {
+  for (const write of [...writes, ...labelling.writes]) {
     scene.put(found.pageId, write);
   }
   return "ok";

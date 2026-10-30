@@ -12,10 +12,12 @@ export type ShapeType = (typeof SHAPE_TYPES)[number];
 
 export interface Shape {
   type: ShapeType;
-  x: number;
-  y: number;
+  /** omitted x or y: the caller asks for an automatic layout */
+  x?: number;
+  y?: number;
   width?: number;
   height?: number;
+  /** content of a text element, label of a rectangle/ellipse/diamond */
   text?: string;
   strokeColor?: string;
   backgroundColor?: string;
@@ -33,9 +35,27 @@ export interface ElementIdentity {
   updated: number;
 }
 
+export const DEFAULT_STROKE = "#1e1e1e";
+export const DEFAULT_BACKGROUND = "transparent";
+
 const FONT_SIZE = 20;
 const LINE_HEIGHT = 1.25;
 const CHAR_WIDTH = FONT_SIZE * 0.6;
+const LABEL_PADDING = 20;
+const MIN_LABELLED = { width: 100, height: 60 };
+
+/** Shapes whose `text` becomes a bound label, like Excalidraw's "double-click to type". */
+export const LABELLED: Record<string, true> = {
+  rectangle: true,
+  ellipse: true,
+  diamond: true,
+};
+// how much larger than its text a shape must be for the text to sit inside its outline
+const INSET: Record<string, number> = {
+  rectangle: 1,
+  ellipse: Math.SQRT2,
+  diamond: 2,
+};
 
 interface Size {
   width: number;
@@ -43,17 +63,42 @@ interface Size {
 }
 type Extras = Record<string, unknown>;
 
-const box = (shape: Shape): Size => ({
-  width: shape.width ?? 100,
-  height: shape.height ?? 100,
-});
+const measure = (text: string): Size => {
+  const lines = text.split("\n");
+  return {
+    width: Math.max(...lines.map((l) => l.length), 1) * CHAR_WIDTH,
+    height: lines.length * FONT_SIZE * LINE_HEIGHT,
+  };
+};
 
-const textSize = (shape: Shape): Size => {
-  const lines = (shape.text ?? "").split("\n");
+// a labelled shape without an explicit size grows to fit its label
+const box = (shape: Shape): Size => {
+  if (!shape.text) {
+    return { width: shape.width ?? 100, height: shape.height ?? 100 };
+  }
+  const inset = INSET[shape.type] ?? 1;
+  const text = measure(shape.text);
   return {
     width:
-      shape.width ?? Math.max(...lines.map((l) => l.length), 1) * CHAR_WIDTH,
-    height: shape.height ?? lines.length * FONT_SIZE * LINE_HEIGHT,
+      shape.width ??
+      Math.max(
+        MIN_LABELLED.width,
+        Math.ceil(text.width * inset + 2 * LABEL_PADDING)
+      ),
+    height:
+      shape.height ??
+      Math.max(
+        MIN_LABELLED.height,
+        Math.ceil(text.height * inset + 2 * LABEL_PADDING)
+      ),
+  };
+};
+
+const textSize = (shape: Shape): Size => {
+  const text = measure(shape.text ?? "");
+  return {
+    width: shape.width ?? text.width,
+    height: shape.height ?? text.height,
   };
 };
 
@@ -116,12 +161,13 @@ export const buildElement = (
   return {
     id: identity.id,
     type: shape.type,
-    x: shape.x,
-    y: shape.y,
+    // the use case lays out unplaced shapes before anything is written
+    x: shape.x ?? 0,
+    y: shape.y ?? 0,
     ...size,
     angle: 0,
-    strokeColor: shape.strokeColor ?? "#1e1e1e",
-    backgroundColor: shape.backgroundColor ?? "transparent",
+    strokeColor: shape.strokeColor ?? DEFAULT_STROKE,
+    backgroundColor: shape.backgroundColor ?? DEFAULT_BACKGROUND,
     fillStyle: "solid",
     strokeWidth: 2,
     strokeStyle: "solid",
@@ -141,3 +187,36 @@ export const buildElement = (
     ...spec.extras(shape, size),
   };
 };
+
+/** The label resized to its text and centered in its container, as Excalidraw draws it. */
+export const fitLabel = (
+  label: SceneElement,
+  container: SceneElement
+): SceneElement => {
+  const size = measure(String(label.text ?? ""));
+  return {
+    ...label,
+    ...size,
+    x: Number(container.x) + (Number(container.width) - size.width) / 2,
+    y: Number(container.y) + (Number(container.height) - size.height) / 2,
+  };
+};
+
+/** A text element bound inside `container`; the container must list it in `boundElements`. */
+export const buildLabel = (
+  container: SceneElement,
+  text: string,
+  identity: ElementIdentity
+): SceneElement =>
+  fitLabel(
+    {
+      ...buildElement(
+        { type: "text", text, strokeColor: String(container.strokeColor) },
+        identity
+      ),
+      textAlign: "center",
+      verticalAlign: "middle",
+      containerId: container.id,
+    },
+    container
+  );

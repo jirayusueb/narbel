@@ -34,13 +34,23 @@ const elementId = z
 
 const shape = z.object({
   type: z.enum(SHAPE_TYPES),
-  x: z.number(),
-  y: z.number(),
-  width: z.number().optional(),
+  x: z
+    .number()
+    .optional()
+    .describe("Omit x and y to have the shape laid out for you"),
+  y: z.number().optional(),
+  width: z
+    .number()
+    .optional()
+    .describe("Omit to fit the text (100x100 for an empty shape)"),
   height: z.number().optional(),
-  text: elementText.optional(),
-  strokeColor: elementColor.optional(),
-  backgroundColor: elementColor.optional(),
+  text: elementText
+    .optional()
+    .describe(
+      "Content of a text element, or the label centered inside a rectangle/ellipse/diamond"
+    ),
+  strokeColor: elementColor.optional().describe("Defaults to #1e1e1e"),
+  backgroundColor: elementColor.optional().describe("Defaults to transparent"),
   id: elementId
     .optional()
     .describe(
@@ -63,7 +73,9 @@ const patch = z
     width: z.number(),
     height: z.number(),
     angle: z.number(),
-    text: elementText,
+    text: elementText.describe(
+      "Text element content, or a shape's label (empty string removes the label)"
+    ),
     strokeColor: elementColor,
     backgroundColor: elementColor,
     opacity: z.number().min(0).max(100),
@@ -100,7 +112,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "get_board",
     {
       description:
-        "Get a board's title and the (non-deleted) elements of one page as compact JSON.",
+        "Get a board's title and the (non-deleted) elements of one page as compact JSON, bottom to top (later elements are drawn over earlier ones). A shape's label is its text; strokeColor/backgroundColor are omitted when they are the defaults (#1e1e1e / transparent).",
       inputSchema: { boardId, pageId },
     },
     async (input) =>
@@ -172,11 +184,15 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "add_elements",
     {
       description:
-        "Add shapes to a page; connected browsers see them live. Returns the new element ids. To connect two shapes, give them ids and add an arrow with startElementId/endElementId: the arrow is drawn edge to edge and stays attached when either shape moves (x/y/width/height on the arrow are then ignored).",
+        "Add shapes to a page; connected browsers see them live. Returns the new element ids. Put a label inside a rectangle/ellipse/diamond with text; the shape grows to fit it unless width/height are given. To connect two shapes, give them ids and add an arrow with startElementId/endElementId: the arrow is drawn edge to edge and stays attached when either shape moves (x/y/width/height on the arrow are then ignored). For a diagram, leave out x/y on the shapes: they are laid out as a flowchart along the arrows, to the right of the existing content.",
       inputSchema: {
         boardId,
         pageId,
         elements: z.array(shape).min(1).max(200),
+        direction: z
+          .enum(["down", "right"])
+          .optional()
+          .describe("Flow of the automatic layout; defaults to down"),
       },
     },
     async (input) =>
@@ -186,6 +202,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
           boardId: input.boardId,
           pageId: input.pageId,
           shapes: input.elements,
+          direction: input.direction,
         })
       )
   );

@@ -65,4 +65,28 @@ describe("sceneAccess", () => {
     expect(scene.find("b")).toBeUndefined();
     expect(scene.removePage("page:two")).toBe(false);
   });
+
+  it("stacks new elements on top, puts a label right above its container, and keeps keys on update", () => {
+    const doc = new Y.Doc();
+    ensurePages(doc, "t");
+    const scene = sceneAccess(doc);
+    // an element a browser already ordered keeps its key
+    scene.put("page:main", { ...el("drawn"), index: "a5" });
+    scene.put("page:main", el("box"));
+    scene.put("page:main", el("next"));
+    scene.put("page:main", {
+      ...el("label"),
+      type: "text",
+      containerId: "box",
+    });
+    const key = (id: string) => String(scene.get("page:main", id)?.index);
+    expect(key("drawn")).toBe("a5");
+    expect(key("box") > key("drawn")).toBe(true);
+    expect(key("next") > key("box")).toBe(true);
+    expect(key("label") > key("box") && key("label") < key("next")).toBe(true);
+
+    const before = key("box");
+    scene.put("page:main", { ...el("box"), version: 2, index: before });
+    expect(key("box")).toBe(before);
+  });
 });

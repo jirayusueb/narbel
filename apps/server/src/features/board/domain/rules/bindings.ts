@@ -88,15 +88,15 @@ const withBoundElements = (
   };
 };
 
-/** Drops a connector from a target's `boundElements`. */
-export const forgetConnector = (
+/** Drops a connector or label from a target's `boundElements`. */
+export const forgetBound = (
   target: SceneElement,
-  connectorId: string
+  boundId: string
 ): SceneElement => ({
   ...target,
   boundElements: Array.isArray(target.boundElements)
     ? (target.boundElements as { id: string }[]).filter(
-        (entry) => entry.id !== connectorId
+        (entry) => entry.id !== boundId
       )
     : null,
 });
@@ -204,6 +204,22 @@ const boundEntries = (element: SceneElement) =>
     ? (element.boundElements as { id: string; type: string }[])
     : [];
 
+/** Id of the text bound inside a shape, if it has one. */
+export const labelIdOf = (container: SceneElement): string | undefined =>
+  boundEntries(container).find((entry) => entry.type === "text")?.id;
+
+/** The container listing `labelId` as its only bound text. */
+export const withLabel = (
+  container: SceneElement,
+  labelId: string
+): SceneElement => ({
+  ...container,
+  boundElements: [
+    ...boundEntries(container).filter((entry) => entry.type !== "text"),
+    { id: labelId, type: "text" },
+  ],
+});
+
 /** Connectors attached to `target`, re-routed to its current geometry. */
 export const rerouteAround = (
   target: SceneElement,
@@ -228,34 +244,49 @@ export const rerouteAround = (
 
 /**
  * What else must change when `deleted` goes away: a deleted connector leaves its
- * targets' `boundElements`; a deleted shape unbinds every connector attached to it.
+ * targets' `boundElements`, a deleted label leaves its container's, and a deleted
+ * shape unbinds every connector attached to it and takes its label along.
  */
 export const detachDeleted = (
   deleted: SceneElement,
   lookup: Map<string, SceneElement>
 ): SceneElement[] => {
+  const live = (id: string | undefined) => {
+    const element = id === undefined ? undefined : lookup.get(id);
+    return element?.isDeleted ? undefined : element;
+  };
   if (isConnector(deleted)) {
     const { startElementId, endElementId } = currentRefs(deleted);
     return [startElementId, endElementId]
-      .map((id) => (id ? lookup.get(id) : undefined))
-      .filter((t): t is SceneElement => t !== undefined && !t.isDeleted)
-      .map((target) => forgetConnector(target, deleted.id));
+      .map(live)
+      .filter((t): t is SceneElement => t !== undefined)
+      .map((target) => forgetBound(target, deleted.id));
+  }
+  if (typeof deleted.containerId === "string") {
+    const container = live(deleted.containerId);
+    return container ? [forgetBound(container, deleted.id)] : [];
   }
   return boundEntries(deleted)
-    .map((entry) => lookup.get(entry.id))
-    .filter(
-      (c): c is SceneElement =>
-        c !== undefined && !c.isDeleted && isConnector(c)
-    )
-    .map((connector) => ({
-      ...connector,
-      startBinding:
-        boundIdOf(connector.startBinding) === deleted.id
-          ? null
-          : connector.startBinding,
-      endBinding:
-        boundIdOf(connector.endBinding) === deleted.id
-          ? null
-          : connector.endBinding,
-    }));
+    .map((entry) => live(entry.id))
+    .filter((bound): bound is SceneElement => bound !== undefined)
+    .flatMap((bound): SceneElement[] => {
+      if (isConnector(bound)) {
+        return [
+          {
+            ...bound,
+            startBinding:
+              boundIdOf(bound.startBinding) === deleted.id
+                ? null
+                : bound.startBinding,
+            endBinding:
+              boundIdOf(bound.endBinding) === deleted.id
+                ? null
+                : bound.endBinding,
+          },
+        ];
+      }
+      return bound.containerId === deleted.id
+        ? [{ ...bound, isDeleted: true }]
+        : [];
+    });
 };

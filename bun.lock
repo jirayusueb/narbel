@@ -34,6 +34,7 @@
         "@sinclair/typebox": "^0.34.52",
         "better-auth": "catalog:",
         "elysia": "2.0.0-rc.1",
+        "fractional-indexing": "3.2.0",
         "ioredis": "^6.0.0",
         "lib0": "^0.2.119",
         "varlock": "catalog:",

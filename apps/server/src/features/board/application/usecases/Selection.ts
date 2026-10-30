@@ -6,7 +6,7 @@ import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { patchElement, stripReserved } from "../connectors";
 import { toSceneElementDto } from "../dtos/SceneDto";
 import type { SceneElementDto } from "../dtos/SceneDto";
-import type { IBoardScenes } from "../ports/IBoardScenes";
+import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 
 export interface SelectionDto {
   ids: string[];
@@ -15,6 +15,18 @@ export interface SelectionDto {
 
 const noClient = () =>
   AppError.notFound("Selection (no browser is connected to this board)");
+
+const liveDtos = (s: SceneAccess, ids: string[]): SceneElementDto[] =>
+  ids.flatMap((id) => {
+    const found = s.find(id);
+    return found && !found.element.isDeleted
+      ? [
+          toSceneElementDto(found.element, (label) =>
+            s.get(found.pageId, label)
+          ),
+        ]
+      : [];
+  });
 
 /** Selection lives in awareness, which only the live hub sees; these tools follow the newest client selection. */
 export class GetSelection {
@@ -40,12 +52,7 @@ export class GetSelection {
       return err(noClient());
     }
     const elements = await this.scenes.transact(input.boardId, (s) =>
-      ids.flatMap((id) => {
-        const found = s.find(id);
-        return found && !found.element.isDeleted
-          ? [toSceneElementDto(found.element)]
-          : [];
-      })
+      liveDtos(s, ids)
     );
     return ok({ ids: elements.map((e) => e.id), elements });
   }
@@ -71,12 +78,7 @@ export class SelectElements {
       return err(granted.error);
     }
     const elements = await this.scenes.transact(input.boardId, (s) =>
-      input.ids.flatMap((id) => {
-        const found = s.find(id);
-        return found && !found.element.isDeleted
-          ? [toSceneElementDto(found.element)]
-          : [];
-      })
+      liveDtos(s, input.ids)
     );
     const ids = elements.map((e) => e.id);
     await this.scenes.setSelection(input.boardId, ids);

@@ -1,3 +1,11 @@
+import type { SceneElement } from "../../domain/entities/SceneElement";
+import { labelIdOf } from "../../domain/rules/bindings";
+import {
+  DEFAULT_BACKGROUND,
+  DEFAULT_STROKE,
+} from "../../domain/shapes/ShapeRegistry";
+
+/** Colors equal to the defaults and labels' own elements are left out to keep agent reads small. */
 export interface SceneElementDto {
   id: string;
   type: string;
@@ -5,9 +13,10 @@ export interface SceneElementDto {
   y: unknown;
   width: unknown;
   height: unknown;
+  /** a text element's content, or the label inside a rectangle/ellipse/diamond */
   text?: unknown;
-  strokeColor: unknown;
-  backgroundColor: unknown;
+  strokeColor?: unknown;
+  backgroundColor?: unknown;
   /** arrows/lines: what each end is attached to, so agents can read the diagram's graph */
   startElementId?: string | null;
   endElementId?: string | null;
@@ -24,20 +33,31 @@ const boundId = (binding: unknown) =>
 
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
-export const toSceneElementDto = (e: {
-  id: string;
-  type: string;
-  [key: string]: unknown;
-}): SceneElementDto => ({
+const labelText = (
+  e: SceneElement,
+  get: (id: string) => SceneElement | undefined
+) => {
+  const labelId = labelIdOf(e);
+  const label = labelId === undefined ? undefined : get(labelId);
+  return label && !label.isDeleted ? { text: label.text } : {};
+};
+
+/** `get` resolves the element's bound label, whose text is reported on the shape. */
+export const toSceneElementDto = (
+  e: SceneElement,
+  get: (id: string) => SceneElement | undefined
+): SceneElementDto => ({
   id: e.id,
   type: e.type,
   x: e.x,
   y: e.y,
   width: e.width,
   height: e.height,
-  ...(e.type === "text" ? { text: e.text } : {}),
-  strokeColor: e.strokeColor,
-  backgroundColor: e.backgroundColor,
+  ...(e.type === "text" ? { text: e.text } : labelText(e, get)),
+  ...(e.strokeColor === DEFAULT_STROKE ? {} : { strokeColor: e.strokeColor }),
+  ...(e.backgroundColor === DEFAULT_BACKGROUND
+    ? {}
+    : { backgroundColor: e.backgroundColor }),
   ...(CONNECTOR_TYPES[e.type]
     ? {
         startElementId: boundId(e.startBinding),
@@ -45,3 +65,31 @@ export const toSceneElementDto = (e: {
       }
     : {}),
 });
+
+/** Excalidraw's z-order: ascending fractional `index`, ties by id, unindexed last. */
+const byZOrder = (a: SceneElement, b: SceneElement) => {
+  const ai = typeof a.index === "string" ? a.index : undefined;
+  const bi = typeof b.index === "string" ? b.index : undefined;
+  if (ai === bi) {
+    return a.id < b.id ? -1 : 1;
+  }
+  if (ai === undefined || bi === undefined) {
+    return ai === undefined ? 1 : -1;
+  }
+  return ai < bi ? -1 : 1;
+};
+
+/**
+ * Live elements of a page bottom to top; a label shows up as its shape's `text`, not on
+ * its own.
+ */
+export const toSceneDtos = (elements: SceneElement[]): SceneElementDto[] => {
+  const byId = new Map(elements.map((e) => [e.id, e]));
+  const get = (id: string) => byId.get(id);
+  const isLabel = (e: SceneElement) =>
+    typeof e.containerId === "string" &&
+    byId.get(e.containerId)?.isDeleted === false;
+  const live = elements.filter((e) => !(e.isDeleted || isLabel(e)));
+  live.sort(byZOrder);
+  return live.map((e) => toSceneElementDto(e, get));
+};
