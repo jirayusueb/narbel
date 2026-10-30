@@ -15,14 +15,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@narbel/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@narbel/ui/components/dropdown-menu";
 import { Input } from "@narbel/ui/components/input";
-import { Copy, FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  FileText,
+  List,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import { overlay } from "overlay-kit";
 import { useEffect, useId, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import type { Page } from "../model/use-pages";
+
+const scrollBehavior = () =>
+  matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 
 const RenamePageForm = ({
   page,
@@ -206,7 +224,50 @@ const PageActions = ({
   </>
 );
 
+// The strip scrolls invisibly once pages overflow. Controls appear on overflow alone, never on
+// scroll position, so the strip's width stays put while it scrolls.
+const useStripEdges = (strip: RefObject<HTMLElement | null>, pages: Page[]) => {
+  const [edges, setEdges] = useState({
+    overflow: false,
+    atStart: true,
+    atEnd: true,
+  });
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) {
+      return;
+    }
+    const measure = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      const next = {
+        overflow: max > 1,
+        atStart: el.scrollLeft <= 1,
+        atEnd: el.scrollLeft >= max - 1,
+      };
+      // Scroll fires every frame; only a flipped edge should re-render the tabs.
+      setEdges((prev) =>
+        prev.overflow === next.overflow &&
+        prev.atStart === next.atStart &&
+        prev.atEnd === next.atEnd
+          ? prev
+          : next
+      );
+    };
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", measure);
+      observer.disconnect();
+    };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- pages re-measures after a tab is added, renamed or removed
+  }, [strip, pages]);
+  return edges;
+};
+
 // Floating tab island for the canvas footer; the active tab's sheet slides between pages.
+// Past overflow, chevrons and an all-pages menu keep every page reachable without a scrollbar.
 export const PagesBar = ({
   pages,
   pageId,
@@ -219,65 +280,154 @@ export const PagesBar = ({
 }: PagesProps) => {
   const group = useId();
   const nav = useRef<HTMLElement>(null);
+  const strip = useRef<HTMLDivElement>(null);
   const focusActive = useFocusActiveTab(nav, pageId, pages);
+  const edges = useStripEdges(strip, pages);
+  const nudge = (direction: 1 | -1) => {
+    const el = strip.current;
+    el?.scrollBy({
+      left: direction * el.clientWidth * 0.8,
+      behavior: scrollBehavior(),
+    });
+  };
+
+  // The active tab must stay in view; the strip shows no scrollbar of its own. A new page's id
+  // arrives before its tab, and overflow changes the strip's width, so both re-run it.
+  useEffect(() => {
+    strip.current
+      ?.querySelector<HTMLElement>("[data-page-tab][aria-current=page]")
+      ?.parentElement?.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+        behavior: scrollBehavior(),
+      });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- see above
+  }, [pageId, pages, edges.overflow]);
+
   return (
     <nav
       ref={nav}
       aria-label="Pages"
-      className="bg-card flex max-w-[min(560px,calc(100vw-420px))] [scrollbar-width:none] items-center gap-0.5 overflow-x-auto rounded-lg p-1 shadow-[var(--shadow-island)] [&::-webkit-scrollbar]:hidden"
+      className="bg-card flex max-w-[min(560px,calc(100vw-420px))] items-center gap-0.5 rounded-lg p-1 shadow-[var(--shadow-island)]"
     >
-      <LayoutGroup id={group}>
-        {pages.map((page) => {
-          const active = page.id === pageId;
-          return (
-            <div
-              key={page.id}
-              className={`relative flex h-8 shrink-0 items-center rounded-md ${active ? "text-foreground pr-1" : "text-muted-foreground"}`}
-            >
-              {active ? (
-                <motion.span
-                  layoutId="active-page"
-                  aria-hidden="true"
-                  className="bg-background absolute inset-0 rounded-md"
-                  transition={{ duration: 0.3, ease: [0.6, 0, 0.1, 1] }}
-                />
-              ) : null}
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`relative text-[13px] text-inherit hover:bg-transparent ${active ? "font-medium" : "hover:text-foreground"}`}
-                data-page-tab
-                aria-current={active ? "page" : undefined}
-                onPress={() => onSelect(page.id)}
+      {edges.overflow ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Scroll to earlier pages"
+          className="shrink-0"
+          isDisabled={edges.atStart}
+          onPress={() => nudge(-1)}
+        >
+          <ChevronLeft />
+        </Button>
+      ) : null}
+      <div
+        ref={strip}
+        className="flex min-w-0 [scrollbar-width:none] items-center gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+      >
+        <LayoutGroup id={group}>
+          {pages.map((page) => {
+            const active = page.id === pageId;
+            return (
+              <div
+                key={page.id}
+                className={`relative flex h-8 shrink-0 items-center rounded-md ${active ? "text-foreground pr-1" : "text-muted-foreground"}`}
               >
-                {page.name}
-              </Button>
-              {active && !readOnly ? (
-                <motion.span
-                  className="relative flex"
-                  initial={{ opacity: 0, x: -4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.2, delay: 0.1 }}
-                >
-                  <PageActions
-                    page={page}
-                    canDelete={pages.length > 1}
-                    onDelete={(id) => {
-                      focusActive();
-                      onDelete(id);
-                    }}
-                    onDuplicate={(id) => {
-                      focusActive();
-                      onDuplicate(id);
-                    }}
-                    {...actions}
+                {active ? (
+                  <motion.span
+                    layoutId="active-page"
+                    aria-hidden="true"
+                    className="bg-background absolute inset-0 rounded-md"
+                    transition={{ duration: 0.3, ease: [0.6, 0, 0.1, 1] }}
                   />
-                </motion.span>
-              ) : null}
-            </div>
-          );
-        })}
-      </LayoutGroup>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`relative text-[13px] text-inherit hover:bg-transparent ${active ? "font-medium" : "hover:text-foreground"}`}
+                  data-page-tab
+                  aria-current={active ? "page" : undefined}
+                  onPress={() => onSelect(page.id)}
+                >
+                  <span className="inline-block max-w-40 truncate">
+                    {page.name}
+                  </span>
+                </Button>
+                {active && !readOnly ? (
+                  <motion.span
+                    className="relative flex"
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2, delay: 0.1 }}
+                  >
+                    <PageActions
+                      page={page}
+                      canDelete={pages.length > 1}
+                      onDelete={(id) => {
+                        focusActive();
+                        onDelete(id);
+                      }}
+                      onDuplicate={(id) => {
+                        focusActive();
+                        onDuplicate(id);
+                      }}
+                      {...actions}
+                    />
+                  </motion.span>
+                ) : null}
+              </div>
+            );
+          })}
+        </LayoutGroup>
+      </div>
+      {edges.overflow ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Scroll to later pages"
+          className="shrink-0"
+          isDisabled={edges.atEnd}
+          onPress={() => nudge(1)}
+        >
+          <ChevronRight />
+        </Button>
+      ) : null}
+      {edges.overflow ? (
+        <DropdownMenuTrigger>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="All pages"
+            className="shrink-0"
+          >
+            <List />
+          </Button>
+          <DropdownMenu placement="top end" className="min-w-56">
+            <DropdownMenuGroup
+              aria-label="Pages"
+              selectionMode="single"
+              selectedKeys={pageId ? [pageId] : []}
+              onSelectionChange={(keys) => {
+                const [next] = [...(keys === "all" ? [] : keys)];
+                if (next) {
+                  onSelect(String(next));
+                }
+              }}
+            >
+              {pages.map((page) => (
+                <DropdownMenuItem
+                  key={page.id}
+                  id={page.id}
+                  textValue={page.name}
+                >
+                  <span className="max-w-64 truncate">{page.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </DropdownMenu>
+        </DropdownMenuTrigger>
+      ) : null}
       {readOnly ? null : (
         <Button
           variant="ghost"
