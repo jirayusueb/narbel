@@ -19,7 +19,7 @@ import {
 import type { ElementIdentity, Shape } from "../../domain/shapes/ShapeRegistry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { bumped, newIdentity } from "../connectors";
-import type { IBoardScenes } from "../ports/IBoardScenes";
+import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 
 type AddOutcome =
   | "ok"
@@ -132,6 +132,13 @@ const arrange = (
   });
 };
 
+/** Page of the first existing element a connector in the batch references. */
+const referencedPageId = (batch: Built[], scene: SceneAccess) =>
+  batch
+    .flatMap(({ shape }) => [shape.startElementId, shape.endElementId])
+    .map((ref) => (ref === undefined ? undefined : scene.find(ref)?.pageId))
+    .find((pageId) => pageId !== undefined);
+
 /** The batch's elements, each labelled shape listing its new label, plus those labels. */
 const labelled = (placed: Built[], identity: () => ElementIdentity) => {
   const labels: SceneElement[] = [];
@@ -185,7 +192,10 @@ export class AddBoardElements {
     const outcome = await this.scenes.transact(
       input.boardId,
       (scene): AddOutcome => {
-        const page = resolvePage(scene.pages(), input.pageId);
+        const page = resolvePage(
+          scene.pages(),
+          input.pageId ?? referencedPageId(batch, scene)
+        );
         if (!page) {
           return "no-page";
         }
