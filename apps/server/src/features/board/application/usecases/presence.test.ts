@@ -14,10 +14,6 @@ class FakePresence implements IBoardPresence {
     this.open.set(id, viewer);
     return Promise.resolve();
   }
-  touch() {
-    this.calls.push("touch");
-    return Promise.resolve();
-  }
   leave(_: string, id: string) {
     this.calls.push("leave");
     this.open.delete(id);
@@ -32,7 +28,7 @@ const gateway: IBoardSyncGateway = {
 const peer = { send: () => {}, close: () => {} };
 
 describe("board presence", () => {
-  it("touches at most once per interval and leaves on close", async () => {
+  it("refreshes at most once per interval and leaves on close", async () => {
     const { guard } = setupAccess();
     const presence = new FakePresence();
     let now = 0;
@@ -54,7 +50,7 @@ describe("board presence", () => {
     session.receive(new Uint8Array());
     session.close();
 
-    expect(presence.calls).toEqual(["join", "touch", "leave"]);
+    expect(presence.calls).toEqual(["join", "join", "leave"]);
     expect(presence.open.size).toBe(0);
   });
 

@@ -48,17 +48,15 @@ export class ConnectBoardSync {
   ): SyncSession {
     const connectionId = crypto.randomUUID();
     let lastTouch = this.now();
-    void this.presence.join(boardId, connectionId, {
-      userId: actor.userId ?? null,
-      name: actor.name ?? null,
-    });
+    const viewer = { userId: actor.userId ?? null, name: actor.name ?? null };
+    void this.presence.join(boardId, connectionId, viewer);
     return {
       receive: (message) => {
         session.receive(message);
         const at = this.now();
         if (at - lastTouch >= TOUCH_INTERVAL_MS) {
           lastTouch = at;
-          void this.presence.touch(boardId, connectionId);
+          void this.presence.join(boardId, connectionId, viewer);
         }
       },
       close: () => {

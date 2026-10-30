@@ -30,17 +30,6 @@ export class RedisBoardPresence implements IBoardPresence {
     );
   }
 
-  touch(boardId: string, connectionId: string) {
-    return this.run("touch", () =>
-      this.redis
-        .multi()
-        .zadd(membersKey(boardId), "XX", this.now(), connectionId)
-        .expire(membersKey(boardId), KEY_TTL_SECONDS)
-        .expire(viewersKey(boardId), KEY_TTL_SECONDS)
-        .exec()
-    );
-  }
-
   leave(boardId: string, connectionId: string) {
     return this.run("leave", () =>
       this.redis
