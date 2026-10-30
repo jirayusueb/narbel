@@ -36,8 +36,12 @@ pre-commit:
         - "*.gql"
       stage_fixed: true
     - name: oxlint
+      glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
       run: bun oxlint --fix {staged_files}
       stage_fixed: true
     - name: oxfmt
       run: bun oxfmt --write {staged_files}
       stage_fixed: true
+    - name: react-doctor
+      glob: "*.{js,jsx,ts,tsx}"
+      run: bunx react-doctor --staged -y --no-telemetry --no-supply-chain

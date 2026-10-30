@@ -58,6 +58,7 @@
     "lefthook": "latest",
     "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
+    "react-doctor": "0.9.18",
     "redproof": "^0.12.0",
     "tsrs": "catalog:",
     "turbo": "^2.11.7",
