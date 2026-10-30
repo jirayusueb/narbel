@@ -300,6 +300,10 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 - **Board tabs:** 32px tall, 10px radius; inactive muted ink with hover fill, active on a sheet with the surface shadow.
 - **Account pill:** full radius sheet with a citrus initials disc; its menu holds identity, the theme choice (System, Light, Dark), and sign out.
 
+### Dashboard Search
+
+One field above the boards grid: 40px input group (search glyph, clear button once it has text), labelled "Search boards", capped at 448px. Typing two or more characters swaps the grid, the empty state and "Shared with you" for results after a 200ms debounce; Escape or the clear button restores them. Each result is a sheet (20px radius, surface shadow) with the serif board title, a role pill for shared boards, and up to three snippets, each a link with a text or comment glyph. The matched substring is a `<mark>` in citrus with ink text and 4px radius, the same highlighter use as everywhere else. A polite status line above the list reads "Searching" (with the spinner), "N boards found" or "No boards match ...", and a failed request shows the message with Try again in a sheet. Text snippets open the board on their page, comment snippets also open the thread, and the title opens the board.
+
 ### Board Canvas
 
 The board is a full-viewport Excalidraw canvas. Excalidraw's own phone/desktop flag is the single source of truth for which chrome shows (a child of `<Excalidraw>` reports it up; a ResizeObserver calls `api.refresh()` only when the phone breakpoint flips, because Excalidraw's own observer updates the flag without re-rendering).
