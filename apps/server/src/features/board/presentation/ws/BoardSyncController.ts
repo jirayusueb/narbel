@@ -10,6 +10,9 @@ import { actorFrom, shareQuery } from "../http/actor";
 
 const WS_POLICY_VIOLATION = 1008;
 
+// Awareness frames are ~100 B and arrive at ~30 Hz per viewer; deflating them costs CPU for no bytes saved.
+const COMPRESS_MIN_BYTES = 1024;
+
 const toBytes = (message: unknown): Uint8Array | undefined => {
   if (message instanceof Uint8Array) {
     return message;
@@ -48,6 +51,8 @@ export const createBoardSyncController = (
           );
         }
       },
+      // shared compressor: one zlib stream for all sockets, so idle boards hold no per-socket compressor memory
+      perMessageDeflate: { compress: "shared", decompress: "shared" },
       parse: (_ws, message) => message,
       open(ws) {
         const connect = async () => {
@@ -56,7 +61,7 @@ export const createBoardSyncController = (
             boardId: ws.params.id,
             peer: {
               send: (data) => {
-                ws.send(data);
+                ws.send(data, data.byteLength >= COMPRESS_MIN_BYTES);
               },
               close: () => ws.close(),
             },

@@ -11,3 +11,4 @@ export { useCopy } from "./use-copy";
 export { useDebounced } from "./use-debounced";
 export { useLoadMore } from "./use-load-more";
 export { safeRedirect } from "./safe-redirect";
+export { CURSOR_SYNC_MS, createThrottleLatest } from "./throttle-latest";

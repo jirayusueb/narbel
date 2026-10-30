@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 
 import type { UserRef } from "@/entities/user";
+import { CURSOR_SYNC_MS, createThrottleLatest } from "@/shared/lib";
 
 export interface Peer {
   clientId: number;
@@ -69,30 +70,19 @@ export const usePresence = ({
     if (!(awareness && api)) {
       return;
     }
-    let frame = 0;
-    let latest: Viewport | null = null;
-    const flush = () => {
-      frame = 0;
-      if (latest) {
-        awareness.setLocalStateField("viewport", latest);
-      }
-    };
-    // One publish per frame, latest viewport wins.
+    const throttle = createThrottleLatest<Viewport>((viewport) => {
+      awareness.setLocalStateField("viewport", viewport);
+    }, CURSOR_SYNC_MS);
     const publish = (
       scrollX: number,
       scrollY: number,
       zoom: { value: number }
-    ) => {
-      latest = { scrollX, scrollY, zoom: zoom.value } satisfies Viewport;
-      if (!frame) {
-        frame = requestAnimationFrame(flush);
-      }
-    };
+    ) => throttle.push({ scrollX, scrollY, zoom: zoom.value });
     const { scrollX, scrollY, zoom } = api.getAppState();
     publish(scrollX, scrollY, zoom);
     const unsubscribe = api.onScrollChange(publish);
     return () => {
-      cancelAnimationFrame(frame);
+      throttle.cancel();
       unsubscribe();
     };
   }, [awareness, api]);
