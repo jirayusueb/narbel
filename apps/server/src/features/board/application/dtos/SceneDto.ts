@@ -41,6 +41,9 @@ const labelText = (
   const label = labelId === undefined ? undefined : get(labelId);
   return label && !label.isDeleted ? { text: label.text } : {};
 };
+/** Sub-pixel digits cost agent tokens and mean nothing; `+ 0` turns -0 into 0. */
+export const roundCoord = <T>(value: T): T =>
+  (typeof value === "number" ? Math.round(value * 100) / 100 + 0 : value) as T;
 
 /** `get` resolves the element's bound label, whose text is reported on the shape. */
 export const toSceneElementDto = (
@@ -49,10 +52,10 @@ export const toSceneElementDto = (
 ): SceneElementDto => ({
   id: e.id,
   type: e.type,
-  x: e.x,
-  y: e.y,
-  width: e.width,
-  height: e.height,
+  x: roundCoord(e.x),
+  y: roundCoord(e.y),
+  width: roundCoord(e.width),
+  height: roundCoord(e.height),
   ...(e.type === "text" ? { text: e.text } : labelText(e, get)),
   ...(e.strokeColor === DEFAULT_STROKE ? {} : { strokeColor: e.strokeColor }),
   ...(e.backgroundColor === DEFAULT_BACKGROUND

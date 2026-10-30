@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor } from "../../application/BoardAccess";
+import { roundCoord } from "../../application/dtos/SceneDto";
 import {
   DEFAULT_MAX_SIZE,
   MAX_MAX_SIZE,
@@ -167,7 +168,12 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
         pageName: name,
         width: image.width,
         height: image.height,
-        bounds: image.bounds,
+        bounds: {
+          x: roundCoord(image.bounds.x),
+          y: roundCoord(image.bounds.y),
+          width: roundCoord(image.bounds.width),
+          height: roundCoord(image.bounds.height),
+        },
       });
       return {
         content: [
@@ -366,17 +372,27 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
         limit: z.number().int().min(1).max(100).optional(),
       },
     },
-    async (input) =>
-      reply(
-        await uc.listComments.execute({
-          actor,
-          boardId: input.boardId,
-          pageId: input.pageId,
-          status: input.status,
-          cursor: input.cursor,
-          limit: input.limit,
-        })
-      )
+    async (input) => {
+      const result = await uc.listComments.execute({
+        actor,
+        boardId: input.boardId,
+        pageId: input.pageId,
+        status: input.status,
+        cursor: input.cursor,
+        limit: input.limit,
+      });
+      if (result.isErr()) {
+        return reply(result);
+      }
+      return text({
+        ...result.value,
+        items: result.value.items.map((c) => ({
+          ...c,
+          x: roundCoord(c.x),
+          y: roundCoord(c.y),
+        })),
+      });
+    }
   );
   server.registerTool(
     "reply_comment",
