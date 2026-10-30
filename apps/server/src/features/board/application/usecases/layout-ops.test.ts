@@ -122,6 +122,93 @@ describe("align_elements", () => {
     expect(t.el("c").y).toBe(200);
   });
 
+  it("moves a group rigidly against an outside shape", async () => {
+    const t = await setup();
+    await t.group.group({ actor: owner, boardId: "b1", ids: ["a", "b"] });
+    const result = await t.arrange.execute({
+      actor: owner,
+      boardId: "b1",
+      ids: ["a", "b", "c"],
+      how: { kind: "align", edge: "bottom" },
+    });
+    expect(result.isOk() && result.value.moved.sort()).toEqual(["a", "b"]);
+    expect([t.el("a").y, t.el("b").y, t.el("c").y]).toEqual([190, 240, 200]);
+    expect(t.el("b").x).toBe(300);
+  });
+
+  it("skips a whole group when one member is locked", async () => {
+    const t = await setup();
+    await t.group.group({ actor: owner, boardId: "b1", ids: ["a", "b"] });
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "b",
+      patch: { locked: true },
+    });
+    const result = await t.arrange.execute({
+      actor: owner,
+      boardId: "b1",
+      ids: ["a", "b", "c"],
+      how: { kind: "align", edge: "bottom" },
+    });
+    expect(result.isOk() && result.value.moved).toEqual([]);
+    expect(result.isOk() && result.value.skipped).toEqual([
+      { id: "a", reason: "locked" },
+      { id: "b", reason: "locked" },
+    ]);
+    expect(t.el("a").y).toBe(0);
+  });
+
+  it("distributes a group as one item", async () => {
+    const t = await setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "d", type: "rectangle", x: 1000, y: 0, width: 100, height: 100 },
+      ],
+    });
+    await t.group.group({ actor: owner, boardId: "b1", ids: ["a", "b"] });
+    const result = await t.arrange.execute({
+      actor: owner,
+      boardId: "b1",
+      ids: ["a", "b", "c", "d"],
+      how: { kind: "distribute", axis: "horizontal" },
+    });
+    expect(result.isOk() && result.value.moved).toEqual(["c"]);
+    expect([t.el("a").x, t.el("b").x, t.el("c").x, t.el("d").x]).toEqual([
+      0, 300, 650, 1000,
+    ]);
+  });
+
+  it("aligns 300 elements in one call and a rerun moves nothing", async () => {
+    const t = await setup();
+    const many = Array.from({ length: 300 }, (_, i) => ({
+      id: `m${i}`,
+      type: "rectangle" as const,
+      x: i * 10,
+      y: 1000 + i,
+      width: 5,
+      height: 5,
+    }));
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: many,
+    });
+    const input = {
+      actor: owner,
+      boardId: "b1",
+      ids: many.map((m) => m.id),
+      how: align("top"),
+    };
+    const first = await t.arrange.execute(input);
+    expect(first.isOk() && first.value.moved).toHaveLength(299);
+    expect(many.every((m) => t.el(m.id).y === 1000)).toBe(true);
+    const again = await t.arrange.execute(input);
+    expect(again.isOk() && again.value.moved).toEqual([]);
+  });
+
   it("resolves a label id to its shape and names unknown ids", async () => {
     const t = await setup();
     const labelId = (t.labelOf("b") as SceneElement).id;
@@ -310,5 +397,63 @@ describe("align_elements with a frame and its children", () => {
     expect(el("c").x).toBe(750);
     const again = await arrange.execute(input);
     expect(again.isOk() && again.value.moved).toEqual([]);
+  });
+});
+
+describe("align_elements with a frame child pulled in by a group", () => {
+  const frameWithChild = async (grouped: string[], farX: number) => {
+    const s = setupAccess();
+    await new AddBoardElements(s.guard, s.scenes, ids).execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "f", type: "frame", x: 100, y: 0, width: 400, height: 300 },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 150,
+          y: 50,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+        {
+          id: "far",
+          type: "rectangle",
+          x: farX,
+          y: 0,
+          width: 100,
+          height: 100,
+        },
+      ],
+    });
+    await new GroupElements(s.guard, s.scenes, ids).group({
+      actor: owner,
+      boardId: "b1",
+      ids: grouped,
+    });
+    const el = (id: string) =>
+      s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+    const alignOn = (named: string[], edge: "left" | "right") =>
+      new ArrangeElements(s.guard, s.scenes, ids).execute({
+        actor: owner,
+        boardId: "b1",
+        ids: named,
+        how: { kind: "align", edge },
+      });
+    return { el, alignOn };
+  };
+
+  it("moves a named child once when it is grouped with its frame", async () => {
+    const t = await frameWithChild(["f", "c"], 450);
+    await t.alignOn(["c", "far"], "right");
+    expect(Number(t.el("c").x) - Number(t.el("f").x)).toBe(50);
+  });
+
+  it("keeps a child inside its frame when a group mate pulls it in", async () => {
+    const t = await frameWithChild(["c", "far"], 1000);
+    await t.alignOn(["f", "far"], "left");
+    expect(t.el("f").x).toBe(100);
+    expect(t.el("c").x).toBe(150);
   });
 });

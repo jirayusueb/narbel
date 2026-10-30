@@ -18,7 +18,7 @@ const noClient = () =>
 
 const liveDtos = (s: SceneAccess, ids: string[]): SceneElementDto[] =>
   ids.flatMap((id) => {
-    const found = s.find(id);
+    const found = s.locate(id);
     return found && !found.element.isDeleted
       ? [
           toSceneElementDto(found.element, (label) =>
@@ -30,7 +30,7 @@ const liveDtos = (s: SceneAccess, ids: string[]): SceneElementDto[] =>
 
 const firstLive = (s: SceneAccess, ids: string[]) =>
   ids
-    .map((id) => s.find(id))
+    .map((id) => s.locate(id))
     .find((found) => found && !found.element.isDeleted);
 
 /** Selection lives in awareness, which only the live hub sees; these tools follow the newest client selection. */

@@ -36,7 +36,7 @@ export interface SceneAccess {
   get(pageId: string, id: string): SceneElement | undefined;
   all(pageId: string): SceneElement[];
   /** Finds an element on any page; element ids are unique per board. */
-  find(id: string): { pageId: string; element: SceneElement } | undefined;
+  locate(id: string): { pageId: string; element: SceneElement } | undefined;
   /** Writes the element if it wins the merge rule against the stored one. */
   put(pageId: string, element: SceneElement): void;
   ensureFile(file: { id: string; mimeType: string; created: number }): void;

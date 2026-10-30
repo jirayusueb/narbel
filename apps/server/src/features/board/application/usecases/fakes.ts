@@ -403,7 +403,7 @@ export class FakeScenes implements IBoardScenes {
       [...this.elements.entries()]
         .filter(([key]) => key.startsWith(`${pageId}:`))
         .map(([, el]) => el),
-    find: (id) => {
+    locate: (id) => {
       for (const page of this.pageList) {
         const element = this.elements.get(`${page.id}:${id}`);
         if (element) {

@@ -27,10 +27,10 @@ export const resolveOperands = (
   const missing: string[] = [];
   const byId = new Map<string, { pageId: string; element: SceneElement }>();
   for (const id of ids) {
-    const found = scene.find(id);
+    const found = scene.locate(id);
     const host =
       found && typeof found.element.containerId === "string"
-        ? scene.find(found.element.containerId)
+        ? scene.locate(found.element.containerId)
         : found;
     if (!host || host.element.isDeleted || found?.element.isDeleted) {
       missing.push(id);

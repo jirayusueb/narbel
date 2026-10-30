@@ -24,17 +24,20 @@ import type { LayoutDirection } from "../../domain/rules/layout";
 import {
   STYLE,
   hasLabelSlot,
-  misplacedStyle,
   pickStyle,
   routeStyle,
 } from "../../domain/shapes/ElementStyle";
 import {
   buildElement,
   buildLabel,
+  arrowLabelSize,
+  endsOf,
   fitLabel,
-  measure,
+  frameIdOf,
+  parseShape,
+  textOf,
 } from "../../domain/shapes/ShapeRegistry";
-import type { Shape } from "../../domain/shapes/ShapeRegistry";
+import type { Shape, ShapeInput } from "../../domain/shapes/ShapeRegistry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
@@ -98,52 +101,13 @@ const FAILURES: Record<
 
 interface Built {
   shape: Shape;
+  /** the agent gave startElementId/endElementId to a shape that cannot connect */
+  strayEnds: boolean;
   element: SceneElement;
 }
 
 const isPlaced = (shape: Shape) =>
   shape.x !== undefined && shape.y !== undefined;
-
-const GEOMETRY_KEYS = ["x", "y", "width", "height"] as const;
-
-const shapeProblem = ({
-  shape,
-  element,
-}: Built):
-  | { outcome: Exclude<AddOutcome, "ok">; detail?: string }
-  | undefined => {
-  const misplaced = misplacedStyle(shape.type, pickStyle(shape));
-  if (misplaced) {
-    const where =
-      STYLE[misplaced].on === "arrow"
-        ? "arrows only"
-        : "text, rectangle, ellipse, diamond and arrow elements only";
-    return {
-      outcome: "bad-style",
-      detail: `${misplaced} applies to ${where}, not ${shape.type}`,
-    };
-  }
-  if (shape.type === "frame") {
-    const given = GEOMETRY_KEYS.filter((key) => shape[key] !== undefined);
-    if (shape.frameId !== undefined) {
-      return { outcome: "nested-frame" };
-    }
-    return given.length === 0 || given.length === GEOMETRY_KEYS.length
-      ? undefined
-      : { outcome: "frame-geometry" };
-  }
-  if (!connectorCapable(element)) {
-    return;
-  }
-  if (shape.text !== undefined && element.type === "line") {
-    return { outcome: "connector-text" };
-  }
-  const bothEnds =
-    shape.startElementId !== undefined && shape.endElementId !== undefined;
-  return isPlaced(shape) || bothEnds
-    ? undefined
-    : { outcome: "connector-position" };
-};
 
 const live = (e: SceneElement) => !e.isDeleted;
 
@@ -180,31 +144,35 @@ const arrange = (
   ].map(elementBounds);
   const groups = new Map<string | undefined, Built[]>();
   for (const built of loose) {
-    groups.set(built.shape.frameId, [
-      ...(groups.get(built.shape.frameId) ?? []),
+    groups.set(frameIdOf(built.shape), [
+      ...(groups.get(frameIdOf(built.shape)) ?? []),
       built,
     ]);
   }
   const at = new Map<string, { x: number; y: number }>();
   for (const [frameId, members] of groups) {
     const ids = new Set(members.map(({ element }) => element.id));
-    const edges = batch.flatMap(
-      ({ shape: { startElementId, endElementId, text, fontSize } }) =>
-        startElementId &&
+    const edges = batch.flatMap(({ shape }) => {
+      const { startElementId, endElementId } = endsOf(shape);
+      return startElementId &&
         endElementId &&
         ids.has(startElementId) &&
         ids.has(endElementId)
-          ? [
-              {
-                from: startElementId,
-                to: endElementId,
-                label: text
-                  ? measure(text, fontSize ?? STYLE.fontSize.default)
+        ? [
+            {
+              from: startElementId,
+              to: endElementId,
+              label:
+                shape.type === "arrow" && shape.text
+                  ? arrowLabelSize(
+                      shape.text,
+                      shape.fontSize ?? STYLE.fontSize.default
+                    )
                   : undefined,
-              },
-            ]
-          : []
-    );
+            },
+          ]
+        : [];
+    });
     const positions = layered(
       members.map(({ element }) => ({
         id: element.id,
@@ -249,36 +217,39 @@ const arrange = (
 const referencedPageId = (batch: Built[], scene: SceneAccess) =>
   batch
     .flatMap(({ shape }) => [
-      shape.startElementId,
-      shape.endElementId,
-      shape.frameId,
+      endsOf(shape).startElementId,
+      endsOf(shape).endElementId,
+      frameIdOf(shape),
     ])
-    .map((ref) => (ref === undefined ? undefined : scene.find(ref)?.pageId))
+    .map((ref) => (ref === undefined ? undefined : scene.locate(ref)?.pageId))
     .find((pageId) => pageId !== undefined);
 
 const referenceProblem = (
   batch: Built[],
   known: Map<string, SceneElement>
 ): Exclude<AddOutcome, "ok"> | undefined => {
-  for (const { shape, element } of batch) {
-    const refs = [shape.startElementId, shape.endElementId];
-    if (refs.some((ref) => ref !== undefined)) {
-      if (!connectorCapable(element)) {
-        return "not-connector";
-      }
-      if (refs.some((ref) => ref !== undefined && !known.has(ref))) {
-        return "missing-ref";
-      }
+  for (const { shape, strayEnds } of batch) {
+    if (strayEnds) {
+      return "not-connector";
     }
-    if (shape.frameId !== undefined) {
-      const frame = known.get(shape.frameId);
+    const { startElementId, endElementId } = endsOf(shape);
+    if (
+      [startElementId, endElementId].some(
+        (ref) => ref !== undefined && !known.has(ref)
+      )
+    ) {
+      return "missing-ref";
+    }
+    const frameId = frameIdOf(shape);
+    if (frameId !== undefined) {
+      const frame = known.get(frameId);
       if (frame?.type !== "frame" || frame.isDeleted) {
         return "missing-frame";
       }
     }
   }
   const hasChildren = ({ element }: Built) =>
-    batch.some(({ shape }) => shape.frameId === element.id);
+    batch.some(({ shape }) => frameIdOf(shape) === element.id);
   return batch.some(
     (built) =>
       built.shape.type === "frame" &&
@@ -295,14 +266,12 @@ const attachAll = (
   touched: Set<string>
 ) => {
   for (const { shape, element } of placed) {
-    if (
-      shape.startElementId === undefined &&
-      shape.endElementId === undefined
-    ) {
+    const ends = endsOf(shape);
+    if (ends.startElementId === undefined && ends.endElementId === undefined) {
       continue;
     }
     const latest = known.get(element.id) ?? element;
-    for (const write of attachConnector(latest, shape, known).writes) {
+    for (const write of attachConnector(latest, ends, known).writes) {
       known.set(write.id, write);
       touched.add(write.id);
     }
@@ -318,12 +287,13 @@ const labelAll = (
   const created: string[] = [];
   for (const { shape, element } of placed) {
     const latest = known.get(element.id) ?? element;
-    if (!(shape.text && hasLabelSlot(latest.type))) {
+    const text = textOf(shape);
+    if (!(text && hasLabelSlot(latest.type))) {
       continue;
     }
     const label = buildLabel(
       latest,
-      shape.text,
+      text,
       routeStyle(latest.type, pickStyle(shape)).label,
       newIdentity(ids, now)
     );
@@ -375,8 +345,8 @@ const unframeStrays = (placed: Built[], known: Map<string, SceneElement>) => {
   );
   return placed.map((built) => {
     const { shape, element } = built;
-    const frame =
-      shape.frameId === undefined ? undefined : known.get(shape.frameId);
+    const frameId = frameIdOf(shape);
+    const frame = frameId === undefined ? undefined : known.get(frameId);
     const stray =
       isPlaced(shape) &&
       frame !== undefined &&
@@ -397,7 +367,7 @@ export class AddBoardElements {
     actor: Actor;
     boardId: string;
     pageId?: string;
-    shapes: Shape[];
+    shapes: ShapeInput[];
     direction?: LayoutDirection;
   }): Promise<Result<{ ids: string[] }, AppError>> {
     const granted = await this.guard.require(
@@ -409,8 +379,24 @@ export class AddBoardElements {
       return err(granted.error);
     }
     const now = Date.now();
-    const batch = input.shapes.map((shape) => ({
+    const shapes: Shape[] = [];
+    const strayEnds = input.shapes.map(
+      (flat) =>
+        (flat.startElementId !== undefined ||
+          flat.endElementId !== undefined) &&
+        flat.type !== "arrow" &&
+        flat.type !== "line"
+    );
+    for (const flat of input.shapes) {
+      const parsed = parseShape(flat);
+      if (parsed.isErr()) {
+        return err(FAILURES[parsed.error.outcome](parsed.error.detail));
+      }
+      shapes.push(parsed.value);
+    }
+    const batch = shapes.map((shape, i) => ({
       shape,
+      strayEnds: strayEnds[i] ?? false,
       element: buildElement(shape, {
         id: shape.id ?? this.ids.generate(),
         seed: this.ids.int(),
@@ -418,10 +404,6 @@ export class AddBoardElements {
         updated: now,
       }),
     }));
-    const problem = batch.map(shapeProblem).find(Boolean);
-    if (problem) {
-      return err(FAILURES[problem.outcome](problem.detail));
-    }
     const outcome = await this.scenes.transact(
       input.boardId,
       (scene): AddOutcome => {
@@ -437,8 +419,7 @@ export class AddBoardElements {
         const fresh = new Set<string>();
         for (const { element } of batch) {
           // a caller-chosen id must not overwrite an existing element or a sibling
-          // SceneAccess.find looks up by id on any page; it is not Array#find
-          const taken = scene.find(element.id);
+          const taken = scene.locate(element.id);
           if (fresh.has(element.id) || taken) {
             return "id-taken";
           }

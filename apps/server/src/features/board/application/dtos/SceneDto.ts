@@ -58,7 +58,7 @@ export const toSceneElementDto = (
     y: roundCoord(e.y),
     width: roundCoord(e.width),
     height: roundCoord(e.height),
-    ...(content ? { text: content.text } : {}),
+    ...(content ? { text: content.originalText ?? content.text } : {}),
     ...styleDiff(e, label),
     ...(CONNECTOR_TYPES[e.type]
       ? {

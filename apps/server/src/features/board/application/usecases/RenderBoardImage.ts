@@ -22,6 +22,8 @@ export interface BoardImage {
     /** content bounds in board coordinates, so a picture can be related to get_board */
     bounds: Bounds;
   } | null;
+  /** stored images left out of the picture (over the pixel limit, unreadable or missing) */
+  omittedFiles: string[];
 }
 
 export class RenderBoardImage {
@@ -54,7 +56,7 @@ export class RenderBoardImage {
     if (!page) {
       return err(AppError.notFound("Page"));
     }
-    const { images } = await loadBoardImages(
+    const { images, omitted } = await loadBoardImages(
       this.files,
       this.storage,
       input.boardId,
@@ -72,6 +74,11 @@ export class RenderBoardImage {
       height: scene.height,
       bounds: scene.bounds,
     };
-    return ok({ pageId: page.id, pageName: page.name, image });
+    return ok({
+      pageId: page.id,
+      pageName: page.name,
+      image,
+      omittedFiles: omitted,
+    });
   }
 }

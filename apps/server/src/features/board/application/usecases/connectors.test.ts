@@ -137,6 +137,33 @@ describe("arrow connectors", () => {
     expect(t.el("a").type).toBe("rectangle");
   });
 
+  it("reports a taken id before a connector end on a non-connector", async () => {
+    const t = setup();
+    await t.add.execute({ actor: owner, boardId: "b1", shapes: boxes });
+    const result = await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "a", type: "ellipse", x: 9, y: 9 },
+        { type: "ellipse", x: 0, y: 0, startElementId: "a" },
+      ],
+    });
+    expect(result.isErr() && result.error.message).toContain("already exists");
+  });
+
+  it("reports a bad style before a connector end on a non-connector", async () => {
+    const t = setup();
+    const result = await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { type: "ellipse", x: 0, y: 0, startElementId: "a" },
+        { type: "rectangle", x: 0, y: 0, endArrowhead: "arrow" },
+      ],
+    });
+    expect(result.isErr() && result.error.message).toContain("applies to");
+  });
+
   it("re-routes attached arrows when a bound shape moves", async () => {
     const t = setup();
     await t.add.execute({

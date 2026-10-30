@@ -114,7 +114,7 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
       [...elements.entries()]
         .filter(([key]) => key.startsWith(`${pageId}:`))
         .map(([, element]) => element),
-    find: (id) => {
+    locate: (id) => {
       const page = pages
         .toArray()
         .find((p) => elements.has(elementKey(p.id, id)));

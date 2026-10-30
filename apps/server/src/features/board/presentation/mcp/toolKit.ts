@@ -12,8 +12,9 @@ export type ToolRegistrar = (
   actor: Actor
 ) => void;
 
+// a use case that returns nothing must still yield a string, or the client rejects the result
 export const text = (value: unknown) => ({
-  content: [{ type: "text" as const, text: JSON.stringify(value) }],
+  content: [{ type: "text" as const, text: JSON.stringify(value ?? null) }],
 });
 
 export const reply = <T>(result: Result<T, AppError>) =>

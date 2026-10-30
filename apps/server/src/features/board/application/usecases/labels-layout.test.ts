@@ -325,6 +325,100 @@ describe("automatic layout", () => {
     );
   });
 
+  it("refits and rewraps an arrow label when an end shape moves", async () => {
+    const t = setup();
+    const text =
+      "alpha bravo charlie delta echo foxtrot golf hotel india juliet";
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "a", type: "rectangle", x: 0, y: 0, width: 100, height: 100 },
+        { id: "b", type: "rectangle", x: 0, y: 300, width: 100, height: 100 },
+        {
+          id: "ab",
+          type: "arrow",
+          text,
+          startElementId: "a",
+          endElementId: "b",
+        },
+      ],
+    });
+    const before = t.labelOf("ab") as SceneElement;
+    expect(String(before.text).split("\n").length).toBeGreaterThan(2);
+    expect(before.originalText).toBe(text);
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "b",
+      patch: { x: 2000 },
+    });
+    const after = t.labelOf("ab") as SceneElement;
+    expect(String(after.text).split("\n").length).toBeLessThan(
+      String(before.text).split("\n").length
+    );
+    expect(after.originalText).toBe(text);
+  });
+
+  it("reports an arrow label unwrapped and writes it back without line breaks", async () => {
+    const t = setup();
+    const text =
+      "alpha bravo charlie delta echo foxtrot golf hotel india juliet";
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "a", type: "rectangle", x: 0, y: 0, width: 100, height: 100 },
+        { id: "b", type: "rectangle", x: 0, y: 300, width: 100, height: 100 },
+        {
+          id: "ab",
+          type: "arrow",
+          text,
+          startElementId: "a",
+          endElementId: "b",
+        },
+      ],
+    });
+    expect(String((t.labelOf("ab") as SceneElement).text)).toContain("\n");
+    const shown = (await t.scene()).find((e) => e.id === "ab")?.text;
+    expect(shown).toBe(text);
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "ab",
+      patch: { text: shown as string },
+    });
+    expect((t.labelOf("ab") as SceneElement).originalText).toBe(text);
+  });
+
+  it("leaves room for a labelled arrow that skips a rank", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "a", type: "rectangle", text: "A" },
+        { id: "b", type: "rectangle", text: "B" },
+        { id: "c", type: "rectangle", text: "C" },
+        { id: "ab", type: "arrow", startElementId: "a", endElementId: "b" },
+        { id: "bc", type: "arrow", startElementId: "b", endElementId: "c" },
+        {
+          id: "ac",
+          type: "arrow",
+          text: "alpha bravo charlie delta echo foxtrot golf hotel india",
+          startElementId: "a",
+          endElementId: "c",
+        },
+      ],
+    });
+    const label = t.labelOf("ac") as SceneElement;
+    const gap = (upper: string, lower: string) =>
+      Number(t.el(lower).y) -
+      (Number(t.el(upper).y) + Number(t.el(upper).height));
+    expect(gap("a", "b")).toBeGreaterThanOrEqual(Number(label.height) + 48);
+    expect(gap("b", "c")).toBeGreaterThanOrEqual(Number(label.height) + 48);
+  });
+
   it("lays out a cycle in finite ranks", async () => {
     const t = setup();
     const result = await t.add.execute({

@@ -1,5 +1,7 @@
-import { union } from "./geometry";
+import type { SceneElement } from "../entities/SceneElement";
+import { elementBounds, union } from "./geometry";
 import type { Bounds } from "./geometry";
+import { outermostGroup } from "./groups";
 
 export type Edge = "left" | "center" | "right" | "top" | "middle" | "bottom";
 export type Axis = "horizontal" | "vertical";
@@ -98,3 +100,28 @@ export const arrangeMoves = (
     (m) => Math.abs(m.dx) > EPSILON || Math.abs(m.dy) > EPSILON
   );
 };
+
+export interface Unit {
+  key: string;
+  members: SceneElement[];
+}
+
+/** Like Excalidraw, a group is one unit under its outermost group id; an ungrouped element is its own. */
+export const unitsOf = (elements: SceneElement[]): Unit[] => {
+  const units = new Map<string, Unit>();
+  for (const e of elements) {
+    const key = outermostGroup(e) ?? e.id;
+    const unit = units.get(key);
+    if (unit) {
+      unit.members.push(e);
+    } else {
+      units.set(key, { key, members: [e] });
+    }
+  }
+  return [...units.values()];
+};
+
+export const unitItem = (unit: Unit): ArrangeItem => ({
+  id: unit.key,
+  bounds: union(unit.members.map(elementBounds)),
+});

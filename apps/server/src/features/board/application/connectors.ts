@@ -270,14 +270,15 @@ export const patchElement = (
   id: string,
   fields: Record<string, unknown>,
   rebind: RebindRefs = {},
-  carried = false
+  carried = false,
+  sharedLookup?: Map<string, SceneElement>
 ): PatchOutcome => {
-  const found = scene.find(id);
+  const found = scene.locate(id);
   if (!found || found.element.isDeleted) {
     return "missing";
   }
   const local = found.element;
-  const lookup = pageLookup(scene, found.pageId);
+  const lookup = sharedLookup ?? pageLookup(scene, found.pageId);
   const problem = rebindProblem(local, rebind, lookup);
   if (problem) {
     return problem;
@@ -328,9 +329,10 @@ export const patchElement = (
     ...following,
   ]) {
     scene.put(found.pageId, write);
+    lookup.set(write.id, write);
   }
   for (const move of childMoves(lookup, local, next)) {
-    patchElement(scene, ids, move.id, move.fields, {}, true);
+    patchElement(scene, ids, move.id, move.fields, {}, true, lookup);
   }
   return "ok";
 };
@@ -340,7 +342,7 @@ export const deleteElement = (
   ids: IIdGenerator,
   id: string
 ): "ok" | "missing" | "locked" => {
-  const found = scene.find(id);
+  const found = scene.locate(id);
   if (!found || found.element.isDeleted) {
     return "missing";
   }
