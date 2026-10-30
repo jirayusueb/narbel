@@ -35,4 +35,9 @@ jobs:
       # the root db:migrate goes through an interactive turbo task, which needs a terminal
       - run: bun run db:migrate
         working-directory: packages/db
+      # routeTree.gen.ts is generated and gitignored; the build creates it and proves the web build
+      - run: bun run build
+        working-directory: apps/web
+        env:
+          VITE_SERVER_URL: http://localhost:3000
       - run: bunx redproof check
