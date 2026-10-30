@@ -43,8 +43,8 @@ export default defineConfig({
       },
     },
     {
-      // ops scripts drive remote APIs step by step; order and retries matter more than parallelism
-      files: ["scripts/**"],
+      // ops and measurement scripts drive APIs step by step; order matters more than parallelism
+      files: ["scripts/**", "apps/server/scripts/**"],
       rules: {
         "eslint/no-await-in-loop": "off",
         "unicorn/no-await-expression-member": "off",
