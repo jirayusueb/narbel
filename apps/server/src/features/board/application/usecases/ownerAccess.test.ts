@@ -36,6 +36,7 @@ const setup = () => {
       presigned.push(key);
       return `https://s3.test/${key}?signed`;
     },
+    put: () => Promise.resolve(),
     stream: () => new ReadableStream(),
     stat: () => Promise.resolve(null),
     delete: () => Promise.resolve(),

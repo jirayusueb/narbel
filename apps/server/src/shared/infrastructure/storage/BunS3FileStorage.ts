@@ -31,6 +31,10 @@ export class BunS3FileStorage implements IFileStorage {
     });
   }
 
+  async put(key: string, bytes: Uint8Array, mimeType: string) {
+    await this.client.write(key, bytes, { type: mimeType });
+  }
+
   stream(key: string) {
     return this.client.file(key).stream();
   }
