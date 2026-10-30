@@ -27,11 +27,13 @@ import { DeletePage } from "./application/usecases/DeletePage";
 import { EditComment } from "./application/usecases/EditComment";
 import { GetBoard } from "./application/usecases/GetBoard";
 import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
+import { GetBoardChanges } from "./application/usecases/GetBoardChanges";
 import { GetBoardFile } from "./application/usecases/GetBoardFile";
 import { GetBoardScene } from "./application/usecases/GetBoardScene";
 import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
 import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
 import { ListBoards } from "./application/usecases/ListBoards";
+import { ListBoardViewers } from "./application/usecases/ListBoardViewers";
 import { ListComments } from "./application/usecases/ListComments";
 import { ListPages } from "./application/usecases/ListPages";
 import { ListReplies } from "./application/usecases/ListReplies";
@@ -64,6 +66,7 @@ import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoa
 import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
+import { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence";
 import { ResvgRasterizer } from "./infrastructure/services/ResvgRasterizer";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
 import { createBoardAccessController } from "./presentation/http/BoardAccessController";
@@ -88,7 +91,7 @@ export interface BoardDeps {
   /** shared by every server instance: cache-aside reads and the realtime sync bus */
   cache: ICache;
   pubsub: IPubSub;
-  /** counts unlock failures across server instances */
+  /** shared by every server instance: unlock failure counts and who has which board open */
   redis: Redis;
   betterAuth: BetterAuthPlugin;
 }
@@ -138,6 +141,7 @@ const createUseCases = ({
   const hasher = new ScryptPasswordHasher();
   const unlockTokens = new HmacUnlockTokens(secret);
   const guard = new BoardAccessGuard(boards, grants, unlockTokens);
+  const presence = new RedisBoardPresence(redis);
   return {
     createBoard: new CreateBoard(boards, ids),
     listBoards: new ListBoards(boards),
@@ -163,10 +167,12 @@ const createUseCases = ({
     addPage: new AddPage(guard, hub, ids),
     renamePage: new RenamePage(guard, hub),
     deletePage: new DeletePage(guard, hub),
+    getBoardChanges: new GetBoardChanges(guard, hub, comments, profiles),
     getSelection: new GetSelection(guard, hub),
     selectElements: new SelectElements(guard, hub),
     editSelection: new EditSelection(guard, hub, ids),
-    connectBoardSync: new ConnectBoardSync(guard, hub),
+    connectBoardSync: new ConnectBoardSync(guard, hub, presence),
+    listBoardViewers: new ListBoardViewers(guard, presence),
     getBoardAccess: new GetBoardAccess(guard, grants, webOrigin),
     updateBoardAccess: new UpdateBoardAccess(
       guard,

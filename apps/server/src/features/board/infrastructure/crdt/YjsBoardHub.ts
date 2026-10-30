@@ -7,6 +7,7 @@ import * as Y from "yjs";
 import type { IPubSub } from "../../../../shared/application/interfaces/IPubSub";
 import type {
   IBoardScenes,
+  AgentSelection,
   SceneAccess,
 } from "../../application/ports/IBoardScenes";
 import type {
@@ -17,6 +18,7 @@ import type {
 import type { IBoardDocumentStore } from "../repositories/DrizzleBoardDocumentStore";
 import { diffTexts, extractBoardText, indexTexts } from "./boardText";
 import type { BoardText, TextIndex } from "./boardText";
+import { markAgentWriter } from "./changes";
 import { ensurePages, sceneAccess } from "./pages";
 import { ROOM_TIMING, RoomTimers } from "./RoomTimers";
 import type { RoomTiming } from "./RoomTimers";
@@ -44,6 +46,8 @@ interface Room {
   selectionClient: number | undefined;
   selectionKeys: Map<number, string>;
   dirty: boolean;
+  /** focus calls so far; each one publishes a fresh number so viewers react once per call */
+  reveals: number;
   saving: Promise<void>;
   timers: RoomTimers;
   /** the `board_text` rows as last written by this instance; unknown until the first save */
@@ -82,7 +86,13 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     fn: (scene: SceneAccess) => T
   ): Promise<T> {
     const room = await this.room(boardId);
-    return room.doc.transact(() => fn(sceneAccess(room.doc)), SERVER_ORIGIN);
+    return room.doc.transact((tr) => {
+      const out = fn(sceneAccess(room.doc));
+      if (tr.changed.size > 0) {
+        markAgentWriter(room.doc);
+      }
+      return out;
+    }, SERVER_ORIGIN);
   }
 
   async getSelection(boardId: string): Promise<string[] | undefined> {
@@ -100,12 +110,20 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     return selection(room.selectionClient) ?? [];
   }
 
-  async setSelection(boardId: string, ids: string[]): Promise<void> {
+  async setSelection(
+    boardId: string,
+    { pageId, ids, reveal }: AgentSelection
+  ): Promise<void> {
     const room = await this.room(boardId);
+    // the web honours a reveal only from a registered agent, so a pure focus must register too
+    room.doc.transact(() => markAgentWriter(room.doc), SERVER_ORIGIN);
+    room.reveals += reveal ? 1 : 0;
     room.awareness.setLocalState({
       user: { name: "MCP" },
       mcp: true,
+      ...(pageId === undefined ? {} : { pageId }),
       selection: ids,
+      ...(reveal ? { reveal: room.reveals } : {}),
     });
   }
 
@@ -195,6 +213,7 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       selectionClient: undefined,
       selectionKeys: new Map(),
       dirty: ensurePages(doc, SERVER_ORIGIN),
+      reveals: 0,
       saving: Promise.resolve(),
       timers: new RoomTimers(this.timing, {
         save: () => this.flush(room),
@@ -204,6 +223,7 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       unsubscribe: undefined,
     };
     if (room.dirty) {
+      markAgentWriter(doc);
       room.timers.changed();
     }
 

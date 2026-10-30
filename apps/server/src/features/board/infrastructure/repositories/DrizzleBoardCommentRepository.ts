@@ -16,6 +16,7 @@ import { comment, commentReaction } from "@narbel/db/schema/board";
 
 import type { Cursor } from "../../../../shared/kernel/types/Cursor";
 import type {
+  CommentActivity,
   CommentView,
   IBoardCommentRepository,
   ReactionSummary,
@@ -164,6 +165,36 @@ export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
       .update(comment)
       .set({ assigneeId: null })
       .where(and(eq(comment.boardId, boardId), eq(comment.assigneeId, userId)));
+  }
+
+  async listActivity(query: {
+    boardId: string;
+    after: Cursor;
+    limit: number;
+    viewerId?: string;
+  }): Promise<CommentActivity[]> {
+    // greatest() ignores NULLs, so an unedited, unresolved row reports its creation time
+    const activity = sql<Date>`greatest(${comment.createdAt}, ${comment.editedAt}, ${comment.resolvedAt})`;
+    const at = query.after.at.toISOString();
+    const rows = await this.db
+      .select({ row: comment, activityAt: activity.mapWith(comment.createdAt) })
+      .from(comment)
+      .where(
+        and(
+          eq(comment.boardId, query.boardId),
+          sql`(${activity} > ${at} or (${activity} = ${at} and ${comment.id} > ${query.after.id}))`
+        )
+      )
+      .orderBy(asc(activity), asc(comment.id))
+      .limit(query.limit);
+    const views = await this.decorate(
+      rows.map(({ row }) => row),
+      query.viewerId
+    );
+    return views.map((view, index) => ({
+      ...view,
+      activityAt: rows[index]?.activityAt ?? view.comment.createdAt,
+    }));
   }
 
   /** Adds reply counts and reaction tallies for a whole page of rows in two queries. */

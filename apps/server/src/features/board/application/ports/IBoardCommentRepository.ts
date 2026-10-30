@@ -14,6 +14,11 @@ export interface CommentView {
   reactions: ReactionSummary[];
 }
 
+export interface CommentActivity extends CommentView {
+  /** greatest(createdAt, editedAt, resolvedAt): when this row last changed in a way get_changes reports */
+  activityAt: Date;
+}
+
 export type ThreadStatus = "open" | "resolved" | "all";
 
 export interface ThreadQuery {
@@ -67,4 +72,14 @@ export interface IBoardCommentRepository {
   ): Promise<void>;
   /** Unassigns every comment of the board that was assigned to `userId`. */
   clearAssignee(boardId: string, userId: string): Promise<void>;
+  /**
+   * Threads and replies created, edited or resolved strictly after `after`, by (activityAt, id)
+   * ascending. Reopens, deletes and reactions leave no timestamp, so they are not reported.
+   */
+  listActivity(query: {
+    boardId: string;
+    after: Cursor;
+    limit: number;
+    viewerId?: string;
+  }): Promise<CommentActivity[]>;
 }
