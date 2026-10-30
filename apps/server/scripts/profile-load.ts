@@ -208,6 +208,29 @@ const results: Record<string, unknown>[] = [
       return { updatesSent: 200 };
     }
   ),
+  // How people edit: a burst, then a pause long enough for the debounced save, again and again.
+  await measure(
+    "1 editor on perf L: 6 bursts of 1 s at 10 Hz, 2 s pauses",
+    async () => {
+      const p = await peer(cookie, L);
+      const elements = p.doc.getMap<Record<string, unknown>>("elements");
+      const key = "page:main:perf-0-1";
+      for (let burst = 0; burst < 6; burst += 1) {
+        for (let i = 0; i < 10; i += 1) {
+          const el = elements.get(key) ?? {};
+          elements.set(key, {
+            ...el,
+            x: burst * 10 + i,
+            version: Number(el.version ?? 0) + 1,
+          });
+          await Bun.sleep(100);
+        }
+        await Bun.sleep(2000);
+      }
+      p.close();
+      return { updatesSent: 60 };
+    }
+  ),
   await measure(
     "cursor at 60 Hz for 10 s, 1 sender + 3 viewers on perf S",
     async () => {

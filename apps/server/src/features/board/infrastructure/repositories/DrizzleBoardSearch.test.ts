@@ -180,4 +180,30 @@ describe.skipIf(!reachable)("board search (postgres)", () => {
     expect((await find(alice, "legacy")).map((hit) => hit.id)).toEqual(["old"]);
     expect(await store.backfillTexts()).toBe(0);
   });
+
+  it("a full text set rewrites only rows whose text changed", async () => {
+    await db
+      .insert(board)
+      .values({ id: "keep", ownerId: "alice", title: "Keep" });
+    const words = {
+      "page:main:t1": text("t1", "steady"),
+      "page:main:t2": text("t2", "draft"),
+    };
+    await put("keep", words);
+    // xmin changes whenever Postgres writes a new version of the row
+    const versions = async () =>
+      Object.fromEntries(
+        (
+          await db.execute<{ element_id: string; v: string }>(
+            sql`select element_id, xmin::text as v from board_text where board_id = 'keep'`
+          )
+        ).rows.map((row) => [row.element_id, row.v])
+      );
+    const before = await versions();
+    await put("keep", { ...words, "page:main:t2": text("t2", "final") });
+    const after = await versions();
+    expect(after.t1).toBe(before.t1);
+    expect(after.t2).not.toBe(before.t2);
+    expect((await find(alice, "final")).map((hit) => hit.id)).toEqual(["keep"]);
+  });
 });

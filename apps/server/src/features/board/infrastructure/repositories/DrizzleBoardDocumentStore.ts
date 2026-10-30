@@ -3,7 +3,12 @@ import type { Database, DbExecutor } from "@narbel/db";
 import { board, boardDocument, boardText } from "@narbel/db/schema/board";
 import * as Y from "yjs";
 
-import { extractBoardText, replaceAllTexts } from "../crdt/boardText";
+import {
+  diffTexts,
+  extractBoardText,
+  indexTexts,
+  replaceAllTexts,
+} from "../crdt/boardText";
 import type { TextChange } from "../crdt/boardText";
 
 export interface IBoardDocumentStore {
@@ -24,11 +29,27 @@ const BACKFILL_BATCH = 50;
 const writeTexts = async (
   db: DbExecutor,
   boardId: string,
-  { replaceAll, upsert, remove }: TextChange
-) => {
-  if (replaceAll) {
-    await db.delete(boardText).where(eq(boardText.boardId, boardId));
-  } else if (remove.length > 0) {
+  change: TextChange
+): Promise<void> => {
+  if (change.replaceAll) {
+    // A full set (first save after a load, backfill) is diffed against the stored rows, so an
+    // unchanged board writes nothing. The document upsert above already holds this board's row lock.
+    const stored = await db
+      .select({
+        pageId: boardText.pageId,
+        elementId: boardText.elementId,
+        text: boardText.text,
+      })
+      .from(boardText)
+      .where(eq(boardText.boardId, boardId));
+    const diff = diffTexts(indexTexts(stored), indexTexts(change.upsert));
+    if (diff) {
+      await writeTexts(db, boardId, diff);
+    }
+    return;
+  }
+  const { upsert, remove } = change;
+  if (remove.length > 0) {
     await db
       .delete(boardText)
       .where(

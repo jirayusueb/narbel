@@ -35,7 +35,7 @@ export const extractBoardText = (doc: Y.Doc): BoardText[] =>
     }
   );
 
-/** The `board_text` rows to write to bring a stored board up to date; `replaceAll` ignores what is stored. */
+/** The `board_text` rows to write; `replaceAll` carries the full set and the store writes only what differs from its rows. */
 export interface TextChange {
   replaceAll: boolean;
   upsert: BoardText[];
@@ -56,8 +56,8 @@ export const replaceAllTexts = (texts: BoardText[]): TextChange => ({
 });
 
 /**
- * What to write given the rows last written (undefined when unknown, which rewrites everything),
- * or undefined when the stored text is already current.
+ * What to write given the rows last written (undefined when unknown, which hands over the full
+ * set), or undefined when the stored text is already current.
  */
 export const diffTexts = (
   written: TextIndex | undefined,
