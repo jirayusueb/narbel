@@ -57,7 +57,7 @@ const VISIBILITY_OPTIONS: {
   {
     value: "password",
     label: "Password",
-    hint: "Signed-in people who know the password",
+    hint: "Anyone who knows the password can view",
     confirmation: "The board now asks for its password",
     Icon: KeyRound,
   },
@@ -437,7 +437,7 @@ const ShareBoardDialog = ({
           Share “{board.title}”
         </DialogTitle>
         <DialogDescription>
-          People you share with need a narbel account.
+          Invited people need a narbel account. Guests can only view.
         </DialogDescription>
       </DialogHeader>
       {body}

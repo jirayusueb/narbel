@@ -28,6 +28,11 @@
   --color-selection: var(--moss);
 }
 
+/* Excalidraw paints every <a> in its UI as a hyperlink; links styled as buttons in the board actions keep their own colours. */
+.excalidraw [data-board-actions] a {
+  color: revert-layer;
+}
+
 .excalidraw.theme--dark {
   --island-bg-color: #272727;
   --default-border-color: #3d3d3c;

@@ -352,7 +352,11 @@ export const BoardEditor = ({
           compact
           cardRef={setCard}
         />
-        <div ref={setCluster} className="flex shrink-0 items-center gap-2">
+        <div
+          ref={setCluster}
+          data-board-actions
+          className="flex shrink-0 items-center gap-2"
+        >
           {actions}
         </div>
       </div>
@@ -383,6 +387,7 @@ export const BoardEditor = ({
           isPhone || isCompact ? null : (
             <motion.div
               ref={setCluster}
+              data-board-actions
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
