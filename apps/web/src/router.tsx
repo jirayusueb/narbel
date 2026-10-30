@@ -11,7 +11,9 @@ export const getRouter = () => {
     !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const router = createTanStackRouter({
     routeTree,
-    scrollRestoration: true,
+    // The board never scrolls; restoring would write stale offsets over the page strip.
+    scrollRestoration: ({ location }) =>
+      !location.pathname.startsWith("/boards/"),
     defaultHashScrollIntoView: {
       behavior: glide ? "smooth" : "auto",
       block: "start",
