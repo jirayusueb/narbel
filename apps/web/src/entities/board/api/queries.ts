@@ -54,8 +54,13 @@ export const useBoardMembers = (id: string, share?: string, enabled = true) =>
 export const useCreateBoard = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (title: string) =>
-      unwrap(await api.api.boards.post({ title })),
+    mutationFn: async ({ title, key }: { title: string; key: string }) =>
+      unwrap(
+        await api.api.boards.post(
+          { title },
+          { headers: { "idempotency-key": key } }
+        )
+      ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: boardKeys.all }),
   });
 };

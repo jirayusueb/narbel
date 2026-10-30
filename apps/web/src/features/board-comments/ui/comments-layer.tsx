@@ -137,7 +137,11 @@ export const CommentsLayer = ({
   // Scrolling and zooming move one container by transform and a --z variable; React only re-renders when the visible pins change.
   const viewRef = useRef<View>({ scrollX: 0, scrollY: 0, zoom: 1 });
   const [visible, setVisible] = useState("");
-  const [draft, setDraft] = useState<{ x: number; y: number } | null>(null);
+  const [draft, setDraft] = useState<{
+    x: number;
+    y: number;
+    key: string;
+  } | null>(null);
   const [offset, setOffset] = useState<{ left: number; top: number } | null>(
     null
   );
@@ -343,6 +347,7 @@ export const CommentsLayer = ({
     setDraft({
       x: left / view.zoom - view.scrollX,
       y: top / view.zoom - view.scrollY,
+      key: crypto.randomUUID(),
     });
     onModeChange(false);
   };
