@@ -15,10 +15,14 @@ export const BoardCanvas = ({
   board,
   shareToken,
   focusComment,
+  pageParam,
+  onPageChange,
 }: {
   board: Board;
   shareToken?: string;
   focusComment?: string;
+  pageParam?: string;
+  onPageChange: (param: string) => void;
 }) => {
   const placeholder = <BoardSkeleton />;
   return (
@@ -28,6 +32,8 @@ export const BoardCanvas = ({
           board={board}
           shareToken={shareToken}
           focusComment={focusComment}
+          pageParam={pageParam}
+          onPageChange={onPageChange}
         />
       </Suspense>
     </ClientOnly>

@@ -13,7 +13,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil, Share2, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 
 import type { Board } from "@/entities/board";
@@ -30,7 +30,12 @@ import {
   useCommentsWorkspace,
 } from "@/features/board-comments";
 import { useBoardMedia } from "@/features/board-media";
-import { PagesBar, usePages } from "@/features/board-pages";
+import {
+  PagesBar,
+  pageIdFromParam,
+  pageParamOf,
+  usePages,
+} from "@/features/board-pages";
 import {
   PreferencesMenuItems,
   usePreferences,
@@ -174,10 +179,14 @@ export const BoardEditor = ({
   board,
   shareToken,
   focusComment,
+  pageParam,
+  onPageChange,
 }: {
   board: Board;
   shareToken?: string;
   focusComment?: string;
+  pageParam?: string;
+  onPageChange: (param: string) => void;
 }) => {
   const user = useCollabUser();
   const { data: session } = useSession();
@@ -185,7 +194,15 @@ export const BoardEditor = ({
   const href = useLocation({ select: (location) => location.href });
   const userId = user.id;
 
-  const [pageId, setPageId] = useState<string | null>(null);
+  const pageId = pageIdFromParam(pageParam);
+  const setPageId = useCallback(
+    (id: string) => {
+      if (id !== pageId) {
+        onPageChange(pageParamOf(id));
+      }
+    },
+    [pageId, onPageChange]
+  );
   const [commentMode, setCommentMode] = useState(false);
   const {
     value: drawerOpen,

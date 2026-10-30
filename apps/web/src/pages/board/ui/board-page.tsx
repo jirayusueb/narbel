@@ -21,10 +21,14 @@ export const BoardPage = ({
   boardId,
   shareToken,
   focusComment,
+  pageParam,
+  onPageChange,
 }: {
   boardId: string;
   shareToken?: string;
   focusComment?: string;
+  pageParam?: string;
+  onPageChange: (param: string) => void;
 }) => {
   const { data: board, isPending, error } = useBoard(boardId, shareToken);
   const { data: session } = useSession();
@@ -43,6 +47,8 @@ export const BoardPage = ({
         board={board}
         shareToken={shareToken}
         focusComment={focusComment}
+        pageParam={pageParam}
+        onPageChange={onPageChange}
       />
     );
   }
