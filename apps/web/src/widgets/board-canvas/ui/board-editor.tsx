@@ -243,6 +243,7 @@ export const BoardEditor = ({
     api,
     canWrite: writable,
     shareToken,
+    pageId,
   });
   const pages = usePages({
     doc,
