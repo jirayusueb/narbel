@@ -5,7 +5,6 @@ export interface ImageHeader {
     | "image/gif"
     | "image/webp"
     | "image/svg+xml";
-  /** undefined when the bytes carry no pixel size (an SVG without width/height/viewBox) */
   size?: { width: number; height: number };
 }
 
@@ -93,7 +92,6 @@ const webp = (b: Uint8Array) => {
 
 const attr = (tag: string, name: string) =>
   new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, "u").exec(tag)?.[1];
-// percentages and em units have no pixel meaning without a layout
 const px = (value: string | undefined) => {
   const n = Number(
     /^\s*(?<n>[\d.]+)\s*(?:px)?\s*$/u.exec(value ?? "")?.groups?.n
@@ -123,7 +121,6 @@ const svg = (b: Uint8Array): ImageHeader | null => {
     : { mimeType: "image/svg+xml" };
 };
 
-/** Mime type and pixel size from the file's own bytes; null when it is not a supported image. */
 export const readImageHeader = (b: Uint8Array): ImageHeader | null => {
   if (b[0] === 0x89 && ascii(b, 1, "PNG")) {
     return png(b);

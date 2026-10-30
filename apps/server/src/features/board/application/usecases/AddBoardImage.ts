@@ -5,10 +5,16 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
-import { elementBounds, union } from "../../domain/rules/geometry";
+import { elementBounds, overlaps, union } from "../../domain/rules/geometry";
 import { readImageHeader } from "../../domain/rules/imageHeader";
-import { FRAME_PADDING, wrapFrame } from "../../domain/rules/layout";
 import {
+  CLEARANCE,
+  FRAME_PADDING,
+  besideContent,
+  wrapFrame,
+} from "../../domain/rules/layout";
+import {
+  MAX_IMAGE_PIXELS,
   MAX_INLINE_IMAGE_BYTES,
   validateUpload,
 } from "../../domain/rules/UploadRules";
@@ -17,10 +23,7 @@ import { boardFileKey } from "../../domain/values/FileKey";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
-import type { IBoardScenes } from "../ports/IBoardScenes";
-
-// keeps an image placed without x/y clear of what is already on the page
-const CLEARANCE = 120;
+import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 
 export interface AddedImage {
   id: string;
@@ -29,9 +32,9 @@ export interface AddedImage {
   height: number;
 }
 
-type Outcome = AddedImage | "no-page" | "id-taken" | "no-frame";
+type Refusal = "no-page" | "id-taken" | "no-frame";
 
-const FAILURES: Record<Exclude<Outcome, AddedImage>, () => AppError> = {
+const FAILURES: Record<Refusal, () => AppError> = {
   "no-page": () => AppError.notFound("Page"),
   "id-taken": () =>
     AppError.validation("An element with that id already exists on the board"),
@@ -39,14 +42,6 @@ const FAILURES: Record<Exclude<Outcome, AddedImage>, () => AppError> = {
     AppError.validation("frameId must reference a frame on the page"),
 };
 
-const besideAll = (live: SceneElement[]) => ({
-  x:
-    live.length === 0
-      ? 0
-      : Math.max(...live.map((e) => Number(e.x) + Number(e.width))) + CLEARANCE,
-  y: live.length === 0 ? 0 : Math.min(...live.map((e) => Number(e.y))),
-});
-/** Inside the frame at its padding, right of what its children already fill. */
 const insideFrame = (frame: SceneElement, live: SceneElement[]) => {
   const right = live
     .filter((e) => e.frameId === frame.id)
@@ -68,6 +63,32 @@ export class AddBoardImage {
     private readonly storage: IFileStorage,
     private readonly ids: IIdGenerator
   ) {}
+
+  private target(
+    scene: SceneAccess,
+    input: { pageId?: string; id?: string; frameId?: string }
+  ) {
+    const page = resolvePage(scene.pages(), input.pageId);
+    if (!page) {
+      return "no-page";
+    }
+    const id = input.id ?? this.ids.generate();
+    const taken = scene.find(id);
+    if (taken) {
+      return "id-taken";
+    }
+    const frame =
+      input.frameId === undefined
+        ? undefined
+        : scene.get(page.id, input.frameId);
+    if (
+      input.frameId !== undefined &&
+      (frame?.type !== "frame" || frame.isDeleted)
+    ) {
+      return "no-frame";
+    }
+    return { page, id, frame };
+  }
 
   async execute(input: {
     actor: Actor;
@@ -102,7 +123,17 @@ export class AddBoardImage {
         AppError.unsupportedMediaType("Not a PNG, JPEG, GIF, WebP or SVG image")
       );
     }
-    // content-addressed like Excalidraw's own ids: the same bytes always land on one object
+    // a few KiB can declare a huge raster; renders decode it in full
+    if (
+      header.size &&
+      header.size.width * header.size.height > MAX_IMAGE_PIXELS
+    ) {
+      return err(
+        AppError.validation(
+          `Image declares ${header.size.width}x${header.size.height} pixels; the limit is ${MAX_IMAGE_PIXELS}`
+        )
+      );
+    }
     const fileId = new Bun.CryptoHasher("sha1")
       .update(input.bytes)
       .digest("hex");
@@ -114,52 +145,60 @@ export class AddBoardImage {
     if (valid.isErr()) {
       return err(valid.error);
     }
-    await this.storage.put(
-      boardFileKey(input.boardId, fileId),
-      input.bytes,
-      header.mimeType
-    );
-    await this.files.save(input.boardId, {
-      id: fileId,
-      mimeType: header.mimeType,
-      size: input.bytes.length,
+    const refused = await this.scenes.transact(input.boardId, (scene) => {
+      const resolved = this.target(scene, input);
+      return typeof resolved === "string" ? resolved : undefined;
     });
+    if (refused) {
+      return err(FAILURES[refused]());
+    }
+    if (!(await this.files.findById(input.boardId, fileId))) {
+      await this.storage.put(
+        boardFileKey(input.boardId, fileId),
+        input.bytes,
+        header.mimeType
+      );
+      await this.files.save(input.boardId, {
+        id: fileId,
+        mimeType: header.mimeType,
+        size: input.bytes.length,
+      });
+    }
     const size = imageSize(header.size, input);
     const now = Date.now();
     const outcome = await this.scenes.transact(
       input.boardId,
-      (scene): Outcome => {
-        const page = resolvePage(scene.pages(), input.pageId);
-        if (!page) {
-          return "no-page";
+      (scene): AddedImage | Refusal => {
+        const resolved = this.target(scene, input);
+        if (typeof resolved === "string") {
+          return resolved;
         }
-        const id = input.id ?? this.ids.generate();
-        // SceneAccess.find looks up by id on any page; it is not Array#find
-        const taken = scene.find(id);
-        if (taken) {
-          return "id-taken";
-        }
-        const frame =
-          input.frameId === undefined
-            ? undefined
-            : scene.get(page.id, input.frameId);
-        if (input.frameId !== undefined && frame?.type !== "frame") {
-          return "no-frame";
-        }
+        const { page, id, frame } = resolved;
         const live = scene.all(page.id).filter((e) => !e.isDeleted);
-        const spot = frame ? insideFrame(frame, live) : besideAll(live);
+        const beside = besideContent(live.map(elementBounds), CLEARANCE);
+        const spot = frame
+          ? insideFrame(frame, live)
+          : { x: beside.left, y: beside.top };
+        const autoPlaced = input.x === undefined || input.y === undefined;
         const x = input.x ?? spot.x;
         const y = input.y ?? spot.y;
-        scene.putFile({ id: fileId, mimeType: header.mimeType, created: now });
+        const grows = autoPlaced && frame?.locked !== true;
+        const inFrame =
+          frame !== undefined &&
+          (grows || overlaps({ ...size, x, y }, elementBounds(frame)));
+        scene.ensureFile({
+          id: fileId,
+          mimeType: header.mimeType,
+          created: now,
+        });
         scene.put(
           page.id,
           buildImage(
-            { ...size, x, y, fileId, frameId: input.frameId },
+            { ...size, x, y, fileId, frameId: inFrame ? frame?.id : undefined },
             { ...newIdentity(this.ids, now), id }
           )
         );
-        // a frame only ever grows around an image the server placed itself
-        if (frame && (input.x === undefined || input.y === undefined)) {
+        if (frame && grows) {
           const fitted = union([
             elementBounds(frame),
             wrapFrame([{ ...size, x, y }]),

@@ -233,3 +233,82 @@ describe("align_elements and frames", () => {
     expect(c.frameId).toBeNull();
   });
 });
+
+describe("group_elements nesting", () => {
+  it("expands the operands to every holder of their outermost group", async () => {
+    const t = await setup();
+    const first = await t.group.group({
+      actor: owner,
+      boardId: "b1",
+      ids: ["a", "b"],
+    });
+    const inner = first.isOk() ? first.value.groupId : "";
+    const second = await t.group.group({
+      actor: owner,
+      boardId: "b1",
+      ids: ["a", "c"],
+    });
+    const outer = second.isOk() ? second.value.groupId : "";
+    expect(outer).not.toBe(inner);
+    expect(second.isOk() && second.value.ids.toSorted()).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+    for (const e of [t.el("a"), t.el("b"), t.labelOf("a"), t.labelOf("b")]) {
+      expect(e?.groupIds).toEqual([inner, outer]);
+    }
+    expect(t.el("c").groupIds).toEqual([outer]);
+  });
+});
+
+describe("align_elements with a frame and its children", () => {
+  it("moves the frame's children once, through the frame, and settles", async () => {
+    const s = setupAccess();
+    await new AddBoardElements(s.guard, s.scenes, ids).execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        {
+          id: "f",
+          type: "frame",
+          x: 100,
+          y: 0,
+          width: 400,
+          height: 300,
+        },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 150,
+          y: 50,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+        {
+          id: "far",
+          type: "rectangle",
+          x: 1000,
+          y: 0,
+          width: 100,
+          height: 100,
+        },
+      ],
+    });
+    const arrange = new ArrangeElements(s.guard, s.scenes, ids);
+    const input = {
+      actor: owner,
+      boardId: "b1",
+      ids: ["c", "f", "far"],
+      how: { kind: "align" as const, edge: "right" as const },
+    };
+    await arrange.execute(input);
+    const el = (id: string) =>
+      s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+    expect(el("f").x).toBe(700);
+    expect(el("c").x).toBe(750);
+    const again = await arrange.execute(input);
+    expect(again.isOk() && again.value.moved).toEqual([]);
+  });
+});

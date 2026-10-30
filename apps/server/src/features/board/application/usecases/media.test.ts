@@ -6,9 +6,11 @@ import { MAX_INLINE_IMAGE_BYTES } from "../../domain/rules/UploadRules";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import { AddBoardElements } from "./AddBoardElements";
 import { AddBoardImage } from "./AddBoardImage";
+import { DeleteBoardElements } from "./DeleteBoardElements";
 import { ExportBoardScene } from "./ExportBoardScene";
 import { ids, setupAccess } from "./fakes";
 import type { FakeScenes } from "./fakes";
+import { UpdateBoardElement } from "./UpdateBoardElement";
 
 const actor = { userId: "owner" };
 
@@ -308,6 +310,135 @@ describe("AddBoardImage", () => {
     expect(result.isErr()).toBe(true);
     expect(t.stored.size).toBe(0);
   });
+
+  it("writes nothing to storage when the page, the id or the frame is refused", async () => {
+    const t = setup();
+    const noPage = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2),
+      pageId: "nope",
+    });
+    expect(noPage.isErr()).toBe(true);
+    const noFrame = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 4),
+      frameId: "nope",
+    });
+    expect(noFrame.isErr()).toBe(true);
+    expect(t.stored.size).toBe(0);
+    expect(t.rows.size).toBe(0);
+    expect(t.scenes.files.size).toBe(0);
+  });
+
+  it("refuses a deleted frame", async () => {
+    const t = setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      shapes: [{ id: "f", type: "frame", x: 0, y: 0, width: 300, height: 200 }],
+    });
+    await new DeleteBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      ids: ["f"],
+    });
+    const result = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2),
+      frameId: "f",
+    });
+    expect(result.isErr()).toBe(true);
+    expect(t.scenes.elements.get("page:main:f")?.isDeleted).toBe(true);
+    expect(t.stored.size).toBe(0);
+  });
+
+  it("leaves the object of a file that is already registered alone", async () => {
+    const t = setup();
+    const bytes = png(3, 2);
+    const sha1 = createHash("sha1").update(bytes).digest("hex");
+    const key = `boards/b1/${sha1}`;
+    const browserCopy = Uint8Array.of(1, 2, 3);
+    t.stored.set(key, { bytes: browserCopy, mimeType: "image/png" });
+    t.rows.set(`b1/${sha1}`, { id: sha1, mimeType: "image/png", size: 3 });
+    await t.add.execute({ actor, boardId: "b1", bytes });
+    expect(t.stored.get(key)?.bytes).toBe(browserCopy);
+    expect(t.rows.get(`b1/${sha1}`)?.size).toBe(3);
+    expect(t.scenes.files.has(sha1)).toBe(true);
+  });
+
+  it("does not grow a locked frame", async () => {
+    const t = setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      shapes: [
+        { id: "f", type: "frame", x: 0, y: 0, width: 300, height: 200 },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 40,
+          y: 40,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+      ],
+    });
+    await new UpdateBoardElement(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      id: "f",
+      patch: { locked: true },
+    });
+    const before = t.scenes.elements.get("page:main:f");
+    await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(200, 100),
+      id: "img",
+      frameId: "f",
+    });
+    expect(t.scenes.elements.get("page:main:f")).toBe(before);
+  });
+
+  it("drops frameId when an explicit x/y puts the image outside the frame", async () => {
+    const t = setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      shapes: [{ id: "f", type: "frame", x: 0, y: 0, width: 300, height: 200 }],
+    });
+    await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(20, 10),
+      id: "img",
+      frameId: "f",
+      x: 5000,
+      y: 5000,
+    });
+    expect(t.scenes.elements.get("page:main:img")?.frameId).toBeNull();
+  });
+
+  it("rejects an image that declares more than 16 million pixels", async () => {
+    const t = setup();
+    const bomb = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(5000, 5000),
+    });
+    expect(bomb.isErr() && bomb.error.code).toBe("ValidationFailed");
+    expect(t.stored.size).toBe(0);
+    const edge = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(4000, 4000),
+    });
+    expect(edge.isOk()).toBe(true);
+  });
 });
 
 describe("ExportBoardScene", () => {
@@ -354,5 +485,29 @@ describe("ExportBoardScene", () => {
     const files = full.isOk() ? Object.values(full.value.files) : [];
     expect(files).toHaveLength(1);
     expect(files[0]?.dataURL).toStartWith("data:image/png;base64,");
+  });
+
+  it("embeds at most 8 MiB of files and names the ones it left out", async () => {
+    const t = setup();
+    const added = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2),
+    });
+    const fileId = added.isOk() ? added.value.fileId : "";
+    const key = `boards/b1/${fileId}`;
+    t.stored.set(key, {
+      bytes: new Uint8Array(9 * 1024 * 1024),
+      mimeType: "image/png",
+    });
+    const full = await t.exportScene.execute({
+      actor,
+      boardId: "b1",
+      includeFiles: true,
+    });
+    expect(full.isOk() && full.value.files).toEqual({});
+    expect(full.isOk() && full.value.omittedFiles).toEqual([fileId]);
+    const plain = await t.exportScene.execute({ actor, boardId: "b1" });
+    expect(plain.isOk() && plain.value.omittedFiles).toEqual([]);
   });
 });

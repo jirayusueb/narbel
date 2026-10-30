@@ -23,15 +23,13 @@ export const pointsOf = (e: SceneElement): Point[] =>
 export const isLinear = (e: SceneElement) =>
   e.type === "line" || e.type === "arrow" || e.type === "freedraw";
 
-/** The box x/y/width/height describe; wrong for connectors pointing left or up. */
-export const box = (e: SceneElement): Bounds => ({
+const box = (e: SceneElement): Bounds => ({
   x: num(e.x),
   y: num(e.y),
   width: num(e.width),
   height: num(e.height),
 });
 
-/** Extent of the drawn geometry before rotation; linear elements follow their points. */
 export const geometryBox = (e: SceneElement): Bounds => {
   if (!isLinear(e)) {
     return box(e);
@@ -79,7 +77,6 @@ export const rotatedBounds = (e: SceneElement, b: Bounds): Bounds => {
   };
 };
 
-/** What is actually drawn: the points-based extent for linear elements, rotated. */
 export const elementBounds = (e: SceneElement): Bounds =>
   rotatedBounds(e, geometryBox(e));
 

@@ -4,9 +4,9 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import { buildSceneSvg } from "../../domain/rendering/sceneSvg";
-import type { Bounds } from "../../domain/rendering/sceneSvg";
+import type { Bounds } from "../../domain/rules/geometry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { loadBoardImages } from "../boardImages";
+import { MAX_RENDER_BYTES, loadBoardImages } from "../boardImages";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardRasterizer } from "../ports/IBoardRasterizer";
 import type { IBoardScenes } from "../ports/IBoardScenes";
@@ -54,7 +54,7 @@ export class RenderBoardImage {
     if (!page) {
       return err(AppError.notFound("Page"));
     }
-    const images = await loadBoardImages(
+    const { images } = await loadBoardImages(
       this.files,
       this.storage,
       input.boardId,
@@ -62,7 +62,8 @@ export class RenderBoardImage {
         e.type === "image" && !e.isDeleted && typeof e.fileId === "string"
           ? [e.fileId]
           : []
-      )
+      ),
+      MAX_RENDER_BYTES
     );
     const scene = buildSceneSvg(page.elements, images, input.maxSize);
     const image = scene && {

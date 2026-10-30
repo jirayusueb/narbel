@@ -34,7 +34,7 @@ export const registerMediaTools: ToolRegistrar = (server, uc, actor) => {
     "add_image",
     {
       description:
-        "Place an image on a page from base64 bytes (png, jpeg, gif, webp or svg, at most 700 KiB decoded). The type and natural size are read from the bytes. Without width/height the image keeps its natural size, shrunk so its long side is at most 800; give one side to keep the aspect ratio. Without x/y it goes to the right of the existing content, or, with frameId, inside that frame after its children (the frame grows to fit it). Returns the element id, the file id (SHA-1 of the bytes, so the same image twice is stored once), and the size used.",
+        "Place an image on a page from base64 bytes (png, jpeg, gif, webp or svg, at most 700 KiB decoded and 16 million declared pixels). The type and natural size are read from the bytes. Without width/height the image keeps its natural size, shrunk so its long side is at most 800; give one side to keep the aspect ratio. Without x/y it goes to the right of the existing content, or, with frameId, inside that frame after its children (the frame grows to fit it unless it is locked). An image that ends up not touching its frame is stored without frameId. Returns the element id, the file id (SHA-1 of the bytes, so the same image twice is stored once), and the size used.",
       inputSchema: {
         boardId,
         pageId,
@@ -56,7 +56,7 @@ export const registerMediaTools: ToolRegistrar = (server, uc, actor) => {
     "export_scene",
     {
       description:
-        "Export a page as an Excalidraw (.excalidraw) JSON document with live elements in z-order. Set includeFiles to embed the page's images as data URLs; without it image elements are exported without their bytes.",
+        "Export a page as an Excalidraw (.excalidraw) JSON document with live elements in z-order. Set includeFiles to embed the page's images as data URLs, up to 8 MiB in all; files that do not fit or are missing are listed in omittedFiles. Without includeFiles image elements are exported without their bytes.",
       inputSchema: {
         boardId,
         pageId,

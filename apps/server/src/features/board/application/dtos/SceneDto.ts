@@ -3,7 +3,6 @@ import { labelIdOf } from "../../domain/rules/bindings";
 import { styleDiff } from "../../domain/shapes/ElementStyle";
 import type { Style } from "../../domain/shapes/ElementStyle";
 
-/** Style equal to the defaults and labels' own elements are left out to keep agent reads small. */
 export interface SceneElementDto extends Partial<Style> {
   id: string;
   type: string;
@@ -11,14 +10,12 @@ export interface SceneElementDto extends Partial<Style> {
   y: unknown;
   width: unknown;
   height: unknown;
-  /** a text element's content, or the label inside a rectangle/ellipse/diamond/arrow */
   text?: unknown;
   /** arrows/lines: what each end is attached to, so agents can read the diagram's graph */
   startElementId?: string | null;
   endElementId?: string | null;
   groupIds?: string[];
   frameId?: string;
-  /** frames: the title */
   name?: string;
   locked?: true;
 }
@@ -26,9 +23,7 @@ export interface SceneElementDto extends Partial<Style> {
 export interface SceneDto {
   title: string;
   pageId: string;
-  /** elements on the page before any filter, labels not counted */
   total: number;
-  /** more elements matched than `limit` allowed */
   truncated: boolean;
   elements: SceneElementDto[];
 }
@@ -50,7 +45,6 @@ const liveLabel = (
 export const roundCoord = <T>(value: T): T =>
   (typeof value === "number" ? Math.round(value * 100) / 100 + 0 : value) as T;
 
-/** `get` resolves the element's bound label, whose text and text style are reported on the shape. */
 export const toSceneElementDto = (
   e: SceneElement,
   get: (id: string) => SceneElement | undefined
@@ -100,7 +94,6 @@ const isLabelOfLive = (byId: Map<string, SceneElement>) => (e: SceneElement) =>
   typeof e.containerId === "string" &&
   byId.get(e.containerId)?.isDeleted === false;
 
-/** Live elements of a page that are not labels, bottom to top. */
 const visible = (elements: SceneElement[]) => {
   const byId = new Map(elements.map((e) => [e.id, e]));
   const isLabel = isLabelOfLive(byId);
@@ -109,11 +102,6 @@ const visible = (elements: SceneElement[]) => {
   return { byId, live };
 };
 
-/**
- * Live elements of a page bottom to top; a label shows up as its shape's `text`, not on
- * its own. `keep` filters after the label map is built from every element, so a kept
- * container still reports its label.
- */
 export const toSceneDtos = (
   elements: SceneElement[],
   keep: (e: SceneElement) => boolean = () => true

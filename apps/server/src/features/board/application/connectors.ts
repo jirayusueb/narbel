@@ -38,7 +38,6 @@ const RESERVED: Record<string, true> = {
   boundElements: true,
   startBinding: true,
   endBinding: true,
-  // a frame is chosen when an element is created; moving between frames would reorder z
   frameId: true,
 };
 
@@ -147,14 +146,11 @@ export const newIdentity = (ids: IIdGenerator, updated = Date.now()) => ({
 });
 
 interface LabelChange {
-  /** `""` removes the label; undefined leaves its text */
   text?: string;
   style: Partial<Style>;
-  /** the container's geometry or a LABEL_FOLLOWS key changed */
   refit: boolean;
 }
 
-/** The container after its label changes, and the label writes that takes. */
 const relabel = (
   container: SceneElement,
   { text, style, refit }: LabelChange,
@@ -194,7 +190,12 @@ const relabel = (
 const hasOtherThanLocked = (fields: Record<string, unknown>) =>
   Object.keys(fields).some((key) => key !== "locked");
 
-/** The element as a new version with its own style fields written; a free text is re-measured. */
+const lockRefuses = (
+  local: SceneElement,
+  wantsRebind: boolean,
+  fields: Record<string, unknown>
+) => local.locked === true && (wantsRebind || hasOtherThanLocked(fields));
+
 const restyled = (
   local: SceneElement,
   text: unknown,
@@ -218,7 +219,6 @@ const restyled = (
   return measurable && !resized && retyped ? refitText(next) : next;
 };
 
-// Excalidraw drag-out: a child whose moved geometry no longer touches its frame leaves it.
 const released = (
   child: SceneElement,
   lookup: Map<string, SceneElement>,
@@ -234,13 +234,11 @@ const released = (
   return outside ? { ...child, frameId: null } : child;
 };
 
-// an arrow bound to a shape follows it through re-routing instead
 const isFree = (e: SceneElement) => {
   const { startElementId, endElementId } = currentRefs(e);
   return startElementId === undefined && endElementId === undefined;
 };
 
-/** Where a frame's children go when it moves: shapes first, so arrows bound to them re-route. */
 const childMoves = (
   lookup: Map<string, SceneElement>,
   before: SceneElement,
@@ -266,20 +264,13 @@ const childMoves = (
   }));
 };
 
-/**
- * Writes `fields` over the element as a new version and keeps connectors and labels
- * consistent. Geometry settles first, labels follow: rebinding a connector updates both
- * ends' `boundElements`, moving or resizing a shape re-routes the connectors attached to
- * it, and every label whose container moved is refit afterwards. Text fields route to
- * the label of a rectangle/ellipse/diamond/arrow; fields that do not apply are dropped.
- * A locked element accepts only `{locked}`.
- */
 export const patchElement = (
   scene: SceneAccess,
   ids: IIdGenerator,
   id: string,
   fields: Record<string, unknown>,
-  rebind: RebindRefs = {}
+  rebind: RebindRefs = {},
+  carried = false
 ): PatchOutcome => {
   const found = scene.find(id);
   if (!found || found.element.isDeleted) {
@@ -293,7 +284,7 @@ export const patchElement = (
   }
   const wantsRebind =
     rebind.startElementId !== undefined || rebind.endElementId !== undefined;
-  if (local.locked === true && (wantsRebind || hasOtherThanLocked(fields))) {
+  if (!carried && lockRefuses(local, wantsRebind, fields)) {
     return "locked";
   }
   const { text, ...rest } = fields;
@@ -339,12 +330,11 @@ export const patchElement = (
     scene.put(found.pageId, write);
   }
   for (const move of childMoves(lookup, local, next)) {
-    patchElement(scene, ids, move.id, move.fields);
+    patchElement(scene, ids, move.id, move.fields, {}, true);
   }
   return "ok";
 };
 
-/** Tombstones the element and detaches whatever was bound to it; locked elements stay. */
 export const deleteElement = (
   scene: SceneAccess,
   ids: IIdGenerator,

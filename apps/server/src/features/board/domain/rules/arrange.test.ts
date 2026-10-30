@@ -26,7 +26,6 @@ const apply = (
   });
 
 describe("align", () => {
-  // selection bounds: x 0..500, y 0..130
   const cases: [Edge, (b: ArrangeItem["bounds"]) => number, number][] = [
     ["left", (b) => b.x, 0],
     ["center", (b) => b.x + b.width / 2, 250],
@@ -68,18 +67,26 @@ describe("distribute", () => {
     ).toEqual([]);
   });
 
-  it("works vertically", () => {
+  it("works vertically, spacing the centres of items that overlap", () => {
     const moves = arrangeMoves(items, { kind: "distribute", axis: "vertical" });
-    const after = apply(items, moves).toSorted(
-      (p, q) => p.bounds.y - q.bounds.y
-    );
-    const gaps = after
-      .slice(1)
-      .map(
-        (n, i) =>
-          n.bounds.y -
-          ((after[i]?.bounds.y ?? 0) + (after[i]?.bounds.height ?? 0))
-      );
-    expect(gaps[0]).toBeCloseTo(gaps[1] ?? Number.NaN);
+    const centres = apply(items, moves)
+      .map((i) => i.bounds.y + i.bounds.height / 2)
+      .toSorted((p, q) => p - q);
+    expect(centres[1]).toBeCloseTo(((centres[0] ?? 0) + (centres[2] ?? 0)) / 2);
+  });
+});
+
+describe("distribute with overlapping elements", () => {
+  const overlapping: ArrangeItem[] = [
+    { id: "a", bounds: { x: 0, y: 0, width: 100, height: 10 } },
+    { id: "b", bounds: { x: 10, y: 0, width: 10, height: 10 } },
+    { id: "c", bounds: { x: 20, y: 0, width: 100, height: 10 } },
+  ];
+  const how = { kind: "distribute", axis: "horizontal" } as const;
+
+  it("spaces the centres evenly and keeps the outer elements", () => {
+    const moves = arrangeMoves(overlapping, how);
+    expect(moves).toEqual([{ id: "b", dx: 45, dy: 0 }]);
+    expect(arrangeMoves(apply(overlapping, moves), how)).toEqual([]);
   });
 });

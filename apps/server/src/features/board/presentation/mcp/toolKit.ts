@@ -6,7 +6,6 @@ import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor } from "../../application/BoardAccess";
 import type { BoardUseCases } from "../../ioc";
 
-/** Registers one area's tools; createMcpServer calls each registrar once per request. */
 export type ToolRegistrar = (
   server: McpServer,
   uc: BoardUseCases,
@@ -30,7 +29,6 @@ export const reply = <T>(result: Result<T, AppError>) =>
         ],
       };
 
-// bounds keep a runaway agent from bloating the shared doc every browser downloads
 export const elementText = z.string().max(10_000);
 
 export const elementId = z

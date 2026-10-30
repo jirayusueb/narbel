@@ -7,11 +7,14 @@ import type { SceneElement } from "../../domain/entities/SceneElement";
 import {
   attachConnector,
   connectorCapable,
+  labelIdOf,
+  rerouteAround,
   withLabel,
 } from "../../domain/rules/bindings";
-import { box, elementBounds, union } from "../../domain/rules/geometry";
+import { elementBounds, overlaps, union } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
 import {
+  CLEARANCE,
   FRAME_PADDING,
   besideContent,
   layered,
@@ -28,6 +31,7 @@ import {
 import {
   buildElement,
   buildLabel,
+  fitLabel,
   measure,
 } from "../../domain/shapes/ShapeRegistry";
 import type { Shape } from "../../domain/shapes/ShapeRegistry";
@@ -92,9 +96,6 @@ const FAILURES: Record<
     ),
 };
 
-// keeps an auto-laid-out batch clear of what is already on the page
-const CLEARANCE = 120;
-
 interface Built {
   shape: Shape;
   element: SceneElement;
@@ -146,12 +147,6 @@ const shapeProblem = ({
 
 const live = (e: SceneElement) => !e.isDeleted;
 
-/**
- * Lays out the shapes given without x/y as a flowchart along the batch's arrows, per frame:
- * loose shapes of a sized frame go inside it, those of a frame without geometry or of the
- * page go to the right of everything already placed (the frame is fitted around them later).
- * shortcut: a laid-out group is not checked against the size of its sized frame.
- */
 const arrange = (
   batch: Built[],
   existing: SceneElement[],
@@ -182,7 +177,7 @@ const arrange = (
   const fixed: Bounds[] = [
     ...existing.filter(live),
     ...batch.filter(({ shape }) => isPlaced(shape)).map((b) => b.element),
-  ].map(box);
+  ].map(elementBounds);
   const groups = new Map<string | undefined, Built[]>();
   for (const built of loose) {
     groups.set(built.shape.frameId, [
@@ -253,7 +248,11 @@ const arrange = (
 /** Page of the first existing element a connector in the batch references. */
 const referencedPageId = (batch: Built[], scene: SceneAccess) =>
   batch
-    .flatMap(({ shape }) => [shape.startElementId, shape.endElementId])
+    .flatMap(({ shape }) => [
+      shape.startElementId,
+      shape.endElementId,
+      shape.frameId,
+    ])
     .map((ref) => (ref === undefined ? undefined : scene.find(ref)?.pageId))
     .find((pageId) => pageId !== undefined);
 
@@ -290,7 +289,6 @@ const referenceProblem = (
     : undefined;
 };
 
-/** Attaches every connector of the batch in memory; `touched` collects what changed. */
 const attachAll = (
   placed: Built[],
   known: Map<string, SceneElement>,
@@ -311,7 +309,6 @@ const attachAll = (
   }
 };
 
-/** Builds each text label from its container as it stands after attaching; returns the label ids. */
 const labelAll = (
   placed: Built[],
   known: Map<string, SceneElement>,
@@ -337,20 +334,56 @@ const labelAll = (
   return created;
 };
 
-/** Fits each frame given without geometry around its children, labels and arrows included. */
-const fitFrames = (batch: Built[], known: Map<string, SceneElement>) => {
-  for (const { shape, element } of batch) {
-    if (shape.type !== "frame" || isPlaced(shape)) {
-      continue;
-    }
+const fitFrames = (
+  batch: Built[],
+  known: Map<string, SceneElement>,
+  touched: Set<string>
+) => {
+  const fitted = batch.filter(
+    ({ shape }) => shape.type === "frame" && !isPlaced(shape)
+  );
+  for (const { element } of fitted) {
     const children = [...known.values()].filter(
       (e) => e.frameId === element.id && !e.isDeleted
     );
     known.set(element.id, {
-      ...element,
+      ...(known.get(element.id) ?? element),
       ...wrapFrame(children.map(elementBounds)),
     });
   }
+  for (const { element } of fitted) {
+    for (const arrow of rerouteAround(
+      known.get(element.id) ?? element,
+      known
+    )) {
+      known.set(arrow.id, arrow);
+      touched.add(arrow.id);
+      const label = known.get(labelIdOf(arrow) ?? "");
+      if (label) {
+        known.set(label.id, fitLabel(label, arrow));
+      }
+    }
+  }
+};
+
+/** A placed child outside its sized frame would be clipped away in the browser, so it stays unframed. */
+const unframeStrays = (placed: Built[], known: Map<string, SceneElement>) => {
+  const unsized = new Set(
+    placed
+      .filter(({ shape }) => shape.type === "frame" && !isPlaced(shape))
+      .map(({ element }) => element.id)
+  );
+  return placed.map((built) => {
+    const { shape, element } = built;
+    const frame =
+      shape.frameId === undefined ? undefined : known.get(shape.frameId);
+    const stray =
+      isPlaced(shape) &&
+      frame !== undefined &&
+      !unsized.has(frame.id) &&
+      !overlaps(elementBounds(element), elementBounds(frame));
+    return stray ? { ...built, element: { ...element, frameId: null } } : built;
+  });
 };
 
 export class AddBoardElements {
@@ -418,9 +451,10 @@ export class AddBoardElements {
         if (refProblem) {
           return refProblem;
         }
-        // geometry settles first, labels follow: connectors are attached before any label is
-        // built, and unsized frames are fitted last, around children whose bounds are final
-        const placed = arrange(batch, existing, input.direction);
+        const placed = unframeStrays(
+          arrange(batch, existing, input.direction),
+          known
+        );
         for (const { element } of placed) {
           known.set(element.id, element);
         }
@@ -430,9 +464,7 @@ export class AddBoardElements {
           fresh.add(id);
           touched.add(id);
         }
-        fitFrames(batch, known);
-        // each element is written exactly once, frames first so their children get keys
-        // below them: a second write of a new element at the same version would lose the merge rule
+        fitFrames(batch, known, touched);
         const isFrame = (id: string) => known.get(id)?.type === "frame";
         const order = [
           ...[...touched].filter(isFrame),

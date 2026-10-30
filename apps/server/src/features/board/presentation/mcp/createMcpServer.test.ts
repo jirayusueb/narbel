@@ -7,7 +7,6 @@ import type { BoardUseCases } from "../../ioc";
 import { createMcpServer } from "./createMcpServer";
 
 test("an MCP client sees every board tool and the drawing guide", async () => {
-  // registration never touches the use cases; only calls do
   const server = createMcpServer({} as BoardUseCases, { userId: "u1" });
   const [serverSide, clientSide] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test", version: "0" });
