@@ -1,8 +1,7 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { fetchSession } from "@/entities/session";
+import { requireSession } from "@/app";
 import { ConsentPage } from "@/pages/consent";
-import { safeRedirect } from "@/shared/lib";
 
 const text = (value: unknown) => (typeof value === "string" ? value : "");
 
@@ -17,14 +16,6 @@ export const Route = createFileRoute("/consent")({
     client_id: text(search.client_id),
     scope: text(search.scope),
   }),
-  beforeLoad: async ({ location }) => {
-    const session = await fetchSession();
-    if (!session.data) {
-      throw redirect({
-        to: "/login",
-        search: { redirect: safeRedirect(location.href) },
-      });
-    }
-  },
+  beforeLoad: ({ location }) => requireSession(location),
   component: ConsentRoute,
 });
