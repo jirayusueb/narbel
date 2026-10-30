@@ -273,7 +273,7 @@ export const patchElement = (
   carried = false,
   sharedLookup?: Map<string, SceneElement>
 ): PatchOutcome => {
-  const found = scene.find(id);
+  const found = scene.locate(id);
   if (!found || found.element.isDeleted) {
     return "missing";
   }
@@ -342,7 +342,7 @@ export const deleteElement = (
   ids: IIdGenerator,
   id: string
 ): "ok" | "missing" | "locked" => {
-  const found = scene.find(id);
+  const found = scene.locate(id);
   if (!found || found.element.isDeleted) {
     return "missing";
   }

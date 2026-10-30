@@ -59,10 +59,10 @@ describe("sceneAccess", () => {
     scene.put("page:main", el("a"));
     scene.put("page:two", el("b"));
     expect(scene.all("page:main").map((e) => e.id)).toEqual(["a"]);
-    expect(scene.find("b")?.pageId).toBe("page:two");
+    expect(scene.locate("b")?.pageId).toBe("page:two");
     expect(scene.renamePage("page:two", "Deux")).toBe(true);
     expect(scene.removePage("page:two")).toBe(true);
-    expect(scene.find("b")).toBeUndefined();
+    expect(scene.locate("b")).toBeUndefined();
     expect(scene.removePage("page:two")).toBe(false);
   });
 

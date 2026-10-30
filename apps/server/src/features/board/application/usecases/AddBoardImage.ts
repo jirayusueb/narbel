@@ -73,7 +73,7 @@ export class AddBoardImage {
       return "no-page";
     }
     const id = input.id ?? this.ids.generate();
-    const taken = scene.find(id);
+    const taken = scene.locate(id);
     if (taken) {
       return "id-taken";
     }
