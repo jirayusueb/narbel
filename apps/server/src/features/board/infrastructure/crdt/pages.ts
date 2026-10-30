@@ -6,6 +6,7 @@ import { MAIN_PAGE, elementKey } from "../../domain/entities/Page";
 import type { Page } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
+import { touchesSince } from "./changes";
 
 /**
  * Every doc gets at least one page. A v1 doc has bare element keys and no pages:
@@ -148,5 +149,6 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
         elements.set(key, ordered);
       }
     },
+    changesSince: (since) => touchesSince(doc, since),
   };
 };

@@ -126,15 +126,6 @@ export const registerCollabTools: ToolRegistrar = (server, uc, actor) => {
     async () => reply(await uc.listSharedBoards.execute({ userId, email }))
   );
   server.registerTool(
-    "search_boards",
-    {
-      description:
-        "Find boards you own or are invited to by title, element text or comment text (case-insensitive substring). Returns each board with its matches.",
-      inputSchema: { q: z.string().min(1).max(200) },
-    },
-    async ({ q }) => reply(await uc.searchBoards.execute({ userId, email, q }))
-  );
-  server.registerTool(
     "rename_board",
     {
       description:

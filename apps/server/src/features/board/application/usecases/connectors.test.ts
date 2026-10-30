@@ -227,6 +227,29 @@ describe("arrow connectors", () => {
     await t.remove.execute({ actor: owner, boardId: "b1", ids: ["ab"] });
     expect(t.bound("a")).toEqual([]);
   });
+
+  it("puts an arrow on the page of the elements it connects when pageId is omitted", async () => {
+    const t = setup();
+    t.scenes.pageList.push({ id: "page:two", name: "Page 2" });
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      pageId: "page:two",
+      shapes: boxes,
+    });
+    const result = await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "ab", type: "arrow", startElementId: "a", endElementId: "b" },
+      ],
+    });
+    expect(result.isOk()).toBe(true);
+    const arrow = t.scenes.elements.get("page:two:ab");
+    expect(t.scenes.elements.has("page:main:ab")).toBe(false);
+    expect(arrow?.startBinding).toMatchObject({ elementId: "a" });
+    expect(arrow?.endBinding).toMatchObject({ elementId: "b" });
+  });
 });
 
 describe("labels follow their container", () => {

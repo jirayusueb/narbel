@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { Actor } from "../../application/BoardAccess";
+import type { CommentDto } from "../../application/dtos/CommentDto";
 import { roundCoord } from "../../application/dtos/SceneDto";
 import {
   DEFAULT_MAX_SIZE,
@@ -11,7 +12,7 @@ import {
 import { SHAPE_TYPES } from "../../domain/shapes/ShapeRegistry";
 import type { BoardUseCases } from "../../ioc";
 import { registerCollabTools } from "./collabTools";
-import { DESIGN_GUIDE } from "./designGuide";
+import { MCP_INSTRUCTIONS } from "./instructions";
 import { registerLayoutTools } from "./layoutTools";
 import { registerMediaTools } from "./mediaTools";
 import { style } from "./styleSchema";
@@ -100,10 +101,16 @@ const patch = z
 
 const pageName = z.string().describe("1 to 80 characters");
 
+const roundComment = (c: CommentDto): CommentDto => ({
+  ...c,
+  x: roundCoord(c.x),
+  y: roundCoord(c.y),
+});
+
 export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
   const server = new McpServer(
     { name: "narbel", version: "0.3.0" },
-    { instructions: DESIGN_GUIDE }
+    { instructions: MCP_INSTRUCTIONS }
   );
   const userId = actor.userId ?? "";
 
@@ -271,6 +278,34 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
       )
   );
   server.registerTool(
+    "connect",
+    {
+      description:
+        "Draw an arrow from one existing element to another, bound at both ends so it stays attached when either moves. Returns the arrow id. The page is taken from the elements.",
+      inputSchema: {
+        boardId,
+        from: elementId.describe("Element id the arrow starts at (tail)"),
+        to: elementId.describe("Element id the arrow points to (head)"),
+        pageId,
+      },
+    },
+    async (input) =>
+      reply(
+        await uc.addBoardElements.execute({
+          actor,
+          boardId: input.boardId,
+          pageId: input.pageId,
+          shapes: [
+            {
+              type: "arrow",
+              startElementId: input.from,
+              endElementId: input.to,
+            },
+          ],
+        })
+      )
+  );
+  server.registerTool(
     "add_elements",
     {
       description:
@@ -366,6 +401,67 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
       )
   );
   server.registerTool(
+    "focus",
+    {
+      description:
+        "Point at elements while you explain them: every connected browser switches to the page of the first element, scrolls so the elements are in view and shows them outlined as an MCP selection. Also becomes the selection used by get_selection and edit_selection. Errors with NotFound when none of the ids exist.",
+      inputSchema: { boardId, ids: z.array(z.string()).min(1).max(100) },
+    },
+    async (input) =>
+      reply(
+        await uc.selectElements.execute({
+          actor,
+          boardId: input.boardId,
+          ids: input.ids,
+          reveal: true,
+        })
+      )
+  );
+  server.registerTool(
+    "get_changes",
+    {
+      description:
+        "What people changed on a board since your last look: elements they added, updated or deleted in the browser, and comment activity (new threads, replies, edits, resolves). Call it without `since` first and keep the returned `cursor`; pass the latest cursor as `since` on every later call and keep the new one. omitted > 0 means more elements changed than are listed: call get_board for the full page. moreComments true means call again with the new cursor. Your own element edits are not reported; comments include your own replies. Not reported: elements removed by deleting a whole page, reopened or deleted comments, reactions.",
+      inputSchema: {
+        boardId,
+        since: z
+          .string()
+          .max(4096)
+          .optional()
+          .describe("cursor from the previous get_changes; omit to start"),
+      },
+    },
+    async (input) => {
+      const result = await uc.getBoardChanges.execute({
+        actor,
+        boardId: input.boardId,
+        since: input.since,
+      });
+      return result.isErr()
+        ? reply(result)
+        : text({
+            ...result.value,
+            comments: result.value.comments.map(roundComment),
+          });
+    }
+  );
+  server.registerTool(
+    "search_boards",
+    {
+      description:
+        "Search the boards you can open by title, element text and comments. Returns each matching board with up to 3 snippets (page and kind of match).",
+      inputSchema: { query: z.string().max(200) },
+    },
+    async ({ query }) =>
+      reply(
+        await uc.searchBoards.execute({
+          userId,
+          email: actor.email ?? "",
+          q: query,
+        })
+      )
+  );
+  server.registerTool(
     "edit_selection",
     {
       description:
@@ -414,11 +510,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
       }
       return text({
         ...result.value,
-        items: result.value.items.map((c) => ({
-          ...c,
-          x: roundCoord(c.x),
-          y: roundCoord(c.y),
-        })),
+        items: result.value.items.map(roundComment),
       });
     }
   );

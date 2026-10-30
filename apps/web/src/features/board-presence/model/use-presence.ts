@@ -2,11 +2,15 @@ import type {
   AppState,
   ExcalidrawImperativeAPI,
 } from "@excalidraw/excalidraw/types";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
+import type * as Y from "yjs";
 
 import type { UserRef } from "@/entities/user";
 import { CURSOR_SYNC_MS, createThrottleLatest } from "@/shared/lib";
+
+import { reveal, takeReveal } from "./agent-focus";
+import type { Reveal } from "./agent-focus";
 
 export interface Peer {
   clientId: number;
@@ -21,11 +25,15 @@ interface Viewport {
 
 export const usePresence = ({
   awareness,
+  doc,
+  live,
   api,
   pageId,
   setPageId,
 }: {
   awareness: Awareness | null;
+  doc: Y.Doc | null;
+  live: boolean;
   api: ExcalidrawImperativeAPI | null;
   pageId: string | null;
   setPageId: (id: string) => void;
@@ -149,6 +157,46 @@ export const usePresence = ({
       });
     };
   }, [awareness, api, followId, pageId, setPageId]);
+
+  // Latest values for the reveal handler, so a page switch or follow toggle does not re-absorb reveals.
+  const latest = useRef({ pageId, followId, setPageId });
+  useEffect(() => {
+    latest.current = { pageId, followId, setPageId };
+  });
+  const pending = useRef<Reveal | null>(null);
+
+  useEffect(() => {
+    if (!(awareness && doc && api)) {
+      return;
+    }
+    const agents = doc.getMap("agents");
+    const seen = new Map<number, number>();
+    // States present now are history, whether from joining or from reconnecting: opening a board must not jump.
+    takeReveal(awareness.getStates(), seen, agents);
+    const onChange = () => {
+      const next = takeReveal(awareness.getStates(), seen, agents);
+      if (!(next && live) || latest.current.followId !== null) {
+        return;
+      }
+      if (next.pageId === latest.current.pageId) {
+        reveal(api, next.ids);
+      } else {
+        pending.current = next;
+        latest.current.setPageId(next.pageId);
+      }
+    };
+    awareness.on("change", onChange);
+    return () => awareness.off("change", onChange);
+  }, [awareness, doc, api, live]);
+
+  // useBoardCollab is declared before usePresence, so its effect has swapped the scene by now.
+  useEffect(() => {
+    const next = pending.current;
+    if (api && next && next.pageId === pageId) {
+      pending.current = null;
+      reveal(api, next.ids);
+    }
+  }, [api, pageId]);
 
   return { peers, followId, handleFollow: setFollowId };
 };

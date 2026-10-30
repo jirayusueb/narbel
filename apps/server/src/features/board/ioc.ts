@@ -29,6 +29,7 @@ import { EditComment } from "./application/usecases/EditComment";
 import { ExportBoardScene } from "./application/usecases/ExportBoardScene";
 import { GetBoard } from "./application/usecases/GetBoard";
 import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
+import { GetBoardChanges } from "./application/usecases/GetBoardChanges";
 import { GetBoardFile } from "./application/usecases/GetBoardFile";
 import { GetBoardScene } from "./application/usecases/GetBoardScene";
 import { GroupElements } from "./application/usecases/GroupElements";
@@ -167,6 +168,7 @@ const createUseCases = ({
     addPage: new AddPage(guard, hub, ids),
     renamePage: new RenamePage(guard, hub),
     deletePage: new DeletePage(guard, hub),
+    getBoardChanges: new GetBoardChanges(guard, hub, comments, profiles),
     getSelection: new GetSelection(guard, hub),
     selectElements: new SelectElements(guard, hub),
     editSelection: new EditSelection(guard, hub, ids),

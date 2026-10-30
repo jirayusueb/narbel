@@ -318,6 +318,11 @@ export const useBoardCollab = ({
           color: name ? colorFromName(name) : undefined,
           pointer: state.pointer,
           button: state.button,
+          selectedElementIds: Array.isArray(state.selection)
+            ? Object.fromEntries(
+                state.selection.map((elementId: string) => [elementId, true])
+              )
+            : undefined,
         });
       }
       api.updateScene({ collaborators });

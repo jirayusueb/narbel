@@ -50,4 +50,4 @@ Pushing to the deploy branch does not trigger a build (the services use a custom
 
 ## MCP
 
-Create an API key on the dashboard ("MCP access"), then point an MCP client at `POST <api>/mcp` with header `x-api-key: <key>`.
+Point an MCP client at `<api>/mcp`. OAuth clients sign in on their own: the 401 carries a `WWW-Authenticate` header, the client registers at `<api>/api/auth/oauth2/register`, and the user approves on `<web>/consent`. This needs `BETTER_AUTH_URL` and `CORS_ORIGIN` to be the public API and web origins, and `<api>/.well-known/*` must reach the API. For clients without OAuth, create an API key on the dashboard ("MCP access") and send it as `x-api-key: <key>`.

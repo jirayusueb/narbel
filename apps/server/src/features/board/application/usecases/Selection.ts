@@ -28,6 +28,11 @@ const liveDtos = (s: SceneAccess, ids: string[]): SceneElementDto[] =>
       : [];
   });
 
+const firstLive = (s: SceneAccess, ids: string[]) =>
+  ids
+    .map((id) => s.find(id))
+    .find((found) => found && !found.element.isDeleted);
+
 /** Selection lives in awareness, which only the live hub sees; these tools follow the newest client selection. */
 export class GetSelection {
   constructor(
@@ -64,10 +69,12 @@ export class SelectElements {
     private readonly scenes: IBoardScenes
   ) {}
 
+  /** `reveal` (the focus tool) also requires at least one live element and brings it into viewers' view. */
   async execute(input: {
     actor: Actor;
     boardId: string;
     ids: string[];
+    reveal?: boolean;
   }): Promise<Result<SelectionDto, AppError>> {
     const granted = await this.guard.require(
       input.boardId,
@@ -77,11 +84,22 @@ export class SelectElements {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const elements = await this.scenes.transact(input.boardId, (s) =>
-      liveDtos(s, input.ids)
+    const { elements, pageId } = await this.scenes.transact(
+      input.boardId,
+      (s) => ({
+        elements: liveDtos(s, input.ids),
+        pageId: firstLive(s, input.ids)?.pageId,
+      })
     );
+    if (input.reveal && elements.length === 0) {
+      return err(AppError.notFound("Elements"));
+    }
     const ids = elements.map((e) => e.id);
-    await this.scenes.setSelection(input.boardId, ids);
+    await this.scenes.setSelection(input.boardId, {
+      pageId,
+      ids,
+      reveal: Boolean(input.reveal),
+    });
     return ok({ ids, elements });
   }
 }

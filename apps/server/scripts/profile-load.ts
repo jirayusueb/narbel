@@ -49,22 +49,42 @@ const dbCounters = async () => {
   };
 };
 
+const tableRows = async () =>
+  new Map(
+    (
+      (await db`select relname, n_tup_ins + n_tup_upd + n_tup_del as n from pg_stat_user_tables`) as {
+        relname: string;
+        n: number;
+      }[]
+    ).map((r) => [r.relname, Number(r.n)])
+  );
+
+// Which tables the row counts came from, so a number can be traced to the code that wrote it.
+const tableDelta = (before: Map<string, number>, after: Map<string, number>) =>
+  [...after]
+    .map(([table, n]) => [table, n - (before.get(table) ?? 0)] as const)
+    .filter(([, n]) => n > 0)
+    .map(([table, n]) => `${table}:${n}`)
+    .join(" ");
+
 // Counters are flushed lazily by backends; settle before and after so the window holds the work.
 const measure = async (label: string, work: () => Promise<unknown>) => {
   await Bun.sleep(1500);
-  const [c0, p0, cpu0] = await Promise.all([
+  const [c0, p0, cpu0, t0] = await Promise.all([
     dbCounters(),
     publishes(),
     cpuSeconds(),
+    tableRows(),
   ]);
   const t = performance.now();
   const extra = ((await work()) ?? {}) as Record<string, unknown>;
   const wallMs = performance.now() - t;
   await Bun.sleep(2500);
-  const [c1, p1, cpu1] = await Promise.all([
+  const [c1, p1, cpu1, t1] = await Promise.all([
     dbCounters(),
     publishes(),
     cpuSeconds(),
+    tableRows(),
   ]);
   const [wal] =
     await db`select pg_wal_lsn_diff(${c1.lsn}, ${c0.lsn})::bigint as bytes`;
@@ -79,6 +99,7 @@ const measure = async (label: string, work: () => Promise<unknown>) => {
     walKB: Math.round(Number(wal.bytes) / 1024),
     redisPublishes: p1 - p0,
     apiCpuS: +(cpu1 - cpu0).toFixed(2),
+    rowsByTable: tableDelta(t0, t1),
     ...extra,
   };
 };
