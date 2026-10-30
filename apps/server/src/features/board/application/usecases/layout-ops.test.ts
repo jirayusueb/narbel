@@ -399,3 +399,61 @@ describe("align_elements with a frame and its children", () => {
     expect(again.isOk() && again.value.moved).toEqual([]);
   });
 });
+
+describe("align_elements with a frame child pulled in by a group", () => {
+  const frameWithChild = async (grouped: string[], farX: number) => {
+    const s = setupAccess();
+    await new AddBoardElements(s.guard, s.scenes, ids).execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "f", type: "frame", x: 100, y: 0, width: 400, height: 300 },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 150,
+          y: 50,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+        {
+          id: "far",
+          type: "rectangle",
+          x: farX,
+          y: 0,
+          width: 100,
+          height: 100,
+        },
+      ],
+    });
+    await new GroupElements(s.guard, s.scenes, ids).group({
+      actor: owner,
+      boardId: "b1",
+      ids: grouped,
+    });
+    const el = (id: string) =>
+      s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+    const alignOn = (named: string[], edge: "left" | "right") =>
+      new ArrangeElements(s.guard, s.scenes, ids).execute({
+        actor: owner,
+        boardId: "b1",
+        ids: named,
+        how: { kind: "align", edge },
+      });
+    return { el, alignOn };
+  };
+
+  it("moves a named child once when it is grouped with its frame", async () => {
+    const t = await frameWithChild(["f", "c"], 450);
+    await t.alignOn(["c", "far"], "right");
+    expect(Number(t.el("c").x) - Number(t.el("f").x)).toBe(50);
+  });
+
+  it("keeps a child inside its frame when a group mate pulls it in", async () => {
+    const t = await frameWithChild(["c", "far"], 1000);
+    await t.alignOn(["f", "far"], "left");
+    expect(t.el("f").x).toBe(100);
+    expect(t.el("c").x).toBe(150);
+  });
+});

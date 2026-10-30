@@ -44,21 +44,24 @@ export class ArrangeElements {
         return err(operands.error);
       }
       const skipped: ArrangeResult["skipped"] = [];
-      const named = new Set(operands.value.elements.map((e) => e.id));
-      const free = operands.value.elements.filter(
-        (e) => !(typeof e.frameId === "string" && named.has(e.frameId))
-      );
-      const members = withGroupMates(
-        free,
+      const mates = withGroupMates(
+        operands.value.elements,
         scene.all(operands.value.pageId)
-      ).filter((e) => {
-        const bound =
-          connectorCapable(e) && Boolean(e.startBinding ?? e.endBinding);
-        if (bound) {
-          skipped.push({ id: e.id, reason: "connector" });
-        }
-        return !bound;
-      });
+      );
+      // a frame carries its children, so a child among the movers (named or via a group) must not move twice
+      const moving = new Set(mates.map((e) => e.id));
+      const members = mates
+        .filter(
+          (e) => !(typeof e.frameId === "string" && moving.has(e.frameId))
+        )
+        .filter((e) => {
+          const bound =
+            connectorCapable(e) && Boolean(e.startBinding ?? e.endBinding);
+          if (bound) {
+            skipped.push({ id: e.id, reason: "connector" });
+          }
+          return !bound;
+        });
       const units = unitsOf(members).filter((unit) => {
         const locked = unit.members.some((e) => e.locked === true);
         if (locked) {
