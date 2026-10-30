@@ -330,6 +330,10 @@ export class FakeUow implements IUnitOfWork<BoardTx> {
 export class FakeScenes implements IBoardScenes {
   readonly pageList: Page[] = [{ id: "page:main", name: "Page 1" }];
   readonly elements = new Map<string, SceneElement>();
+  readonly files = new Map<
+    string,
+    { id: string; mimeType: string; created: number }
+  >();
   discarded: string[] = [];
   selection: string[] | undefined;
 
@@ -363,6 +367,11 @@ export class FakeScenes implements IBoardScenes {
         }
       }
       return;
+    },
+    putFile: (file) => {
+      if (!this.files.has(file.id)) {
+        this.files.set(file.id, file);
+      }
     },
     // same merge rule as the live hub, so a write without a version bump is dropped here too
     put: (pageId, el) => {

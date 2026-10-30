@@ -56,6 +56,7 @@ const newOrderKey = (keys: string[], container: SceneElement | undefined) => {
 export const sceneAccess = (doc: Y.Doc): SceneAccess => {
   const pages = doc.getArray<Page>("pages");
   const elements = doc.getMap<SceneElement>("elements");
+  const files = doc.getMap<unknown>("files");
   const pageKeys = (pageId: string) =>
     [...elements.entries()].flatMap(([key, element]) => {
       const order = orderKeyOf(element);
@@ -101,6 +102,11 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
         .find((p) => elements.has(elementKey(p.id, id)));
       const element = page && elements.get(elementKey(page.id, id));
       return page && element && { pageId: page.id, element };
+    },
+    putFile: (file) => {
+      if (!files.has(file.id)) {
+        files.set(file.id, file);
+      }
     },
     put: (pageId, element) => {
       const key = elementKey(pageId, element.id);

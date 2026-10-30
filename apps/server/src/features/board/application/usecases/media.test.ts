@@ -1,0 +1,279 @@
+import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
+
+import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
+import { MAX_INLINE_IMAGE_BYTES } from "../../domain/rules/UploadRules";
+import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
+import { AddBoardElements } from "./AddBoardElements";
+import { AddBoardImage } from "./AddBoardImage";
+import { ExportBoardScene } from "./ExportBoardScene";
+import { ids, setupAccess } from "./fakes";
+import type { FakeScenes } from "./fakes";
+
+const actor = { userId: "owner" };
+
+const be32 = (n: number) => {
+  const out = Buffer.alloc(4);
+  out.writeUInt32BE(n);
+  return [...out];
+};
+export const png = (width: number, height: number, pad = 0) =>
+  Uint8Array.from([
+    0x89,
+    0x50,
+    0x4e,
+    0x47,
+    0x0d,
+    0x0a,
+    0x1a,
+    0x0a,
+    ...be32(13),
+    0x49,
+    0x48,
+    0x44,
+    0x52,
+    ...be32(width),
+    ...be32(height),
+    8,
+    6,
+    0,
+    0,
+    0,
+    ...Array.from({ length: pad }, () => 0),
+  ]);
+
+const setup = () => {
+  const base = setupAccess();
+  const stored = new Map<string, { bytes: Uint8Array; mimeType: string }>();
+  const rows = new Map<
+    string,
+    { id: string; mimeType: string; size: number }
+  >();
+  const files: IBoardFileRepository = {
+    findById: (b, f) => Promise.resolve(rows.get(`${b}/${f}`) ?? null),
+    save: (b, f) => {
+      rows.set(`${b}/${f.id}`, f);
+      return Promise.resolve();
+    },
+  };
+  const storage: IFileStorage = {
+    presignUpload: () => "",
+    put: (key, bytes, mimeType) => {
+      stored.set(key, { bytes, mimeType });
+      return Promise.resolve();
+    },
+    stream: (key) =>
+      new ReadableStream({
+        start(c) {
+          c.enqueue(stored.get(key)?.bytes);
+          c.close();
+        },
+      }),
+    stat: (key) => {
+      const s = stored.get(key);
+      return Promise.resolve(
+        s ? { size: s.bytes.length, type: s.mimeType } : null
+      );
+    },
+    delete: () => Promise.resolve(),
+    deletePrefix: () => Promise.resolve(),
+  };
+  return {
+    ...base,
+    stored,
+    rows,
+    add: new AddBoardImage(base.guard, base.scenes, files, storage, ids),
+    exportScene: new ExportBoardScene(base.guard, base.scenes, files, storage),
+  };
+};
+
+const reindex = (scenes: FakeScenes, id: string, index: string) => {
+  const key = `page:main:${id}`;
+  const element = scenes.elements.get(key);
+  if (element) {
+    scenes.elements.set(key, { ...element, index });
+  }
+};
+
+describe("AddBoardImage", () => {
+  it("stores the bytes under their SHA-1, registers the file and places the element", async () => {
+    const t = setup();
+    const bytes = png(3, 2);
+    const sha1 = createHash("sha1").update(bytes).digest("hex");
+    const result = await t.add.execute({ actor, boardId: "b1", bytes });
+    expect(result.isOk() && result.value).toMatchObject({
+      fileId: sha1,
+      width: 3,
+      height: 2,
+    });
+    expect([...t.stored.keys()]).toEqual([`boards/b1/${sha1}`]);
+    expect(t.stored.get(`boards/b1/${sha1}`)?.mimeType).toBe("image/png");
+    expect(t.rows.get(`b1/${sha1}`)).toEqual({
+      id: sha1,
+      mimeType: "image/png",
+      size: bytes.length,
+    });
+    expect(t.scenes.files.get(sha1)?.mimeType).toBe("image/png");
+    const [element] = [...t.scenes.elements.values()];
+    expect(element).toMatchObject({
+      type: "image",
+      fileId: sha1,
+      status: "saved",
+      scale: [1, 1],
+      width: 3,
+      height: 2,
+      x: 0,
+      y: 0,
+    });
+  });
+
+  it("stores the same bytes once and gives the same fileId", async () => {
+    const t = setup();
+    const a = await t.add.execute({ actor, boardId: "b1", bytes: png(3, 2) });
+    const b = await t.add.execute({ actor, boardId: "b1", bytes: png(3, 2) });
+    expect(a.isOk() && b.isOk() && a.value.fileId === b.value.fileId).toBe(
+      true
+    );
+    expect(t.stored.size).toBe(1);
+    expect(t.scenes.files.size).toBe(1);
+    expect(t.scenes.elements.size).toBe(2);
+  });
+
+  it("sizes by natural size capped at 800, or by the one side given", async () => {
+    const t = setup();
+    const big = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(1600, 400),
+    });
+    expect(big.isOk() && big.value).toMatchObject({ width: 800, height: 200 });
+    const byWidth = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(100, 50),
+      width: 300,
+    });
+    expect(byWidth.isOk() && byWidth.value).toMatchObject({
+      width: 300,
+      height: 150,
+    });
+    const both = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(100, 50),
+      width: 10,
+      height: 90,
+    });
+    expect(both.isOk() && both.value).toMatchObject({ width: 10, height: 90 });
+  });
+
+  it("places an unplaced image to the right of the page content", async () => {
+    const t = setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      shapes: [{ type: "rectangle", x: 10, y: 40, width: 100, height: 100 }],
+    });
+    await t.add.execute({ actor, boardId: "b1", bytes: png(3, 2), id: "img" });
+    expect(t.scenes.elements.get("page:main:img")).toMatchObject({
+      x: 230,
+      y: 40,
+    });
+  });
+
+  it("rejects over-cap data before touching storage", async () => {
+    const t = setup();
+    const result = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2, MAX_INLINE_IMAGE_BYTES),
+    });
+    expect(result.isErr() && result.error.code).toBe("PayloadTooLarge");
+    expect(t.stored.size).toBe(0);
+    expect(t.rows.size).toBe(0);
+  });
+
+  it("rejects bytes that are not an image, a taken id and a frameId that is not a frame", async () => {
+    const t = setup();
+    const junk = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: Uint8Array.of(1, 2, 3),
+    });
+    expect(junk.isErr() && junk.error.code).toBe("UnsupportedMediaType");
+    expect(t.stored.size).toBe(0);
+    await t.add.execute({ actor, boardId: "b1", bytes: png(3, 2), id: "img" });
+    const taken = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2),
+      id: "img",
+    });
+    expect(taken.isErr() && taken.error.code).toBe("ValidationFailed");
+    const noFrame = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2),
+      frameId: "img",
+    });
+    expect(noFrame.isErr() && noFrame.error.code).toBe("ValidationFailed");
+  });
+
+  it("refuses a reader", async () => {
+    const t = setup();
+    const result = await t.add.execute({
+      actor: { userId: "stranger" },
+      boardId: "b1",
+      bytes: png(3, 2),
+    });
+    expect(result.isErr()).toBe(true);
+    expect(t.stored.size).toBe(0);
+  });
+});
+
+describe("ExportBoardScene", () => {
+  it("exports live elements in z-order with labels, and files only on request", async () => {
+    const t = setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      shapes: [
+        { type: "rectangle", x: 0, y: 0, text: "hi", id: "a" },
+        { type: "ellipse", x: 0, y: 0, id: "gone" },
+      ],
+    });
+    const gone = t.scenes.elements.get("page:main:gone");
+    if (gone) {
+      t.scenes.elements.set("page:main:gone", {
+        ...gone,
+        isDeleted: true,
+        version: 2,
+      });
+    }
+    await t.add.execute({ actor, boardId: "b1", bytes: png(3, 2), id: "img" });
+    reindex(t.scenes, "a", "a1");
+    reindex(t.scenes, "img", "a0");
+
+    const plain = await t.exportScene.execute({ actor, boardId: "b1" });
+    const doc = plain.isOk() ? plain.value : undefined;
+    expect(doc).toMatchObject({
+      type: "excalidraw",
+      version: 2,
+      source: "narbel",
+      files: {},
+    });
+    expect(doc?.elements.slice(0, 2).map((e) => e.id)).toEqual(["img", "a"]);
+    expect(doc?.elements).toHaveLength(3);
+    expect(doc?.elements[2]).toMatchObject({ type: "text", containerId: "a" });
+    expect(doc?.elements.some((e) => e.id === "gone")).toBe(false);
+
+    const full = await t.exportScene.execute({
+      actor,
+      boardId: "b1",
+      includeFiles: true,
+    });
+    const files = full.isOk() ? Object.values(full.value.files) : [];
+    expect(files).toHaveLength(1);
+    expect(files[0]?.dataURL).toStartWith("data:image/png;base64,");
+  });
+});
