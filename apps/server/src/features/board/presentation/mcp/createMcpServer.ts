@@ -4,6 +4,11 @@ import { z } from "zod";
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor } from "../../application/BoardAccess";
+import {
+  DEFAULT_MAX_SIZE,
+  MAX_MAX_SIZE,
+  MIN_MAX_SIZE,
+} from "../../domain/rendering/sceneSvg";
 import { SHAPE_TYPES } from "../../domain/shapes/ShapeRegistry";
 import type { BoardUseCases } from "../../ioc";
 
@@ -123,6 +128,58 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
           pageId: input.pageId,
         })
       )
+  );
+  server.registerTool(
+    "get_board_image",
+    {
+      description:
+        "Render one page as a PNG you can look at: shapes, arrows, labels, text and images as drawn (simplified, not hand-drawn). The text block gives the page and the scene bounds in board coordinates, so the picture maps onto get_board's x/y. Use it to check layout and legibility after editing.",
+      inputSchema: {
+        boardId,
+        pageId,
+        maxSize: z
+          .number()
+          .int()
+          .min(MIN_MAX_SIZE)
+          .max(MAX_MAX_SIZE)
+          .optional()
+          .describe(
+            `Pixels of the image's long side, default ${DEFAULT_MAX_SIZE}`
+          ),
+      },
+    },
+    async (input) => {
+      const result = await uc.renderBoardImage.execute({
+        actor,
+        boardId: input.boardId,
+        pageId: input.pageId,
+        maxSize: input.maxSize,
+      });
+      if (result.isErr()) {
+        return reply(result);
+      }
+      const { pageId: id, pageName: name, image } = result.value;
+      if (!image) {
+        return text({ pageId: id, pageName: name, empty: true });
+      }
+      const info = text({
+        pageId: id,
+        pageName: name,
+        width: image.width,
+        height: image.height,
+        bounds: image.bounds,
+      });
+      return {
+        content: [
+          {
+            type: "image" as const,
+            data: Buffer.from(image.png).toString("base64"),
+            mimeType: "image/png",
+          },
+          ...info.content,
+        ],
+      };
+    }
   );
   server.registerTool(
     "list_pages",
