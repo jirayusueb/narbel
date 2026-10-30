@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import { Elysia, status } from "elysia";
 
 import type { IIdempotencyStore } from "../../application/interfaces/IIdempotencyStore";
 import { errorBody, resultToResponse } from "./resultPlugin";
@@ -17,8 +17,6 @@ const tracked = new WeakMap<Request, Tracked>();
 
 const sha256 = (text: string) =>
   new Bun.CryptoHasher("sha256").update(text).digest("hex");
-
-const json = (status: number, body: unknown) => Response.json(body, { status });
 
 interface IdempotentContext {
   request: Request;
@@ -47,7 +45,7 @@ export const idempotencyPlugin = new Elysia({ name: "idempotency" }).macro({
         return;
       }
       if (header.length < 1 || header.length > MAX_KEY_LENGTH) {
-        return json(
+        return status(
           400,
           errorBody(
             "ValidationFailed",
@@ -62,7 +60,7 @@ export const idempotencyPlugin = new Elysia({ name: "idempotency" }).macro({
       if (claim.kind === "proceed") {
         tracked.set(request, { key, fingerprint, store });
       } else if (claim.kind === "pending") {
-        return json(
+        return status(
           409,
           errorBody(
             "Conflict",
@@ -70,7 +68,7 @@ export const idempotencyPlugin = new Elysia({ name: "idempotency" }).macro({
           )
         );
       } else if (claim.kind === "mismatch") {
-        return json(
+        return status(
           422,
           errorBody(
             "IdempotencyKeyReused",
@@ -78,10 +76,8 @@ export const idempotencyPlugin = new Elysia({ name: "idempotency" }).macro({
           )
         );
       } else if (claim.kind === "replay") {
-        return new Response(claim.body, {
-          status: claim.status,
-          headers: { "content-type": "application/json" },
-        });
+        // `never` keeps the replay out of the route's typed responses: it is the route's own success type
+        return status(claim.status as 200, JSON.parse(claim.body)) as never;
       }
     },
     // afterHandle, not mapResponse: resultPlugin's global mapResponse answers first and ends the chain
@@ -96,7 +92,7 @@ export const idempotencyPlugin = new Elysia({ name: "idempotency" }).macro({
         (responseValue instanceof Response ? responseValue : undefined);
       if (!response || response.status < 200 || response.status >= 300) {
         await claim.store.release(claim.key);
-        return response;
+        return;
       }
       await claim.store.complete(
         claim.key,
@@ -104,7 +100,6 @@ export const idempotencyPlugin = new Elysia({ name: "idempotency" }).macro({
         response.status,
         await response.clone().text()
       );
-      return response;
     },
     error: async ({ request }) => {
       const claim = tracked.get(request);
