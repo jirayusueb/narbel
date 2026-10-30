@@ -1,6 +1,6 @@
 # Bounded contexts of narbel
 
-Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 and 2 are done. Each later step starts only after the owner confirms it.
+Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 3 are done. Each later step starts only after the owner confirms it.
 
 This document splits the server's `features/board` module into bounded contexts, defines how the contexts talk, and lists the current behavior that the split must keep. It also covers the matching frontend changes. Every "today" claim cites the code it comes from, so a reviewer can check it.
 

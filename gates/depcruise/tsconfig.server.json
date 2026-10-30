@@ -4,7 +4,9 @@
     "noEmit": true,
     "baseUrl": "../..",
     "paths": {
-      "@/*": ["apps/server/src/*"]
+      "@/*": ["apps/server/src/*"],
+      "@narbel/db": ["packages/db/src/index.ts"],
+      "@narbel/db/schema/*": ["packages/db/src/schema/*.ts"]
     }
   }
 }

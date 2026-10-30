@@ -13,6 +13,9 @@ const adapter = dependencyCruiser({
     presentationNoInfrastructure: "server-presentation-no-infrastructure",
     infrastructureNoPresentation: "server-infrastructure-no-presentation",
     featurePublicApi: "server-feature-public-api",
+    schemaBoardOwner: "server-schema-board-owner",
+    schemaAuthOwner: "server-schema-auth-owner",
+    schemaAccountOwner: "server-schema-account-owner",
   },
 });
 
@@ -65,6 +68,30 @@ export const proofs = defineProofs(gate, [
     mutate.appendText(
       `${F}/auth/ioc.ts`,
       '\nimport "../board/domain/values/BoardTitle";\n'
+    )
+  ),
+  proof.red(
+    adapter.rules.schemaBoardOwner,
+    "detects a board schema import outside features/board",
+    mutate.appendText(
+      "apps/server/src/shared/kernel/errors/AppError.ts",
+      '\nimport { board } from "@narbel/db/schema/board";\n'
+    )
+  ),
+  proof.red(
+    adapter.rules.schemaAuthOwner,
+    "detects an auth schema import outside features/auth and the one legacy reader",
+    mutate.appendText(
+      "apps/server/src/features/notification/ioc.ts",
+      '\nimport { user } from "@narbel/db/schema/auth";\n'
+    )
+  ),
+  proof.red(
+    adapter.rules.schemaAccountOwner,
+    "detects an account schema import outside shared and features/notification",
+    mutate.appendText(
+      "apps/server/src/features/board/ioc.ts",
+      '\nimport { outbox } from "@narbel/db/schema/account";\n'
     )
   ),
   proof.green("accepts the current server architecture"),

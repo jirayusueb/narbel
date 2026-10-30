@@ -4,7 +4,10 @@ import type {
   Email,
   IEmailSender,
 } from "../../application/interfaces/IEmailSender";
-import type { ClaimedMessage, IOutboxStore } from "./OutboxStore";
+import type {
+  ClaimedMessage,
+  IOutboxStore,
+} from "../../application/interfaces/IOutboxStore";
 import {
   DEFAULT_OUTBOX_POLICY,
   OutboxWorker,

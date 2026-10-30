@@ -1,12 +1,10 @@
 import type * as Y from "yjs";
 
+import type {
+  BoardText,
+  TextChange,
+} from "../../application/ports/IBoardDocumentStore";
 import type { SceneElement } from "../../domain/entities/SceneElement";
-
-export interface BoardText {
-  pageId: string;
-  elementId: string;
-  text: string;
-}
 
 /**
  * The searchable text of a document: live text elements, shape labels included (they are
@@ -34,13 +32,6 @@ export const extractBoardText = (doc: Y.Doc): BoardText[] =>
         : [];
     }
   );
-
-/** The `board_text` rows to write; `replaceAll` carries the full set and the store writes only what differs from its rows. */
-export interface TextChange {
-  replaceAll: boolean;
-  upsert: BoardText[];
-  remove: Pick<BoardText, "pageId" | "elementId">[];
-}
 
 export type TextIndex = Map<string, BoardText>;
 
