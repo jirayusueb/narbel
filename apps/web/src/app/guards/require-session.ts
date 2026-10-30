@@ -44,6 +44,16 @@ export const requireOnboarded = async ({ location }: { location: Where }) => {
   return { session };
 };
 
+// Public boards open for guests; a signed-in visitor still has to finish onboarding.
+export const onboardedIfSignedIn = async ({
+  location,
+}: {
+  location: Where;
+}) => {
+  const session = await fetchSession();
+  return session.data ? requireOnboarded({ location }) : null;
+};
+
 export const requireNotOnboarded = async ({
   location,
   search,

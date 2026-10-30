@@ -23,7 +23,13 @@ const THEMES = [
   { id: "dark", label: "Dark", Icon: Moon },
 ] as const;
 
-export const UserMenu = ({ compact = false }: { compact?: boolean }) => {
+export const UserMenu = ({
+  compact = false,
+  redirect,
+}: {
+  compact?: boolean;
+  redirect?: string;
+}) => {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
   const { data: me } = useMe();
@@ -38,6 +44,7 @@ export const UserMenu = ({ compact = false }: { compact?: boolean }) => {
       <div className="flex items-center gap-1.5">
         <Link
           to="/login"
+          search={{ redirect }}
           className={buttonVariants({
             variant: "ghost",
             size: "sm",
@@ -46,7 +53,11 @@ export const UserMenu = ({ compact = false }: { compact?: boolean }) => {
         >
           Sign in
         </Link>
-        <Link to="/login" className={buttonVariants({ variant: "citrus" })}>
+        <Link
+          to="/login"
+          search={{ redirect }}
+          className={buttonVariants({ variant: "citrus" })}
+        >
           Start drawing
         </Link>
       </div>

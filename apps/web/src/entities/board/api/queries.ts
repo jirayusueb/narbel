@@ -33,12 +33,13 @@ export const useBoard = (id: string, share?: string) =>
     retry: false,
   });
 
-export const useBoardMembers = (id: string, share?: string) =>
+export const useBoardMembers = (id: string, share?: string, enabled = true) =>
   useQuery({
     queryKey: boardKeys.members(id),
     queryFn: async () =>
       unwrap(await api.api.boards({ id }).members.get({ query: { share } })),
     staleTime: 30_000,
+    enabled,
   });
 
 export const useCreateBoard = () => {

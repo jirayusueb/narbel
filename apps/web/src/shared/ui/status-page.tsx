@@ -129,11 +129,13 @@ export const NotFound = ({
   description = "The link may be old, or the address has a typo.",
   to = "/",
   action = "Back home",
+  signInRedirect,
 }: {
   title?: string;
   description?: string;
   to?: "/" | "/dashboard";
   action?: string;
+  signInRedirect?: string;
 }) => (
   <StatusPage
     word="404"
@@ -142,19 +144,29 @@ export const NotFound = ({
     title={title}
     description={description}
     actions={
-      <>
-        <Link to={to} className={buttonVariants()}>
-          {action}
+      signInRedirect ? (
+        <Link
+          to="/login"
+          search={{ redirect: signInRedirect }}
+          className={buttonVariants()}
+        >
+          Sign in
         </Link>
-        {to === "/dashboard" ? null : (
-          <Link
-            to="/dashboard"
-            className={buttonVariants({ variant: "secondary" })}
-          >
-            Your boards
+      ) : (
+        <>
+          <Link to={to} className={buttonVariants()}>
+            {action}
           </Link>
-        )}
-      </>
+          {to === "/dashboard" ? null : (
+            <Link
+              to="/dashboard"
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              Your boards
+            </Link>
+          )}
+        </>
+      )
     }
   />
 );

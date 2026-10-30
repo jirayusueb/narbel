@@ -1,4 +1,5 @@
 export {
+  onboardedIfSignedIn,
   requireNotOnboarded,
   requireOnboarded,
 } from "./guards/require-session";

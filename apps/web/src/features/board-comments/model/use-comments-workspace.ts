@@ -5,6 +5,7 @@ import type {
 import { useState } from "react";
 
 import { useBoardMembers } from "@/entities/board";
+import { useSession } from "@/entities/session";
 
 import { useCommentMutations } from "../api/comments";
 import type { Comment } from "../api/comments";
@@ -36,7 +37,12 @@ export const useCommentsWorkspace = ({
   const [focusedId, setFocusedId] = useState<string | null>(
     focusComment ?? null
   );
-  const { data: members = [] } = useBoardMembers(boardId, shareToken);
+  const { data: session } = useSession();
+  const { data: members = [] } = useBoardMembers(
+    boardId,
+    shareToken,
+    Boolean(session)
+  );
   const mutations = useCommentMutations(boardId, shareToken);
 
   // A notification or email link names the thread to open, also while the board is already showing.

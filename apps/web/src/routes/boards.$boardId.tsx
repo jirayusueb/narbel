@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { onboardedIfSignedIn } from "@/app";
 import { BoardPage } from "@/pages/board";
 
 const BoardRoute = () => {
@@ -13,7 +14,9 @@ const BoardRoute = () => {
 const text = (value: unknown) =>
   typeof value === "string" ? value : undefined;
 
-export const Route = createFileRoute("/_auth/boards/$boardId")({
+export const Route = createFileRoute("/boards/$boardId")({
+  ssr: false,
+  beforeLoad: onboardedIfSignedIn,
   validateSearch: (
     search: Record<string, unknown>
   ): { share?: string; comment?: string } => ({

@@ -1,6 +1,10 @@
+import { useLocation } from "@tanstack/react-router";
+
 import { useBoard } from "@/entities/board";
+import { useSession } from "@/entities/session";
 import { UnlockBoardForm } from "@/features/share-board";
 import { ApiError } from "@/shared/api";
+import { safeRedirect } from "@/shared/lib";
 import { NotFound } from "@/shared/ui";
 import { BoardCanvas, BoardSkeleton } from "@/widgets/board-canvas";
 import { Header } from "@/widgets/header";
@@ -23,6 +27,8 @@ export const BoardPage = ({
   focusComment?: string;
 }) => {
   const { data: board, isPending, error } = useBoard(boardId, shareToken);
+  const { data: session } = useSession();
+  const href = useLocation({ select: (location) => location.href });
 
   if (isPending) {
     return <BoardSkeleton />;
@@ -56,6 +62,7 @@ export const BoardPage = ({
         description="It may have been deleted, or it belongs to someone else."
         to="/dashboard"
         action="Back to boards"
+        signInRedirect={session ? undefined : safeRedirect(href)}
       />
     </WithHeader>
   );

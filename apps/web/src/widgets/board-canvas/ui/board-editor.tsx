@@ -9,7 +9,7 @@ import "@excalidraw/excalidraw/index.css";
 import "./excalidraw-theme.css";
 import { Button } from "@narbel/ui/components/button";
 import { useBoolean, useMediaQuery } from "@reactuses/core";
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil, Share2, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
@@ -44,6 +44,7 @@ import { NotificationsBell } from "@/features/notifications";
 import { openRenameBoardDialog } from "@/features/rename-board";
 import { openShareBoardDialog } from "@/features/share-board";
 import { UserMenu } from "@/features/user-menu";
+import { safeRedirect } from "@/shared/lib";
 
 import { isPhoneSize } from "../model/chrome-fit";
 import { PHONE_QUERY } from "../model/phone-query";
@@ -65,12 +66,14 @@ const DeviceReporter = ({
 };
 
 const PhoneBar = ({
+  signedIn,
   status,
   canWrite,
   panelOpen,
   onPanelChange,
   onOpenDrawer,
 }: {
+  signedIn: boolean;
   status: CollabStatus;
   canWrite: boolean;
   panelOpen: boolean;
@@ -94,7 +97,7 @@ const PhoneBar = ({
       </Button>
       <div className="bg-card shadow-elevated flex rounded-md [&_:is(button,a)]:size-11">
         <CommentsPanelToggle open={panelOpen} onChange={onPanelChange} />
-        <NotificationsBell />
+        {signedIn ? <NotificationsBell /> : null}
       </div>
     </div>
   </div>
@@ -161,7 +164,7 @@ const useCollabUser = (): UserRef => {
   const { data: me } = useMe();
   return {
     id: session?.user.id ?? "",
-    name: me?.name ?? session?.user.name ?? "Anonymous",
+    name: me?.name ?? session?.user.name ?? "Guest",
     username: me?.username ?? null,
     avatarUrl: me?.avatarUrl ?? null,
   };
@@ -177,6 +180,9 @@ export const BoardEditor = ({
   focusComment?: string;
 }) => {
   const user = useCollabUser();
+  const { data: session } = useSession();
+  const signedIn = Boolean(session);
+  const href = useLocation({ select: (location) => location.href });
   const userId = user.id;
 
   const [pageId, setPageId] = useState<string | null>(null);
@@ -302,7 +308,7 @@ export const BoardEditor = ({
           <CommentModeToggle active={commentMode} onChange={setCommentMode} />
         ) : null}
         <CommentsPanelToggle open={panelOpen} onChange={setPanelOpen} />
-        <NotificationsBell />
+        {signedIn ? <NotificationsBell /> : null}
         {isOwner ? (
           <Button
             variant="citrus"
@@ -314,7 +320,7 @@ export const BoardEditor = ({
           </Button>
         ) : null}
       </div>
-      <UserMenu />
+      <UserMenu redirect={safeRedirect(href)} />
     </>
   );
 
@@ -329,6 +335,7 @@ export const BoardEditor = ({
   if (isPhone) {
     chrome = (
       <PhoneBar
+        signedIn={signedIn}
         status={status}
         canWrite={writable}
         panelOpen={panelOpen}
