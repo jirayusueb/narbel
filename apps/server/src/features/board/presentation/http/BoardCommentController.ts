@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 
+import { idempotencyPlugin } from "../../../../shared/presentation/plugins/idempotencyPlugin";
 import {
   asWire,
   resultPlugin,
@@ -23,6 +24,7 @@ export const createBoardCommentController = (
   new Elysia({ name: "board/comments", prefix: "/api/boards/:id/comments" })
     .use(betterAuth)
     .use(resultPlugin)
+    .use(idempotencyPlugin)
     .get(
       "/",
       {
@@ -57,6 +59,7 @@ export const createBoardCommentController = (
       "/",
       {
         auth: true,
+        idempotent: true,
         params,
         query: shareQuery,
         body: t.Object({
@@ -98,7 +101,13 @@ export const createBoardCommentController = (
     )
     .post(
       "/:commentId/replies",
-      { auth: true, params: commentParams, query: shareQuery, body },
+      {
+        auth: true,
+        idempotent: true,
+        params: commentParams,
+        query: shareQuery,
+        body,
+      },
       async ({
         user,
         request,

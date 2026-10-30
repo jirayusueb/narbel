@@ -7,6 +7,7 @@ import { ENV } from "./env.server";
 import { backfillBoardText } from "./features/board";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
+import { RedisIdempotencyStore } from "./shared/infrastructure/idempotency/RedisIdempotencyStore";
 import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
 import {
   DEFAULT_OUTBOX_POLICY,
@@ -38,6 +39,7 @@ const app = createApp({
   secret: ENV.BETTER_AUTH_SECRET,
   cache: new RedisCache(redis),
   pubsub,
+  idempotency: new RedisIdempotencyStore(redis),
 }).listen(Number(process.env.PORT ?? 3000), ({ url }) => {
   console.log(`Server is running on ${url}`);
 });
