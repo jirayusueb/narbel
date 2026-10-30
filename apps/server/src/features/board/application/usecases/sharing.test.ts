@@ -93,7 +93,13 @@ describe("access matrix", () => {
       createdAt: past,
       expiresAt: future,
     };
-    expect(await outcome(guard, { shareToken: TOKEN })).toBe("editor:true");
+    expect(await outcome(guard, { userId: "u1", shareToken: TOKEN })).toBe(
+      "editor:true"
+    );
+    expect(await outcome(guard, { shareToken: TOKEN })).toBe("viewer:false");
+    expect(await outcome(guard, { shareToken: TOKEN }, "write")).toBe(
+      "Forbidden"
+    );
     expect(await outcome(guard, { shareToken: "x".repeat(43) })).toBe(
       "NotFound"
     );

@@ -82,6 +82,7 @@ export class BoardAccessGuard {
         board.passwordHash !== null &&
         actor.unlockProof !== undefined &&
         this.unlock.verify(board.id, board.passwordHash, actor.unlockProof),
+      signedIn: actor.userId !== undefined,
     });
   }
 }

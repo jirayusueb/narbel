@@ -8,6 +8,8 @@ export interface AccessGrants {
   visibility: Visibility;
   /** the caller holds a valid unlock cookie for this (password) board */
   unlocked: boolean;
+  /** the caller is an authenticated user; guests never get write access */
+  signedIn: boolean;
 }
 
 const access = (role: Role): Access => ({
@@ -17,23 +19,28 @@ const access = (role: Role): Access => ({
 });
 
 // Order matters: the most specific grant wins, a public setting is the last resort.
-export const resolveAccess = (grants: AccessGrants): Access | null => {
+const grantedRole = (grants: AccessGrants): Role | null => {
   if (grants.isOwner) {
-    return access("owner");
+    return "owner";
   }
   if (grants.memberRole) {
-    return access(grants.memberRole);
+    return grants.memberRole;
   }
   if (grants.shareRole) {
-    return access(grants.shareRole);
+    return grants.shareRole;
   }
-  if (grants.visibility === "password" && grants.unlocked) {
-    return access("viewer");
-  }
-  if (grants.visibility === "link") {
-    return access("viewer");
+  if (
+    grants.visibility === "link" ||
+    (grants.visibility === "password" && grants.unlocked)
+  ) {
+    return "viewer";
   }
   return null;
+};
+
+export const resolveAccess = (grants: AccessGrants): Access | null => {
+  const role = grantedRole(grants);
+  return role && access(grants.signedIn ? role : "viewer");
 };
 
 export interface ShareLink {
