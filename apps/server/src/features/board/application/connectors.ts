@@ -11,7 +11,18 @@ import {
   withLabel,
 } from "../domain/rules/bindings";
 import type { ConnectorRefs } from "../domain/rules/bindings";
-import { LABELLED, buildLabel, fitLabel } from "../domain/shapes/ShapeRegistry";
+import {
+  hasLabelSlot,
+  routeStyle,
+  toStored,
+} from "../domain/shapes/ElementStyle";
+import type { Style } from "../domain/shapes/ElementStyle";
+import {
+  LABEL_FOLLOWS,
+  buildLabel,
+  fitLabel,
+  refitText,
+} from "../domain/shapes/ShapeRegistry";
 import type { SceneAccess } from "./ports/IBoardScenes";
 
 // Identity, versioning and binding records belong to the system; bindings change only
@@ -26,6 +37,8 @@ const RESERVED: Record<string, true> = {
   boundElements: true,
   startBinding: true,
   endBinding: true,
+  // a frame is chosen when an element is created; moving between frames would reorder z
+  frameId: true,
 };
 
 export const stripReserved = (patch: Record<string, unknown>) =>
@@ -54,7 +67,12 @@ const GEOMETRY: Record<string, true> = {
   angle: true,
 };
 
-export type PatchOutcome = "ok" | "missing" | "not-connector" | "missing-ref";
+export type PatchOutcome =
+  | "ok"
+  | "missing"
+  | "not-connector"
+  | "missing-ref"
+  | "locked";
 
 /** `null` detaches that end; `undefined` keeps the current binding. */
 export interface RebindRefs {
@@ -127,14 +145,18 @@ export const newIdentity = (ids: IIdGenerator, updated = Date.now()) => ({
   updated,
 });
 
-/**
- * The container after its label changes, and the label writes that takes: `text` sets
- * the label (`""` removes it), `refit` re-centers it after the container moved or resized.
- */
+interface LabelChange {
+  /** `""` removes the label; undefined leaves its text */
+  text?: string;
+  style: Partial<Style>;
+  /** the container's geometry or a LABEL_FOLLOWS key changed */
+  refit: boolean;
+}
+
+/** The container after its label changes, and the label writes that takes. */
 const relabel = (
   container: SceneElement,
-  text: string | undefined,
-  refit: boolean,
+  { text, style, refit }: LabelChange,
   lookup: Map<string, SceneElement>,
   ids: IIdGenerator
 ): { container: SceneElement; writes: SceneElement[] } => {
@@ -150,12 +172,16 @@ const relabel = (
       : { container, writes: [] };
   }
   if (text !== undefined && !label) {
-    const created = buildLabel(container, text, newIdentity(ids));
+    const created = buildLabel(container, text, style, newIdentity(ids));
     return { container: withLabel(container, created.id), writes: [created] };
   }
-  if (label && (text !== undefined || refit)) {
-    const changed =
-      text === undefined ? label : { ...label, text, originalText: text };
+  const styled = Object.keys(style).length > 0;
+  if (label && (text !== undefined || styled || refit)) {
+    const changed = {
+      ...label,
+      ...style,
+      ...(text === undefined ? {} : { text, originalText: text }),
+    };
     return {
       container,
       writes: [bumped(fitLabel(changed, container), ids)],
@@ -164,11 +190,40 @@ const relabel = (
   return { container, writes: [] };
 };
 
+const hasOtherThanLocked = (fields: Record<string, unknown>) =>
+  Object.keys(fields).some((key) => key !== "locked");
+
+/** The element as a new version with its own style fields written; a free text is re-measured. */
+const restyled = (
+  local: SceneElement,
+  text: unknown,
+  own: Record<string, unknown>,
+  ids: IIdGenerator
+): SceneElement => {
+  const isText = local.type === "text";
+  const next = bumped(
+    {
+      ...local,
+      ...toStored(local.type, own),
+      ...(isText && typeof text === "string"
+        ? { text, originalText: text }
+        : {}),
+    },
+    ids
+  );
+  const measurable = isText && typeof local.containerId !== "string";
+  const resized = "width" in own || "height" in own;
+  const retyped = typeof text === "string" || "fontSize" in own;
+  return measurable && !resized && retyped ? refitText(next) : next;
+};
+
 /**
  * Writes `fields` over the element as a new version and keeps connectors and labels
- * consistent: rebinding a connector updates both ends' `boundElements`, moving or
- * resizing a shape re-routes the connectors attached to it and re-centers its label,
- * and `text` on a rectangle/ellipse/diamond sets that label.
+ * consistent. Geometry settles first, labels follow: rebinding a connector updates both
+ * ends' `boundElements`, moving or resizing a shape re-routes the connectors attached to
+ * it, and every label whose container moved is refit afterwards. Text fields route to
+ * the label of a rectangle/ellipse/diamond/arrow; fields that do not apply are dropped.
+ * A locked element accepts only `{locked}`.
  */
 export const patchElement = (
   scene: SceneAccess,
@@ -187,32 +242,20 @@ export const patchElement = (
   if (problem) {
     return problem;
   }
-  const labelled = Boolean(LABELLED[local.type]);
-  // a shape's text lives in its bound label, never on the shape itself
-  const { text, ...shapeFields } = fields;
-  const geometryChanged = Object.keys(fields).some((key) => GEOMETRY[key]);
-  const labelling = relabel(
-    bumped(
-      {
-        ...local,
-        ...(labelled ? shapeFields : fields),
-        ...(local.type === "text" && typeof text === "string"
-          ? { originalText: text }
-          : {}),
-      },
-      ids
-    ),
-    labelled && typeof text === "string" ? text : undefined,
-    labelled && geometryChanged,
-    lookup,
-    ids
-  );
-  const next = labelling.container;
   const wantsRebind =
     rebind.startElementId !== undefined || rebind.endElementId !== undefined;
+  if (local.locked === true && (wantsRebind || hasOtherThanLocked(fields))) {
+    return "locked";
+  }
+  const { text, ...rest } = fields;
+  const { own, label } = routeStyle(local.type, rest);
+  const geometryChanged = Object.keys(own).some((key) => GEOMETRY[key]);
+  const refit =
+    geometryChanged || wantsRebind || LABEL_FOLLOWS.some((key) => key in own);
+  const next = restyled(local, text, own, ids);
   const movesShape = !connectorCapable(local) && geometryChanged;
   lookup.set(next.id, next);
-  const writes = wantsRebind
+  const [head = next, ...others] = wantsRebind
     ? rebound(next, resolveRefs(currentRefs(local), rebind), lookup, ids)
     : [
         next,
@@ -220,21 +263,43 @@ export const patchElement = (
           ? rerouteAround(next, lookup).map((c) => bumped(c, ids))
           : []),
       ];
-  for (const write of [...writes, ...labelling.writes]) {
+  const labelling = relabel(
+    head,
+    {
+      text:
+        hasLabelSlot(local.type) && typeof text === "string" ? text : undefined,
+      style: label,
+      refit,
+    },
+    lookup,
+    ids
+  );
+  const following = others
+    .filter((c) => connectorCapable(c))
+    .flatMap((c) => relabel(c, { style: {}, refit: true }, lookup, ids).writes);
+  for (const write of [
+    labelling.container,
+    ...others,
+    ...labelling.writes,
+    ...following,
+  ]) {
     scene.put(found.pageId, write);
   }
   return "ok";
 };
 
-/** Tombstones the element and detaches whatever was bound to it. */
+/** Tombstones the element and detaches whatever was bound to it; locked elements stay. */
 export const deleteElement = (
   scene: SceneAccess,
   ids: IIdGenerator,
   id: string
-): boolean => {
+): "ok" | "missing" | "locked" => {
   const found = scene.find(id);
   if (!found || found.element.isDeleted) {
-    return false;
+    return "missing";
+  }
+  if (found.element.locked === true) {
+    return "locked";
   }
   // tombstone, so concurrent edits and late joiners converge on the deletion
   scene.put(found.pageId, bumped({ ...found.element, isDeleted: true }, ids));
@@ -244,5 +309,5 @@ export const deleteElement = (
   )) {
     scene.put(found.pageId, bumped(write, ids));
   }
-  return true;
+  return "ok";
 };

@@ -9,14 +9,24 @@ import {
   connectorCapable,
   withLabel,
 } from "../../domain/rules/bindings";
-import { layered } from "../../domain/rules/layout";
+import { box, elementBounds, union } from "../../domain/rules/geometry";
+import type { Bounds } from "../../domain/rules/geometry";
+import {
+  FRAME_PADDING,
+  besideContent,
+  layered,
+  wrapFrame,
+} from "../../domain/rules/layout";
 import type { LayoutDirection } from "../../domain/rules/layout";
 import {
-  LABELLED,
-  buildElement,
-  buildLabel,
-} from "../../domain/shapes/ShapeRegistry";
-import type { ElementIdentity, Shape } from "../../domain/shapes/ShapeRegistry";
+  STYLE,
+  hasLabelSlot,
+  misplacedStyle,
+  pickStyle,
+  routeStyle,
+} from "../../domain/shapes/ElementStyle";
+import { buildElement, buildLabel } from "../../domain/shapes/ShapeRegistry";
+import type { Shape } from "../../domain/shapes/ShapeRegistry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardScenes } from "../ports/IBoardScenes";
@@ -28,9 +38,17 @@ type AddOutcome =
   | "not-connector"
   | "missing-ref"
   | "connector-text"
-  | "connector-position";
+  | "connector-position"
+  | "bad-style"
+  | "missing-frame"
+  | "nested-frame"
+  | "frame-geometry"
+  | "frame-empty";
 
-const FAILURES: Record<Exclude<AddOutcome, "ok">, () => AppError> = {
+const FAILURES: Record<
+  Exclude<AddOutcome, "ok">,
+  (detail?: string) => AppError
+> = {
   "no-page": () => AppError.notFound("Page"),
   "id-taken": () =>
     AppError.validation("An element with that id already exists on the board"),
@@ -44,11 +62,29 @@ const FAILURES: Record<Exclude<AddOutcome, "ok">, () => AppError> = {
     ),
   "connector-text": () =>
     AppError.validation(
-      "text applies to rectangle, ellipse, diamond and text elements, not arrows or lines"
+      "text applies to rectangle, ellipse, diamond, arrow and text elements, not lines"
     ),
   "connector-position": () =>
     AppError.validation(
       "an arrow or line needs x and y unless both startElementId and endElementId are set"
+    ),
+  "bad-style": (detail) =>
+    AppError.validation(
+      detail ?? "a style field does not apply to its element"
+    ),
+  "missing-frame": () =>
+    AppError.validation(
+      "frameId must reference a frame on the page or in the same call"
+    ),
+  "nested-frame": () =>
+    AppError.validation("a frame cannot sit inside a frame"),
+  "frame-geometry": () =>
+    AppError.validation(
+      "a frame gives all of x, y, width and height, or none of them to wrap its children"
+    ),
+  "frame-empty": () =>
+    AppError.validation(
+      "a frame without x/y/width/height needs at least one element with its frameId in the same call"
     ),
 };
 
@@ -63,23 +99,54 @@ interface Built {
 const isPlaced = (shape: Shape) =>
   shape.x !== undefined && shape.y !== undefined;
 
-type ShapeProblem = "connector-text" | "connector-position";
+const GEOMETRY_KEYS = ["x", "y", "width", "height"] as const;
 
-const shapeProblem = ({ shape, element }: Built): ShapeProblem | undefined => {
+const shapeProblem = ({
+  shape,
+  element,
+}: Built):
+  | { outcome: Exclude<AddOutcome, "ok">; detail?: string }
+  | undefined => {
+  const misplaced = misplacedStyle(shape.type, pickStyle(shape));
+  if (misplaced) {
+    const where =
+      STYLE[misplaced].on === "arrow"
+        ? "arrows only"
+        : "text, rectangle, ellipse, diamond and arrow elements only";
+    return {
+      outcome: "bad-style",
+      detail: `${misplaced} applies to ${where}, not ${shape.type}`,
+    };
+  }
+  if (shape.type === "frame") {
+    const given = GEOMETRY_KEYS.filter((key) => shape[key] !== undefined);
+    if (shape.frameId !== undefined) {
+      return { outcome: "nested-frame" };
+    }
+    return given.length === 0 || given.length === GEOMETRY_KEYS.length
+      ? undefined
+      : { outcome: "frame-geometry" };
+  }
   if (!connectorCapable(element)) {
     return;
   }
-  if (shape.text !== undefined) {
-    return "connector-text";
+  if (shape.text !== undefined && element.type === "line") {
+    return { outcome: "connector-text" };
   }
   const bothEnds =
     shape.startElementId !== undefined && shape.endElementId !== undefined;
-  return isPlaced(shape) || bothEnds ? undefined : "connector-position";
+  return isPlaced(shape) || bothEnds
+    ? undefined
+    : { outcome: "connector-position" };
 };
 
+const live = (e: SceneElement) => !e.isDeleted;
+
 /**
- * Lays out the shapes given without x/y as a flowchart along the batch's arrows,
- * to the right of everything already placed on the page.
+ * Lays out the shapes given without x/y as a flowchart along the batch's arrows, per frame:
+ * loose shapes of a sized frame go inside it, those of a frame without geometry or of the
+ * page go to the right of everything already placed (the frame is fitted around them later).
+ * shortcut: a laid-out group is not checked against the size of its sized frame.
  */
 const arrange = (
   batch: Built[],
@@ -87,63 +154,184 @@ const arrange = (
   direction: LayoutDirection = "down"
 ): Built[] => {
   const loose = batch.filter(
-    ({ shape, element }) => !(isPlaced(shape) || connectorCapable(element))
+    ({ shape, element }) =>
+      !(
+        isPlaced(shape) ||
+        connectorCapable(element) ||
+        element.type === "frame"
+      )
   );
   if (loose.length === 0) {
     return batch;
   }
-  const looseIds = new Set(loose.map(({ element }) => element.id));
-  const edges = batch.flatMap(({ shape: { startElementId, endElementId } }) =>
-    startElementId &&
-    endElementId &&
-    looseIds.has(startElementId) &&
-    looseIds.has(endElementId)
-      ? [{ from: startElementId, to: endElementId }]
-      : []
+  const byId = new Map(
+    [...existing.filter(live), ...batch.map((b) => b.element)].map((e) => [
+      e.id,
+      e,
+    ])
   );
-  const positions = layered(
-    loose.map(({ element }) => ({
-      id: element.id,
-      width: Number(element.width),
-      height: Number(element.height),
-    })),
-    edges,
-    direction
+  const unsized = new Set(
+    batch
+      .filter(({ shape }) => shape.type === "frame" && !isPlaced(shape))
+      .map(({ element }) => element.id)
   );
-  const fixed = [
-    ...existing.filter((e) => !e.isDeleted),
+  const fixed: Bounds[] = [
+    ...existing.filter(live),
     ...batch.filter(({ shape }) => isPlaced(shape)).map((b) => b.element),
-  ];
-  const left =
-    fixed.length === 0
-      ? 0
-      : Math.max(...fixed.map((e) => Number(e.x) + Number(e.width))) +
-        CLEARANCE;
-  const top =
-    fixed.length === 0 ? 0 : Math.min(...fixed.map((e) => Number(e.y)));
+  ].map(box);
+  const groups = new Map<string | undefined, Built[]>();
+  for (const built of loose) {
+    groups.set(built.shape.frameId, [
+      ...(groups.get(built.shape.frameId) ?? []),
+      built,
+    ]);
+  }
+  const at = new Map<string, { x: number; y: number }>();
+  for (const [frameId, members] of groups) {
+    const ids = new Set(members.map(({ element }) => element.id));
+    const edges = batch.flatMap(
+      ({ shape: { startElementId, endElementId } }) =>
+        startElementId &&
+        endElementId &&
+        ids.has(startElementId) &&
+        ids.has(endElementId)
+          ? [{ from: startElementId, to: endElementId }]
+          : []
+    );
+    const positions = layered(
+      members.map(({ element }) => ({
+        id: element.id,
+        width: Number(element.width),
+        height: Number(element.height),
+      })),
+      edges,
+      direction
+    );
+    const frame = frameId === undefined ? undefined : byId.get(frameId);
+    const inside = frame !== undefined && !unsized.has(frame.id);
+    const pad = frameId === undefined ? 0 : FRAME_PADDING;
+    const start = inside
+      ? { left: Number(frame.x) + pad, top: Number(frame.y) + pad }
+      : (() => {
+          const beside = besideContent(fixed, CLEARANCE);
+          return { left: beside.left + pad, top: beside.top + pad };
+        })();
+    const placed = members.map(({ element }) => {
+      const p = positions.get(element.id) ?? { x: 0, y: 0 };
+      const x = start.left + p.x;
+      const y = start.top + p.y;
+      at.set(element.id, { x, y });
+      return {
+        x,
+        y,
+        width: Number(element.width),
+        height: Number(element.height),
+      };
+    });
+    if (!inside) {
+      fixed.push(pad === 0 ? union(placed) : wrapFrame(placed));
+    }
+  }
   return batch.map((built) => {
-    const at = positions.get(built.element.id);
-    return at
-      ? {
-          ...built,
-          element: { ...built.element, x: left + at.x, y: top + at.y },
-        }
-      : built;
+    const p = at.get(built.element.id);
+    return p ? { ...built, element: { ...built.element, ...p } } : built;
   });
 };
 
-/** The batch's elements, each labelled shape listing its new label, plus those labels. */
-const labelled = (placed: Built[], identity: () => ElementIdentity) => {
-  const labels: SceneElement[] = [];
-  const shapes = placed.map(({ shape, element }) => {
-    if (!(shape.text && LABELLED[element.type])) {
-      return element;
+const referenceProblem = (
+  batch: Built[],
+  known: Map<string, SceneElement>
+): Exclude<AddOutcome, "ok"> | undefined => {
+  for (const { shape, element } of batch) {
+    const refs = [shape.startElementId, shape.endElementId];
+    if (refs.some((ref) => ref !== undefined)) {
+      if (!connectorCapable(element)) {
+        return "not-connector";
+      }
+      if (refs.some((ref) => ref !== undefined && !known.has(ref))) {
+        return "missing-ref";
+      }
     }
-    const label = buildLabel(element, shape.text, identity());
-    labels.push(label);
-    return withLabel(element, label.id);
-  });
-  return { shapes, labels };
+    if (shape.frameId !== undefined) {
+      const frame = known.get(shape.frameId);
+      if (frame?.type !== "frame" || frame.isDeleted) {
+        return "missing-frame";
+      }
+    }
+  }
+  const hasChildren = ({ element }: Built) =>
+    batch.some(({ shape }) => shape.frameId === element.id);
+  return batch.some(
+    (built) =>
+      built.shape.type === "frame" &&
+      !isPlaced(built.shape) &&
+      !hasChildren(built)
+  )
+    ? "frame-empty"
+    : undefined;
+};
+
+/** Attaches every connector of the batch in memory; `touched` collects what changed. */
+const attachAll = (
+  placed: Built[],
+  known: Map<string, SceneElement>,
+  touched: Set<string>
+) => {
+  for (const { shape, element } of placed) {
+    if (
+      shape.startElementId === undefined &&
+      shape.endElementId === undefined
+    ) {
+      continue;
+    }
+    const latest = known.get(element.id) ?? element;
+    for (const write of attachConnector(latest, shape, known).writes) {
+      known.set(write.id, write);
+      touched.add(write.id);
+    }
+  }
+};
+
+/** Builds each text label from its container as it stands after attaching; returns the label ids. */
+const labelAll = (
+  placed: Built[],
+  known: Map<string, SceneElement>,
+  ids: IIdGenerator,
+  now: number
+): string[] => {
+  const created: string[] = [];
+  for (const { shape, element } of placed) {
+    const latest = known.get(element.id) ?? element;
+    if (!(shape.text && hasLabelSlot(latest.type))) {
+      continue;
+    }
+    const label = buildLabel(
+      latest,
+      shape.text,
+      routeStyle(latest.type, pickStyle(shape)).label,
+      newIdentity(ids, now)
+    );
+    known.set(latest.id, withLabel(latest, label.id));
+    known.set(label.id, label);
+    created.push(label.id);
+  }
+  return created;
+};
+
+/** Fits each frame given without geometry around its children, labels and arrows included. */
+const fitFrames = (batch: Built[], known: Map<string, SceneElement>) => {
+  for (const { shape, element } of batch) {
+    if (shape.type !== "frame" || isPlaced(shape)) {
+      continue;
+    }
+    const children = [...known.values()].filter(
+      (e) => e.frameId === element.id && !e.isDeleted
+    );
+    known.set(element.id, {
+      ...element,
+      ...wrapFrame(children.map(elementBounds)),
+    });
+  }
 };
 
 export class AddBoardElements {
@@ -180,7 +368,7 @@ export class AddBoardElements {
     }));
     const problem = batch.map(shapeProblem).find(Boolean);
     if (problem) {
-      return err(FAILURES[problem]());
+      return err(FAILURES[problem.outcome](problem.detail));
     }
     const outcome = await this.scenes.transact(
       input.boardId,
@@ -204,43 +392,31 @@ export class AddBoardElements {
         for (const { element } of batch) {
           known.set(element.id, element);
         }
-        for (const { shape, element } of batch) {
-          const refs = [shape.startElementId, shape.endElementId];
-          if (refs.some((ref) => ref !== undefined)) {
-            if (!connectorCapable(element)) {
-              return "not-connector";
-            }
-            if (refs.some((ref) => ref !== undefined && !known.has(ref))) {
-              return "missing-ref";
-            }
-          }
+        const refProblem = referenceProblem(batch, known);
+        if (refProblem) {
+          return refProblem;
         }
+        // geometry settles first, labels follow: connectors are attached before any label is
+        // built, and unsized frames are fitted last, around children whose bounds are final
         const placed = arrange(batch, existing, input.direction);
-        // labels go in once their shapes have their final position and size
-        const { shapes, labels } = labelled(placed, () =>
-          newIdentity(this.ids, now)
-        );
-        for (const element of [...shapes, ...labels]) {
+        for (const { element } of placed) {
           known.set(element.id, element);
-          fresh.add(element.id);
         }
-        // settle every binding in memory first, then write each element exactly once:
-        // a second write of a new element at the same version would lose the merge rule
         const touched = new Set<string>(fresh);
-        for (const { shape, element } of placed) {
-          if (
-            shape.startElementId === undefined &&
-            shape.endElementId === undefined
-          ) {
-            continue;
-          }
-          const latest = known.get(element.id) ?? element;
-          for (const write of attachConnector(latest, shape, known).writes) {
-            known.set(write.id, write);
-            touched.add(write.id);
-          }
+        attachAll(placed, known, touched);
+        for (const id of labelAll(placed, known, this.ids, now)) {
+          fresh.add(id);
+          touched.add(id);
         }
-        for (const id of touched) {
+        fitFrames(batch, known);
+        // each element is written exactly once, frames first so their children get keys
+        // below them: a second write of a new element at the same version would lose the merge rule
+        const isFrame = (id: string) => known.get(id)?.type === "frame";
+        const order = [
+          ...[...touched].filter(isFrame),
+          ...[...touched].filter((id) => !isFrame(id)),
+        ];
+        for (const id of order) {
           const element = known.get(id);
           if (element) {
             // shapes already in the document need a newer version for browsers to take the binding

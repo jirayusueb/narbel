@@ -1,4 +1,19 @@
 import type { SceneElement } from "../entities/SceneElement";
+import {
+  box,
+  elementBounds,
+  geometryBox,
+  isLinear,
+  num,
+  pointsOf,
+  rotatedBounds,
+  union,
+} from "../rules/geometry";
+import type { Bounds, Point } from "../rules/geometry";
+import { STYLE } from "../shapes/ElementStyle";
+
+// RenderBoardImage still imports Bounds from here
+export type { Bounds } from "../rules/geometry";
 
 export const FONT_FAMILY = "Sarabun";
 export const DEFAULT_MAX_SIZE = 1600;
@@ -15,13 +30,6 @@ export interface ImageData {
   base64: string;
 }
 
-export interface Bounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 export interface SceneSvg {
   svg: string;
   /** pixel size the svg renders at */
@@ -31,93 +39,12 @@ export interface SceneSvg {
   bounds: Bounds;
 }
 
-type Point = [number, number];
-
-const num = (value: unknown, fallback = 0) =>
-  typeof value === "number" && Number.isFinite(value) ? value : fallback;
 const str = (value: unknown, fallback: string) =>
   typeof value === "string" && value !== "" ? value : fallback;
 const round = (n: number) => Math.round(n * 100) / 100;
 
 export const escapeXml = (value: string) =>
   value.replaceAll(/[<>&"']/gu, (c) => `&#${c.codePointAt(0)};`);
-
-const pointsOf = (e: SceneElement): Point[] =>
-  Array.isArray(e.points) && e.points.length > 0
-    ? (e.points as Point[]).map(([px, py]) => [num(px), num(py)])
-    : [
-        [0, 0],
-        [num(e.width), num(e.height)],
-      ];
-
-const isLinear = (e: SceneElement) =>
-  e.type === "line" || e.type === "arrow" || e.type === "freedraw";
-
-const box = (e: SceneElement): Bounds => ({
-  x: num(e.x),
-  y: num(e.y),
-  width: num(e.width),
-  height: num(e.height),
-});
-
-/** Extent of the drawn geometry before rotation; linear elements follow their points. */
-const geometryBox = (e: SceneElement): Bounds => {
-  if (!isLinear(e)) {
-    return box(e);
-  }
-  const pts = pointsOf(e);
-  const xs = pts.map((p) => p[0]);
-  const ys = pts.map((p) => p[1]);
-  const minX = Math.min(...xs);
-  const minY = Math.min(...ys);
-  return {
-    x: num(e.x) + minX,
-    y: num(e.y) + minY,
-    width: Math.max(...xs) - minX,
-    height: Math.max(...ys) - minY,
-  };
-};
-
-const rotatedBounds = (e: SceneElement, b: Bounds): Bounds => {
-  const angle = num(e.angle);
-  if (angle === 0) {
-    return b;
-  }
-  const cx = b.x + b.width / 2;
-  const cy = b.y + b.height / 2;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const corners = (
-    [
-      [b.x, b.y],
-      [b.x + b.width, b.y],
-      [b.x, b.y + b.height],
-      [b.x + b.width, b.y + b.height],
-    ] as Point[]
-  ).map(([px, py]) => ({
-    x: cx + (px - cx) * cos - (py - cy) * sin,
-    y: cy + (px - cx) * sin + (py - cy) * cos,
-  }));
-  const xs = corners.map((c) => c.x);
-  const ys = corners.map((c) => c.y);
-  return {
-    x: Math.min(...xs),
-    y: Math.min(...ys),
-    width: Math.max(...xs) - Math.min(...xs),
-    height: Math.max(...ys) - Math.min(...ys),
-  };
-};
-
-const union = (boxes: Bounds[]): Bounds => {
-  const minX = Math.min(...boxes.map((b) => b.x));
-  const minY = Math.min(...boxes.map((b) => b.y));
-  return {
-    x: minX,
-    y: minY,
-    width: Math.max(...boxes.map((b) => b.x + b.width)) - minX,
-    height: Math.max(...boxes.map((b) => b.y + b.height)) - minY,
-  };
-};
 
 const DASH: Record<string, (w: number) => string> = {
   dashed: (w) => `${w * 4} ${w * 3}`,
@@ -128,7 +55,7 @@ const strokeAttrs = (e: SceneElement) => {
   const width = Math.max(num(e.strokeWidth, 1), 0.5);
   const dash = DASH[String(e.strokeStyle)]?.(width);
   return (
-    `stroke="${escapeXml(str(e.strokeColor, "#1e1e1e"))}" stroke-width="${width}"` +
+    `stroke="${escapeXml(str(e.strokeColor, STYLE.strokeColor.default))}" stroke-width="${width}"` +
     ` stroke-linecap="round" stroke-linejoin="round"${
       dash ? ` stroke-dasharray="${dash}"` : ""
     }`
@@ -181,7 +108,7 @@ const arrowhead = (
   const back: Point = [tip[0] - ux * size, tip[1] - uy * size];
   const left: Point = [back[0] - uy * size * 0.45, back[1] + ux * size * 0.45];
   const right: Point = [back[0] + uy * size * 0.45, back[1] - ux * size * 0.45];
-  const color = escapeXml(str(e.strokeColor, "#1e1e1e"));
+  const color = escapeXml(str(e.strokeColor, STYLE.strokeColor.default));
   const stroke = strokeAttrs({ ...e, strokeStyle: "solid" });
   const poly = (pts: Point[], fill: string) =>
     `<polygon points="${pts.map((p) => p.join(",")).join(" ")}" fill="${fill}" ${stroke}/>`;
@@ -235,7 +162,13 @@ const linear = (e: SceneElement): string => {
     return body;
   }
   const heads = [
-    [e.endArrowhead ?? "arrow", pts.at(-1), pts.at(-2)],
+    [
+      e.endArrowhead === undefined
+        ? STYLE.endArrowhead.default
+        : e.endArrowhead,
+      pts.at(-1),
+      pts.at(-2),
+    ],
     [e.startArrowhead, pts[0], pts[1]],
   ] as const;
   return (
@@ -266,7 +199,7 @@ const VERTICAL_SHARE: Record<string, number> = { middle: 0.5, bottom: 1 };
 
 const textNode = (e: SceneElement, area: TextArea) => {
   const lines = String(e.text ?? "").split("\n");
-  const fontSize = num(e.fontSize, 20);
+  const fontSize = num(e.fontSize, STYLE.fontSize.default);
   const lineHeight = fontSize * num(e.lineHeight, DEFAULT_LINE_HEIGHT);
   const align = ALIGN[String(e.textAlign)] ?? LEFT;
   const x = area.x + area.width * align.share;
@@ -274,7 +207,7 @@ const textNode = (e: SceneElement, area: TextArea) => {
   const top =
     area.y +
     (area.height - total) * (VERTICAL_SHARE[String(e.verticalAlign)] ?? 0);
-  const color = escapeXml(str(e.strokeColor, "#1e1e1e"));
+  const color = escapeXml(str(e.strokeColor, STYLE.strokeColor.default));
   const tspans = lines
     .map(
       (line, i) =>
@@ -361,13 +294,19 @@ const byZOrder = (a: SceneElement, b: SceneElement) => {
   return ai < bi ? -1 : 1;
 };
 
+/** The shape a label sits centered in; a connector's label is placed on its own box instead. */
+const boxContainer = (e: SceneElement, byId: Map<string, SceneElement>) => {
+  const container =
+    typeof e.containerId === "string" ? byId.get(e.containerId) : undefined;
+  return container && !isLinear(container) ? container : undefined;
+};
+
 const element = (
   e: SceneElement,
   byId: Map<string, SceneElement>,
   images: Map<string, ImageData>
 ) => {
-  const container =
-    typeof e.containerId === "string" ? byId.get(e.containerId) : undefined;
+  const container = boxContainer(e, byId);
   let inner: string;
   if (e.type !== "text") {
     inner = shapeNode(e, images);
@@ -391,12 +330,11 @@ const element = (
 };
 
 const drawnBounds = (e: SceneElement, byId: Map<string, SceneElement>) => {
-  const container =
-    typeof e.containerId === "string" ? byId.get(e.containerId) : undefined;
-  // a label never extends past its container, whose own box already counts
+  const container = boxContainer(e, byId);
+  // a box label never extends past its container, whose own box already counts
   return container
     ? rotatedBounds(container, box(container))
-    : rotatedBounds(e, geometryBox(e));
+    : elementBounds(e);
 };
 
 const clampSize = (maxSize: number | undefined) =>

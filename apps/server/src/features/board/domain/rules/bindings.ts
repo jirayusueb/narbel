@@ -244,8 +244,9 @@ export const rerouteAround = (
 
 /**
  * What else must change when `deleted` goes away: a deleted connector leaves its
- * targets' `boundElements`, a deleted label leaves its container's, and a deleted
- * shape unbinds every connector attached to it and takes its label along.
+ * targets' `boundElements` and takes its label along, a deleted label leaves its
+ * container's, a deleted frame releases its children (as Excalidraw's delete action does),
+ * and a deleted shape unbinds every connector attached to it and takes its label along.
  */
 export const detachDeleted = (
   deleted: SceneElement,
@@ -255,12 +256,21 @@ export const detachDeleted = (
     const element = id === undefined ? undefined : lookup.get(id);
     return element?.isDeleted ? undefined : element;
   };
+  if (deleted.type === "frame") {
+    return [...lookup.values()]
+      .filter((e) => !e.isDeleted && e.frameId === deleted.id)
+      .map((child) => ({ ...child, frameId: null }));
+  }
   if (isConnector(deleted)) {
     const { startElementId, endElementId } = currentRefs(deleted);
-    return [startElementId, endElementId]
-      .map(live)
-      .filter((t): t is SceneElement => t !== undefined)
-      .map((target) => forgetBound(target, deleted.id));
+    const label = live(labelIdOf(deleted));
+    return [
+      ...[startElementId, endElementId]
+        .map(live)
+        .filter((t): t is SceneElement => t !== undefined)
+        .map((target) => forgetBound(target, deleted.id)),
+      ...(label ? [{ ...label, isDeleted: true }] : []),
+    ];
   }
   if (typeof deleted.containerId === "string") {
     const container = live(deleted.containerId);

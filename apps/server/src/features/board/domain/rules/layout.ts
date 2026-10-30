@@ -1,3 +1,31 @@
+import { union } from "./geometry";
+import type { Bounds } from "./geometry";
+
+export const FRAME_PADDING = 40;
+
+/** Where a new auto-laid-out group starts: right of everything in `fixed`, at its top edge. */
+export const besideContent = (
+  fixed: Bounds[],
+  clearance: number
+): { left: number; top: number } =>
+  fixed.length === 0
+    ? { left: 0, top: 0 }
+    : {
+        left: Math.max(...fixed.map((b) => b.x + b.width)) + clearance,
+        top: Math.min(...fixed.map((b) => b.y)),
+      };
+
+/** A frame fitted around its children: their union plus FRAME_PADDING on every side. */
+export const wrapFrame = (children: Bounds[]): Bounds => {
+  const inner = union(children);
+  return {
+    x: inner.x - FRAME_PADDING,
+    y: inner.y - FRAME_PADDING,
+    width: inner.width + 2 * FRAME_PADDING,
+    height: inner.height + 2 * FRAME_PADDING,
+  };
+};
+
 export type LayoutDirection = "down" | "right";
 
 export interface LayoutNode {
