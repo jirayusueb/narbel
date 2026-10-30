@@ -44,6 +44,7 @@ const app = createApp({
   secret: ENV.BETTER_AUTH_SECRET,
   cache: new RedisCache(redis),
   pubsub,
+  redis,
 }).listen(Number(process.env.PORT ?? 3000), ({ url }) => {
   console.log(`Server is running on ${url}`);
 });
