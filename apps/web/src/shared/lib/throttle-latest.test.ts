@@ -1,29 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
+import { fakeClock } from "./fake-clock";
 import { createThrottleLatest } from "./throttle-latest";
-
-const fakeClock = () => {
-  let time = 1000;
-  let task: { at: number; fn: () => void } | null = null;
-  return {
-    now: () => time,
-    setTimeout: (fn: () => void, ms: number) => {
-      task = { at: time + ms, fn };
-      return task;
-    },
-    clearTimeout: () => {
-      task = null;
-    },
-    advance(ms: number) {
-      time += ms;
-      if (task && task.at <= time) {
-        const { fn } = task;
-        task = null;
-        fn();
-      }
-    },
-  };
-};
 
 describe("createThrottleLatest", () => {
   it("sends the first value at once and at most one per interval after", () => {
@@ -69,6 +47,33 @@ describe("createThrottleLatest", () => {
       t.push(v);
     }
     t.cancel();
+    clock.advance(100);
+    expect(sent).toEqual([1]);
+  });
+
+  it("flush emits the pending value now and the next push waits a full interval", () => {
+    const clock = fakeClock();
+    const sent: number[] = [];
+    const t = createThrottleLatest((v: number) => sent.push(v), 33, clock);
+    for (const v of [1, 2]) {
+      t.push(v);
+    }
+    t.flush();
+    expect(sent).toEqual([1, 2]);
+    clock.advance(10);
+    t.push(3);
+    expect(sent).toEqual([1, 2]);
+    clock.advance(23);
+    expect(sent).toEqual([1, 2, 3]);
+  });
+
+  it("flush with nothing pending emits nothing", () => {
+    const clock = fakeClock();
+    const sent: number[] = [];
+    const t = createThrottleLatest((v: number) => sent.push(v), 33, clock);
+    t.flush();
+    t.push(1);
+    t.flush();
     clock.advance(100);
     expect(sent).toEqual([1]);
   });

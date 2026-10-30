@@ -19,11 +19,12 @@ import {
   boardCacheName,
   colorFromName,
   CURSOR_SYNC_MS,
+  ELEMENT_SYNC_MS,
   createThrottleLatest,
   deleteBoardCache,
-  elementKey,
   isOnPage,
 } from "@/shared/lib";
+import type { ThrottleLatest } from "@/shared/lib";
 
 import {
   deriveCollabStatus,
@@ -31,18 +32,25 @@ import {
   WS_POLICY_VIOLATION,
 } from "./collab-status";
 import type { CollabStatus } from "./collab-status";
-import { byZOrder, shouldTakeIncoming } from "./merge";
+import { byZOrder, incomingFor } from "./merge";
+import { writeChangedElements } from "./write-changed-elements";
 
 export type { CollabStatus } from "./collab-status";
 
 interface Session {
   doc: Y.Doc;
   provider: WebsocketProvider;
+  writeElements: ThrottleLatest<PendingScene>;
 }
 
 interface PointerUpdate {
   pointer: { x: number; y: number; tool: "pointer" | "laser" };
   button: "down" | "up";
+}
+
+interface PendingScene {
+  page: string;
+  scene: readonly ExcalidrawElement[];
 }
 
 const LOCAL_ORIGIN = Symbol("local-edit");
@@ -86,9 +94,28 @@ export const useBoardCollab = ({
       params: shareToken ? { share: shareToken } : {},
     });
     sentVersions.current.clear();
+    const throttle = createThrottleLatest<PendingScene>(
+      ({ page, scene }) =>
+        writeChangedElements(
+          doc,
+          page,
+          scene,
+          sentVersions.current,
+          LOCAL_ORIGIN
+        ),
+      ELEMENT_SYNC_MS
+    );
+    // A closing tab never runs effect cleanups, so the pending write goes out as the page hides.
+    const flushOnHide = () => {
+      if (document.visibilityState === "hidden") {
+        throttle.flush();
+      }
+    };
+    window.addEventListener("pagehide", throttle.flush);
+    document.addEventListener("visibilitychange", flushOnHide);
     // The doc and socket are external resources owned by this effect; consumers need them as state.
     // oxlint-disable-next-line react/set-state-in-effect
-    setSession({ doc, provider });
+    setSession({ doc, provider, writeElements: throttle });
 
     // The server refuses the upgrade with a plain HTTP 403/404, which a browser reports only as a
     // failed socket; ask the same URL over HTTP to tell "no access" from "server down".
@@ -120,6 +147,7 @@ export const useBoardCollab = ({
         return;
       }
       noAccess = true;
+      throttle.cancel();
       provider.disconnect();
       if (cache) {
         deleteBoardCache(userId, boardId);
@@ -175,6 +203,9 @@ export const useBoardCollab = ({
 
     return () => {
       disposed = true;
+      window.removeEventListener("pagehide", throttle.flush);
+      document.removeEventListener("visibilitychange", flushOnHide);
+      throttle.flush();
       provider.destroy();
       cache?.destroy();
       doc.destroy();
@@ -194,9 +225,7 @@ export const useBoardCollab = ({
     });
   }, [session, userId, userName, username, avatarUrl]);
 
-  const pointerThrottle = useRef<ReturnType<
-    typeof createThrottleLatest<PointerUpdate>
-  > | null>(null);
+  const pointerThrottle = useRef<ThrottleLatest<PointerUpdate> | null>(null);
   useEffect(() => {
     if (!session) {
       return;
@@ -253,17 +282,12 @@ export const useBoardCollab = ({
       const local = new Map(
         api.getSceneElementsIncludingDeleted().map((el) => [el.id, el])
       );
-      const incoming: ExcalidrawElement[] = [];
-      for (const key of keys) {
-        const remote = elements.get(key);
-        if (
-          remote &&
-          isOnPage(pageId, key) &&
-          shouldTakeIncoming(local.get(remote.id), remote)
-        ) {
-          incoming.push({ ...remote });
-        }
-      }
+      const incoming = incomingFor(
+        pageId,
+        keys,
+        (key) => elements.get(key),
+        local
+      );
       if (incoming.length === 0) {
         return;
       }
@@ -331,6 +355,7 @@ export const useBoardCollab = ({
     onAwareness(null, "init");
 
     return () => {
+      session.writeElements.flush();
       elements.unobserve(onElements);
       awareness.off("change", onAwareness);
     };
@@ -355,24 +380,7 @@ export const useBoardCollab = ({
       if (!(page && canWrite)) {
         return;
       }
-      const changed = scene.filter(
-        (el) => sentVersions.current.get(el.id) !== el.version
-      );
-      if (changed.length === 0) {
-        return;
-      }
-      const elements = session.doc.getMap<ExcalidrawElement>("elements");
-      session.doc.transact(() => {
-        for (const el of changed) {
-          sentVersions.current.set(el.id, el.version);
-          const key = elementKey(page, el.id);
-          if (shouldTakeIncoming(elements.get(key), el)) {
-            // Excalidraw mutates elements in place; storing the live object would let the
-            // map's copy change silently and make later versions look already-synced.
-            elements.set(key, { ...el });
-          }
-        }
-      }, LOCAL_ORIGIN);
+      session.writeElements.push({ page, scene });
     },
     [session, sceneReady, canWrite]
   );
