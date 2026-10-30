@@ -1,0 +1,73 @@
+import type { SecondaryStorage } from "@narbel/auth";
+
+interface MultiLike {
+  incr(key: string): MultiLike;
+  expire(key: string, ttl: number, mode: "NX"): MultiLike;
+  exec(): Promise<[Error | null, unknown][] | null>;
+}
+
+/** The slice of ioredis the adapter uses, so tests can fake it. */
+export interface SecondaryRedisLike {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<unknown>;
+  set(key: string, value: string, mode: "EX", ttl: number): Promise<unknown>;
+  del(key: string): Promise<unknown>;
+  getdel(key: string): Promise<string | null>;
+  multi(): MultiLike;
+}
+
+// Postgres holds every session and verification row, so a failed read or write only
+// costs a cache miss. A failed delete must propagate: swallowing it would let a revoked
+// session stay valid in Redis. A failed rate-limit increment fails open (login must
+// survive a cache outage).
+export class RedisSecondaryStorage implements SecondaryStorage {
+  constructor(private readonly redis: SecondaryRedisLike) {}
+
+  async get(key: string) {
+    try {
+      return await this.redis.get(key);
+    } catch (error) {
+      console.error(`Auth storage get failed for ${key}`, error);
+      return null;
+    }
+  }
+
+  async set(key: string, value: string, ttl?: number) {
+    try {
+      await (ttl
+        ? this.redis.set(key, value, "EX", ttl)
+        : this.redis.set(key, value));
+    } catch (error) {
+      console.error(`Auth storage set failed for ${key}`, error);
+    }
+  }
+
+  async delete(key: string) {
+    await this.redis.del(key);
+  }
+
+  getAndDelete(key: string) {
+    return this.redis.getdel(key);
+  }
+
+  async increment(key: string, ttl: number) {
+    try {
+      const results = await this.redis
+        .multi()
+        .incr(key)
+        .expire(key, ttl, "NX")
+        .exec();
+      const [error, count] = results?.[0] ?? [
+        new Error("transaction aborted"),
+        0,
+      ];
+      if (error) {
+        throw error;
+      }
+      return Number(count);
+    } catch (error) {
+      console.error(`Auth storage increment failed for ${key}`, error);
+      return 1;
+    }
+  }
+}

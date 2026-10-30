@@ -5,8 +5,10 @@ import Redis from "ioredis";
 import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
 import { backfillBoardText } from "./features/board";
+import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
+import { RedisJobLock } from "./shared/infrastructure/lock/RedisJobLock";
 import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
 import {
   DEFAULT_OUTBOX_POLICY,
@@ -20,12 +22,16 @@ const db = createDb(ENV);
 if (process.env.MIGRATIONS_DIR) {
   await migrate(db, { migrationsFolder: process.env.MIGRATIONS_DIR });
 }
-await backfillBoardText(db);
-const auth = createAuth(ENV, db);
 const redis = new Redis(ENV.REDIS_URL);
 redis.on("error", (error) => {
   console.error("Redis error", error);
 });
+await new RedisJobLock(redis).runExclusive(
+  "boot:backfill-board-text",
+  60_000,
+  () => backfillBoardText(db)
+);
+const auth = createAuth(ENV, db, [], new RedisSecondaryStorage(redis));
 const pubsub = new RedisPubSub(redis);
 
 const app = createApp({

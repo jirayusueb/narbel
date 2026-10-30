@@ -1,4 +1,5 @@
 import { apiKey } from "@better-auth/api-key";
+import type { SecondaryStorage } from "@better-auth/core/db";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
 import { mcp } from "@better-auth/mcp";
 import type { Database } from "@narbel/db";
@@ -12,6 +13,8 @@ export interface AuthConfig {
   CORS_ORIGIN: string;
 }
 
+export type { SecondaryStorage } from "@better-auth/core/db";
+
 export const MCP_PATH = "/mcp";
 
 export const mcpResource = (apiOrigin: string) => `${apiOrigin}${MCP_PATH}`;
@@ -19,7 +22,8 @@ export const mcpResource = (apiOrigin: string) => `${apiOrigin}${MCP_PATH}`;
 export const createAuth = (
   env: AuthConfig,
   database: Database,
-  desktopOrigins: readonly string[] = []
+  desktopOrigins: readonly string[] = [],
+  secondaryStorage?: SecondaryStorage
 ) =>
   betterAuth({
     database: drizzleAdapter(database, {
@@ -27,6 +31,12 @@ export const createAuth = (
       schema,
     }),
     trustedOrigins: [env.CORS_ORIGIN, ...desktopOrigins],
+    // Postgres stays the source of truth; Redis is the read path and the shared rate-limit counter
+    ...(secondaryStorage && {
+      secondaryStorage,
+      session: { storeSessionInDatabase: true },
+      verification: { storeInDatabase: true },
+    }),
     emailAndPassword: { enabled: true },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
