@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { ok } from "../../../../shared/kernel/types/Result";
+import { okEmpty } from "../../../../shared/kernel/types/Result";
 import type { BoardUseCases } from "../../ioc";
 import { createMcpServer } from "./createMcpServer";
 
@@ -61,7 +61,7 @@ test("an MCP client sees every board tool and the drawing guide", async () => {
 
 test("a tool whose use case returns nothing still answers the client", async () => {
   const client = await connect({
-    deletePage: { execute: () => Promise.resolve(ok()) },
+    deletePage: { execute: () => Promise.resolve(okEmpty()) },
   } as unknown as Partial<BoardUseCases>);
   const res = await client.callTool({
     name: "delete_page",
