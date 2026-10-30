@@ -3,7 +3,6 @@ import { z } from "zod";
 import { STYLE, STYLE_KEYS } from "../../domain/shapes/ElementStyle";
 import type { Style, StyleKey } from "../../domain/shapes/ElementStyle";
 
-/** Agent-facing wording; `satisfies` fails the build when STYLE gains or loses a key. */
 const STYLE_DOCS = {
   strokeColor: "Outline and text color, hex. Default #1e1e1e",
   backgroundColor: "Fill color, hex or transparent. Default transparent",
@@ -63,7 +62,6 @@ const styleField = (key: StyleKey): z.ZodTypeAny => {
   return schema.optional().describe(STYLE_DOCS[key]);
 };
 
-/** Spread into `shape` and `patch`, so add, update and edit_selection cannot diverge. */
 export const style = Object.fromEntries(
   STYLE_KEYS.map((key) => [key, styleField(key)])
 ) as { [K in StyleKey]: z.ZodType<Style[K] | undefined> };

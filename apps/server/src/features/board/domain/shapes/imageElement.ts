@@ -10,7 +10,6 @@ interface Size {
   height: number;
 }
 
-/** Natural size with the long side capped; one given side keeps the aspect, two are used as given. */
 export const imageSize = (
   natural: Size | undefined,
   given: { width?: number; height?: number }

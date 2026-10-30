@@ -23,8 +23,12 @@ const setup = async () => {
       },
       { id: "b", type: "ellipse", x: 1000, y: 0, width: 100, height: 100 },
       { id: "c", type: "text", x: 2000, y: 0, text: "far" },
-      // runs from b leftward to a: its x/y/width/height box lies right of what is drawn
-      { id: "ba", type: "arrow", startElementId: "b", endElementId: "a" },
+      {
+        id: "leftwardArrow",
+        type: "arrow",
+        startElementId: "b",
+        endElementId: "a",
+      },
     ],
   });
   const read = new GetBoardScene(s.guard, s.scenes);
@@ -49,7 +53,7 @@ describe("get_board filters", () => {
       within: { x: 900, y: 40, width: 50, height: 20 },
     });
     expect(result.isOk() && result.value.elements.map((e) => e.id)).toEqual([
-      "ba",
+      "leftwardArrow",
     ]);
   });
 

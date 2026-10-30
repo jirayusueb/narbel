@@ -19,7 +19,6 @@ export class GetBoardScene {
     actor: Actor;
     boardId: string;
     pageId?: string;
-    /** only elements whose drawn bounds overlap this box */
     within?: Bounds;
     types?: string[];
     limit?: number;

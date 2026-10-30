@@ -27,16 +27,13 @@ export interface Shape extends Partial<Style> {
   y?: number;
   width?: number;
   height?: number;
-  /** content of a text element, label of a rectangle/ellipse/diamond/arrow */
   text?: string;
   /** optional client-chosen id, so a later element in the same batch can bind to this one */
   id?: string;
   /** arrow/line only: element ids (or batch ids) this connector attaches to */
   startElementId?: string;
   endElementId?: string;
-  /** frame only: the title Excalidraw draws above it */
   name?: string;
-  /** any element but a frame: a frame on the page or in the same batch */
   frameId?: string;
 }
 
@@ -51,7 +48,6 @@ const LINE_HEIGHT = 1.25;
 const LABEL_PADDING = 20;
 const MIN_LABELLED = { width: 100, height: 60 };
 
-/** Container keys a bound label mirrors, rewritten on every fit so they cannot drift. */
 export const LABEL_FOLLOWS = [
   "groupIds",
   "frameId",
@@ -73,7 +69,6 @@ interface Size {
 }
 type Extras = Record<string, unknown>;
 
-/** Monospace estimate scaled to the font size. */
 export const measure = (text: string, fontSize: number): Size => {
   const lines = text.split("\n");
   return {
@@ -165,7 +160,6 @@ export const SHAPES: Record<ShapeType, ShapeSpec> = {
     extras: (s, size) =>
       linear(s, size, { startArrowhead: null, endArrowhead: null }),
   },
-  // an unsized frame is fitted around its children before it is written
   frame: {
     size: (s) => ({ width: s.width ?? 0, height: s.height ?? 0 }),
     extras: (s) => ({ name: s.name ?? null }),
@@ -201,10 +195,6 @@ export const buildElement = (
   };
 };
 
-/**
- * The label resized to its text and placed in its container: centered in a box, on the
- * polyline midpoint of an arrow. Mirrors LABEL_FOLLOWS from the container.
- */
 export const fitLabel = (
   label: SceneElement,
   container: SceneElement
@@ -255,7 +245,6 @@ export const buildLabel = (
     container
   );
 
-/** A free text element re-measured after its text or fontSize changed. */
 export const refitText = (element: SceneElement): SceneElement => ({
   ...element,
   ...measure(String(element.text ?? ""), fontSizeOf(element)),
