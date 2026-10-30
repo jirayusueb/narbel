@@ -70,7 +70,7 @@ export const toSceneElementDto = (
 });
 
 /** Excalidraw's z-order: ascending fractional `index`, ties by id, unindexed last. */
-const byZOrder = (a: SceneElement, b: SceneElement) => {
+export const byZOrder = (a: SceneElement, b: SceneElement) => {
   const ai = typeof a.index === "string" ? a.index : undefined;
   const bi = typeof b.index === "string" ? b.index : undefined;
   if (ai === bi) {

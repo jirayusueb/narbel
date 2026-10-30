@@ -252,7 +252,14 @@ export const BoardEditor = ({
     pageId,
     setPageId,
   });
-  const presence = usePresence({ awareness, api, pageId, setPageId });
+  const presence = usePresence({
+    awareness,
+    doc,
+    live: status === "live",
+    api,
+    pageId,
+    setPageId,
+  });
   const preferences = usePreferences({ userId, api });
   const { env, panelOpen, setPanelOpen, focusedId, selectThread } =
     useCommentsWorkspace({

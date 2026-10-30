@@ -136,7 +136,11 @@ describe("YjsBoardHub roles", () => {
       editor.awareness.getStates().get(viewer.doc.clientID)?.selection
     ).toEqual(["y", "z"]);
 
-    await hub.setSelection("b1", ["m"]);
+    await hub.setSelection("b1", {
+      pageId: "page:main",
+      ids: ["m"],
+      reveal: false,
+    });
     expect(await hub.getSelection("b1")).toEqual(["m"]);
     const states = [...editor.awareness.getStates().values()];
     expect(states.some((state) => state.mcp === true)).toBe(true);
@@ -146,6 +150,42 @@ describe("YjsBoardHub roles", () => {
     expect(
       await new YjsBoardHub(store, new MemoryBus()).getSelection("b1")
     ).toBeUndefined();
+  });
+
+  it("publishes the agent selection with its page, and a fresh reveal only per focus", async () => {
+    const hub = new YjsBoardHub(store, new MemoryBus());
+    const editor = new Client();
+    await join(hub, editor, true);
+    const mcp = () =>
+      [...editor.awareness.getStates().values()].find((s) => s.mcp === true);
+
+    await hub.setSelection("b1", {
+      pageId: "page:main",
+      ids: ["a"],
+      reveal: true,
+    });
+    expect(mcp()).toMatchObject({
+      pageId: "page:main",
+      selection: ["a"],
+      reveal: 1,
+    });
+    await hub.setSelection("b1", {
+      pageId: "page:main",
+      ids: ["a"],
+      reveal: true,
+    });
+    expect(mcp()?.reveal).toBe(2);
+    await hub.setSelection("b1", {
+      pageId: undefined,
+      ids: [],
+      reveal: false,
+    });
+    expect(mcp()?.reveal).toBeUndefined();
+    expect(mcp()?.pageId).toBeUndefined();
+    const mcpClient = [...editor.awareness.getStates()].find(
+      ([, s]) => s.mcp === true
+    )?.[0];
+    expect(editor.doc.getMap("agents").has(String(mcpClient))).toBe(true);
   });
 });
 

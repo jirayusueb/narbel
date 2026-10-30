@@ -20,6 +20,7 @@ import type { SceneElement } from "../../domain/entities/SceneElement";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
 import type { MemberRole } from "../../domain/values/Access";
 import { BoardTitle } from "../../domain/values/BoardTitle";
+import type { SceneVersion } from "../../domain/values/ChangeCursor";
 import { BoardAccessGuard } from "../BoardAccess";
 import type { BoardTx } from "../ports/BoardTx";
 import type {
@@ -34,7 +35,12 @@ import type {
   ThreadQuery,
 } from "../ports/IBoardCommentRepository";
 import type { IBoardRepository } from "../ports/IBoardRepository";
-import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
+import type {
+  AgentSelection,
+  ElementTouch,
+  IBoardScenes,
+  SceneAccess,
+} from "../ports/IBoardScenes";
 import type { IUnlockTokens } from "../ports/IUnlockTokens";
 
 let counter = 0;
@@ -262,6 +268,41 @@ export class FakeComments implements IBoardCommentRepository {
     }
     return Promise.resolve();
   };
+  listActivity = (q: {
+    boardId: string;
+    after: Cursor;
+    limit: number;
+    viewerId?: string;
+  }) => {
+    const activityAt = (c: Comment) =>
+      new Date(
+        Math.max(
+          c.createdAt.getTime(),
+          c.editedAt?.getTime() ?? 0,
+          c.resolvedAt?.getTime() ?? 0
+        )
+      );
+    return Promise.resolve(
+      [...this.rows.values()]
+        .filter((c) => c.boardId === q.boardId)
+        .map((c) => ({
+          ...this.viewOf(c, q.viewerId),
+          activityAt: activityAt(c),
+        }))
+        .filter(
+          (v) =>
+            v.activityAt.getTime() > q.after.at.getTime() ||
+            (v.activityAt.getTime() === q.after.at.getTime() &&
+              v.comment.id > q.after.id)
+        )
+        .toSorted(
+          (a, b) =>
+            a.activityAt.getTime() - b.activityAt.getTime() ||
+            a.comment.id.localeCompare(b.comment.id)
+        )
+        .slice(0, q.limit)
+    );
+  };
 }
 
 export class FakeProfiles implements IProfileReader {
@@ -332,6 +373,9 @@ export class FakeScenes implements IBoardScenes {
   readonly elements = new Map<string, SceneElement>();
   discarded: string[] = [];
   selection: string[] | undefined;
+  lastSelection: AgentSelection | undefined;
+  touches: ElementTouch[] = [];
+  version = new Uint8Array() as SceneVersion;
 
   private readonly access: SceneAccess = {
     pages: () => this.pageList,
@@ -371,13 +415,15 @@ export class FakeScenes implements IBoardScenes {
         this.elements.set(key, el);
       }
     },
+    changesSince: () => ({ touches: this.touches, version: this.version }),
   };
 
   transact = <T>(_: string, fn: (scene: SceneAccess) => T) =>
     Promise.resolve(fn(this.access));
   getSelection = () => Promise.resolve(this.selection);
-  setSelection = (_: string, selected: string[]) => {
-    this.selection = selected;
+  setSelection = (_: string, selected: AgentSelection) => {
+    this.selection = selected.ids;
+    this.lastSelection = selected;
     return Promise.resolve();
   };
   discard = (id: string) => {
