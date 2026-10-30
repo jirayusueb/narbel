@@ -1,4 +1,13 @@
 import type { SceneElement } from "../entities/SceneElement";
+import { isLinear, polylineMidpoint } from "../rules/geometry";
+import {
+  STYLE,
+  defaultsFor,
+  pickStyle,
+  routeStyle,
+  toStored,
+} from "./ElementStyle";
+import type { Style } from "./ElementStyle";
 
 export const SHAPE_TYPES = [
   "rectangle",
@@ -7,25 +16,28 @@ export const SHAPE_TYPES = [
   "text",
   "arrow",
   "line",
+  "frame",
 ] as const;
 export type ShapeType = (typeof SHAPE_TYPES)[number];
 
-export interface Shape {
+export interface Shape extends Partial<Style> {
   type: ShapeType;
   /** omitted x or y: the caller asks for an automatic layout */
   x?: number;
   y?: number;
   width?: number;
   height?: number;
-  /** content of a text element, label of a rectangle/ellipse/diamond */
+  /** content of a text element, label of a rectangle/ellipse/diamond/arrow */
   text?: string;
-  strokeColor?: string;
-  backgroundColor?: string;
   /** optional client-chosen id, so a later element in the same batch can bind to this one */
   id?: string;
   /** arrow/line only: element ids (or batch ids) this connector attaches to */
   startElementId?: string;
   endElementId?: string;
+  /** frame only: the title Excalidraw draws above it */
+  name?: string;
+  /** any element but a frame: a frame on the page or in the same batch */
+  frameId?: string;
 }
 
 export interface ElementIdentity {
@@ -35,21 +47,19 @@ export interface ElementIdentity {
   updated: number;
 }
 
-export const DEFAULT_STROKE = "#1e1e1e";
-export const DEFAULT_BACKGROUND = "transparent";
-
-const FONT_SIZE = 20;
 const LINE_HEIGHT = 1.25;
-const CHAR_WIDTH = FONT_SIZE * 0.6;
 const LABEL_PADDING = 20;
 const MIN_LABELLED = { width: 100, height: 60 };
 
-/** Shapes whose `text` becomes a bound label, like Excalidraw's "double-click to type". */
-export const LABELLED: Record<string, true> = {
-  rectangle: true,
-  ellipse: true,
-  diamond: true,
-};
+/** Container keys a bound label mirrors, rewritten on every fit so they cannot drift. */
+export const LABEL_FOLLOWS = [
+  "groupIds",
+  "frameId",
+  "locked",
+  "angle",
+  "opacity",
+] as const;
+
 // how much larger than its text a shape must be for the text to sit inside its outline
 const INSET: Record<string, number> = {
   rectangle: 1,
@@ -63,13 +73,19 @@ interface Size {
 }
 type Extras = Record<string, unknown>;
 
-const measure = (text: string): Size => {
+/** Monospace estimate scaled to the font size. */
+export const measure = (text: string, fontSize: number): Size => {
   const lines = text.split("\n");
   return {
-    width: Math.max(...lines.map((l) => l.length), 1) * CHAR_WIDTH,
-    height: lines.length * FONT_SIZE * LINE_HEIGHT,
+    width: Math.max(...lines.map((l) => l.length), 1) * fontSize * 0.6,
+    height: lines.length * fontSize * LINE_HEIGHT,
   };
 };
+
+const fontSizeOf = (shape: object) =>
+  "fontSize" in shape && typeof shape.fontSize === "number"
+    ? shape.fontSize
+    : STYLE.fontSize.default;
 
 // a labelled shape without an explicit size grows to fit its label
 const box = (shape: Shape): Size => {
@@ -77,7 +93,7 @@ const box = (shape: Shape): Size => {
     return { width: shape.width ?? 100, height: shape.height ?? 100 };
   }
   const inset = INSET[shape.type] ?? 1;
-  const text = measure(shape.text);
+  const text = measure(shape.text, fontSizeOf(shape));
   return {
     width:
       shape.width ??
@@ -95,26 +111,27 @@ const box = (shape: Shape): Size => {
 };
 
 const textSize = (shape: Shape): Size => {
-  const text = measure(shape.text ?? "");
+  const text = measure(shape.text ?? "", fontSizeOf(shape));
   return {
     width: shape.width ?? text.width,
     height: shape.height ?? text.height,
   };
 };
 
-const line =
-  (endArrowhead: string | null) =>
-  (_: Shape, { width, height }: Size): Extras => ({
-    points: [
-      [0, 0],
-      [width, height],
-    ],
-    lastCommittedPoint: null,
-    startBinding: null,
-    endBinding: null,
-    startArrowhead: null,
-    endArrowhead,
-  });
+const linear = (
+  _: Shape,
+  { width, height }: Size,
+  ends: Extras = {}
+): Extras => ({
+  points: [
+    [0, 0],
+    [width, height],
+  ],
+  lastCommittedPoint: null,
+  startBinding: null,
+  endBinding: null,
+  ...ends,
+});
 
 interface ShapeSpec {
   size: (shape: Shape) => Size;
@@ -132,9 +149,6 @@ export const SHAPES: Record<ShapeType, ShapeSpec> = {
     extras: (shape) => ({
       text: shape.text ?? "",
       originalText: shape.text ?? "",
-      fontSize: FONT_SIZE,
-      fontFamily: 5,
-      textAlign: "left",
       verticalAlign: "top",
       containerId: null,
       lineHeight: LINE_HEIGHT,
@@ -144,11 +158,17 @@ export const SHAPES: Record<ShapeType, ShapeSpec> = {
   // lines default to a horizontal 100 unit stroke
   arrow: {
     size: (s) => ({ width: s.width ?? 100, height: s.height ?? 0 }),
-    extras: line("arrow"),
+    extras: linear,
   },
   line: {
     size: (s) => ({ width: s.width ?? 100, height: s.height ?? 0 }),
-    extras: line(null),
+    extras: (s, size) =>
+      linear(s, size, { startArrowhead: null, endArrowhead: null }),
+  },
+  // an unsized frame is fitted around its children before it is written
+  frame: {
+    size: (s) => ({ width: s.width ?? 0, height: s.height ?? 0 }),
+    extras: (s) => ({ name: s.name ?? null }),
   },
 };
 
@@ -158,6 +178,7 @@ export const buildElement = (
 ): SceneElement => {
   const spec = SHAPES[shape.type];
   const size = spec.size(shape);
+  const { own } = routeStyle(shape.type, pickStyle(shape));
   return {
     id: identity.id,
     type: shape.type,
@@ -165,17 +186,9 @@ export const buildElement = (
     x: shape.x ?? 0,
     y: shape.y ?? 0,
     ...size,
-    angle: 0,
-    strokeColor: shape.strokeColor ?? DEFAULT_STROKE,
-    backgroundColor: shape.backgroundColor ?? DEFAULT_BACKGROUND,
-    fillStyle: "solid",
-    strokeWidth: 2,
-    strokeStyle: "solid",
-    roughness: 1,
-    opacity: 100,
+    ...toStored(shape.type, { ...defaultsFor(shape.type), ...own }),
     groupIds: [],
-    frameId: null,
-    roundness: null,
+    frameId: shape.frameId ?? null,
     seed: identity.seed,
     version: 1,
     versionNonce: identity.versionNonce,
@@ -188,17 +201,32 @@ export const buildElement = (
   };
 };
 
-/** The label resized to its text and centered in its container, as Excalidraw draws it. */
+/**
+ * The label resized to its text and placed in its container: centered in a box, on the
+ * polyline midpoint of an arrow. Mirrors LABEL_FOLLOWS from the container.
+ */
 export const fitLabel = (
   label: SceneElement,
   container: SceneElement
 ): SceneElement => {
-  const size = measure(String(label.text ?? ""));
+  const size = measure(String(label.text ?? ""), fontSizeOf(label));
+  const center = isLinear(container)
+    ? polylineMidpoint(container)
+    : {
+        x: Number(container.x) + Number(container.width) / 2,
+        y: Number(container.y) + Number(container.height) / 2,
+      };
   return {
     ...label,
     ...size,
-    x: Number(container.x) + (Number(container.width) - size.width) / 2,
-    y: Number(container.y) + (Number(container.height) - size.height) / 2,
+    x: center.x - size.width / 2,
+    y: center.y - size.height / 2,
+    ...Object.fromEntries(
+      LABEL_FOLLOWS.filter((key) => key in container).map((key) => [
+        key,
+        container[key],
+      ])
+    ),
   };
 };
 
@@ -206,17 +234,29 @@ export const fitLabel = (
 export const buildLabel = (
   container: SceneElement,
   text: string,
+  style: Partial<Style>,
   identity: ElementIdentity
 ): SceneElement =>
   fitLabel(
     {
       ...buildElement(
-        { type: "text", text, strokeColor: String(container.strokeColor) },
+        {
+          type: "text",
+          text,
+          strokeColor: String(container.strokeColor),
+          textAlign: "center",
+          ...style,
+        },
         identity
       ),
-      textAlign: "center",
       verticalAlign: "middle",
       containerId: container.id,
     },
     container
   );
+
+/** A free text element re-measured after its text or fontSize changed. */
+export const refitText = (element: SceneElement): SceneElement => ({
+  ...element,
+  ...measure(String(element.text ?? ""), fontSizeOf(element)),
+});

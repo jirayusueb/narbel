@@ -17,7 +17,7 @@ export class DeleteBoardElements {
     actor: Actor;
     boardId: string;
     ids: string[];
-  }): Promise<Result<{ deleted: number }, AppError>> {
+  }): Promise<Result<{ deleted: number; locked?: string[] }, AppError>> {
     const granted = await this.guard.require(
       input.boardId,
       input.actor,
@@ -26,11 +26,18 @@ export class DeleteBoardElements {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const deleted = await this.scenes.transact(
-      input.boardId,
-      (scene) =>
-        input.ids.filter((id) => deleteElement(scene, this.ids, id)).length
+    const outcomes = await this.scenes.transact(input.boardId, (scene) =>
+      input.ids.map((id) => ({
+        id,
+        outcome: deleteElement(scene, this.ids, id),
+      }))
     );
-    return ok({ deleted });
+    const locked = outcomes
+      .filter((o) => o.outcome === "locked")
+      .map((o) => o.id);
+    return ok({
+      deleted: outcomes.filter((o) => o.outcome === "ok").length,
+      ...(locked.length > 0 ? { locked } : {}),
+    });
   }
 }

@@ -17,6 +17,10 @@ const FAILURES: Record<Exclude<PatchOutcome, "ok">, () => AppError> = {
     AppError.validation(
       "startElementId/endElementId must reference another element on the same page"
     ),
+  locked: () =>
+    AppError.validation(
+      "The element is locked: only {locked:false} is accepted until it is unlocked"
+    ),
 };
 
 export class UpdateBoardElement {

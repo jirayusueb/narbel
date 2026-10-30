@@ -97,7 +97,7 @@ export class EditSelection {
     actor: Actor;
     boardId: string;
     patch: Record<string, unknown>;
-  }): Promise<Result<{ updated: string[] }, AppError>> {
+  }): Promise<Result<{ updated: string[]; locked?: string[] }, AppError>> {
     const granted = await this.guard.require(
       input.boardId,
       input.actor,
@@ -111,9 +111,18 @@ export class EditSelection {
       return err(noClient());
     }
     const patch = stripReserved(input.patch);
-    const updated = await this.scenes.transact(input.boardId, (s) =>
-      selected.filter((id) => patchElement(s, this.ids, id, patch) === "ok")
+    const outcomes = await this.scenes.transact(input.boardId, (s) =>
+      selected.map((id) => ({
+        id,
+        outcome: patchElement(s, this.ids, id, patch),
+      }))
     );
-    return ok({ updated });
+    const ofOutcome = (wanted: string) =>
+      outcomes.filter((o) => o.outcome === wanted).map((o) => o.id);
+    const locked = ofOutcome("locked");
+    return ok({
+      updated: ofOutcome("ok"),
+      ...(locked.length > 0 ? { locked } : {}),
+    });
   }
 }

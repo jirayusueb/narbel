@@ -1,30 +1,35 @@
 import type { SceneElement } from "../../domain/entities/SceneElement";
 import { labelIdOf } from "../../domain/rules/bindings";
-import {
-  DEFAULT_BACKGROUND,
-  DEFAULT_STROKE,
-} from "../../domain/shapes/ShapeRegistry";
+import { styleDiff } from "../../domain/shapes/ElementStyle";
+import type { Style } from "../../domain/shapes/ElementStyle";
 
-/** Colors equal to the defaults and labels' own elements are left out to keep agent reads small. */
-export interface SceneElementDto {
+/** Style equal to the defaults and labels' own elements are left out to keep agent reads small. */
+export interface SceneElementDto extends Partial<Style> {
   id: string;
   type: string;
   x: unknown;
   y: unknown;
   width: unknown;
   height: unknown;
-  /** a text element's content, or the label inside a rectangle/ellipse/diamond */
+  /** a text element's content, or the label inside a rectangle/ellipse/diamond/arrow */
   text?: unknown;
-  strokeColor?: unknown;
-  backgroundColor?: unknown;
   /** arrows/lines: what each end is attached to, so agents can read the diagram's graph */
   startElementId?: string | null;
   endElementId?: string | null;
+  groupIds?: string[];
+  frameId?: string;
+  /** frames: the title */
+  name?: string;
+  locked?: true;
 }
 
 export interface SceneDto {
   title: string;
   pageId: string;
+  /** elements on the page before any filter, labels not counted */
+  total: number;
+  /** more elements matched than `limit` allowed */
+  truncated: boolean;
   elements: SceneElementDto[];
 }
 
@@ -33,44 +38,53 @@ const boundId = (binding: unknown) =>
 
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
-const labelText = (
+const liveLabel = (
   e: SceneElement,
   get: (id: string) => SceneElement | undefined
 ) => {
   const labelId = labelIdOf(e);
   const label = labelId === undefined ? undefined : get(labelId);
-  return label && !label.isDeleted ? { text: label.text } : {};
+  return label && !label.isDeleted ? label : undefined;
 };
 /** Sub-pixel digits cost agent tokens and mean nothing; `+ 0` turns -0 into 0. */
 export const roundCoord = <T>(value: T): T =>
   (typeof value === "number" ? Math.round(value * 100) / 100 + 0 : value) as T;
 
-/** `get` resolves the element's bound label, whose text is reported on the shape. */
+/** `get` resolves the element's bound label, whose text and text style are reported on the shape. */
 export const toSceneElementDto = (
   e: SceneElement,
   get: (id: string) => SceneElement | undefined
-): SceneElementDto => ({
-  id: e.id,
-  type: e.type,
-  x: roundCoord(e.x),
-  y: roundCoord(e.y),
-  width: roundCoord(e.width),
-  height: roundCoord(e.height),
-  ...(e.type === "text" ? { text: e.text } : labelText(e, get)),
-  ...(e.strokeColor === DEFAULT_STROKE ? {} : { strokeColor: e.strokeColor }),
-  ...(e.backgroundColor === DEFAULT_BACKGROUND
-    ? {}
-    : { backgroundColor: e.backgroundColor }),
-  ...(CONNECTOR_TYPES[e.type]
-    ? {
-        startElementId: boundId(e.startBinding),
-        endElementId: boundId(e.endBinding),
-      }
-    : {}),
-});
+): SceneElementDto => {
+  const label = liveLabel(e, get);
+  const content = e.type === "text" ? e : label;
+  return {
+    id: e.id,
+    type: e.type,
+    x: roundCoord(e.x),
+    y: roundCoord(e.y),
+    width: roundCoord(e.width),
+    height: roundCoord(e.height),
+    ...(content ? { text: content.text } : {}),
+    ...styleDiff(e, label),
+    ...(CONNECTOR_TYPES[e.type]
+      ? {
+          startElementId: boundId(e.startBinding),
+          endElementId: boundId(e.endBinding),
+        }
+      : {}),
+    ...(Array.isArray(e.groupIds) && e.groupIds.length > 0
+      ? { groupIds: e.groupIds as string[] }
+      : {}),
+    ...(typeof e.frameId === "string" ? { frameId: e.frameId } : {}),
+    ...(e.type === "frame" && typeof e.name === "string" && e.name !== ""
+      ? { name: e.name }
+      : {}),
+    ...(e.locked === true ? { locked: true as const } : {}),
+  };
+};
 
 /** Excalidraw's z-order: ascending fractional `index`, ties by id, unindexed last. */
-const byZOrder = (a: SceneElement, b: SceneElement) => {
+export const byZOrder = (a: SceneElement, b: SceneElement) => {
   const ai = typeof a.index === "string" ? a.index : undefined;
   const bi = typeof b.index === "string" ? b.index : undefined;
   if (ai === bi) {
@@ -82,17 +96,32 @@ const byZOrder = (a: SceneElement, b: SceneElement) => {
   return ai < bi ? -1 : 1;
 };
 
-/**
- * Live elements of a page bottom to top; a label shows up as its shape's `text`, not on
- * its own.
- */
-export const toSceneDtos = (elements: SceneElement[]): SceneElementDto[] => {
+const isLabelOfLive = (byId: Map<string, SceneElement>) => (e: SceneElement) =>
+  typeof e.containerId === "string" &&
+  byId.get(e.containerId)?.isDeleted === false;
+
+/** Live elements of a page that are not labels, bottom to top. */
+const visible = (elements: SceneElement[]) => {
   const byId = new Map(elements.map((e) => [e.id, e]));
-  const get = (id: string) => byId.get(id);
-  const isLabel = (e: SceneElement) =>
-    typeof e.containerId === "string" &&
-    byId.get(e.containerId)?.isDeleted === false;
+  const isLabel = isLabelOfLive(byId);
   const live = elements.filter((e) => !(e.isDeleted || isLabel(e)));
   live.sort(byZOrder);
-  return live.map((e) => toSceneElementDto(e, get));
+  return { byId, live };
+};
+
+export const countVisible = (elements: SceneElement[]) =>
+  visible(elements).live.length;
+
+/**
+ * Live elements of a page bottom to top; a label shows up as its shape's `text`, not on
+ * its own. `keep` filters after the label map is built from every element, so a kept
+ * container still reports its label.
+ */
+export const toSceneDtos = (
+  elements: SceneElement[],
+  keep: (e: SceneElement) => boolean = () => true
+): SceneElementDto[] => {
+  const { byId, live } = visible(elements);
+  const get = (id: string) => byId.get(id);
+  return live.filter(keep).map((e) => toSceneElementDto(e, get));
 };
