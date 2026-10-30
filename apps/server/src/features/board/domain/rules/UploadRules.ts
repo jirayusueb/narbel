@@ -48,3 +48,7 @@ export const validateUpload = (input: {
   }
   return okEmpty();
 };
+
+export const MAX_INLINE_IMAGE_BYTES = 700 * 1024;
+
+export const MAX_IMAGE_PIXELS = 16_000_000;

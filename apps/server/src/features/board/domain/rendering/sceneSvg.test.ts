@@ -98,6 +98,99 @@ describe("buildSceneSvg", () => {
     expect(build([connector("line")]).svg).not.toContain("<polygon");
   });
 
+  it("draws no arrowhead for an explicit null and the default head when the field is absent", () => {
+    const arrow = (extra: Partial<SceneElement>): SceneElement => ({
+      id: "a1",
+      type: "arrow",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 0,
+      points: [
+        [0, 0],
+        [100, 0],
+      ],
+      version: 1,
+      versionNonce: 1,
+      ...extra,
+    });
+    expect(build([arrow({ endArrowhead: null })]).svg).not.toContain(
+      "<polyline points"
+    );
+    expect(build([arrow({})]).svg).toContain("<polyline points");
+  });
+
+  it("draws an arrow's label at its own box, on the arrow's midpoint", () => {
+    const arrow: SceneElement = {
+      id: "a1",
+      type: "arrow",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 0,
+      points: [
+        [0, 0],
+        [200, 0],
+      ],
+      version: 1,
+      versionNonce: 1,
+    };
+    const label: SceneElement = {
+      id: "t1",
+      type: "text",
+      containerId: "a1",
+      text: "go",
+      textAlign: "center",
+      verticalAlign: "middle",
+      x: 90,
+      y: -12.5,
+      width: 20,
+      height: 25,
+      version: 1,
+      versionNonce: 1,
+    };
+    expect(build([arrow, label]).svg).toContain(
+      '<tspan x="100" y="0">go</tspan>'
+    );
+  });
+
+  it("hides the line behind an arrow's label with a backdrop, and gives a box label none", () => {
+    const arrow: SceneElement = {
+      id: "a1",
+      type: "arrow",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 0,
+      points: [
+        [0, 0],
+        [200, 0],
+      ],
+      version: 1,
+      versionNonce: 1,
+    };
+    const label = (containerId: string): SceneElement => ({
+      id: "t1",
+      type: "text",
+      containerId,
+      text: "go",
+      textAlign: "center",
+      verticalAlign: "middle",
+      x: 90,
+      y: -12.5,
+      width: 20,
+      height: 25,
+      version: 1,
+      versionNonce: 1,
+    });
+    const { svg } = build([arrow, label("a1")]);
+    const backdrop =
+      '<rect x="86" y="-16.5" width="28" height="33" fill="#ffffff"/>';
+    expect(svg).toContain(backdrop);
+    expect(svg.indexOf(backdrop)).toBeLessThan(svg.indexOf("<text "));
+    expect(build([rect(), label("r1")]).svg.match(/<rect/gu)).toHaveLength(2);
+  });
+
   it("rotates around the element center and grows the bounds to fit", () => {
     const scene = build([rect({ angle: Math.PI / 2 })]);
     expect(scene.svg).toContain('transform="rotate(90 200 250)"');

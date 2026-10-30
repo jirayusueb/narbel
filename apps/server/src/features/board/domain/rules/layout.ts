@@ -1,3 +1,32 @@
+import { GAP as BINDING_GAP } from "./bindings";
+import { union } from "./geometry";
+import type { Bounds } from "./geometry";
+
+export const FRAME_PADDING = 40;
+
+export const CLEARANCE = 120;
+
+export const besideContent = (
+  fixed: Bounds[],
+  clearance: number
+): { left: number; top: number } =>
+  fixed.length === 0
+    ? { left: 0, top: 0 }
+    : {
+        left: Math.max(...fixed.map((b) => b.x + b.width)) + clearance,
+        top: Math.min(...fixed.map((b) => b.y)),
+      };
+
+export const wrapFrame = (children: Bounds[]): Bounds => {
+  const inner = union(children);
+  return {
+    x: inner.x - FRAME_PADDING,
+    y: inner.y - FRAME_PADDING,
+    width: inner.width + 2 * FRAME_PADDING,
+    height: inner.height + 2 * FRAME_PADDING,
+  };
+};
+
 export type LayoutDirection = "down" | "right";
 
 export interface LayoutNode {
@@ -9,10 +38,12 @@ export interface LayoutNode {
 export interface LayoutEdge {
   from: string;
   to: string;
+  label?: { width: number; height: number };
 }
 
 const RANK_GAP = 80;
 const NODE_GAP = 40;
+const LABEL_MARGIN = 24;
 
 /** Forward edges per node, dropping the ones that would close a cycle, and a topological order. */
 const acyclic = (nodes: LayoutNode[], edges: LayoutEdge[]) => {
@@ -101,10 +132,22 @@ export const layered = (
     layer.reduce((sum, n) => sum + across(n), 0) +
     NODE_GAP * (layer.length - 1);
   const ranks = layers(nodes, edges);
+  const rankOf = new Map(
+    ranks.flatMap((layer, index) => layer.map((n) => [n.id, index] as const))
+  );
+  const gaps = ranks.map(() => RANK_GAP);
+  for (const { from, to, label } of edges) {
+    const at = rankOf.get(from);
+    if (label && at !== undefined && rankOf.get(to) === at + 1) {
+      const need =
+        (down ? label.height : label.width) + 2 * (LABEL_MARGIN + BINDING_GAP);
+      gaps[at] = Math.max(gaps[at] ?? RANK_GAP, need);
+    }
+  }
   const widest = Math.max(...ranks.map(span));
   const positions = new Map<string, { x: number; y: number }>();
   let main = 0;
-  for (const layer of ranks) {
+  for (const [index, layer] of ranks.entries()) {
     const thickness = Math.max(...layer.map(along));
     let cross = (widest - span(layer)) / 2;
     for (const node of layer) {
@@ -115,7 +158,7 @@ export const layered = (
       );
       cross += across(node) + NODE_GAP;
     }
-    main += thickness + RANK_GAP;
+    main += thickness + (gaps[index] ?? RANK_GAP);
   }
   return positions;
 };

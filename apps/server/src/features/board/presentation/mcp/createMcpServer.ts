@@ -1,8 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { AppError } from "../../../../shared/kernel/errors/AppError";
-import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Actor } from "../../application/BoardAccess";
 import type { CommentDto } from "../../application/dtos/CommentDto";
 import { roundCoord } from "../../application/dtos/SceneDto";
@@ -13,32 +11,34 @@ import {
 } from "../../domain/rendering/sceneSvg";
 import { SHAPE_TYPES } from "../../domain/shapes/ShapeRegistry";
 import type { BoardUseCases } from "../../ioc";
+import { registerCollabTools } from "./collabTools";
 import { MCP_INSTRUCTIONS } from "./instructions";
+import { registerLayoutTools } from "./layoutTools";
+import { registerMediaTools } from "./mediaTools";
+import { style } from "./styleSchema";
+import {
+  boardId,
+  elementId,
+  elementText,
+  pageId,
+  reply,
+  text,
+} from "./toolKit";
 
-const text = (value: unknown) => ({
-  content: [{ type: "text" as const, text: JSON.stringify(value) }],
-});
-
-const reply = <T>(result: Result<T, AppError>) =>
-  result.isOk()
-    ? text(result.value)
-    : {
-        isError: true as const,
-        content: [
-          {
-            type: "text" as const,
-            text: `${result.error.code}: ${result.error.message}`,
-          },
-        ],
-      };
-
-// bounds keep a runaway agent from bloating the shared doc every browser downloads
-const elementText = z.string().max(10_000);
-const elementColor = z.string().max(32);
-
-const elementId = z
-  .string()
-  .regex(/^[\w-]{1,64}$/u, "letters, digits, _ or -, at most 64");
+const ELEMENT_TYPES = [
+  "rectangle",
+  "diamond",
+  "ellipse",
+  "arrow",
+  "line",
+  "freedraw",
+  "text",
+  "image",
+  "frame",
+  "magicframe",
+  "iframe",
+  "embeddable",
+] as const;
 
 const shape = z.object({
   type: z.enum(SHAPE_TYPES),
@@ -55,10 +55,9 @@ const shape = z.object({
   text: elementText
     .optional()
     .describe(
-      "Content of a text element, or the label centered inside a rectangle/ellipse/diamond"
+      "Content of a text element, or the label of a rectangle/ellipse/diamond/arrow (an arrow's label sits on its midpoint). Lines take no text"
     ),
-  strokeColor: elementColor.optional().describe("Defaults to #1e1e1e"),
-  backgroundColor: elementColor.optional().describe("Defaults to transparent"),
+  ...style,
   id: elementId
     .optional()
     .describe(
@@ -72,6 +71,12 @@ const shape = z.object({
   endElementId: elementId
     .optional()
     .describe("arrow/line only: id of the element the head attaches to"),
+  name: z.string().max(200).optional().describe("frame only: its title"),
+  frameId: elementId
+    .optional()
+    .describe(
+      "Put this element in a frame (id of a frame on the page or in this call). Without x/y it is laid out inside the frame. With x/y that lie completely outside a frame that has a size, the element is stored without the frame, since Excalidraw would clip it away"
+    ),
 });
 
 const patch = z
@@ -80,23 +85,19 @@ const patch = z
     y: z.number(),
     width: z.number(),
     height: z.number(),
-    angle: z.number(),
     text: elementText.describe(
-      "Text element content, or a shape's label (empty string removes the label)"
+      "Text element content, or a shape's/arrow's label (empty string removes the label)"
     ),
-    strokeColor: elementColor,
-    backgroundColor: elementColor,
-    opacity: z.number().min(0).max(100),
+    ...style,
+    name: z.string().max(200).describe("frame title"),
+    locked: z
+      .boolean()
+      .describe(
+        "Locked elements refuse every change except {locked:false} and cannot be deleted"
+      ),
   })
   .partial();
 
-const boardId = z
-  .string()
-  .describe("Board id from list_boards or create_board");
-const pageId = z
-  .string()
-  .optional()
-  .describe("Page id from list_pages; defaults to the first page");
 const pageName = z.string().describe("1 to 80 characters");
 
 const roundComment = (c: CommentDto): CommentDto => ({
@@ -107,7 +108,7 @@ const roundComment = (c: CommentDto): CommentDto => ({
 
 export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
   const server = new McpServer(
-    { name: "narbel", version: "0.2.0" },
+    { name: "narbel", version: "0.3.0" },
     { instructions: MCP_INSTRUCTIONS }
   );
   const userId = actor.userId ?? "";
@@ -129,8 +130,26 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "get_board",
     {
       description:
-        "Get a board's title and the (non-deleted) elements of one page as compact JSON, bottom to top (later elements are drawn over earlier ones). A shape's label is its text; strokeColor/backgroundColor are omitted when they are the defaults (#1e1e1e / transparent).",
-      inputSchema: { boardId, pageId },
+        "Get a board's title and the (non-deleted) elements of one page as compact JSON, bottom to top (later elements are drawn over earlier ones). A shape's label is its text. Style fields (strokeColor, backgroundColor, fillStyle, strokeWidth, strokeStyle, roughness, roundness, opacity, angle in radians, fontSize/fontFamily/textAlign of text and labels, start/endArrowhead of arrows) are only listed when they differ from the defaults. Also reported: groupIds, frameId, a frame's name, locked. Filter a big page with within (elements whose drawn area overlaps the box), types and limit: total is the number of elements that matched within and types, before limit, truncated is true when more matched than limit.",
+      inputSchema: {
+        boardId,
+        pageId,
+        within: z
+          .object({
+            x: z.number(),
+            y: z.number(),
+            width: z.number().min(0),
+            height: z.number().min(0),
+          })
+          .optional()
+          .describe("Only elements overlapping this box, in board coordinates"),
+        types: z
+          .array(z.enum(ELEMENT_TYPES))
+          .min(1)
+          .optional()
+          .describe("Only these element types"),
+        limit: z.number().int().min(1).max(1000).optional(),
+      },
     },
     async (input) =>
       reply(
@@ -138,6 +157,9 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
           actor,
           boardId: input.boardId,
           pageId: input.pageId,
+          within: input.within,
+          types: input.types,
+          limit: input.limit,
         })
       )
   );
@@ -286,7 +308,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "add_elements",
     {
       description:
-        "Add shapes to a page; connected browsers see them live. Returns the new element ids. Put a label inside a rectangle/ellipse/diamond with text; the shape grows to fit it unless width/height are given. To connect two shapes, give them ids and add an arrow with startElementId/endElementId: the arrow is drawn edge to edge and stays attached when either shape moves (x/y/width/height on the arrow are then ignored). For a diagram, leave out x/y on the shapes: they are laid out as a flowchart along the arrows, to the right of the existing content.",
+        "Add shapes to a page; connected browsers see them live. Returns the new element ids. Put a label inside a rectangle/ellipse/diamond/arrow with text; the shape grows to fit it unless width/height are given. To connect two shapes, give them ids and add an arrow with startElementId/endElementId (and text for a label on its midpoint): the arrow is drawn edge to edge and stays attached when either shape moves (x/y/width/height on the arrow are then ignored). Style fields (strokeColor, backgroundColor, fillStyle, strokeWidth, strokeStyle, roughness, roundness, opacity, angle in radians) apply to every type; fontSize, fontFamily, textAlign are for text and labels only, startArrowhead/endArrowhead for arrows only, and a field that does not apply to its element is an error. A frame (type frame, with name) either gets all of x/y/width/height or none, and then wraps the elements that name it in frameId. For a diagram, leave out x/y on the shapes: they are laid out as a flowchart along the arrows, to the right of the existing content. get_board_image ignores fillStyle, roughness and fontFamily.",
       inputSchema: {
         boardId,
         pageId,
@@ -312,7 +334,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "update_element",
     {
       description:
-        "Change properties of one element (position, size, text, colors). Moving a shape re-routes the arrows attached to it. For an arrow/line, startElementId/endElementId reattach that end to another element, null detaches it.",
+        "Change properties of one element (position, size, text, style, locked). Text fields (fontSize, fontFamily, textAlign) apply to a text element or to a shape's/arrow's label and refit it; startArrowhead/endArrowhead apply to arrows only; angle is radians; style fields that do not apply to the element are ignored. Moving a shape re-routes the arrows attached to it and their labels follow. Moving a frame moves its children with it; moving a child completely outside its frame takes it out of the frame. A locked element accepts only {locked:false}. For an arrow/line, startElementId/endElementId reattach that end to another element, null detaches it.",
       inputSchema: {
         boardId,
         id: z.string(),
@@ -338,7 +360,8 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
   server.registerTool(
     "delete_elements",
     {
-      description: "Delete elements by id.",
+      description:
+        "Delete elements by id. A deleted arrow takes its label along; a deleted frame releases its children. Locked elements are not deleted and are listed in locked.",
       inputSchema: { boardId, ids: z.array(z.string()).min(1).max(500) },
     },
     async (input) =>
@@ -441,7 +464,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "edit_selection",
     {
       description:
-        "Apply a patch (position, size, text, colors) to every element in the current selection. Selection follows the newest client selection, see get_selection.",
+        "Apply a patch (position, size, text, style) to every element in the current selection; fields that do not apply to an element (e.g. endArrowhead on a rectangle) are skipped for it, and locked elements are skipped and listed in locked. Selection follows the newest client selection, see get_selection.",
       inputSchema: { boardId, patch },
     },
     async (input) =>
@@ -511,5 +534,8 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
         })
       )
   );
+  registerCollabTools(server, uc, actor);
+  registerMediaTools(server, uc, actor);
+  registerLayoutTools(server, uc, actor);
   return server;
 };

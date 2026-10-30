@@ -89,4 +89,40 @@ describe("sceneAccess", () => {
     scene.put("page:main", { ...el("box"), version: 2, index: before });
     expect(key("box")).toBe(before);
   });
+
+  it("puts a new frame child right below its frame, in order, and its label between child and frame", () => {
+    const doc = new Y.Doc();
+    ensurePages(doc, "t");
+    const scene = sceneAccess(doc);
+    scene.put("page:main", { ...el("under"), index: "a1" });
+    scene.put("page:main", { ...el("frame"), type: "frame" });
+    scene.put("page:main", el("top"));
+    scene.put("page:main", { ...el("one"), frameId: "frame" });
+    scene.put("page:main", { ...el("two"), frameId: "frame" });
+    scene.put("page:main", {
+      ...el("label"),
+      type: "text",
+      containerId: "one",
+      frameId: "frame",
+    });
+    const order = scene
+      .all("page:main")
+      .sort((a, b) => (String(a.index) < String(b.index) ? -1 : 1))
+      .map((e) => e.id);
+    expect(order).toEqual(["under", "one", "label", "two", "frame", "top"]);
+  });
+});
+
+describe("ensureFile", () => {
+  it("registers a file once and keeps the existing entry", () => {
+    const doc = new Y.Doc();
+    const scene = sceneAccess(doc);
+    scene.ensureFile({ id: "f1", mimeType: "image/png", created: 1 });
+    scene.ensureFile({ id: "f1", mimeType: "image/jpeg", created: 2 });
+    expect(doc.getMap("files").get("f1")).toEqual({
+      id: "f1",
+      mimeType: "image/png",
+      created: 1,
+    });
+  });
 });

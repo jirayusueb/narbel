@@ -14,8 +14,10 @@ import type { BetterAuthPlugin } from "../auth";
 import { BoardAccessGuard } from "./application/BoardAccess";
 import type { BoardTx } from "./application/ports/BoardTx";
 import { AddBoardElements } from "./application/usecases/AddBoardElements";
+import { AddBoardImage } from "./application/usecases/AddBoardImage";
 import { AddComment } from "./application/usecases/AddComment";
 import { AddPage } from "./application/usecases/AddPage";
+import { ArrangeElements } from "./application/usecases/ArrangeElements";
 import { AssignComment } from "./application/usecases/AssignComment";
 import { ConnectBoardSync } from "./application/usecases/ConnectBoardSync";
 import { CreateBoard } from "./application/usecases/CreateBoard";
@@ -24,11 +26,13 @@ import { DeleteBoardElements } from "./application/usecases/DeleteBoardElements"
 import { DeleteComment } from "./application/usecases/DeleteComment";
 import { DeletePage } from "./application/usecases/DeletePage";
 import { EditComment } from "./application/usecases/EditComment";
+import { ExportBoardScene } from "./application/usecases/ExportBoardScene";
 import { GetBoard } from "./application/usecases/GetBoard";
 import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
 import { GetBoardChanges } from "./application/usecases/GetBoardChanges";
 import { GetBoardFile } from "./application/usecases/GetBoardFile";
 import { GetBoardScene } from "./application/usecases/GetBoardScene";
+import { GroupElements } from "./application/usecases/GroupElements";
 import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
 import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
 import { ListBoards } from "./application/usecases/ListBoards";
@@ -154,8 +158,12 @@ const createUseCases = ({
       new ResvgRasterizer()
     ),
     addBoardElements: new AddBoardElements(guard, hub, ids),
+    addBoardImage: new AddBoardImage(guard, hub, files, storage, ids),
+    exportBoardScene: new ExportBoardScene(guard, hub, files, storage),
     updateBoardElement: new UpdateBoardElement(guard, hub, ids),
     deleteBoardElements: new DeleteBoardElements(guard, hub, ids),
+    groupElements: new GroupElements(guard, hub, ids),
+    arrangeElements: new ArrangeElements(guard, hub, ids),
     listPages: new ListPages(guard, hub),
     addPage: new AddPage(guard, hub, ids),
     renamePage: new RenamePage(guard, hub),

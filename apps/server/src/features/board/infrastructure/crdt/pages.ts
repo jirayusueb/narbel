@@ -34,29 +34,47 @@ const orderKeyOf = (element: SceneElement | undefined) =>
 
 /**
  * Excalidraw's z-order key (fractional `index`) for an element new to the page: a label goes
- * right above its container, anything else on top. Clients would otherwise each invent one
+ * right above its container, a frame's child right below its frame (Excalidraw draws
+ * `[child, child, frame]`), anything else on top. Clients would otherwise each invent one
  * from their own element order and overwrite each other's.
  */
-const newOrderKey = (keys: string[], container: SceneElement | undefined) => {
-  const below = orderKeyOf(container);
+const newOrderKey = (
+  keys: string[],
+  container: SceneElement | undefined,
+  frame: SceneElement | undefined
+) => {
+  const containerKey = orderKeyOf(container);
+  const frameKey = orderKeyOf(frame);
+  if (containerKey === undefined && frameKey !== undefined) {
+    let lower: string | null = null;
+    for (const key of keys) {
+      if (key < frameKey && (lower === null || key > lower)) {
+        lower = key;
+      }
+    }
+    return generateKeyBetween(lower, frameKey);
+  }
   let bound: string | null = null;
   for (const key of keys) {
     const higher = bound === null || key > bound;
     const lowerAbove =
-      below !== undefined && key > below && (bound === null || key < bound);
-    if (below === undefined ? higher : lowerAbove) {
+      containerKey !== undefined &&
+      key > containerKey &&
+      (bound === null || key < bound);
+    if (containerKey === undefined ? higher : lowerAbove) {
       bound = key;
     }
   }
   // no container: above the topmost key; label: between its container and the next key up
-  return below === undefined
+  return containerKey === undefined
     ? generateKeyBetween(bound, null)
-    : generateKeyBetween(below, bound);
+    : generateKeyBetween(containerKey, bound);
 };
 
 export const sceneAccess = (doc: Y.Doc): SceneAccess => {
   const pages = doc.getArray<Page>("pages");
   const elements = doc.getMap<SceneElement>("elements");
+  const files = doc.getMap<unknown>("files");
   const pageKeys = (pageId: string) =>
     [...elements.entries()].flatMap(([key, element]) => {
       const order = orderKeyOf(element);
@@ -103,6 +121,11 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
       const element = page && elements.get(elementKey(page.id, id));
       return page && element && { pageId: page.id, element };
     },
+    ensureFile: (file) => {
+      if (!files.has(file.id)) {
+        files.set(file.id, file);
+      }
+    },
     put: (pageId, element) => {
       const key = elementKey(pageId, element.id);
       const current = elements.get(key);
@@ -110,11 +133,18 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
         typeof element.containerId === "string"
           ? elements.get(elementKey(pageId, element.containerId))
           : undefined;
+      const frame =
+        typeof element.frameId === "string"
+          ? elements.get(elementKey(pageId, element.frameId))
+          : undefined;
       // an update keeps the key it has, so editing never reorders
       const ordered =
         current || orderKeyOf(element) !== undefined
           ? element
-          : { ...element, index: newOrderKey(pageKeys(pageId), container) };
+          : {
+              ...element,
+              index: newOrderKey(pageKeys(pageId), container, frame),
+            };
       if (shouldAcceptIncoming(current, ordered)) {
         elements.set(key, ordered);
       }

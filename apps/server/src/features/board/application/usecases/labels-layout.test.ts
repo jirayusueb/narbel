@@ -119,12 +119,12 @@ describe("shape labels", () => {
     expect(await t.scene()).toEqual([]);
   });
 
-  it("rejects text on arrows and arrows with no position or ends, writing nothing", async () => {
+  it("rejects text on lines and arrows with no position or ends, writing nothing", async () => {
     const t = setup();
     const labelled = await t.add.execute({
       actor: owner,
       boardId: "b1",
-      shapes: [{ type: "arrow", x: 0, y: 0, text: "yes" }],
+      shapes: [{ type: "line", x: 0, y: 0, text: "yes" }],
     });
     const floating = await t.add.execute({
       actor: owner,
@@ -135,6 +135,130 @@ describe("shape labels", () => {
       ],
     });
     expect(labelled.isErr() && floating.isErr()).toBe(true);
+    expect(t.scenes.elements.size).toBe(0);
+  });
+
+  it("sizes a shape and its label by fontSize; the shape itself carries no fontSize", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "a", type: "rectangle", x: 0, y: 0, text: "Hello", fontSize: 28 },
+        { id: "b", type: "rectangle", x: 0, y: 200, text: "Hello" },
+      ],
+    });
+    expect(t.labelOf("a")?.fontSize).toBe(28);
+    expect(Number(t.el("a").width)).toBeGreaterThan(Number(t.el("b").width));
+    expect(t.el("a")).not.toHaveProperty("fontSize");
+    const rows = await t.scene();
+    expect(rows[0]).toMatchObject({ id: "a", text: "Hello", fontSize: 28 });
+    expect(rows[1]).not.toHaveProperty("fontSize");
+  });
+
+  it("rejects a style field that does not apply to the type, naming field and type", async () => {
+    const t = setup();
+    const result = await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [{ type: "rectangle", x: 0, y: 0, endArrowhead: "bar" }],
+    });
+    expect(result.isErr() && result.error.message).toContain("endArrowhead");
+    expect(result.isErr() && result.error.message).toContain("rectangle");
+    expect(t.scenes.elements.size).toBe(0);
+  });
+
+  it("builds an arrow's label on its midpoint after the arrow is attached", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "a", type: "rectangle", x: 0, y: 0, width: 100, height: 100 },
+        { id: "b", type: "rectangle", x: 300, y: 200, width: 100, height: 100 },
+        {
+          id: "ab",
+          type: "arrow",
+          text: "HTTPS",
+          startElementId: "a",
+          endElementId: "b",
+        },
+      ],
+    });
+    const arrow = t.el("ab");
+    const [, tip] = arrow.points as number[][];
+    expect(t.center(t.labelOf("ab") as SceneElement)).toEqual({
+      x: Number(arrow.x) + (tip?.[0] ?? 0) / 2,
+      y: Number(arrow.y) + (tip?.[1] ?? 0) / 2,
+    });
+    expect((await t.scene()).find((e) => e.id === "ab")?.text).toBe("HTTPS");
+  });
+});
+
+describe("frames", () => {
+  it("wraps the children of a frame without geometry, writing the frame before them", async () => {
+    const t = setup();
+    const result = await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        { id: "f", type: "frame", name: "Auth" },
+        { id: "a", type: "rectangle", frameId: "f", text: "Web" },
+        { id: "b", type: "rectangle", frameId: "f", text: "API" },
+        { type: "arrow", startElementId: "a", endElementId: "b", frameId: "f" },
+      ],
+    });
+    expect(result.isOk()).toBe(true);
+    const frame = t.el("f");
+    expect(frame).toMatchObject({ type: "frame", name: "Auth" });
+    for (const id of ["a", "b"]) {
+      const child = t.el(id);
+      expect(Number(child.x)).toBeGreaterThanOrEqual(Number(frame.x));
+      expect(Number(child.y)).toBeGreaterThanOrEqual(Number(frame.y));
+      expect(Number(child.x) + Number(child.width)).toBeLessThanOrEqual(
+        Number(frame.x) + Number(frame.width)
+      );
+      expect(Number(child.y) + Number(child.height)).toBeLessThanOrEqual(
+        Number(frame.y) + Number(frame.height)
+      );
+    }
+    expect((t.labelOf("a") as SceneElement).frameId).toBe("f");
+    expect([...t.scenes.elements.keys()][0]).toBe("page:main:f");
+    const rows = await t.scene();
+    expect(rows.find((e) => e.id === "a")).toMatchObject({ frameId: "f" });
+    expect(rows.find((e) => e.id === "f")).toMatchObject({ name: "Auth" });
+  });
+
+  it("lays loose children out inside a sized frame", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        {
+          id: "f",
+          type: "frame",
+          x: 1000,
+          y: 500,
+          width: 600,
+          height: 400,
+        },
+        { id: "a", type: "rectangle", frameId: "f", width: 100, height: 60 },
+      ],
+    });
+    expect(t.el("a")).toMatchObject({ x: 1040, y: 540, frameId: "f" });
+  });
+
+  it("rejects an unknown frameId, partial frame geometry and an empty unsized frame", async () => {
+    const t = setup();
+    const outcomes = await Promise.all(
+      [
+        [{ type: "rectangle" as const, x: 0, y: 0, frameId: "nope" }],
+        [{ type: "frame" as const, x: 0, y: 0 }],
+        [{ type: "frame" as const }],
+      ].map((shapes) => t.add.execute({ actor: owner, boardId: "b1", shapes }))
+    );
+    expect(outcomes.every((o) => o.isErr())).toBe(true);
     expect(t.scenes.elements.size).toBe(0);
   });
 });
@@ -173,6 +297,32 @@ describe("automatic layout", () => {
       expect(Number(e.y)).toBeGreaterThanOrEqual(50);
     }
     expect(t.center(t.labelOf("b") as SceneElement)).toEqual(t.center(b));
+  });
+
+  it("leaves room for an arrow's label between auto-placed shapes", async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      direction: "right",
+      shapes: [
+        { id: "a", type: "rectangle", text: "A" },
+        { id: "b", type: "rectangle", text: "B" },
+        {
+          id: "ab",
+          type: "arrow",
+          text: "submit the form",
+          startElementId: "a",
+          endElementId: "b",
+        },
+      ],
+    });
+    const arrow = t.el("ab");
+    const [, tip] = arrow.points as number[][];
+    const length = Math.hypot(tip?.[0] ?? 0, tip?.[1] ?? 0);
+    expect(length).toBeGreaterThanOrEqual(
+      Number(t.labelOf("ab")?.width) + 2 * 24
+    );
   });
 
   it("lays out a cycle in finite ranks", async () => {

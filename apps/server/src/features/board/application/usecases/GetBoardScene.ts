@@ -2,6 +2,8 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
+import { elementBounds, overlaps } from "../../domain/rules/geometry";
+import type { Bounds } from "../../domain/rules/geometry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { toSceneDtos } from "../dtos/SceneDto";
 import type { SceneDto } from "../dtos/SceneDto";
@@ -17,6 +19,9 @@ export class GetBoardScene {
     actor: Actor;
     boardId: string;
     pageId?: string;
+    within?: Bounds;
+    types?: string[];
+    limit?: number;
   }): Promise<Result<SceneDto, AppError>> {
     const granted = await this.guard.require(
       input.boardId,
@@ -28,12 +33,23 @@ export class GetBoardScene {
     }
     const scene = await this.scenes.transact(input.boardId, (s) => {
       const page = resolvePage(s.pages(), input.pageId);
-      return (
-        page && {
-          pageId: page.id,
-          elements: toSceneDtos(s.all(page.id)),
-        }
+      if (!page) {
+        return;
+      }
+      const all = s.all(page.id);
+      const matched = toSceneDtos(
+        all,
+        (e) =>
+          (!input.types || input.types.includes(e.type)) &&
+          (!input.within || overlaps(elementBounds(e), input.within))
       );
+      return {
+        pageId: page.id,
+        total: matched.length,
+        truncated: input.limit !== undefined && matched.length > input.limit,
+        elements:
+          input.limit === undefined ? matched : matched.slice(0, input.limit),
+      };
     });
     return scene
       ? ok({ title: granted.value.board.title.value, ...scene })

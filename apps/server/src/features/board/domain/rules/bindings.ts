@@ -4,7 +4,7 @@ import type { SceneElement } from "../entities/SceneElement";
 // target's edge and moves it when the target moves. We approximate the snap with the target's
 // bounding box, which is what a fresh arrow looks like anyway; the client's editor recomputes
 // the exact elbow/edge geometry the first time either end moves.
-const GAP = 8;
+export const GAP = 8;
 
 export interface ConnectorRefs {
   startElementId?: string;
@@ -242,11 +242,6 @@ export const rerouteAround = (
       return rerouted ?? connector;
     });
 
-/**
- * What else must change when `deleted` goes away: a deleted connector leaves its
- * targets' `boundElements`, a deleted label leaves its container's, and a deleted
- * shape unbinds every connector attached to it and takes its label along.
- */
 export const detachDeleted = (
   deleted: SceneElement,
   lookup: Map<string, SceneElement>
@@ -255,18 +250,25 @@ export const detachDeleted = (
     const element = id === undefined ? undefined : lookup.get(id);
     return element?.isDeleted ? undefined : element;
   };
+  const isChild = (e: SceneElement) =>
+    deleted.type === "frame" && !e.isDeleted && e.frameId === deleted.id;
+  const released = [...lookup.values()].filter(isChild);
   if (isConnector(deleted)) {
     const { startElementId, endElementId } = currentRefs(deleted);
-    return [startElementId, endElementId]
-      .map(live)
-      .filter((t): t is SceneElement => t !== undefined)
-      .map((target) => forgetBound(target, deleted.id));
+    const label = live(labelIdOf(deleted));
+    return [
+      ...[startElementId, endElementId]
+        .map(live)
+        .filter((t): t is SceneElement => t !== undefined)
+        .map((target) => forgetBound(target, deleted.id)),
+      ...(label ? [{ ...label, isDeleted: true }] : []),
+    ];
   }
   if (typeof deleted.containerId === "string") {
     const container = live(deleted.containerId);
     return container ? [forgetBound(container, deleted.id)] : [];
   }
-  return boundEntries(deleted)
+  const unbound = boundEntries(deleted)
     .map((entry) => live(entry.id))
     .filter((bound): bound is SceneElement => bound !== undefined)
     .flatMap((bound): SceneElement[] => {
@@ -289,4 +291,8 @@ export const detachDeleted = (
         ? [{ ...bound, isDeleted: true }]
         : [];
     });
+  const written = new Set(unbound.map((e) => e.id));
+  return [...released.filter((e) => !written.has(e.id)), ...unbound].map((e) =>
+    isChild(e) ? { ...e, frameId: null } : e
+  );
 };
