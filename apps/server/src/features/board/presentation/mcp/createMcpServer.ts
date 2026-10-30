@@ -124,7 +124,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "get_board",
     {
       description:
-        "Get a board's title and the (non-deleted) elements of one page as compact JSON, bottom to top (later elements are drawn over earlier ones). A shape's label is its text. Style fields (strokeColor, backgroundColor, fillStyle, strokeWidth, strokeStyle, roughness, roundness, opacity, angle in radians, fontSize/fontFamily/textAlign of text and labels, start/endArrowhead of arrows) are only listed when they differ from the defaults. Also reported: groupIds, frameId, a frame's name, locked. Filter a big page with within (elements whose drawn area overlaps the box), types and limit: total is the page's element count before filtering, truncated is true when more matched than limit.",
+        "Get a board's title and the (non-deleted) elements of one page as compact JSON, bottom to top (later elements are drawn over earlier ones). A shape's label is its text. Style fields (strokeColor, backgroundColor, fillStyle, strokeWidth, strokeStyle, roughness, roundness, opacity, angle in radians, fontSize/fontFamily/textAlign of text and labels, start/endArrowhead of arrows) are only listed when they differ from the defaults. Also reported: groupIds, frameId, a frame's name, locked. Filter a big page with within (elements whose drawn area overlaps the box), types and limit: total is the number of elements that matched within and types, before limit, truncated is true when more matched than limit.",
       inputSchema: {
         boardId,
         pageId,
@@ -300,7 +300,7 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
     "update_element",
     {
       description:
-        "Change properties of one element (position, size, text, style, locked). Text fields (fontSize, fontFamily, textAlign) apply to a text element or to a shape's/arrow's label and refit it; startArrowhead/endArrowhead apply to arrows only; angle is radians; style fields that do not apply to the element are ignored. Moving a shape re-routes the arrows attached to it and their labels follow. A locked element accepts only {locked:false}. For an arrow/line, startElementId/endElementId reattach that end to another element, null detaches it.",
+        "Change properties of one element (position, size, text, style, locked). Text fields (fontSize, fontFamily, textAlign) apply to a text element or to a shape's/arrow's label and refit it; startArrowhead/endArrowhead apply to arrows only; angle is radians; style fields that do not apply to the element are ignored. Moving a shape re-routes the arrows attached to it and their labels follow. Moving a frame moves its children with it; moving a child completely outside its frame takes it out of the frame. A locked element accepts only {locked:false}. For an arrow/line, startElementId/endElementId reattach that end to another element, null detaches it.",
       inputSchema: {
         boardId,
         id: z.string(),

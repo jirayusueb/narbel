@@ -497,3 +497,79 @@ describe("versions", () => {
     }
   });
 });
+
+describe("frame membership follows geometry", () => {
+  const framed = async () => {
+    const t = setup();
+    await t.add.execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        {
+          id: "f",
+          type: "frame",
+          name: "F",
+          x: 0,
+          y: 0,
+          width: 400,
+          height: 300,
+        },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 50,
+          y: 50,
+          width: 100,
+          height: 100,
+          text: "C",
+          frameId: "f",
+        },
+        { id: "o", type: "rectangle", x: 600, y: 50, width: 100, height: 100 },
+        { id: "co", type: "arrow", startElementId: "c", endElementId: "o" },
+      ],
+    });
+    return t;
+  };
+  const labelId = (t: { bound: (id: string) => string[] }, id: string) =>
+    t.bound(id).find((b) => b.length > 0 && b !== "co") as string;
+
+  it("moves the children with their frame and re-routes arrows bound to them", async () => {
+    const t = await framed();
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "f",
+      patch: { x: 1000, y: 100 },
+    });
+    expect(t.el("c")).toMatchObject({ x: 1050, y: 150, frameId: "f" });
+    const label = t.el(labelId(t, "c"));
+    expect(Number(label.x)).toBeGreaterThan(1000);
+    expect(label.frameId).toBe("f");
+    expect(t.el("o")).toMatchObject({ x: 600, y: 50 });
+    expect(t.ends("co")).toEqual({ start: "c", end: "o" });
+    expect(Number(t.el("co").x)).toBeGreaterThan(1000);
+  });
+
+  it("takes a child out of its frame once it lies completely outside, label included", async () => {
+    const t = await framed();
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "c",
+      patch: { x: 2000 },
+    });
+    expect(t.el("c").frameId).toBeNull();
+    expect(t.el(labelId(t, "c")).frameId).toBeNull();
+  });
+
+  it("keeps a child that still overlaps its frame", async () => {
+    const t = await framed();
+    await t.update.execute({
+      actor: owner,
+      boardId: "b1",
+      id: "c",
+      patch: { x: 380 },
+    });
+    expect(t.el("c").frameId).toBe("f");
+  });
+});

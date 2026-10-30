@@ -219,6 +219,85 @@ describe("AddBoardImage", () => {
     expect(noFrame.isErr() && noFrame.error.code).toBe("ValidationFailed");
   });
 
+  it("places an image without x/y inside its frame, after the children, and grows the frame", async () => {
+    const t = setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      shapes: [
+        {
+          id: "f",
+          type: "frame",
+          name: "F",
+          x: 0,
+          y: 0,
+          width: 300,
+          height: 200,
+        },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 40,
+          y: 40,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+        { id: "far", type: "rectangle", x: 5000, y: 0, width: 10, height: 10 },
+      ],
+    });
+    const before = t.scenes.elements.get("page:main:f")?.version ?? 0;
+    const result = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(200, 100),
+      id: "img",
+      frameId: "f",
+    });
+    expect(result.isOk()).toBe(true);
+    expect(t.scenes.elements.get("page:main:img")).toMatchObject({
+      x: 180,
+      y: 40,
+      frameId: "f",
+    });
+    const frame = t.scenes.elements.get("page:main:f");
+    expect(frame).toMatchObject({ x: 0, y: 0, width: 420, height: 200 });
+    expect(Number(frame?.version)).toBeGreaterThan(Number(before));
+  });
+
+  it("keeps an explicit x/y inside a frame", async () => {
+    const t = setup();
+    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+      actor,
+      boardId: "b1",
+      shapes: [
+        {
+          id: "f",
+          type: "frame",
+          name: "F",
+          x: 0,
+          y: 0,
+          width: 300,
+          height: 200,
+        },
+      ],
+    });
+    await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(20, 10),
+      id: "img",
+      frameId: "f",
+      x: 7,
+      y: 9,
+    });
+    expect(t.scenes.elements.get("page:main:img")).toMatchObject({
+      x: 7,
+      y: 9,
+    });
+    expect(t.scenes.elements.get("page:main:f")?.width).toBe(300);
+  });
+
   it("refuses a reader", async () => {
     const t = setup();
     const result = await t.add.execute({
