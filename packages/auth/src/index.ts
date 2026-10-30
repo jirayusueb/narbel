@@ -46,6 +46,19 @@ export const createAuth = (
       defaultCookieAttributes: env.BETTER_AUTH_URL.startsWith("https:")
         ? { sameSite: "none", secure: true, httpOnly: true }
         : { sameSite: "lax", secure: false, httpOnly: true },
+      // Traefik on the private Docker network appends the client it saw to x-forwarded-for; private
+      // hops are stripped from the right, so the rate limiter keys on the real client, not the
+      // spoofable leftmost entry or one shared bucket.
+      ipAddress: {
+        trustedProxies: [
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+          "127.0.0.0/8",
+          "::1/128",
+          "fc00::/7",
+        ],
+      },
     },
     // oauth-provider issues its own tokens through /oauth2/token; the jwt plugin's /token must stay off
     disabledPaths: ["/token"],
