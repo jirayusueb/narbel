@@ -175,6 +175,9 @@ export const useBoardCollab = ({
     });
   }, [session, userId, userName, username, avatarUrl]);
 
+  const pendingPointer = useRef<PointerUpdate | null>(null);
+  const pointerFrame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(pointerFrame.current), []);
   useEffect(() => {
     if (!(session && api && sceneReady && pageId)) {
       return;
@@ -242,7 +245,19 @@ export const useBoardCollab = ({
     elements.observe(onElements);
 
     const { awareness } = provider;
-    awareness.setLocalStateField("pageId", pageId);
+    const local = awareness.getLocalState();
+    if (local && local.pageId !== pageId) {
+      // the pointer belongs to the page being left; carried over, peers would draw it on this one
+      cancelAnimationFrame(pointerFrame.current);
+      pointerFrame.current = 0;
+      pendingPointer.current = null;
+      awareness.setLocalState({
+        ...local,
+        pageId,
+        pointer: undefined,
+        button: undefined,
+      });
+    }
     const onAwareness = (_: unknown, origin: unknown) => {
       if (origin === "local") {
         return;
@@ -314,9 +329,6 @@ export const useBoardCollab = ({
     [session, sceneReady, canWrite]
   );
 
-  const pendingPointer = useRef<PointerUpdate | null>(null);
-  const pointerFrame = useRef(0);
-  useEffect(() => () => cancelAnimationFrame(pointerFrame.current), []);
   // One awareness write per frame, latest value wins.
   const onPointerUpdate = useCallback(
     (update: PointerUpdate) => {
