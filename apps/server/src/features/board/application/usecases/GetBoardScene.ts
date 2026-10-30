@@ -5,7 +5,7 @@ import { resolvePage } from "../../domain/entities/Page";
 import { elementBounds, overlaps } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { countVisible, toSceneDtos } from "../dtos/SceneDto";
+import { toSceneDtos } from "../dtos/SceneDto";
 import type { SceneDto } from "../dtos/SceneDto";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
@@ -46,7 +46,7 @@ export class GetBoardScene {
       );
       return {
         pageId: page.id,
-        total: countVisible(all),
+        total: matched.length,
         truncated: input.limit !== undefined && matched.length > input.limit,
         elements:
           input.limit === undefined ? matched : matched.slice(0, input.limit),

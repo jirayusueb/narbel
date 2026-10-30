@@ -36,7 +36,7 @@ describe("get_board filters", () => {
   it("reports total and keeps container labels when filtering", async () => {
     const get = await setup();
     const result = await get({ types: ["rectangle"] });
-    expect(result.isOk() && result.value.total).toBe(4);
+    expect(result.isOk() && result.value.total).toBe(1);
     expect(result.isOk() && result.value.truncated).toBe(false);
     expect(result.isOk() && result.value.elements).toMatchObject([
       { id: "a", type: "rectangle", text: "A" },
