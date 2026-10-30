@@ -25,7 +25,11 @@ import {
   pickStyle,
   routeStyle,
 } from "../../domain/shapes/ElementStyle";
-import { buildElement, buildLabel } from "../../domain/shapes/ShapeRegistry";
+import {
+  buildElement,
+  buildLabel,
+  measure,
+} from "../../domain/shapes/ShapeRegistry";
 import type { Shape } from "../../domain/shapes/ShapeRegistry";
 import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { bumped, newIdentity } from "../connectors";
@@ -190,12 +194,20 @@ const arrange = (
   for (const [frameId, members] of groups) {
     const ids = new Set(members.map(({ element }) => element.id));
     const edges = batch.flatMap(
-      ({ shape: { startElementId, endElementId } }) =>
+      ({ shape: { startElementId, endElementId, text, fontSize } }) =>
         startElementId &&
         endElementId &&
         ids.has(startElementId) &&
         ids.has(endElementId)
-          ? [{ from: startElementId, to: endElementId }]
+          ? [
+              {
+                from: startElementId,
+                to: endElementId,
+                label: text
+                  ? measure(text, fontSize ?? STYLE.fontSize.default)
+                  : undefined,
+              },
+            ]
           : []
     );
     const positions = layered(

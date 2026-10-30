@@ -37,10 +37,16 @@ export interface LayoutNode {
 export interface LayoutEdge {
   from: string;
   to: string;
+  /** size of the text sitting on the edge; the rank gap grows to keep the line visible around it */
+  label?: { width: number; height: number };
 }
 
 const RANK_GAP = 80;
 const NODE_GAP = 40;
+// shortcut: only labels on edges between adjacent ranks widen a gap, an edge skipping ranks does not
+// line kept visible on each side of a label; an arrow stops BINDING_GAP short of each shape
+const LABEL_MARGIN = 24;
+const BINDING_GAP = 8;
 
 /** Forward edges per node, dropping the ones that would close a cycle, and a topological order. */
 const acyclic = (nodes: LayoutNode[], edges: LayoutEdge[]) => {
@@ -129,10 +135,22 @@ export const layered = (
     layer.reduce((sum, n) => sum + across(n), 0) +
     NODE_GAP * (layer.length - 1);
   const ranks = layers(nodes, edges);
+  const rankOf = new Map(
+    ranks.flatMap((layer, index) => layer.map((n) => [n.id, index] as const))
+  );
+  const gaps = ranks.map(() => RANK_GAP);
+  for (const { from, to, label } of edges) {
+    const at = rankOf.get(from);
+    if (label && at !== undefined && rankOf.get(to) === at + 1) {
+      const need =
+        (down ? label.height : label.width) + 2 * (LABEL_MARGIN + BINDING_GAP);
+      gaps[at] = Math.max(gaps[at] ?? RANK_GAP, need);
+    }
+  }
   const widest = Math.max(...ranks.map(span));
   const positions = new Map<string, { x: number; y: number }>();
   let main = 0;
-  for (const layer of ranks) {
+  for (const [index, layer] of ranks.entries()) {
     const thickness = Math.max(...layer.map(along));
     let cross = (widest - span(layer)) / 2;
     for (const node of layer) {
@@ -143,7 +161,7 @@ export const layered = (
       );
       cross += across(node) + NODE_GAP;
     }
-    main += thickness + RANK_GAP;
+    main += thickness + (gaps[index] ?? RANK_GAP);
   }
   return positions;
 };
