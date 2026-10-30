@@ -11,6 +11,7 @@ import {
   withLabel,
 } from "../domain/rules/bindings";
 import type { ConnectorRefs } from "../domain/rules/bindings";
+import { elementBounds, num, overlaps } from "../domain/rules/geometry";
 import {
   hasLabelSlot,
   routeStyle,
@@ -217,6 +218,54 @@ const restyled = (
   return measurable && !resized && retyped ? refitText(next) : next;
 };
 
+// Excalidraw drag-out: a child whose moved geometry no longer touches its frame leaves it.
+const released = (
+  child: SceneElement,
+  lookup: Map<string, SceneElement>,
+  moved: boolean
+): SceneElement => {
+  const frame =
+    typeof child.frameId === "string" ? lookup.get(child.frameId) : undefined;
+  const outside =
+    moved &&
+    frame !== undefined &&
+    !frame.isDeleted &&
+    !overlaps(elementBounds(child), elementBounds(frame));
+  return outside ? { ...child, frameId: null } : child;
+};
+
+// an arrow bound to a shape follows it through re-routing instead
+const isFree = (e: SceneElement) => {
+  const { startElementId, endElementId } = currentRefs(e);
+  return startElementId === undefined && endElementId === undefined;
+};
+
+/** Where a frame's children go when it moves: shapes first, so arrows bound to them re-route. */
+const childMoves = (
+  lookup: Map<string, SceneElement>,
+  before: SceneElement,
+  after: SceneElement
+) => {
+  const dx = num(after.x) - num(before.x);
+  const dy = num(after.y) - num(before.y);
+  const children =
+    (dx === 0 && dy === 0) || before.type !== "frame"
+      ? []
+      : [...lookup.values()].filter(
+          (e) =>
+            e.frameId === before.id &&
+            !e.isDeleted &&
+            typeof e.containerId !== "string"
+        );
+  return [
+    ...children.filter((e) => !connectorCapable(e)),
+    ...children.filter((e) => connectorCapable(e) && isFree(e)),
+  ].map((e) => ({
+    id: e.id,
+    fields: { x: num(e.x) + dx, y: num(e.y) + dy },
+  }));
+};
+
 /**
  * Writes `fields` over the element as a new version and keeps connectors and labels
  * consistent. Geometry settles first, labels follow: rebinding a connector updates both
@@ -252,7 +301,8 @@ export const patchElement = (
   const geometryChanged = Object.keys(own).some((key) => GEOMETRY[key]);
   const refit =
     geometryChanged || wantsRebind || LABEL_FOLLOWS.some((key) => key in own);
-  const next = restyled(local, text, own, ids);
+  const grown = restyled(local, text, own, ids);
+  const next = released(grown, lookup, geometryChanged);
   const movesShape = !connectorCapable(local) && geometryChanged;
   lookup.set(next.id, next);
   const [head = next, ...others] = wantsRebind
@@ -274,6 +324,9 @@ export const patchElement = (
     lookup,
     ids
   );
+  labelling.writes = labelling.writes.map((w) =>
+    w.containerId === id ? { ...w, frameId: next.frameId } : w
+  );
   const following = others
     .filter((c) => connectorCapable(c))
     .flatMap((c) => relabel(c, { style: {}, refit: true }, lookup, ids).writes);
@@ -284,6 +337,9 @@ export const patchElement = (
     ...following,
   ]) {
     scene.put(found.pageId, write);
+  }
+  for (const move of childMoves(lookup, local, next)) {
+    patchElement(scene, ids, move.id, move.fields);
   }
   return "ok";
 };

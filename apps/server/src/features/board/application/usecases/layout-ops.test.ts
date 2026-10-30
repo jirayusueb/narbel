@@ -186,3 +186,50 @@ describe("group_elements", () => {
     }
   });
 });
+
+describe("align_elements and frames", () => {
+  it("takes a framed shape out of its frame when it is aligned completely outside", async () => {
+    const s = setupAccess();
+    await new AddBoardElements(s.guard, s.scenes, ids).execute({
+      actor: owner,
+      boardId: "b1",
+      shapes: [
+        {
+          id: "f",
+          type: "frame",
+          name: "F",
+          x: 0,
+          y: 0,
+          width: 400,
+          height: 300,
+        },
+        {
+          id: "c",
+          type: "rectangle",
+          x: 50,
+          y: 50,
+          width: 100,
+          height: 100,
+          frameId: "f",
+        },
+        {
+          id: "far",
+          type: "rectangle",
+          x: 0,
+          y: 2000,
+          width: 100,
+          height: 100,
+        },
+      ],
+    });
+    await new ArrangeElements(s.guard, s.scenes, ids).execute({
+      actor: owner,
+      boardId: "b1",
+      ids: ["c", "far"],
+      how: { kind: "align", edge: "bottom" },
+    });
+    const c = s.scenes.elements.get("page:main:c") as SceneElement;
+    expect(c.y).toBe(2000);
+    expect(c.frameId).toBeNull();
+  });
+});

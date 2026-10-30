@@ -109,9 +109,6 @@ const visible = (elements: SceneElement[]) => {
   return { byId, live };
 };
 
-export const countVisible = (elements: SceneElement[]) =>
-  visible(elements).live.length;
-
 /**
  * Live elements of a page bottom to top; a label shows up as its shape's `text`, not on
  * its own. `keep` filters after the label map is built from every element, so a kept
