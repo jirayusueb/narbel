@@ -1,4 +1,5 @@
 import type { ICache } from "../../../../shared/application/interfaces/ICache";
+import type { BoardText } from "../crdt/boardText";
 import { boardKey, userBoardsKey } from "./CachedBoardRepository";
 import type { IBoardDocumentStore } from "./DrizzleBoardDocumentStore";
 
@@ -13,8 +14,8 @@ export class CachedBoardDocumentStore implements IBoardDocumentStore {
     return this.inner.load(boardId);
   }
 
-  async save(boardId: string, state: Uint8Array) {
-    const ownerId = await this.inner.save(boardId, state);
+  async save(boardId: string, state: Uint8Array, texts: BoardText[]) {
+    const ownerId = await this.inner.save(boardId, state, texts);
     await this.cache.del(
       boardKey(boardId),
       ...(ownerId ? [userBoardsKey(ownerId)] : [])

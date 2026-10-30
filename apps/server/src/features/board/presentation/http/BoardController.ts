@@ -22,6 +22,18 @@ export const createBoardController = (
     .get("/", { auth: true }, async ({ user }) =>
       asWire(await uc.listBoards.execute({ userId: user.id }))
     )
+    .get(
+      "/search",
+      { auth: true, query: t.Object({ q: t.String() }) },
+      async ({ user, query }) =>
+        asWire(
+          await uc.searchBoards.execute({
+            userId: user.id,
+            email: user.email,
+            q: query.q,
+          })
+        )
+    )
     .post("/", { auth: true, body: titleBody }, async ({ user, body, set }) => {
       set.status = 201;
       return asWire(

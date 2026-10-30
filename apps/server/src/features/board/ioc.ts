@@ -41,6 +41,7 @@ import { RenameBoard } from "./application/usecases/RenameBoard";
 import { RenamePage } from "./application/usecases/RenamePage";
 import { ReplyToComment } from "./application/usecases/ReplyToComment";
 import { ResolveComment } from "./application/usecases/ResolveComment";
+import { SearchBoards } from "./application/usecases/SearchBoards";
 import {
   EditSelection,
   GetSelection,
@@ -58,6 +59,7 @@ import { DrizzleBoardCommentRepository } from "./infrastructure/repositories/Dri
 import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/DrizzleBoardDocumentStore";
 import { DrizzleBoardFileRepository } from "./infrastructure/repositories/DrizzleBoardFileRepository";
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
+import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { MemoryAttemptLimiter } from "./infrastructure/services/MemoryAttemptLimiter";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
@@ -134,6 +136,7 @@ const createUseCases = ({
     createBoard: new CreateBoard(boards, ids),
     listBoards: new ListBoards(boards),
     listSharedBoards: new ListSharedBoards(boards),
+    searchBoards: new SearchBoards(new DrizzleBoardSearch(db)),
     getBoard: new GetBoard(guard),
     renameBoard: new RenameBoard(guard, boards),
     deleteBoard: new DeleteBoard(guard, uow, hub, storage),
