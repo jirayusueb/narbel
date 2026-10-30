@@ -30,7 +30,11 @@ export const SignUpForm = ({
     defaultValues: { name: "", email: "", password: "" },
     onSubmit: async ({ value }) => {
       await authClient.signUp.email(value, {
-        onSuccess: () => {
+        onSuccess: (ctx) => {
+          // an OAuth authorize request is waiting: the client follows `url` itself
+          if (ctx.data?.redirect) {
+            return;
+          }
           router.history.push(redirectTo ?? "/dashboard");
           toast.success("Account created");
         },
