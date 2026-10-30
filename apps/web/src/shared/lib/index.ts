@@ -1,3 +1,8 @@
+export {
+  boardCacheName,
+  deleteAllBoardCaches,
+  deleteBoardCache,
+} from "./board-cache";
 export { authClient } from "./auth-client";
 export { colorFromName } from "./identity";
 export { elementKey, isOnPage } from "./page-keys";

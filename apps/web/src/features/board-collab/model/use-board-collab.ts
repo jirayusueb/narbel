@@ -8,13 +8,20 @@ import type {
 } from "@excalidraw/excalidraw/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { IndexeddbPersistence } from "y-indexeddb";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
 import type { UserRef } from "@/entities/user";
 import { api as serverApi } from "@/shared/api";
 import { SYNC_URL } from "@/shared/config";
-import { colorFromName, elementKey, isOnPage } from "@/shared/lib";
+import {
+  boardCacheName,
+  colorFromName,
+  deleteBoardCache,
+  elementKey,
+  isOnPage,
+} from "@/shared/lib";
 
 import {
   deriveCollabStatus,
@@ -67,6 +74,12 @@ export const useBoardCollab = ({
 
   useEffect(() => {
     const doc = new Y.Doc();
+    // Signed-in only: a guest's share-link session must leave nothing on disk. Cached state paints the
+    // scene through the same observers as remote updates, while the status still waits for the server.
+    const cache =
+      userId && !shareToken
+        ? new IndexeddbPersistence(boardCacheName(userId, boardId), doc)
+        : null;
     const provider = new WebsocketProvider(SYNC_URL, boardId, doc, {
       params: shareToken ? { share: shareToken } : {},
     });
@@ -106,6 +119,9 @@ export const useBoardCollab = ({
       }
       noAccess = true;
       provider.disconnect();
+      if (cache) {
+        deleteBoardCache(userId, boardId);
+      }
       refreshStatus();
       // board-page turns the real 403/404 into Unlock / NotFound.
       queryClient.invalidateQueries({ queryKey: ["boards", boardId] });
@@ -158,10 +174,11 @@ export const useBoardCollab = ({
     return () => {
       disposed = true;
       provider.destroy();
+      cache?.destroy();
       doc.destroy();
       setSession(null);
     };
-  }, [boardId, shareToken, queryClient]);
+  }, [boardId, shareToken, userId, queryClient]);
 
   useEffect(() => {
     if (!session) {
