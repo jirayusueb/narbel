@@ -22,6 +22,16 @@ type Stored =
 
 const PENDING_TTL_SECONDS = 60;
 const DONE_TTL_SECONDS = 86_400;
+// ioredis queues commands while disconnected for far longer than a request should wait
+const REDIS_TIMEOUT_MS = 1000;
+
+const timeout = async (): Promise<never> => {
+  await Bun.sleep(REDIS_TIMEOUT_MS);
+  throw new Error("Redis timed out");
+};
+
+const bounded = <T>(operation: Promise<T>): Promise<T> =>
+  Promise.race([operation, timeout()]);
 
 // A Redis outage must not take writes down: every method logs and degrades to "no dedupe".
 export class RedisIdempotencyStore implements IIdempotencyStore {
@@ -30,17 +40,19 @@ export class RedisIdempotencyStore implements IIdempotencyStore {
   async claim(key: string, fingerprint: string): Promise<IdempotencyClaim> {
     try {
       const pending: Stored = { state: "pending", fingerprint };
-      const won = await this.redis.set(
-        key,
-        JSON.stringify(pending),
-        "EX",
-        PENDING_TTL_SECONDS,
-        "NX"
+      const won = await bounded(
+        this.redis.set(
+          key,
+          JSON.stringify(pending),
+          "EX",
+          PENDING_TTL_SECONDS,
+          "NX"
+        )
       );
       if (won === "OK") {
         return { kind: "proceed" };
       }
-      const raw = await this.redis.get(key);
+      const raw = await bounded(this.redis.get(key));
       if (raw === null) {
         // expired between SET and GET: the original attempt is gone, so run again untracked
         return { kind: "untracked" };
@@ -66,7 +78,9 @@ export class RedisIdempotencyStore implements IIdempotencyStore {
   ) {
     const done: Stored = { state: "done", fingerprint, status, body };
     try {
-      await this.redis.set(key, JSON.stringify(done), "EX", DONE_TTL_SECONDS);
+      await bounded(
+        this.redis.set(key, JSON.stringify(done), "EX", DONE_TTL_SECONDS)
+      );
     } catch (error) {
       console.error(`Idempotency complete failed for ${key}`, error);
     }
@@ -74,7 +88,7 @@ export class RedisIdempotencyStore implements IIdempotencyStore {
 
   async release(key: string) {
     try {
-      await this.redis.del(key);
+      await bounded(this.redis.del(key));
     } catch (error) {
       console.error(`Idempotency release failed for ${key}`, error);
     }
