@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  redproof:
+    name: redproof
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: narbel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      # the database-backed tests skip themselves when Postgres is unreachable; CI gives them one
+      DATABASE_URL: postgresql://postgres:password@localhost:5432/narbel
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      # the root db:migrate goes through an interactive turbo task, which needs a terminal
+      - run: bun run db:migrate
+        working-directory: packages/db
+      # routeTree.gen.ts is generated and gitignored; the build creates it and proves the web build
+      - run: bun run build
+        working-directory: apps/web
+        env:
+          VITE_SERVER_URL: http://localhost:3000
+      - run: bunx redproof check
