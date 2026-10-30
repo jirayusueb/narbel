@@ -1,5 +1,6 @@
 import type { Database, DbExecutor } from "@narbel/db";
 import { Elysia } from "elysia";
+import type Redis from "ioredis";
 
 import type { ICache } from "../../shared/application/interfaces/ICache";
 import type { IFileStorage } from "../../shared/application/interfaces/IFileStorage";
@@ -32,6 +33,7 @@ import { GetBoardScene } from "./application/usecases/GetBoardScene";
 import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
 import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
 import { ListBoards } from "./application/usecases/ListBoards";
+import { ListBoardViewers } from "./application/usecases/ListBoardViewers";
 import { ListComments } from "./application/usecases/ListComments";
 import { ListPages } from "./application/usecases/ListPages";
 import { ListReplies } from "./application/usecases/ListReplies";
@@ -64,6 +66,7 @@ import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoa
 import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { MemoryAttemptLimiter } from "./infrastructure/services/MemoryAttemptLimiter";
+import { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence";
 import { ResvgRasterizer } from "./infrastructure/services/ResvgRasterizer";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
 import { createBoardAccessController } from "./presentation/http/BoardAccessController";
@@ -89,6 +92,8 @@ export interface BoardDeps {
   cache: ICache;
   pubsub: IPubSub;
   betterAuth: BetterAuthPlugin;
+  /** shared by every server instance: who has which board open */
+  redis: Redis;
 }
 
 const createUseCases = ({
@@ -99,6 +104,7 @@ const createUseCases = ({
   secret,
   cache,
   pubsub,
+  redis,
 }: Omit<BoardDeps, "betterAuth">) => {
   const boards = new CachedBoardRepository(
     new DrizzleBoardRepository(db),
@@ -135,6 +141,7 @@ const createUseCases = ({
   const hasher = new ScryptPasswordHasher();
   const unlockTokens = new HmacUnlockTokens(secret);
   const guard = new BoardAccessGuard(boards, grants, unlockTokens);
+  const presence = new RedisBoardPresence(redis);
   return {
     createBoard: new CreateBoard(boards, ids),
     listBoards: new ListBoards(boards),
@@ -164,7 +171,8 @@ const createUseCases = ({
     getSelection: new GetSelection(guard, hub),
     selectElements: new SelectElements(guard, hub),
     editSelection: new EditSelection(guard, hub, ids),
-    connectBoardSync: new ConnectBoardSync(guard, hub),
+    connectBoardSync: new ConnectBoardSync(guard, hub, presence),
+    listBoardViewers: new ListBoardViewers(guard, presence),
     getBoardAccess: new GetBoardAccess(guard, grants, webOrigin),
     updateBoardAccess: new UpdateBoardAccess(
       guard,

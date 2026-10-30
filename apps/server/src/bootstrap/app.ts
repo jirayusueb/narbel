@@ -2,6 +2,7 @@ import { cors } from "@elysia/cors";
 import { openapi } from "@elysia/openapi";
 import type { Database } from "@narbel/db";
 import { Elysia } from "elysia";
+import type Redis from "ioredis";
 
 import { createAuthModule, createBetterAuthPlugin } from "../features/auth";
 import { createBoardModule } from "../features/board";
@@ -28,6 +29,7 @@ export interface AppDeps {
   secret: string;
   cache: ICache;
   pubsub: IPubSub;
+  redis: Redis;
 }
 
 export const createApp = ({
@@ -40,6 +42,7 @@ export const createApp = ({
   secret,
   cache,
   pubsub,
+  redis,
 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
   return new Elysia({
@@ -71,6 +74,7 @@ export const createApp = ({
         cache,
         pubsub,
         betterAuth,
+        redis,
       })
     );
 };

@@ -511,5 +511,17 @@ export const createMcpServer = (uc: BoardUseCases, actor: Actor): McpServer => {
         })
       )
   );
+  server.registerTool(
+    "list_viewers",
+    {
+      description:
+        "Who has the board open in a browser right now (signed-in people by name, plus a count of anonymous share-link viewers).",
+      inputSchema: { boardId },
+    },
+    async (input) =>
+      reply(
+        await uc.listBoardViewers.execute({ actor, boardId: input.boardId })
+      )
+  );
   return server;
 };
