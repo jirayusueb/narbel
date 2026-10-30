@@ -1,3 +1,4 @@
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type {
   BinaryFileData,
   BinaryFiles,
@@ -9,6 +10,10 @@ import type * as Y from "yjs";
 
 import { api as http, unwrap } from "@/shared/api";
 import { SERVER_URL } from "@/shared/config";
+import { isOnPage } from "@/shared/lib/page-keys";
+
+import { fileIdsOnPage } from "./page-files";
+import { prepareImage } from "./prepare-image";
 
 interface FileMeta {
   id: string;
@@ -51,23 +56,30 @@ const upload = async (
 ) => {
   const source = await fetch(file.dataURL);
   const blob = await source.blob();
+  const prepared = await prepareImage({
+    blob,
+    mimeType: file.mimeType,
+  });
   const { uploadUrl } = unwrap(
-    await http.api
-      .boards({ id: boardId })
-      .files.presign.post(
-        { fileId: file.id, mimeType: file.mimeType, size: blob.size },
-        { query: { share: shareToken } }
-      )
+    await http.api.boards({ id: boardId }).files.presign.post(
+      {
+        fileId: file.id,
+        mimeType: prepared.mimeType,
+        size: prepared.blob.size,
+      },
+      { query: { share: shareToken } }
+    )
   );
   // The URL is signed for this exact content type and length; S3 gets the bytes directly, no cookies.
   const res = await fetch(uploadUrl, {
     method: "PUT",
-    headers: { "content-type": file.mimeType },
-    body: blob,
+    headers: { "content-type": prepared.mimeType },
+    body: prepared.blob,
   });
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
+  return prepared.mimeType;
 };
 
 export const useBoardMedia = ({
@@ -76,22 +88,30 @@ export const useBoardMedia = ({
   api,
   canWrite,
   shareToken,
+  pageId,
 }: {
   boardId: string;
   doc: Y.Doc | null;
   api: ExcalidrawImperativeAPI | null;
   canWrite: boolean;
   shareToken?: string;
+  pageId: string | null;
 }) => {
   // shortcut: a failed upload/download is not retried until reload; add backoff if flaky storage matters.
   const attempted = useRef(new Set<string>());
 
   useEffect(() => {
-    if (!(doc && api)) {
+    const tried = attempted.current;
+    return () => tried.clear();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies, react-hooks/exhaustive-deps -- a new document or session forgets what was attempted
+  }, [doc, api, boardId, shareToken]);
+
+  useEffect(() => {
+    if (!(doc && api && pageId)) {
       return;
     }
-    const tried = attempted.current;
     const files = doc.getMap<FileMeta>("files");
+    const elements = doc.getMap<ExcalidrawElement>("elements");
 
     const download = async (meta: FileMeta) => {
       attempted.current.add(meta.id);
@@ -112,20 +132,27 @@ export const useBoardMedia = ({
 
     const pull = () => {
       const present = api.getFiles();
-      for (const meta of files.values()) {
-        if (!(present[meta.id] || attempted.current.has(meta.id))) {
+      for (const id of fileIdsOnPage(elements, pageId)) {
+        const meta = files.get(id);
+        if (meta && !(present[id] || attempted.current.has(id))) {
           download(meta);
         }
       }
     };
+    const pullIfOnPage = (event: Y.YMapEvent<ExcalidrawElement>) => {
+      if ([...event.keysChanged].some((key) => isOnPage(pageId, key))) {
+        pull();
+      }
+    };
 
     files.observe(pull);
+    elements.observe(pullIfOnPage);
     pull();
     return () => {
       files.unobserve(pull);
-      tried.clear();
+      elements.unobserve(pullIfOnPage);
     };
-  }, [doc, api, boardId, shareToken]);
+  }, [doc, api, boardId, shareToken, pageId]);
 
   const onFiles = useCallback(
     (scene: BinaryFiles) => {
@@ -135,11 +162,11 @@ export const useBoardMedia = ({
       const files = doc.getMap<FileMeta>("files");
       const syncFile = async (file: BinaryFileData) => {
         try {
-          await upload(boardId, file, shareToken);
+          const mimeType = await upload(boardId, file, shareToken);
           doc.transact(() => {
             files.set(file.id, {
               id: file.id,
-              mimeType: file.mimeType,
+              mimeType,
               created: file.created,
             });
           }, LOCAL_ORIGIN);
