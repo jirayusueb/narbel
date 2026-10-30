@@ -10,6 +10,7 @@ import { DeleteBoardElements } from "./DeleteBoardElements";
 import { ExportBoardScene } from "./ExportBoardScene";
 import { ids, setupAccess } from "./fakes";
 import type { FakeScenes } from "./fakes";
+import { RenderBoardImage } from "./RenderBoardImage";
 import { UpdateBoardElement } from "./UpdateBoardElement";
 
 const actor = { userId: "owner" };
@@ -86,6 +87,9 @@ const setup = () => {
     rows,
     add: new AddBoardImage(base.guard, base.scenes, files, storage, ids),
     exportScene: new ExportBoardScene(base.guard, base.scenes, files, storage),
+    render: new RenderBoardImage(base.guard, base.scenes, files, storage, {
+      rasterize: (svg) => Promise.resolve(new TextEncoder().encode(svg)),
+    }),
   };
 };
 
@@ -509,5 +513,52 @@ describe("ExportBoardScene", () => {
     expect(full.isOk() && full.value.omittedFiles).toEqual([fileId]);
     const plain = await t.exportScene.execute({ actor, boardId: "b1" });
     expect(plain.isOk() && plain.value.omittedFiles).toEqual([]);
+  });
+});
+
+describe("images declared over the pixel limit", () => {
+  const uploadOversized = async () => {
+    const t = setup();
+    const small = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(3, 2),
+      id: "small",
+    });
+    const big = await t.add.execute({
+      actor,
+      boardId: "b1",
+      bytes: png(4, 2),
+      id: "big",
+    });
+    const smallId = small.isOk() ? small.value.fileId : "";
+    const bigId = big.isOk() ? big.value.fileId : "";
+    // the presigned PUT path stores whatever the browser sends
+    t.stored.set(`boards/b1/${bigId}`, {
+      bytes: png(5000, 5000),
+      mimeType: "image/png",
+    });
+    return { t, smallId, bigId };
+  };
+
+  it("get_board_image leaves them out of the picture and lists them", async () => {
+    const { t, bigId } = await uploadOversized();
+    const result = await t.render.execute({ actor, boardId: "b1" });
+    const value = result.isOk() ? result.value : undefined;
+    expect(value?.omittedFiles).toEqual([bigId]);
+    const svg = new TextDecoder().decode(value?.image?.png);
+    expect(svg).toContain("data:image/png;base64,");
+    expect(svg.match(/data:image\/png/gu)).toHaveLength(1);
+  });
+
+  it("export_scene omits them from files", async () => {
+    const { t, smallId, bigId } = await uploadOversized();
+    const result = await t.exportScene.execute({
+      actor,
+      boardId: "b1",
+      includeFiles: true,
+    });
+    expect(result.isOk() && Object.keys(result.value.files)).toEqual([smallId]);
+    expect(result.isOk() && result.value.omittedFiles).toEqual([bigId]);
   });
 });
