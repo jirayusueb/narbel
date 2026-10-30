@@ -80,6 +80,7 @@ const MCP_TOOLS = [
   "list_boards",
   "create_board",
   "get_board",
+  "get_board_image",
   "list_pages",
   "add_page",
   "rename_page",
@@ -90,6 +91,20 @@ const MCP_TOOLS = [
   "get_selection",
   "select",
   "edit_selection",
+  "list_comments",
+  "reply_comment",
+  "list_replies",
+  "add_comment",
+  "resolve_comment",
+  "list_shared_boards",
+  "search_boards",
+  "rename_board",
+  "group_elements",
+  "ungroup_elements",
+  "align_elements",
+  "distribute_elements",
+  "export_scene",
+  "add_image",
 ];
 
 const HERO_WORDS = "One board for your team and its agents.".split(" ");
