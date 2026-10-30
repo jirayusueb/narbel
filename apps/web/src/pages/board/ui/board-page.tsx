@@ -28,6 +28,19 @@ export const BoardPage = ({
     return <BoardSkeleton />;
   }
 
+  // A failed background refetch keeps `data`; only a real 403/404 may replace a board already on screen.
+  const gone =
+    error instanceof ApiError && (error.status === 403 || error.status === 404);
+  if (board && !gone) {
+    return (
+      <BoardCanvas
+        board={board}
+        shareToken={shareToken}
+        focusComment={focusComment}
+      />
+    );
+  }
+
   if (error instanceof ApiError && error.status === 403) {
     return (
       <WithHeader>
@@ -36,24 +49,14 @@ export const BoardPage = ({
     );
   }
 
-  if (error || !board) {
-    return (
-      <WithHeader>
-        <NotFound
-          title="Board not found"
-          description="It may have been deleted, or it belongs to someone else."
-          to="/dashboard"
-          action="Back to boards"
-        />
-      </WithHeader>
-    );
-  }
-
   return (
-    <BoardCanvas
-      board={board}
-      shareToken={shareToken}
-      focusComment={focusComment}
-    />
+    <WithHeader>
+      <NotFound
+        title="Board not found"
+        description="It may have been deleted, or it belongs to someone else."
+        to="/dashboard"
+        action="Back to boards"
+      />
+    </WithHeader>
   );
 };

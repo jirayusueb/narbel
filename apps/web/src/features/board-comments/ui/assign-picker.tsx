@@ -43,7 +43,13 @@ export const AssignPicker = ({
         setQuery("");
       }}
     >
-      <Button variant="secondary" size="xs" aria-label="Assign thread">
+      <Button
+        variant="secondary"
+        size="xs"
+        aria-label={
+          assignee ? `Assigned to ${handle(assignee)}` : "Assign thread"
+        }
+      >
         {assignee ? (
           <UserAvatar size={16} user={assignee} />
         ) : (

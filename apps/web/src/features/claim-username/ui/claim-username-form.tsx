@@ -5,7 +5,7 @@ import {
   InputGroupInput,
 } from "@narbel/ui/components/input-group";
 import { Spinner } from "@narbel/ui/components/spinner";
-import { useNavigate } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { FormEvent } from "react";
 
@@ -26,8 +26,8 @@ const TONE = {
   ok: "text-foreground",
 } as const;
 
-export const ClaimUsernameForm = () => {
-  const navigate = useNavigate();
+export const ClaimUsernameForm = ({ redirectTo }: { redirectTo?: string }) => {
+  const router = useRouter();
   const { data: me } = useMe();
   const [username, setUsername] = useState("");
   const [serverError, setServerError] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export const ClaimUsernameForm = () => {
       return;
     }
     claim.mutate(username, {
-      onSuccess: () => navigate({ to: "/dashboard" }),
+      onSuccess: () => router.history.push(redirectTo ?? "/dashboard"),
       onError: (error) => setServerError(error.message),
     });
   };

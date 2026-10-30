@@ -23,7 +23,7 @@ const THEMES = [
   { id: "dark", label: "Dark", Icon: Moon },
 ] as const;
 
-export const UserMenu = () => {
+export const UserMenu = ({ compact = false }: { compact?: boolean }) => {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
   const { data: me } = useMe();
@@ -67,10 +67,12 @@ export const UserMenu = () => {
       <Button
         variant="secondary"
         aria-label={`Account menu for ${name}`}
-        className="h-10 gap-2.5 rounded-full pr-4 pl-1"
+        className={`h-10 gap-2.5 rounded-full pl-1 ${compact ? "pr-1" : "pr-4"}`}
       >
         <UserAvatar user={user} size={32} />
-        <span className="max-w-32 truncate max-sm:hidden">{name}</span>
+        {compact ? null : (
+          <span className="max-w-32 truncate max-sm:hidden">{name}</span>
+        )}
       </Button>
       <DropdownMenu placement="bottom end" className="min-w-60">
         <DropdownMenuGroup>

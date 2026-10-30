@@ -69,19 +69,32 @@ export const usePresence = ({
     if (!(awareness && api)) {
       return;
     }
+    let frame = 0;
+    let latest: Viewport | null = null;
+    const flush = () => {
+      frame = 0;
+      if (latest) {
+        awareness.setLocalStateField("viewport", latest);
+      }
+    };
+    // One publish per frame, latest viewport wins.
     const publish = (
       scrollX: number,
       scrollY: number,
       zoom: { value: number }
-    ) =>
-      awareness.setLocalStateField("viewport", {
-        scrollX,
-        scrollY,
-        zoom: zoom.value,
-      } satisfies Viewport);
+    ) => {
+      latest = { scrollX, scrollY, zoom: zoom.value } satisfies Viewport;
+      if (!frame) {
+        frame = requestAnimationFrame(flush);
+      }
+    };
     const { scrollX, scrollY, zoom } = api.getAppState();
     publish(scrollX, scrollY, zoom);
-    return api.onScrollChange(publish);
+    const unsubscribe = api.onScrollChange(publish);
+    return () => {
+      cancelAnimationFrame(frame);
+      unsubscribe();
+    };
   }, [awareness, api]);
 
   useEffect(() => {
@@ -116,13 +129,19 @@ export const usePresence = ({
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !e.defaultPrevented) {
         setFollowId(null);
       }
     };
     // Our own scrolling is the signal to stop; programmatic scrolls from follow() fire neither of these.
     const onUserInput = (e: Event) => {
-      if (!(e.target as Element | null)?.closest?.("[data-presence]")) {
+      const target = e.target as Element | null;
+      // Closing the phone drawer (overlay tap, handle drag) is a pointerdown outside the bar.
+      if (
+        !target?.closest?.(
+          "[data-presence], [data-slot=drawer-overlay], [data-slot=drawer-content]"
+        )
+      ) {
         setFollowId(null);
       }
     };

@@ -1,2 +1,2 @@
-export { PresenceBar } from "./ui/presence-bar";
+export { FollowingPill, PresenceBar } from "./ui/presence-bar";
 export { usePresence } from "./model/use-presence";

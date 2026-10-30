@@ -32,7 +32,7 @@ export const ReactionBar = ({
           size="xs"
           aria-pressed={mine}
           aria-label={`${emoji} ${count}${mine ? ", you reacted" : ""}`}
-          isDisabled={react.isPending}
+          isPending={react.isPending}
           className="bg-muted aria-pressed:bg-citrus aria-pressed:text-citrus-foreground h-6 gap-1 rounded-full px-2 tabular-nums"
           onPress={() => toggle(emoji, mine)}
         >

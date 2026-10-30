@@ -5,6 +5,7 @@ import type { Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Bold, Code, Heading2, Italic, Link2, List } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { UserAvatar } from "@/entities/user";
 
@@ -15,7 +16,25 @@ import {
   MentionSuggest,
 } from "../model/mention";
 import type { Mentionable, MentionQuery } from "../model/mention";
+import { placePopover } from "../model/place-popover";
 import { useMention } from "../model/use-mention";
+
+const MENTION_WIDTH = 240;
+// Rows are 38px tall in a 12px padded list; an estimate is enough to decide whether to flip.
+const MENTION_ROW = 38;
+const MENTION_PAD = 10;
+const CARET_HEIGHT = 20;
+
+const mentionSpot = (at: MentionQuery, count: number) => {
+  const { left, top } = placePopover({
+    anchor: { left: at.left - 6, top: at.top + 6 },
+    anchorHeight: CARET_HEIGHT,
+    bounds: { height: window.innerHeight, width: window.innerWidth },
+    gap: 6,
+    size: { height: count * MENTION_ROW + MENTION_PAD, width: MENTION_WIDTH },
+  });
+  return { left, top };
+};
 
 export const MAX_BODY = 2000;
 
@@ -39,6 +58,7 @@ const Tool = ({
     variant={active ? "secondary" : "ghost"}
     size="icon-xs"
     aria-label={label}
+    aria-pressed={active}
     onPress={onPress}
   >
     {children}
@@ -106,45 +126,44 @@ const MentionList = ({
   matches: Mentionable[];
   active: number;
   onPick: (member: Mentionable) => void;
-}) => (
-  <div
-    id={id}
-    // A contenteditable can't own a native <select>; this is the ARIA listbox it points at.
-    // oxlint-disable-next-line prefer-tag-over-role
-    role="listbox"
-    aria-label="Mention a member"
-    className="bg-popover text-popover-foreground shadow-elevated ring-border fixed z-50 flex w-60 flex-col gap-0.5 rounded-lg p-1.5 ring-1"
-    style={{
-      left: Math.min(at.left, window.innerWidth - 252),
-      top: at.top + 6,
-    }}
-  >
-    {matches.map((member, index) => (
-      // The keyboard path is the editor: arrows move the active option, Enter or Tab picks it.
-      // oxlint-disable-next-line click-events-have-key-events
-      <div
-        key={member.userId}
-        id={`${id}-${index}`}
-        // oxlint-disable-next-line prefer-tag-over-role
-        role="option"
-        aria-selected={index === active}
-        tabIndex={-1}
-        // Keep editor focus: picking must not blur the selection the range depends on.
-        onPointerDown={(e) => e.preventDefault()}
-        onClick={() => onPick(member)}
-        className="aria-selected:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px]"
-      >
-        <UserAvatar size={24} user={{ id: member.userId, ...member }} />
-        <span className="min-w-0 flex-1 truncate font-medium">
-          {member.name}
-        </span>
-        <span className="text-muted-foreground truncate">
-          @{member.username}
-        </span>
-      </div>
-    ))}
-  </div>
-);
+}) =>
+  createPortal(
+    <div
+      id={id}
+      // A contenteditable can't own a native <select>; this is the ARIA listbox it points at.
+      // oxlint-disable-next-line prefer-tag-over-role
+      role="listbox"
+      aria-label="Mention a member"
+      className="bg-popover text-popover-foreground shadow-elevated ring-border fixed z-50 flex w-60 flex-col gap-0.5 rounded-lg p-1.5 ring-1"
+      style={mentionSpot(at, matches.length)}
+    >
+      {matches.map((member, index) => (
+        // The keyboard path is the editor: arrows move the active option, Enter or Tab picks it.
+        // oxlint-disable-next-line click-events-have-key-events
+        <div
+          key={member.userId}
+          id={`${id}-${index}`}
+          // oxlint-disable-next-line prefer-tag-over-role
+          role="option"
+          aria-selected={index === active}
+          tabIndex={-1}
+          // Keep editor focus: picking must not blur the selection the range depends on.
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => onPick(member)}
+          className="aria-selected:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px]"
+        >
+          <UserAvatar size={24} user={{ id: member.userId, ...member }} />
+          <span className="min-w-0 flex-1 truncate font-medium">
+            {member.name}
+          </span>
+          <span className="text-muted-foreground truncate">
+            @{member.username}
+          </span>
+        </div>
+      ))}
+    </div>,
+    document.body
+  );
 
 export const CommentComposer = ({
   disabled,
@@ -174,6 +193,7 @@ export const CommentComposer = ({
     cancel?: () => void;
   } | null>(null);
   const listId = useId();
+  const root = useRef<HTMLDivElement>(null);
   const [linkDraft, setLinkDraft] = useState<string | null>(null);
   const { mention, onQuery, matches, active, move, dismiss } =
     useMention(members);
@@ -203,7 +223,14 @@ export const CommentComposer = ({
         }
         if (event.key === "Escape" && live.current?.cancel) {
           event.preventDefault();
-          live.current.cancel();
+          // Typed text is never discarded by Escape; hand focus to Cancel instead.
+          if (view.state.doc.textContent.trim()) {
+            root.current
+              ?.querySelector<HTMLElement>("[data-composer-cancel]")
+              ?.focus();
+          } else {
+            live.current.cancel();
+          }
           return true;
         }
         const inBlock = ["listItem", "codeBlock"].some(
@@ -298,7 +325,7 @@ export const CommentComposer = ({
     setLinkDraft(null);
   };
   return (
-    <div className="flex flex-col gap-2">
+    <div ref={root} className="flex flex-col gap-2">
       {compact ? null : (
         <Toolbar
           editor={editor}
@@ -338,7 +365,7 @@ export const CommentComposer = ({
           onPick={pick}
         />
       ) : null}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex min-h-8 items-center justify-between gap-2">
         <span
           className={`text-xs ${length > MAX_BODY ? "text-destructive" : "text-muted-foreground"}`}
         >
@@ -348,17 +375,25 @@ export const CommentComposer = ({
         </span>
         <span className="flex gap-1">
           {onCancel ? (
-            <Button variant="ghost" size="sm" onPress={onCancel}>
+            <Button
+              variant="ghost"
+              size="sm"
+              data-composer-cancel
+              onPress={onCancel}
+            >
               Cancel
             </Button>
           ) : null}
-          <Button
-            size="sm"
-            isDisabled={disabled || length === 0 || length > MAX_BODY}
-            onPress={() => live.current?.submit()}
-          >
-            {submitLabel}
-          </Button>
+          {/* An empty composer shows no send button: the hint already says Enter sends, and a disabled grey slab reads as broken. */}
+          {length === 0 ? null : (
+            <Button
+              size="sm"
+              isDisabled={disabled || length > MAX_BODY}
+              onPress={() => live.current?.submit()}
+            >
+              {submitLabel}
+            </Button>
+          )}
         </span>
       </div>
     </div>

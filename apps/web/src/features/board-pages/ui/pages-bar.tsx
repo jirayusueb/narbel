@@ -1,3 +1,12 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@narbel/ui/components/alert-dialog";
 import { Button } from "@narbel/ui/components/button";
 import {
   Dialog,
@@ -10,7 +19,8 @@ import { Input } from "@narbel/ui/components/input";
 import { Copy, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import { overlay } from "overlay-kit";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { RefObject } from "react";
 
 import type { Page } from "../model/use-pages";
 
@@ -69,6 +79,75 @@ const openRenamePage = (page: Page, onRename: (name: string) => void) =>
     </Dialog>
   ));
 
+// Deleting waits for the dialog to finish closing so its focus restore cannot overwrite ours.
+const openDeletePage = (page: Page, onConfirm: () => void) => {
+  let confirmed = false;
+  return overlay.open(({ isOpen, close, unmount }) => (
+    <AlertDialog
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          close();
+        }
+      }}
+      onExitComplete={() => {
+        unmount();
+        if (confirmed) {
+          onConfirm();
+        }
+      }}
+    >
+      <AlertDialogHeader>
+        <AlertDialogTitle className="font-display text-feature font-normal">
+          Delete “{page.name}”?
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          Every element on this page is removed for everyone on the board. This
+          can’t be undone.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel variant="ghost">Cancel</AlertDialogCancel>
+        <AlertDialogAction
+          slot={null}
+          variant="destructive"
+          onPress={() => {
+            confirmed = true;
+            close();
+          }}
+        >
+          Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialog>
+  ));
+};
+
+// After delete or duplicate the active page changes; focus follows it instead of falling to <body>.
+const useFocusActiveTab = (
+  nav: RefObject<HTMLElement | null>,
+  pageId: string | null,
+  pages: Page[]
+) => {
+  const wanted = useRef(false);
+  useEffect(() => {
+    if (!wanted.current) {
+      return;
+    }
+    const tab = nav.current?.querySelector<HTMLElement>(
+      "[data-page-tab][aria-current=page]"
+    );
+    // The previous page id lingers for a render after delete; wait for the real active tab.
+    if (tab && pages.some((page) => page.id === pageId)) {
+      wanted.current = false;
+      tab.focus();
+    }
+  }, [nav, pageId, pages]);
+  return () => {
+    wanted.current = true;
+  };
+};
+
 interface PagesProps {
   pages: Page[];
   pageId: string | null;
@@ -79,6 +158,10 @@ interface PagesProps {
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
 }
+
+// Visual size stays 28px; on touch an invisible inset grows the hit area to 44px.
+const TOUCH =
+  "relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-2";
 
 const PageActions = ({
   page,
@@ -95,6 +178,7 @@ const PageActions = ({
       variant="ghost"
       size="icon-xs"
       aria-label={`Rename ${page.name}`}
+      className={TOUCH}
       onPress={() => openRenamePage(page, (name) => onRename(page.id, name))}
     >
       <Pencil />
@@ -103,6 +187,7 @@ const PageActions = ({
       variant="ghost"
       size="icon-xs"
       aria-label={`Duplicate ${page.name}`}
+      className={TOUCH}
       onPress={() => onDuplicate(page.id)}
     >
       <Copy />
@@ -112,7 +197,8 @@ const PageActions = ({
         variant="ghost"
         size="icon-xs"
         aria-label={`Delete ${page.name}`}
-        onPress={() => onDelete(page.id)}
+        className={TOUCH}
+        onPress={() => openDeletePage(page, () => onDelete(page.id))}
       >
         <Trash2 />
       </Button>
@@ -127,11 +213,16 @@ export const PagesBar = ({
   readOnly,
   onSelect,
   onAdd,
+  onDelete,
+  onDuplicate,
   ...actions
 }: PagesProps) => {
   const group = useId();
+  const nav = useRef<HTMLElement>(null);
+  const focusActive = useFocusActiveTab(nav, pageId, pages);
   return (
     <nav
+      ref={nav}
       aria-label="Pages"
       className="bg-card flex max-w-[min(560px,calc(100vw-420px))] [scrollbar-width:none] items-center gap-0.5 overflow-x-auto rounded-lg p-1 shadow-[var(--shadow-island)] [&::-webkit-scrollbar]:hidden"
     >
@@ -155,6 +246,7 @@ export const PagesBar = ({
                 variant="ghost"
                 size="sm"
                 className={`relative text-[13px] text-inherit hover:bg-transparent ${active ? "font-medium" : "hover:text-foreground"}`}
+                data-page-tab
                 aria-current={active ? "page" : undefined}
                 onPress={() => onSelect(page.id)}
               >
@@ -170,6 +262,14 @@ export const PagesBar = ({
                   <PageActions
                     page={page}
                     canDelete={pages.length > 1}
+                    onDelete={(id) => {
+                      focusActive();
+                      onDelete(id);
+                    }}
+                    onDuplicate={(id) => {
+                      focusActive();
+                      onDuplicate(id);
+                    }}
                     {...actions}
                   />
                 </motion.span>
@@ -199,44 +299,59 @@ export const PagesList = ({
   readOnly,
   onSelect,
   onAdd,
+  onDelete,
+  onDuplicate,
   ...actions
-}: PagesProps) => (
-  <nav aria-label="Pages" className="flex flex-col gap-1">
-    {pages.map((page) => {
-      const active = page.id === pageId;
-      return (
-        <div
-          key={page.id}
-          className={`flex items-center gap-1 rounded-md pr-1 ${active ? "bg-card shadow-surface" : ""}`}
-        >
-          <Button
-            variant="ghost"
-            className={`h-11 flex-1 justify-start rounded-md px-3 ${active ? "font-medium hover:bg-transparent" : "text-muted-foreground font-normal"}`}
-            aria-current={active ? "page" : undefined}
-            onPress={() => onSelect(page.id)}
+}: PagesProps) => {
+  const nav = useRef<HTMLElement>(null);
+  const focusActive = useFocusActiveTab(nav, pageId, pages);
+  return (
+    <nav ref={nav} aria-label="Pages" className="flex flex-col gap-1">
+      {pages.map((page) => {
+        const active = page.id === pageId;
+        return (
+          <div
+            key={page.id}
+            className={`flex items-center gap-1 rounded-md pr-1 ${active ? "bg-card shadow-surface" : ""}`}
           >
-            <FileText data-icon="inline-start" />
-            <span className="truncate">{page.name}</span>
-          </Button>
-          {active && !readOnly ? (
-            <PageActions
-              page={page}
-              canDelete={pages.length > 1}
-              {...actions}
-            />
-          ) : null}
-        </div>
-      );
-    })}
-    {readOnly ? null : (
-      <Button
-        variant="ghost"
-        className="text-muted-foreground h-11 justify-start rounded-md px-3 font-normal"
-        onPress={onAdd}
-      >
-        <Plus data-icon="inline-start" />
-        Add page
-      </Button>
-    )}
-  </nav>
-);
+            <Button
+              variant="ghost"
+              className={`h-11 flex-1 justify-start rounded-md px-3 ${active ? "font-medium hover:bg-transparent" : "text-muted-foreground font-normal"}`}
+              data-page-tab
+              aria-current={active ? "page" : undefined}
+              onPress={() => onSelect(page.id)}
+            >
+              <FileText data-icon="inline-start" />
+              <span className="truncate">{page.name}</span>
+            </Button>
+            {active && !readOnly ? (
+              <PageActions
+                page={page}
+                canDelete={pages.length > 1}
+                onDelete={(id) => {
+                  focusActive();
+                  onDelete(id);
+                }}
+                onDuplicate={(id) => {
+                  focusActive();
+                  onDuplicate(id);
+                }}
+                {...actions}
+              />
+            ) : null}
+          </div>
+        );
+      })}
+      {readOnly ? null : (
+        <Button
+          variant="ghost"
+          className="text-muted-foreground h-11 justify-start rounded-md px-3 font-normal"
+          onPress={onAdd}
+        >
+          <Plus data-icon="inline-start" />
+          Add page
+        </Button>
+      )}
+    </nav>
+  );
+};

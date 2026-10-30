@@ -8,7 +8,7 @@ import {
 import { Input } from "@narbel/ui/components/input";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -18,10 +18,12 @@ import { Loader } from "@/shared/ui";
 
 export const SignInForm = ({
   onSwitchToSignUp,
+  redirectTo,
 }: {
   onSwitchToSignUp: () => void;
+  redirectTo?: string;
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { isPending } = useSession();
 
   const form = useForm({
@@ -29,7 +31,7 @@ export const SignInForm = ({
     onSubmit: async ({ value }) => {
       await authClient.signIn.email(value, {
         onSuccess: () => {
-          navigate({ to: "/dashboard" });
+          router.history.push(redirectTo ?? "/dashboard");
           toast.success("Signed in");
         },
         onError: (error) => {

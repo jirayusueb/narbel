@@ -41,6 +41,7 @@ export const BoardDrawer = ({
   isOpen,
   onOpenChange,
   board,
+  canWrite,
   status,
   presence,
   pages,
@@ -51,6 +52,7 @@ export const BoardDrawer = ({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   board: Board;
+  canWrite: boolean;
   status: CollabStatus;
   presence: ComponentProps<typeof PresenceBar>;
   pages: ComponentProps<typeof PagesList>;
@@ -71,8 +73,8 @@ export const BoardDrawer = ({
       <SheetHeader className="gap-2 px-5 pt-3 pr-5">
         <SheetTitle className="text-feature truncate">{board.title}</SheetTitle>
         <div className="flex items-center justify-between gap-3">
-          <BoardStatus status={status} canWrite={board.canWrite} />
-          <PresenceBar {...presence} />
+          <BoardStatus status={status} canWrite={canWrite} />
+          <PresenceBar {...presence} pill={false} />
         </div>
       </SheetHeader>
       <SheetBody className="divide-border divide-y px-2 pb-4">
@@ -81,7 +83,7 @@ export const BoardDrawer = ({
         </Section>
         <Section title="Board">
           <div className="flex flex-col gap-0.5">
-            {board.canWrite ? (
+            {canWrite ? (
               <Button
                 variant="ghost"
                 className={ROW}

@@ -44,7 +44,8 @@ export const RootDocument = () => {
             <Toaster position="bottom-center" />
           </MotionConfig>
         </Providers>
-        <TanStackRouterDevtools position="bottom-left" />
+        {/* Every board corner holds canvas chrome (menu, Library, zoom, Help); the toggle would cover the zoom controls. */}
+        {onBoard ? null : <TanStackRouterDevtools position="bottom-left" />}
         <Scripts />
       </body>
     </html>

@@ -79,6 +79,10 @@
       "label": {
         "displayName": "Label",
         "purpose": "Buttons, field labels, tabs."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Timestamps, status labels, composer hints, menu shortcuts."
       }
     },
     "shadows": [

@@ -5,7 +5,7 @@ import { SignInForm } from "@/features/sign-in";
 import { SignUpForm } from "@/features/sign-up";
 import { BrandMark } from "@/shared/ui";
 
-export const LoginPage = () => {
+export const LoginPage = ({ redirectTo }: { redirectTo?: string }) => {
   const [showSignIn, setShowSignIn] = useState(false);
 
   return (
@@ -21,9 +21,15 @@ export const LoginPage = () => {
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             >
               {showSignIn ? (
-                <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />
+                <SignInForm
+                  redirectTo={redirectTo}
+                  onSwitchToSignUp={() => setShowSignIn(false)}
+                />
               ) : (
-                <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
+                <SignUpForm
+                  redirectTo={redirectTo}
+                  onSwitchToSignIn={() => setShowSignIn(true)}
+                />
               )}
             </motion.div>
           </AnimatePresence>

@@ -6,17 +6,25 @@ import type {
   ExcalidrawImperativeAPI,
   SocketId,
 } from "@excalidraw/excalidraw/types";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
 import type { UserRef } from "@/entities/user";
+import { api as serverApi } from "@/shared/api";
 import { SYNC_URL } from "@/shared/config";
 import { colorFromName, elementKey, isOnPage } from "@/shared/lib";
 
+import {
+  deriveCollabStatus,
+  WS_FORBIDDEN_REASON,
+  WS_POLICY_VIOLATION,
+} from "./collab-status";
+import type { CollabStatus } from "./collab-status";
 import { shouldTakeIncoming } from "./merge";
 
-export type CollabStatus = "connecting" | "syncing" | "live" | "offline";
+export type { CollabStatus } from "./collab-status";
 
 interface Session {
   doc: Y.Doc;
@@ -43,6 +51,7 @@ export const useBoardCollab = ({
   canWrite: boolean;
   shareToken?: string;
 }) => {
+  const queryClient = useQueryClient();
   const { id: userId, name: userName, username, avatarUrl } = user;
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -66,23 +75,93 @@ export const useBoardCollab = ({
     // oxlint-disable-next-line react/set-state-in-effect
     setSession({ doc, provider });
 
+    // The server refuses the upgrade with a plain HTTP 403/404, which a browser reports only as a
+    // failed socket; ask the same URL over HTTP to tell "no access" from "server down".
+    let noAccess = false;
+    // One access check per outage: spent once the server actually answers, reset once the provider syncs again.
+    // While the server is unreachable the check keeps retrying, so a refusal after it comes back is still caught.
+    let probed = false;
+    let probing = false;
+    // A destroyed provider still fires close events (and late probes resolve); they must not touch the next one's status.
+    let disposed = false;
     const refreshStatus = () => {
-      if (provider.wsconnected) {
-        setStatus(provider.synced ? "live" : "syncing");
-      } else {
-        setStatus(provider.wsconnecting ? "connecting" : "offline");
+      if (disposed) {
+        return;
+      }
+      if (provider.synced) {
+        probed = false;
+      }
+      setStatus(
+        deriveCollabStatus({
+          wsconnected: provider.wsconnected,
+          synced: provider.synced,
+          wsUnsuccessfulReconnects: provider.wsUnsuccessfulReconnects,
+          noAccess,
+        })
+      );
+    };
+    const denyAccess = () => {
+      if (disposed) {
+        return;
+      }
+      noAccess = true;
+      provider.disconnect();
+      refreshStatus();
+      // board-page turns the real 403/404 into Unlock / NotFound.
+      queryClient.invalidateQueries({ queryKey: ["boards", boardId] });
+    };
+    const probeAccess = async () => {
+      if (probed || probing || noAccess) {
+        return;
+      }
+      probing = true;
+      // The sync route answers 404 to any plain GET, so ask the board endpoint, which resolves access the same way
+      // the upgrade does. A network failure means the server is down: stay offline and keep retrying.
+      const res = await serverApi.api
+        .boards({ id: boardId })
+        .get({ query: { share: shareToken } })
+        .catch(() => null);
+      probing = false;
+      // Eden reports an unreachable server as a synthetic 503 with no response; only a real answer spends the check.
+      if (!res?.response) {
+        return;
+      }
+      probed = true;
+      if (res.status === 403 || res.status === 404) {
+        denyAccess();
+      }
+    };
+    // y-websocket bumps its failure counter right after emitting connection-close.
+    const onClose = (event: CloseEvent | null) => {
+      if (disposed) {
+        return;
+      }
+      if (
+        event?.code === WS_POLICY_VIOLATION &&
+        event.reason === WS_FORBIDDEN_REASON
+      ) {
+        denyAccess();
+        return;
+      }
+      queueMicrotask(refreshStatus);
+      if (!provider.synced) {
+        probeAccess();
       }
     };
     provider.on("status", refreshStatus);
     provider.on("sync", refreshStatus);
+    provider.on("connection-close", onClose);
+    provider.on("connection-error", refreshStatus);
+    provider.on("closed", refreshStatus);
     refreshStatus();
 
     return () => {
+      disposed = true;
       provider.destroy();
       doc.destroy();
       setSession(null);
     };
-  }, [boardId, shareToken]);
+  }, [boardId, shareToken, queryClient]);
 
   useEffect(() => {
     if (!session) {
@@ -164,10 +243,13 @@ export const useBoardCollab = ({
 
     const { awareness } = provider;
     awareness.setLocalStateField("pageId", pageId);
-    const onAwareness = () => {
+    const onAwareness = (_: unknown, origin: unknown) => {
+      if (origin === "local") {
+        return;
+      }
       const collaborators = new Map<SocketId, Collaborator>();
       for (const [clientId, state] of awareness.getStates()) {
-        if (clientId === awareness.clientID) {
+        if (clientId === awareness.clientID || state.pageId !== pageId) {
           continue;
         }
         const id = String(clientId);
@@ -183,7 +265,7 @@ export const useBoardCollab = ({
       api.updateScene({ collaborators });
     };
     awareness.on("change", onAwareness);
-    onAwareness();
+    onAwareness(null, "init");
 
     return () => {
       elements.unobserve(onElements);
@@ -232,10 +314,29 @@ export const useBoardCollab = ({
     [session, sceneReady, canWrite]
   );
 
+  const pendingPointer = useRef<PointerUpdate | null>(null);
+  const pointerFrame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(pointerFrame.current), []);
+  // One awareness write per frame, latest value wins.
   const onPointerUpdate = useCallback(
-    ({ pointer, button }: PointerUpdate) => {
-      session?.provider.awareness.setLocalStateField("pointer", pointer);
-      session?.provider.awareness.setLocalStateField("button", button);
+    (update: PointerUpdate) => {
+      pendingPointer.current = update;
+      if (!session || pointerFrame.current) {
+        return;
+      }
+      pointerFrame.current = requestAnimationFrame(() => {
+        pointerFrame.current = 0;
+        const next = pendingPointer.current;
+        const { awareness } = session.provider;
+        const local = awareness.getLocalState();
+        if (next && local) {
+          awareness.setLocalState({
+            ...local,
+            pointer: next.pointer,
+            button: next.button,
+          });
+        }
+      });
     },
     [session]
   );

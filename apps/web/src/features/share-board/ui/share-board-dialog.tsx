@@ -37,24 +37,28 @@ const VISIBILITY_OPTIONS: {
   value: Visibility;
   label: string;
   hint: string;
+  confirmation: string;
   Icon: LucideIcon;
 }[] = [
   {
     value: "private",
     label: "Private",
     hint: "Only people you invite",
+    confirmation: "Only people you invite can open this board now",
     Icon: Lock,
   },
   {
     value: "link",
     label: "Anyone signed in",
     hint: "Signed-in people with the board’s address can view",
+    confirmation: "Signed-in people with the address can now view this board",
     Icon: Link2,
   },
   {
     value: "password",
     label: "Password",
     hint: "Signed-in people who know the password",
+    confirmation: "The board now asks for its password",
     Icon: KeyRound,
   },
 ];
@@ -82,7 +86,10 @@ const VisibilitySection = ({
   const patch = usePatchAccess(boardId);
   const [password, setPassword] = useState("");
   // The server refuses "password" visibility without a password, so that choice waits for the form.
-  const [choice, setChoice] = useState(access.visibility);
+  // Pressed state always mirrors the saved visibility; this only opens the password form.
+  const [settingPassword, setSettingPassword] = useState(false);
+  const saved = access.visibility;
+  const showPasswordForm = settingPassword || saved === "password";
 
   return (
     <Section title="Who can open this board">
@@ -90,52 +97,55 @@ const VisibilitySection = ({
         aria-label="Visibility"
         className="bg-muted m-0 flex min-w-0 flex-col gap-1 rounded-xl border-0 p-1.5"
       >
-        {VISIBILITY_OPTIONS.map(({ value, label, hint, Icon }) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={choice === value}
-            aria-disabled={patch.isPending}
-            className={`focus-visible:outline-ring flex cursor-pointer items-center gap-3 rounded-lg p-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid aria-disabled:cursor-default aria-disabled:opacity-60 ${
-              choice === value ? "bg-card shadow-surface" : "hover:bg-card/60"
-            }`}
-            onClick={() => {
-              // Explicit press per choice: no save while the user is still moving between options.
-              if (patch.isPending || choice === value) {
-                return;
-              }
-              setChoice(value);
-              if (value === "password" && !access.hasPassword) {
-                return;
-              }
-              patch.mutate(
-                { visibility: value },
-                {
-                  onError: (error) => {
-                    setChoice(access.visibility);
-                    onError(error);
-                  },
-                }
-              );
-            }}
-          >
-            <span
-              className={`flex size-9 shrink-0 items-center justify-center rounded-md ${
-                choice === value
-                  ? "bg-citrus text-citrus-foreground"
-                  : "bg-background text-muted-foreground"
+        {VISIBILITY_OPTIONS.map(
+          ({ value, label, hint, confirmation, Icon }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={saved === value}
+              aria-disabled={patch.isPending}
+              className={`focus-visible:outline-ring flex cursor-pointer items-center gap-3 rounded-lg p-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid aria-disabled:cursor-default aria-disabled:opacity-60 ${
+                saved === value ? "bg-card shadow-surface" : "hover:bg-card/60"
               }`}
+              onClick={() => {
+                // Explicit press per choice: no save while the user is still moving between options.
+                if (patch.isPending || saved === value) {
+                  return;
+                }
+                if (value === "password" && !access.hasPassword) {
+                  setSettingPassword(true);
+                  return;
+                }
+                setSettingPassword(false);
+                patch.mutate(
+                  { visibility: value },
+                  {
+                    onError,
+                    onSuccess: () => toast.success(confirmation),
+                  }
+                );
+              }}
             >
-              <Icon className="size-4" />
-            </span>
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-sm font-medium">{label}</span>
-              <span className="text-muted-foreground text-[13px]">{hint}</span>
-            </span>
-          </button>
-        ))}
+              <span
+                className={`flex size-9 shrink-0 items-center justify-center rounded-md ${
+                  saved === value
+                    ? "bg-citrus text-citrus-foreground"
+                    : "bg-background text-muted-foreground"
+                }`}
+              >
+                <Icon className="size-4" />
+              </span>
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-sm font-medium">{label}</span>
+                <span className="text-muted-foreground text-[13px]">
+                  {hint}
+                </span>
+              </span>
+            </button>
+          )
+        )}
       </fieldset>
-      {choice === "password" ? (
+      {showPasswordForm ? (
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -146,7 +156,8 @@ const VisibilitySection = ({
                 onError,
                 onSuccess: () => {
                   setPassword("");
-                  toast.success("Password saved");
+                  setSettingPassword(false);
+                  toast.success("Password saved. The board now asks for it");
                 },
               }
             );
@@ -156,6 +167,9 @@ const VisibilitySection = ({
             type="password"
             autoComplete="new-password"
             aria-label="Board password"
+            aria-describedby={
+              saved === "password" ? undefined : "password-hint"
+            }
             placeholder={access.hasPassword ? "New password" : "Set a password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -173,6 +187,12 @@ const VisibilitySection = ({
             </Button>
           ) : null}
         </form>
+      ) : null}
+      {showPasswordForm && saved !== "password" ? (
+        <p id="password-hint" className="text-muted-foreground text-[13px]">
+          Set a password to turn this on. Until you save, the board stays{" "}
+          {VISIBILITY_OPTIONS.find((o) => o.value === saved)?.label}.
+        </p>
       ) : null}
     </Section>
   );
@@ -231,7 +251,7 @@ const LinkSection = ({
             readOnly
             aria-label="Share link"
             value={share.url}
-            className="text-foreground min-w-0 flex-1 truncate bg-transparent font-mono text-[13px] outline-hidden"
+            className="text-foreground focus-visible:outline-ring min-w-0 flex-1 truncate rounded-xs bg-transparent font-mono text-[13px] outline-hidden focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
           />
           <Button
             variant="secondary"
@@ -368,8 +388,39 @@ const ShareBoardDialog = ({
   close: () => void;
   unmount: () => void;
 }) => {
-  const { data: access } = useBoardAccess(board.id, isOpen);
+  const {
+    data: access,
+    isError,
+    isFetching,
+    refetch,
+  } = useBoardAccess(board.id, isOpen);
 
+  let body = <Skeleton className="h-40" />;
+  if (access) {
+    body = (
+      <div className="flex max-h-[70vh] flex-col gap-8 overflow-y-auto px-1 py-1">
+        <VisibilitySection boardId={board.id} access={access} />
+        <LinkSection boardId={board.id} access={access} />
+        <InviteSection boardId={board.id} />
+        <MembersSection boardId={board.id} access={access} />
+      </div>
+    );
+  } else if (isError) {
+    body = (
+      <div role="alert" className="flex flex-col items-start gap-3">
+        <p className="text-destructive text-sm">
+          Sharing settings didn’t load. Check your connection and try again.
+        </p>
+        <Button
+          variant="outline"
+          isPending={isFetching}
+          onPress={() => refetch()}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
   return (
     <Dialog
       className="sm:max-w-lg"
@@ -389,16 +440,7 @@ const ShareBoardDialog = ({
           People you share with need a narbel account.
         </DialogDescription>
       </DialogHeader>
-      {access ? (
-        <div className="flex max-h-[70vh] flex-col gap-8 overflow-y-auto px-1 py-1">
-          <VisibilitySection boardId={board.id} access={access} />
-          <LinkSection boardId={board.id} access={access} />
-          <InviteSection boardId={board.id} />
-          <MembersSection boardId={board.id} access={access} />
-        </div>
-      ) : (
-        <Skeleton className="h-40" />
-      )}
+      {body}
     </Dialog>
   );
 };

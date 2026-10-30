@@ -84,6 +84,11 @@ typography:
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "-0.02em"
+  caption:
+    fontFamily: "Inter Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    lineHeight: 1.33
   badge:
     fontFamily: "Inter Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.625rem"
@@ -272,7 +277,7 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 ### Chips
 
-- **Status pill:** 24px tall, full radius, sheet background with a 6px dot (citrus live, subtle ink pulsing while syncing, alert offline).
+- **Status pill:** 24px tall, full radius, sheet background with a 6px dot. Live: citrus dot. Connecting and Syncing: subtle-ink dot, pulsing, with shimmering text. Offline (once the socket has closed and a reconnect is pending) and No access: alert dot with its label. No access means the server refused the socket ("forbidden") or the board endpoint now answers 403/404; reconnecting stops, the canvas turns read-only, and the board page swaps to its Unlock or Not found screen. One polite live region announces Offline, No access and "Back online"; the visible pills stay silent. "View only" is a recess-tone pill, never a bordered one.
 - **Method chip:** citrus, 8px radius, 12px medium text ("POST").
 
 ### Cards / Containers
@@ -297,9 +302,15 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 ### Board Canvas
 
-The board is a full-viewport Excalidraw canvas. A name card (mark, serif title, status) floats beside Excalidraw's menu button; presence, comment toggle, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer; preferences, theme and export live in its main menu. Phones get one bottom drawer instead. Excalidraw's islands are re-tokenised to the same radii, Inter, white surfaces and citrus selection.
+The board is a full-viewport Excalidraw canvas. Excalidraw's own phone/desktop flag is the single source of truth for which chrome shows (a child of `<Excalidraw>` reports it up; a ResizeObserver calls `api.refresh()` only when the phone breakpoint flips, because Excalidraw's own observer updates the flag without re-rendering).
 
-Keyboard: `c` (only while focus is on the board) enters comment mode and focuses the placement surface; arrows move a citrus reticle (Shift for larger steps), Enter places the pin, Escape backs out one step at a time (mention list, composer, mode). Opening the comments panel moves focus into it and closing returns focus to the control that opened it; below `md` the panel is a modal sheet that keeps Tab inside. Excalidraw's menu button is named "Board menu".
+- **Desktop:** a name card (mark, serif title capped at 288px, status) floats beside Excalidraw's menu button; presence, comment toggle, notifications, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer.
+- **Compact desktop:** chosen by measured space, not width. When the name card or the top-right cluster would come within 8px of Excalidraw's centred toolbar (a long account name or a few collaborators can do this as wide as 1440px), the name card and the actions drop to a second row under the toolbar: name card left with a truncating title and a dot-only live status, actions right. Returning needs 32px of room so the layout doesn't flicker. Excalidraw's hint and shape-properties panel move down by one row.
+- **Phones:** one bottom drawer holds pages, board actions, people and preferences. Above the bottom row (Board button, comments, notifications, all 44px) a status pill always shows: dot only while live, dot and label otherwise, plus "View only" for viewers. While following someone, an ink "Following X" pill (44px, tap to stop) sits top-centre under the toolbar, outside the drawer.
+
+Preferences, theme and export live in Excalidraw's main menu. Excalidraw's islands are re-tokenised to the same radii, Inter and white surfaces; its focus ring is the ring colour (ink light, citrus dark) at 2px on every control, and the canvas itself shows an inset 2px ring when it has keyboard focus; its hint and shortcut digits use subtle ink, its selection box and handles are moss in light and a pre-inverted `#455a00` in dark (Excalidraw inverts dark canvases, so it renders as a light lime), its right-click menu uses the app's menu styling, and its built-in collaborator list is hidden because the presence bar already shows people. Deleting a page asks first, naming the page and saying it is removed for everyone. Buttons that are busy or unavailable (`isPending`, `aria-disabled`) dim to 40% like disabled ones but stay focusable.
+
+Keyboard: `c` (only while focus is on the board, never inside the comments panel) enters comment mode and focuses the placement surface; arrows move a citrus reticle (Shift for larger steps), Enter places the pin, Escape backs out one step at a time (mention list, composer, selected thread, mode) and never discards a draft that has text. The placement surface sits between Excalidraw's canvas and its UI layer, so toolbar clicks still reach the toolbar in comment mode. Draft cards and the mention list are kept inside the canvas. Opening the comments panel moves focus into it and closing returns focus to the control that opened it; below `md` the panel is a modal sheet that keeps Tab inside. When a focused control disappears (draft cancelled, edit saved, thread resolved or deleted, page deleted or duplicated) focus moves to its nearest successor, never to the page. Excalidraw's menu button is named "Board menu".
 
 ### Stickers
 

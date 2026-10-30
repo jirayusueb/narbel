@@ -41,6 +41,8 @@ export const useCommentsSheet = (open: boolean, close: () => void) => {
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
     const panel = panelRef.current;
     if (e.key === "Escape" && !e.defaultPrevented && !isEditable(e.target)) {
+      // Claimed here so the board's own Escape (draft, selection, mode) leaves the step to the panel.
+      e.preventDefault();
       close();
     } else if (e.key === "Tab" && covers && panel) {
       wrapTab(panel, e);

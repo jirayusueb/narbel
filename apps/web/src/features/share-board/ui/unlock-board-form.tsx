@@ -2,14 +2,26 @@ import { Button } from "@narbel/ui/components/button";
 import { Input } from "@narbel/ui/components/input";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { Lock } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useRef, useState } from "react";
 
 import { useUnlockBoard } from "@/entities/board";
+import { ApiError } from "@/shared/api";
+
+// The server answers both a wrong password and a lockout with 403; only the message tells them apart.
+const unlockMessage = (error: Error) => {
+  if (error instanceof ApiError && error.status === 403) {
+    return /too many/iu.test(error.message)
+      ? "Too many attempts. Wait a minute, then try again."
+      : "That password is not right. Try again.";
+  }
+  return `${error.message}. Check your connection and try again.`;
+};
 
 export const UnlockBoardForm = ({ boardId }: { boardId: string }) => {
   const [password, setPassword] = useState("");
   const unlock = useUnlockBoard(boardId);
+  const [error, setError] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-1 items-center justify-center px-5 py-10">
@@ -29,19 +41,37 @@ export const UnlockBoardForm = ({ boardId }: { boardId: string }) => {
           className="flex w-full flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
+            setError(null);
             unlock.mutate(password, {
-              onError: (error) => toast.error(error.message),
+              onError: (unlockError) => {
+                setError(unlockMessage(unlockError));
+                input.current?.focus();
+                input.current?.select();
+              },
             });
           }}
         >
           <Input
             type="password"
+            ref={input}
             autoFocus
             aria-label="Board password"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "unlock-error" : undefined}
             className="w-full"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError(null);
+            }}
           />
+          <p
+            id="unlock-error"
+            role="alert"
+            className="text-destructive min-h-0 text-left text-[13px] empty:hidden"
+          >
+            {error}
+          </p>
           <Button
             type="submit"
             className="w-full"
