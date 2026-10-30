@@ -13,7 +13,7 @@ const ids = (min: number) =>
     );
 
 const SKIPS =
-  "Locked elements and connectors bound to shapes are not moved (connectors follow their shapes); they come back in `skipped` with a reason. Grouped elements move one by one. Running it again on an arranged selection moves nothing.";
+  "Locked elements and connectors bound to shapes are not moved (connectors follow their shapes); they come back in `skipped` with a reason. A group moves as one unit (its other members join the selection), and a unit with any locked member is skipped whole. Running it again on an arranged selection moves nothing.";
 
 export const registerLayoutTools: ToolRegistrar = (server, uc, actor) => {
   server.registerTool(
