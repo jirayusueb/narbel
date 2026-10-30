@@ -26,7 +26,12 @@ export class DrizzleProfileRepository implements IProfileRepository {
   /** `apiOrigin` is where `/api/users/:id/avatar` is served; clients on other origins need it absolute. */
   constructor(
     private readonly db: DbExecutor,
-    private readonly apiOrigin: string
+    private readonly apiOrigin: string,
+    /** Renames through Better Auth so Redis-cached sessions pick up the new name. */
+    private readonly renameUser?: (
+      userId: string,
+      name: string
+    ) => Promise<unknown>
   ) {}
 
   private people(where: ReturnType<typeof inArray>): Promise<Person[]> {
@@ -110,7 +115,8 @@ export class DrizzleProfileRepository implements IProfileRepository {
   }
 
   async setName(userId: string, name: string) {
-    await this.db.update(user).set({ name }).where(eq(user.id, userId));
+    await (this.renameUser?.(userId, name) ??
+      this.db.update(user).set({ name }).where(eq(user.id, userId)));
   }
 
   async setAvatarKey(userId: string, key: string | null) {

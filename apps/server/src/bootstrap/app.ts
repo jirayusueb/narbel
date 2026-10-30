@@ -59,7 +59,7 @@ export const createApp = ({
     .use(errorPlugin)
     .get("/", () => "OK")
     .use(createAuthModule({ auth }))
-    .use(createProfileModule({ db, storage, apiOrigin, betterAuth }))
+    .use(createProfileModule({ db, storage, apiOrigin, betterAuth, auth }))
     .use(createNotificationModule({ db, pubsub, betterAuth }))
     .use(
       createBoardModule({
