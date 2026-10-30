@@ -1,8 +1,11 @@
+import { err, ok } from "../../../../shared/kernel/types/Result";
+import type { Result } from "../../../../shared/kernel/types/Result";
 import type { SceneElement } from "../entities/SceneElement";
 import { isLinear, polylineMidpoint } from "../rules/geometry";
 import {
   STYLE,
   defaultsFor,
+  misplacedStyle,
   pickStyle,
   routeStyle,
   toStored,
@@ -20,22 +23,75 @@ export const SHAPE_TYPES = [
 ] as const;
 export type ShapeType = (typeof SHAPE_TYPES)[number];
 
-export interface Shape extends Partial<Style> {
-  type: ShapeType;
+interface BaseShape extends Partial<Style> {
   /** omitted x or y: the caller asks for an automatic layout */
   x?: number;
   y?: number;
   width?: number;
   height?: number;
-  text?: string;
   /** optional client-chosen id, so a later element in the same batch can bind to this one */
   id?: string;
-  /** arrow/line only: element ids (or batch ids) this connector attaches to */
+}
+
+interface Contained extends BaseShape {
+  frameId?: string;
+}
+
+/** element ids (or batch ids) a connector attaches to */
+interface Ends {
   startElementId?: string;
   endElementId?: string;
+}
+
+export interface BoxShape extends Contained {
+  type: "rectangle" | "ellipse" | "diamond";
+  text?: string;
+}
+export interface TextShape extends Contained {
+  type: "text";
+  text?: string;
+}
+export interface ArrowShape extends Contained, Ends {
+  type: "arrow";
+  text?: string;
+}
+export interface LineShape extends Contained, Ends {
+  type: "line";
+}
+export interface FrameShape extends BaseShape {
+  type: "frame";
+  name?: string;
+}
+
+export type Shape = BoxShape | TextShape | ArrowShape | LineShape | FrameShape;
+
+/** The flat shape an agent sends; `parseShape` narrows it into a `Shape`. */
+export interface ShapeInput extends BaseShape, Ends {
+  type: ShapeType;
+  text?: string;
   name?: string;
   frameId?: string;
 }
+
+export interface ShapeRejection {
+  outcome:
+    | "bad-style"
+    | "not-connector"
+    | "nested-frame"
+    | "frame-geometry"
+    | "connector-text"
+    | "connector-position";
+  detail?: string;
+}
+
+export const frameIdOf = (shape: Shape) =>
+  "frameId" in shape ? shape.frameId : undefined;
+
+export const textOf = (shape: Shape) =>
+  "text" in shape ? shape.text : undefined;
+
+export const endsOf = (shape: Shape): Ends =>
+  shape.type === "arrow" || shape.type === "line" ? shape : {};
 
 export interface ElementIdentity {
   id: string;
@@ -113,7 +169,7 @@ const fontSizeOf = (shape: object) =>
     : STYLE.fontSize.default;
 
 // a labelled shape without an explicit size grows to fit its label
-const box = (shape: Shape): Size => {
+const box = (shape: BoxShape): Size => {
   if (!shape.text) {
     return { width: shape.width ?? 100, height: shape.height ?? 100 };
   }
@@ -135,7 +191,7 @@ const box = (shape: Shape): Size => {
   };
 };
 
-const textSize = (shape: Shape): Size => {
+const textSize = (shape: TextShape): Size => {
   const text = measure(shape.text ?? "", fontSizeOf(shape));
   return {
     width: shape.width ?? text.width,
@@ -143,11 +199,7 @@ const textSize = (shape: Shape): Size => {
   };
 };
 
-const linear = (
-  _: Shape,
-  { width, height }: Size,
-  ends: Extras = {}
-): Extras => ({
+const linear = ({ width, height }: Size, ends: Extras = {}): Extras => ({
   points: [
     [0, 0],
     [width, height],
@@ -158,50 +210,144 @@ const linear = (
   ...ends,
 });
 
-interface ShapeSpec {
-  size: (shape: Shape) => Size;
-  extras: (shape: Shape, size: Size) => Extras;
-}
+// lines default to a horizontal 100 unit stroke
+const strokeSize = (shape: ArrowShape | LineShape): Size => ({
+  width: shape.width ?? 100,
+  height: shape.height ?? 0,
+});
 
-const noExtras = (): Extras => ({});
+const layout = (shape: Shape): { size: Size; extras: Extras } => {
+  switch (shape.type) {
+    case "rectangle":
+    case "ellipse":
+    case "diamond": {
+      return { size: box(shape), extras: {} };
+    }
+    case "text": {
+      return {
+        size: textSize(shape),
+        extras: {
+          text: shape.text ?? "",
+          originalText: shape.text ?? "",
+          verticalAlign: "top",
+          containerId: null,
+          lineHeight: LINE_HEIGHT,
+          autoResize: true,
+        },
+      };
+    }
+    case "arrow": {
+      const size = strokeSize(shape);
+      return { size, extras: linear(size) };
+    }
+    case "line": {
+      const size = strokeSize(shape);
+      return {
+        size,
+        extras: linear(size, { startArrowhead: null, endArrowhead: null }),
+      };
+    }
+    case "frame": {
+      return {
+        size: { width: shape.width ?? 0, height: shape.height ?? 0 },
+        extras: { name: shape.name ?? null },
+      };
+    }
+    default: {
+      return shape satisfies never;
+    }
+  }
+};
 
-export const SHAPES: Record<ShapeType, ShapeSpec> = {
-  rectangle: { size: box, extras: noExtras },
-  ellipse: { size: box, extras: noExtras },
-  diamond: { size: box, extras: noExtras },
-  text: {
-    size: textSize,
-    extras: (shape) => ({
-      text: shape.text ?? "",
-      originalText: shape.text ?? "",
-      verticalAlign: "top",
-      containerId: null,
-      lineHeight: LINE_HEIGHT,
-      autoResize: true,
-    }),
-  },
-  // lines default to a horizontal 100 unit stroke
-  arrow: {
-    size: (s) => ({ width: s.width ?? 100, height: s.height ?? 0 }),
-    extras: linear,
-  },
-  line: {
-    size: (s) => ({ width: s.width ?? 100, height: s.height ?? 0 }),
-    extras: (s, size) =>
-      linear(s, size, { startArrowhead: null, endArrowhead: null }),
-  },
-  frame: {
-    size: (s) => ({ width: s.width ?? 0, height: s.height ?? 0 }),
-    extras: (s) => ({ name: s.name ?? null }),
-  },
+const GEOMETRY_KEYS = ["x", "y", "width", "height"] as const;
+const connectorPlaced = (input: ShapeInput) =>
+  (input.x !== undefined && input.y !== undefined) ||
+  (input.startElementId !== undefined && input.endElementId !== undefined);
+
+const styleRejection = (input: ShapeInput): ShapeRejection | undefined => {
+  const misplaced = misplacedStyle(input.type, pickStyle(input));
+  if (!misplaced) {
+    return;
+  }
+  const where =
+    STYLE[misplaced].on === "arrow"
+      ? "arrows only"
+      : "text, rectangle, ellipse, diamond and arrow elements only";
+  return {
+    outcome: "bad-style",
+    detail: `${misplaced} applies to ${where}, not ${input.type}`,
+  };
+};
+
+const geometryGiven = (input: ShapeInput) =>
+  GEOMETRY_KEYS.filter((key) => input[key] !== undefined).length;
+
+/**
+ * Narrows the flat tool input into the one shape its `type` allows.
+ * Fields that do not exist on a type (a frame's text, a box's name) are dropped, as before;
+ * combinations that never worked are rejected.
+ */
+export const parseShape = (
+  input: ShapeInput
+): Result<Shape, ShapeRejection> => {
+  const { startElementId, endElementId, name, text, frameId, ...base } = input;
+  const rejected = styleRejection(input);
+  if (rejected) {
+    return err(rejected);
+  }
+  const hasEnds = startElementId !== undefined || endElementId !== undefined;
+  switch (input.type) {
+    case "rectangle":
+    case "ellipse":
+    case "diamond":
+    case "text": {
+      return hasEnds
+        ? err({ outcome: "not-connector" })
+        : ok({ ...base, type: input.type, text, frameId });
+    }
+    case "frame": {
+      if (hasEnds) {
+        return err({ outcome: "not-connector" });
+      }
+      if (frameId !== undefined) {
+        return err({ outcome: "nested-frame" });
+      }
+      const given = geometryGiven(input);
+      return given === 0 || given === GEOMETRY_KEYS.length
+        ? ok({ ...base, type: "frame", name })
+        : err({ outcome: "frame-geometry" });
+    }
+    case "arrow": {
+      return connectorPlaced(input)
+        ? ok({
+            ...base,
+            type: "arrow",
+            text,
+            startElementId,
+            endElementId,
+            frameId,
+          })
+        : err({ outcome: "connector-position" });
+    }
+    case "line": {
+      if (text !== undefined) {
+        return err({ outcome: "connector-text" });
+      }
+      return connectorPlaced(input)
+        ? ok({ ...base, type: "line", startElementId, endElementId, frameId })
+        : err({ outcome: "connector-position" });
+    }
+    default: {
+      return input.type satisfies never;
+    }
+  }
 };
 
 export const buildElement = (
   shape: Shape,
   identity: ElementIdentity
 ): SceneElement => {
-  const spec = SHAPES[shape.type];
-  const size = spec.size(shape);
+  const { size, extras } = layout(shape);
   const { own } = routeStyle(shape.type, pickStyle(shape));
   return {
     id: identity.id,
@@ -212,7 +358,7 @@ export const buildElement = (
     ...size,
     ...toStored(shape.type, { ...defaultsFor(shape.type), ...own }),
     groupIds: [],
-    frameId: shape.frameId ?? null,
+    frameId: frameIdOf(shape) ?? null,
     seed: identity.seed,
     version: 1,
     versionNonce: identity.versionNonce,
@@ -221,7 +367,7 @@ export const buildElement = (
     updated: identity.updated,
     link: null,
     locked: false,
-    ...spec.extras(shape, size),
+    ...extras,
   };
 };
 
