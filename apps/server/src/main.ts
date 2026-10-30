@@ -8,6 +8,7 @@ import { backfillBoardText } from "./features/board";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
+import { RedisIdempotencyStore } from "./shared/infrastructure/idempotency/RedisIdempotencyStore";
 import { RedisJobLock } from "./shared/infrastructure/lock/RedisJobLock";
 import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
 import {
@@ -51,6 +52,7 @@ const app = createApp({
   cache: new RedisCache(redis),
   pubsub,
   redis,
+  idempotency: new RedisIdempotencyStore(redis),
 }).listen(Number(process.env.PORT ?? 3000), ({ url }) => {
   console.log(`Server is running on ${url}`);
 });

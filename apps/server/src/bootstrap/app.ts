@@ -10,6 +10,7 @@ import { createNotificationModule } from "../features/notification";
 import { createProfileModule } from "../features/profile";
 import type { ICache } from "../shared/application/interfaces/ICache";
 import type { IFileStorage } from "../shared/application/interfaces/IFileStorage";
+import type { IIdempotencyStore } from "../shared/application/interfaces/IIdempotencyStore";
 import type { IPubSub } from "../shared/application/interfaces/IPubSub";
 import { errorPlugin } from "../shared/presentation/plugins/errorPlugin";
 import { originGuard } from "../shared/presentation/plugins/originGuard";
@@ -30,6 +31,7 @@ export interface AppDeps {
   cache: ICache;
   pubsub: IPubSub;
   redis: Redis;
+  idempotency: IIdempotencyStore;
 }
 
 export const createApp = ({
@@ -43,6 +45,7 @@ export const createApp = ({
   cache,
   pubsub,
   redis,
+  idempotency,
 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
   return new Elysia({
@@ -54,12 +57,18 @@ export const createApp = ({
       cors({
         origin: corsOrigin,
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
+        allowedHeaders: [
+          "Content-Type",
+          "Authorization",
+          "x-api-key",
+          "Idempotency-Key",
+        ],
         credentials: true,
       })
     )
     .use(openapi())
     .use(errorPlugin)
+    .state("idempotency", idempotency)
     .get("/", () => "OK")
     .use(createAuthModule({ auth }))
     .use(createProfileModule({ db, storage, apiOrigin, betterAuth, auth }))

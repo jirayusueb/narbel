@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 
+import { idempotencyPlugin } from "../../../../shared/presentation/plugins/idempotencyPlugin";
 import {
   asWire,
   resultPlugin,
@@ -19,6 +20,7 @@ export const createBoardController = (
   new Elysia({ name: "board/http", prefix: "/api/boards" })
     .use(betterAuth)
     .use(resultPlugin)
+    .use(idempotencyPlugin)
     .get("/", { auth: true }, async ({ user }) =>
       asWire(await uc.listBoards.execute({ userId: user.id }))
     )
@@ -34,12 +36,16 @@ export const createBoardController = (
           })
         )
     )
-    .post("/", { auth: true, body: titleBody }, async ({ user, body, set }) => {
-      set.status = 201;
-      return asWire(
-        await uc.createBoard.execute({ userId: user.id, title: body.title })
-      );
-    })
+    .post(
+      "/",
+      { auth: true, idempotent: true, body: titleBody },
+      async ({ user, body, set }) => {
+        set.status = 201;
+        return asWire(
+          await uc.createBoard.execute({ userId: user.id, title: body.title })
+        );
+      }
+    )
     .get(
       "/:id",
       { authOptional: true, params, query: shareQuery },
