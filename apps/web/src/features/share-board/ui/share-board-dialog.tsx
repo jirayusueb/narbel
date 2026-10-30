@@ -7,7 +7,7 @@ import {
 } from "@narbel/ui/components/dialog";
 import { Input } from "@narbel/ui/components/input";
 import { Skeleton } from "@narbel/ui/components/skeleton";
-import { Check, Copy, KeyRound, Link2, Lock, X } from "lucide-react";
+import { Check, Copy, Globe, KeyRound, Lock, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { overlay } from "overlay-kit";
 import { useState } from "react";
@@ -49,10 +49,10 @@ const VISIBILITY_OPTIONS: {
   },
   {
     value: "link",
-    label: "Anyone signed in",
-    hint: "Signed-in people with the board’s address can view",
-    confirmation: "Signed-in people with the address can now view this board",
-    Icon: Link2,
+    label: "Public",
+    hint: "Anyone with the board’s address can view, no account needed",
+    confirmation: "Anyone with the address can now view this board",
+    Icon: Globe,
   },
   {
     value: "password",
