@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
+import { ids, setupAccess } from "../../../../testing";
 import type { ExcalidrawElement } from "../../../drawing/application/dtos/ExcalidrawElement";
 import type { IBoardFileRepository } from "../../../drawing/application/ports/IBoardFileRepository";
 import type {
@@ -11,7 +12,6 @@ import { CopyDrawing } from "../../../drawing/application/usecases/CopyDrawing";
 import { FakeScenes } from "../../../drawing/application/usecases/fakes";
 import { MAX_FILE_BYTES } from "../../../drawing/domain/rules/UploadRules";
 import { DuplicateBoard } from "./DuplicateBoard";
-import { ids, setupAccess } from "./fakes";
 
 const owner = { userId: "owner" };
 const BYTES = Uint8Array.from([1, 2, 3, 4]);

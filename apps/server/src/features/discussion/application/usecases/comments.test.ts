@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import { ids, setupAccess } from "../../../boards/application/usecases/fakes";
+import { FakeComments, ids, setupAccess } from "../../../../testing";
 import { newComment } from "../../domain/entities/Comment";
 import { excerptOf, extractMentions } from "../../domain/rules/mentions";
 import { parseReaction } from "../../domain/values/Reaction";
@@ -10,7 +10,6 @@ import { AddComment } from "./AddComment";
 import { AssignComment } from "./AssignComment";
 import { DeleteComment } from "./DeleteComment";
 import { EditComment } from "./EditComment";
-import { FakeComments } from "./fakes";
 import { ListComments } from "./ListComments";
 import { ListReplies } from "./ListReplies";
 import { ReplyToComment } from "./ReplyToComment";

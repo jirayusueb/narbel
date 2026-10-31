@@ -1,11 +1,20 @@
-import type { Cursor } from "../../../../shared/kernel/types/Cursor";
-import type { Comment } from "../../domain/entities/Comment";
 import type {
   CommentView,
   IBoardCommentRepository,
   ReactionSummary,
   ThreadQuery,
-} from "../ports/ICommentRepository";
+} from "../features/discussion/application/ports/ICommentRepository";
+import type { Comment } from "../features/discussion/domain/entities/Comment";
+import type { Cursor } from "../shared/kernel/types/Cursor";
+
+const activityAt = (c: Comment) =>
+  new Date(
+    Math.max(
+      c.createdAt.getTime(),
+      c.editedAt?.getTime() ?? 0,
+      c.resolvedAt?.getTime() ?? 0
+    )
+  );
 
 /** In-memory comments with the repository's contract: newest threads first, oldest activity first. */
 export class FakeComments implements IBoardCommentRepository {
@@ -115,12 +124,12 @@ export class FakeComments implements IBoardCommentRepository {
     }
     return Promise.resolve(removed);
   }
-  delete = async (boardId: string, id: string) =>
-    (
-      await this.remove(
-        (c) => c.boardId === boardId && (c.id === id || c.parentId === id)
-      )
-    ).map((c) => c.id);
+  delete = async (boardId: string, id: string) => {
+    const removed = await this.remove(
+      (c) => c.boardId === boardId && (c.id === id || c.parentId === id)
+    );
+    return removed.map((c) => c.id);
+  };
   addReaction = (commentId: string, userId: string, emoji: string) => {
     if (
       !this.reactions.some(
@@ -155,16 +164,8 @@ export class FakeComments implements IBoardCommentRepository {
     after: Cursor;
     limit: number;
     viewerId?: string;
-  }) => {
-    const activityAt = (c: Comment) =>
-      new Date(
-        Math.max(
-          c.createdAt.getTime(),
-          c.editedAt?.getTime() ?? 0,
-          c.resolvedAt?.getTime() ?? 0
-        )
-      );
-    return Promise.resolve(
+  }) =>
+    Promise.resolve(
       [...this.rows.values()]
         .filter((c) => c.boardId === q.boardId)
         .map((c) => ({
@@ -184,5 +185,4 @@ export class FakeComments implements IBoardCommentRepository {
         )
         .slice(0, q.limit)
     );
-  };
 }

@@ -1,11 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
-import {
-  newBoard,
-  setupAccess,
-} from "../../../boards/application/usecases/fakes";
+import { FakeComments, newBoard, setupAccess } from "../../../../testing";
 import { CommentActivityFeed } from "../../../discussion/application/CommentActivityFeed";
-import { FakeComments } from "../../../discussion/application/usecases/fakes";
 import type { Comment } from "../../../discussion/domain/entities/Comment";
 import { FakeScenes } from "./fakes";
 import { GetBoardChanges, MAX_COMMENT_CHANGES } from "./GetBoardChanges";
