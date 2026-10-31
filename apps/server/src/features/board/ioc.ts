@@ -158,22 +158,25 @@ const createUseCases = ({
   const ids = new UuidGenerator();
   const uow = new DrizzleUnitOfWork<BoardTx>(
     db,
-    (tx: DbExecutor, afterCommit) => ({
-      boards: new CachedBoardRepository(
-        new DrizzleBoardRepository(tx),
-        transactionalCache(cache, afterCommit)
-      ),
-      grants: new DrizzleBoardAccessRepository(tx),
-      comments: new DrizzleCommentRepository(tx),
-      notifications: new DrizzleNotificationRepository(
-        tx,
-        pubsub,
-        ids,
-        afterCommit
-      ),
-      outbox: new DrizzleOutbox(tx, ids),
-      profiles: new DrizzleProfileRepository(tx, apiOrigin),
-    })
+    (tx: DbExecutor, afterCommit) => {
+      // invites queue an email and access changes publish events; either goes out now, not at the next poll
+      afterCommit(wakeOutbox);
+      return {
+        boards: new CachedBoardRepository(
+          new DrizzleBoardRepository(tx),
+          transactionalCache(cache, afterCommit)
+        ),
+        grants: new DrizzleBoardAccessRepository(tx),
+        notifications: new DrizzleNotificationRepository(
+          tx,
+          pubsub,
+          ids,
+          afterCommit
+        ),
+        outbox: new DrizzleOutbox(tx, ids),
+        profiles: new DrizzleProfileRepository(tx, apiOrigin),
+      };
+    }
   );
   const unlockTokens = new HmacUnlockTokens(secret);
   // comment use cases commit with their own aggregate set: the comment, its outbox events, member and profile reads

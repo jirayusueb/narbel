@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IBoardPresence, Viewer } from "../ports/IBoardPresence";
-import type { IBoardSyncGateway } from "../ports/IBoardSyncGateway";
+import type { IBoardSyncGateway, PeerAccess } from "../ports/IBoardSyncGateway";
 import { ConnectBoardSync, TOUCH_INTERVAL_MS } from "./ConnectBoardSync";
 import { setupAccess } from "./fakes";
 import { ListBoardViewers } from "./ListBoardViewers";
@@ -90,5 +90,36 @@ describe("board presence", () => {
       boardId: "b1",
     });
     expect(denied.isErr() && denied.error.code).toBe("NotFound");
+  });
+});
+
+describe("board sync recheck", () => {
+  it("decides the peer again with the actor it connected as", async () => {
+    const { policy, grants } = setupAccess();
+    const ed = {
+      boardId: "b1",
+      userId: "ed",
+      email: "ed@x.io",
+      name: "Ed",
+      role: "editor" as const,
+    };
+    grants.members.push(ed);
+    let recheck = (): Promise<PeerAccess> => Promise.resolve("none");
+    const capturing: IBoardSyncGateway = {
+      connect: (_board, _peer, _canWrite, decide) => {
+        recheck = decide;
+        return Promise.resolve({ receive: () => {}, close: () => {} });
+      },
+    };
+    await new ConnectBoardSync(policy, capturing, new FakePresence()).execute({
+      actor: { userId: "ed" },
+      boardId: "b1",
+      peer,
+    });
+    expect(await recheck()).toBe("write");
+    grants.members.splice(0, 1, { ...ed, role: "viewer" });
+    expect(await recheck()).toBe("read");
+    grants.members.length = 0;
+    expect(await recheck()).toBe("none");
   });
 });

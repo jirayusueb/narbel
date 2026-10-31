@@ -16,6 +16,7 @@ import { InviteBoardMember } from "./InviteBoardMember";
 import { RemoveBoardMember } from "./RemoveBoardMember";
 import { UnlockBoard } from "./UnlockBoard";
 import { UpdateBoardAccess } from "./UpdateBoardAccess";
+import type { AccessPatch } from "./UpdateBoardAccess";
 
 const TOKEN = "t".repeat(43);
 const future = new Date(Date.now() + 3_600_000);
@@ -339,6 +340,26 @@ describe("access administration", () => {
     });
     expect(off.isOk() && off.value.share).toBeNull();
   });
+
+  it("tells live peers only when protection or the share link changes", async () => {
+    const { update, outbox } = setup();
+    const run = (patch: AccessPatch) =>
+      update.execute({ actor, boardId: "b1", patch });
+    await run({ visibility: "private" });
+    await run({});
+    expect(outbox.events()).toEqual([]);
+    await run({ visibility: "link" });
+    await run({ shareTokenEnabled: true });
+    await run({ shareTokenEnabled: false });
+    await run({ shareTokenEnabled: false });
+    expect(outbox.events()).toEqual(
+      Array.from({ length: 3 }, () => ({
+        type: "event.access-changed",
+        version: 1,
+        boardId: "b1",
+      }))
+    );
+  });
 });
 
 describe("invites", () => {
@@ -367,7 +388,7 @@ describe("invites", () => {
       userId: "ann",
       role: "editor",
     });
-    expect(outbox.messages[0]?.message).toEqual({
+    expect(outbox.emails()[0]?.message).toEqual({
       type: "email.board-invite",
       to: "ann@x.io",
       boardId: "b1",
@@ -380,28 +401,27 @@ describe("invites", () => {
   it("queues the email but notifies nobody when the invitee has no account yet", async () => {
     const { invite, outbox, notifications } = setup();
     await invite.execute({ ...input, email: "new@x.io" });
-    expect(outbox.messages).toHaveLength(1);
+    expect(outbox.emails()).toHaveLength(1);
     expect(notifications.sent).toHaveLength(0);
   });
 
-  it("re-inviting does not queue another email or notify again; removing the member allows a fresh invite", async () => {
-    const { invite, grants, outbox, notifications, policy, uow } = setup();
+  it("re-inviting does not queue another email or notify again; a new role tells live peers", async () => {
+    const { invite, grants, outbox, notifications } = setup();
     grants.findUserIdByEmail = () => Promise.resolve("ann");
     await invite.execute({ ...input, email: "ann@x.io" });
     await invite.execute({ ...input, email: "Ann@x.io", role: "viewer" });
-    expect(outbox.messages).toHaveLength(1);
+    await invite.execute({ ...input, email: "ann@x.io", role: "viewer" });
+    expect(outbox.emails()).toHaveLength(1);
     expect(notifications.kinds("ann")).toEqual(["board.invited"]);
     expect(grants.members).toHaveLength(1);
     expect(grants.members[0]?.role).toBe("viewer");
-    const removed = await new RemoveBoardMember(policy, uow).execute({
-      actor: input.actor,
+    const changed = {
+      type: "event.access-changed",
+      version: 1,
       boardId: "b1",
-      member: "ann@x.io",
-    });
-    expect(removed.isOk()).toBe(true);
-    expect(outbox.messages).toHaveLength(0);
-    await invite.execute({ ...input, email: "ann@x.io" });
-    expect(outbox.messages).toHaveLength(1);
+    };
+    // the first grant and the role change; the same role again changes nothing
+    expect(outbox.events()).toEqual([changed, changed]);
   });
 
   it("rejects bad addresses, self-invites and non-owners without side effects", async () => {
@@ -422,8 +442,8 @@ describe("invites", () => {
     expect(outbox.messages).toHaveLength(0);
   });
 
-  it("removes members by user id or pending email; the owner is protected", async () => {
-    const { grants, policy, uow, comments } = setup();
+  it("removes members by user id or pending email and tells the other contexts; the owner is protected", async () => {
+    const { grants, policy, uow, outbox } = setup();
     grants.members.push(
       {
         boardId: "b1",
@@ -445,7 +465,6 @@ describe("invites", () => {
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "u1" })).isOk()
     ).toBe(true);
-    expect(comments.cleared).toEqual([{ boardId: "b1", userId: "u1" }]);
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "p@x.io" })).isOk()
     ).toBe(true);
@@ -455,6 +474,11 @@ describe("invites", () => {
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "ghost" })).isErr()
     ).toBe(true);
+    const removed = { type: "event.member-removed", version: 1, boardId: "b1" };
+    expect(outbox.events()).toEqual([
+      { ...removed, email: "a@x.io", personId: "u1" },
+      { ...removed, email: "p@x.io", personId: null },
+    ]);
   });
 
   it("GetBoard reports the shared role to an invited viewer", async () => {

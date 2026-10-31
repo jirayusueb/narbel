@@ -1,3 +1,4 @@
+import type { BoardsEvent } from "../../../../shared/application/events/BoardsEvent";
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
@@ -59,9 +60,25 @@ export class UpdateBoardAccess {
       if (board.isErr()) {
         return err(board.error);
       }
-      const share = await this.applyShare(tx, board.value, input.patch, now);
+      const existing = await tx.grants.findShare(board.value.id);
+      const share = await this.applyShare(
+        tx,
+        board.value,
+        existing,
+        input.patch,
+        now
+      );
       if (share.isErr()) {
         return err(share.error);
+      }
+      // both helpers hand back what they were given when nothing changed
+      if (board.value !== granted.value.board || share.value !== existing) {
+        const event: BoardsEvent = {
+          type: "event.access-changed",
+          version: 1,
+          boardId: board.value.id,
+        };
+        await tx.outbox.publish(event);
       }
       const members = await tx.grants.listMembers(board.value.id);
       return ok(toAccessDto(board.value, share.value, members, this.webOrigin));
@@ -102,10 +119,10 @@ export class UpdateBoardAccess {
   private async applyShare(
     tx: BoardTx,
     board: Board,
+    existing: Share | null,
     patch: AccessPatch,
     now: Date
   ): Promise<Result<Share | null, AppError>> {
-    const existing = await tx.grants.findShare(board.id);
     if (!(patch.shareTokenEnabled ?? existing !== null)) {
       if (existing) {
         await tx.grants.deleteShare(board.id);

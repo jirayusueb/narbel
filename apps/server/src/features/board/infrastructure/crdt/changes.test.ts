@@ -54,7 +54,9 @@ class Browser {
   }
 
   async join(hub: YjsBoardHub) {
-    this.session = await hub.connect("b1", this.peer(), true);
+    this.session = await hub.connect("b1", this.peer(), true, () =>
+      Promise.resolve("write" as const)
+    );
     const e = encoding.createEncoder();
     encoding.writeVarUint(e, 0);
     syncProtocol.writeSyncStep1(e, this.doc);

@@ -22,8 +22,3 @@ export interface ICommentActivity {
     viewerId?: string;
   }): Promise<CommentChange[]>;
 }
-
-/** Forgets a removed member as assignee of the board's threads; step 6 turns it into the MemberRemoved event. */
-export interface ICommentAssignees {
-  clearAssignee(boardId: string, userId: string): Promise<void>;
-}

@@ -1,3 +1,4 @@
+import type { BoardsEvent } from "../../../../shared/application/events/BoardsEvent";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
@@ -34,11 +35,15 @@ export class RemoveBoardMember {
       if (!removed) {
         return err(AppError.notFound("Member"));
       }
-      // someone without access cannot own work on the board
-      if (removed.userId) {
-        await tx.comments.clearAssignee(input.boardId, removed.userId);
-      }
-      await tx.outbox.forget(`invite:${input.boardId}:${removed.email}`);
+      // discussion unassigns the person, notification forgets the invite email, live peers are re-decided
+      const event: BoardsEvent = {
+        type: "event.member-removed",
+        version: 1,
+        boardId: input.boardId,
+        email: removed.email,
+        personId: removed.userId,
+      };
+      await tx.outbox.publish(event);
       return okEmpty();
     });
   }

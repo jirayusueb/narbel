@@ -1,3 +1,4 @@
+import type { BoardsEvent } from "../../../../shared/application/events/BoardsEvent";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { requirePerson } from "../../../../shared/application/requirePerson";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
@@ -45,13 +46,22 @@ export class InviteBoardMember {
       }
       const userId = await tx.grants.findUserIdByEmail(email.value);
       const members = await tx.grants.listMembers(input.boardId);
-      const alreadyInvited = members.some((m) => m.email === email.value);
+      const previous = members.find((m) => m.email === email.value);
       await tx.grants.upsertMember(input.boardId, {
         email: email.value,
         userId,
         role: input.role,
       });
-      if (userId && !alreadyInvited) {
+      // a peer already in the room (through the share link, say) gains or loses write at once
+      if (previous?.role !== input.role) {
+        const event: BoardsEvent = {
+          type: "event.access-changed",
+          version: 1,
+          boardId: input.boardId,
+        };
+        await tx.outbox.publish(event);
+      }
+      if (userId && !previous) {
         await tx.notifications.add(userId, {
           kind: "board.invited",
           boardId: input.boardId,

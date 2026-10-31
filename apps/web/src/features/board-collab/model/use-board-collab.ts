@@ -34,8 +34,7 @@ import type { ThrottleLatest } from "@/shared/lib";
 
 import {
   deriveCollabStatus,
-  WS_FORBIDDEN_REASON,
-  WS_POLICY_VIOLATION,
+  isAccessDenial,
   WS_TRASHED_CODE,
 } from "./collab-status";
 import type { CollabStatus } from "./collab-status";
@@ -199,10 +198,8 @@ export const useBoardCollab = ({
       if (disposed) {
         return;
       }
-      if (
-        event?.code === WS_POLICY_VIOLATION &&
-        event.reason === WS_FORBIDDEN_REASON
-      ) {
+      // refused at connect or revoked later: show the same 404 / password UI as opening the board would
+      if (event && isAccessDenial(event)) {
         denyAccess();
         return;
       }

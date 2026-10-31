@@ -22,9 +22,13 @@ import type {
   AgentSelection,
   SceneAccess,
 } from "../../application/ports/IBoardScenes";
-import { SYNC_CLOSE_TRASHED } from "../../application/ports/IBoardSyncGateway";
+import {
+  SYNC_CLOSE_REVOKED,
+  SYNC_CLOSE_TRASHED,
+} from "../../application/ports/IBoardSyncGateway";
 import type {
   IBoardSyncGateway,
+  PeerAccess,
   SyncPeer,
   SyncSession,
 } from "../../application/ports/IBoardSyncGateway";
@@ -40,6 +44,8 @@ const MESSAGE_SYNC = 0;
 const MESSAGE_AWARENESS = 1;
 // the board went to Trash: every instance saves, disconnects its peers and unloads the room
 const MESSAGE_EVICT = 2;
+// the board's access changed: every instance decides each of its peers again
+const MESSAGE_RECHECK = 3;
 const SERVER_ORIGIN = Symbol("server");
 // updates that arrived from another instance: shown to local peers, never re-published
 const BUS_ORIGIN = Symbol("bus");
@@ -51,6 +57,7 @@ const RESTORE_ATTEMPTS = 5;
 interface PeerState {
   clients: Set<number>;
   canWrite: boolean;
+  recheck: () => Promise<PeerAccess>;
 }
 
 interface Room {
@@ -83,6 +90,10 @@ const encodeMessage = (
   write(encoder);
   return encoding.toUint8Array(encoder);
 };
+
+/** Asks every instance holding the board, this one included through the bus echo, to decide its peers again. */
+export const recheckBoardPeers = (bus: IPubSub, boardId: string) =>
+  bus.publish(channel(boardId), Uint8Array.of(MESSAGE_RECHECK));
 
 /**
  * In-memory registry of live board documents. A document is loaded on first use,
@@ -151,10 +162,11 @@ export class YjsBoardHub
   async connect(
     boardId: string,
     peer: SyncPeer,
-    canWrite: boolean
+    canWrite: boolean,
+    recheck: () => Promise<PeerAccess>
   ): Promise<SyncSession> {
     const room = await this.room(boardId);
-    room.peers.set(peer, { clients: new Set(), canWrite });
+    room.peers.set(peer, { clients: new Set(), canWrite, recheck });
     peer.send(
       encodeMessage(MESSAGE_SYNC, (e) => {
         syncProtocol.writeSyncStep1(e, room.doc);
@@ -493,6 +505,42 @@ export class YjsBoardHub
     }
   }
 
+  private async recheck(room: Room) {
+    await Promise.all(
+      [...room.peers].map(async ([peer, state]) => {
+        let access: PeerAccess;
+        try {
+          access = await state.recheck();
+        } catch (error) {
+          // the access store is down: keep the peer as it was rather than send everyone away
+          console.error(
+            `Board ${room.boardId} could not recheck a peer`,
+            error
+          );
+          return;
+        }
+        if (room.peers.get(peer) !== state) {
+          return;
+        }
+        if (access === "none") {
+          this.disconnect(room, peer);
+          peer.close(SYNC_CLOSE_REVOKED.code, SYNC_CLOSE_REVOKED.reason);
+          return;
+        }
+        const raised = access === "write" && !state.canWrite;
+        state.canWrite = access === "write";
+        if (raised) {
+          // updates dropped while it was read-only hold back its later ones; its step 2 brings them in
+          peer.send(
+            encodeMessage(MESSAGE_SYNC, (e) => {
+              syncProtocol.writeSyncStep1(e, room.doc);
+            })
+          );
+        }
+      })
+    );
+  }
+
   private receiveFromBus(room: Room, message: Uint8Array) {
     try {
       const decoder = decoding.createDecoder(message);
@@ -505,6 +553,8 @@ export class YjsBoardHub
         );
       } else if (type === MESSAGE_EVICT) {
         void this.evictFromBus(room.boardId);
+      } else if (type === MESSAGE_RECHECK) {
+        void this.recheck(room);
       } else if (type === MESSAGE_SYNC) {
         const isStep1 =
           decoding.readVarUint(decoding.createDecoder(message.subarray(1))) ===
