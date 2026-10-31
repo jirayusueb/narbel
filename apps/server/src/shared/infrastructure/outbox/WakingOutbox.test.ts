@@ -13,6 +13,7 @@ const setup = () => {
     enqueue: () => Promise.resolve(),
     publish: () => Promise.resolve(),
     forget: () => Promise.resolve(),
+    forgetPendingTo: () => Promise.resolve(),
   };
   let wakes = 0;
   const outbox = wakeWhenQueued(inner, afterCommit, () => {

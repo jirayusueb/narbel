@@ -26,5 +26,6 @@ export const wakeWhenQueued = (
       queued = true;
     },
     forget: (dedupeKey) => outbox.forget(dedupeKey),
+    forgetPendingTo: (email) => outbox.forgetPendingTo(email),
   };
 };
