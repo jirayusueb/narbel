@@ -1,8 +1,9 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { patchElement, stripReserved } from "../connectors";
 import { toSceneElementDto } from "../dtos/SceneDto";
 import type { SceneElementDto } from "../dtos/SceneDto";

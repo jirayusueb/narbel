@@ -1,7 +1,8 @@
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import type { IBoardPresence } from "../ports/IBoardPresence";
 
 export interface ViewersDto {

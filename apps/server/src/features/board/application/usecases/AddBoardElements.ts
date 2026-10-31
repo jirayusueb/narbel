@@ -1,5 +1,6 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
@@ -38,7 +39,7 @@ import {
   textOf,
 } from "../../domain/shapes/ShapeRegistry";
 import type { Shape, ShapeInput } from "../../domain/shapes/ShapeRegistry";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 

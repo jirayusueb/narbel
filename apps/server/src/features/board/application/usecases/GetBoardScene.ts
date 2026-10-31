@@ -1,10 +1,11 @@
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import { elementBounds, overlaps } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { toSceneDtos } from "../dtos/SceneDto";
 import type { SceneDto } from "../dtos/SceneDto";
 import type { IBoardScenes } from "../ports/IBoardScenes";

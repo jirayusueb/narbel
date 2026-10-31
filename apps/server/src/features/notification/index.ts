@@ -1,3 +1,7 @@
-export { createNotificationModule, type NotificationDeps } from "./ioc";
-// board builds this itself until step 5 moves comment side effects to outbox events
+export {
+  createNotificationConsumer,
+  createNotificationModule,
+  type NotificationDeps,
+} from "./ioc";
+// board builds this for invitations until step 6 moves them to the MemberInvited event
 export { DrizzleNotificationRepository } from "./infrastructure/repositories/DrizzleNotificationRepository";

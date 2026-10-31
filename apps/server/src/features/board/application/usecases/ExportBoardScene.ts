@@ -1,11 +1,12 @@
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
 import type { ImageData } from "../../domain/rendering/sceneSvg";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { MAX_EXPORT_BYTES, loadBoardImages } from "../boardImages";
 import { byZOrder } from "../dtos/SceneDto";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";

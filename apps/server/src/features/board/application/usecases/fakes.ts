@@ -5,6 +5,7 @@ import type {
 } from "../../../../shared/application/interfaces/INotifications";
 import type {
   IOutbox,
+  OutboxEvent,
   OutboxMessage,
 } from "../../../../shared/application/interfaces/IOutbox";
 import type {
@@ -12,9 +13,7 @@ import type {
   Person,
 } from "../../../../shared/application/interfaces/IProfiles";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import type { Cursor } from "../../../../shared/kernel/types/Cursor";
 import { Board } from "../../domain/entities/Board";
-import type { Comment } from "../../domain/entities/Comment";
 import type { Page } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
@@ -28,12 +27,6 @@ import type {
   Member,
   Share,
 } from "../ports/IBoardAccessRepository";
-import type {
-  CommentView,
-  IBoardCommentRepository,
-  ReactionSummary,
-  ThreadQuery,
-} from "../ports/IBoardCommentRepository";
 import type { IBoardRepository } from "../ports/IBoardRepository";
 import type {
   AgentSelection,
@@ -41,6 +34,7 @@ import type {
   IBoardScenes,
   SceneAccess,
 } from "../ports/IBoardScenes";
+import type { ICommentAssignees } from "../ports/ICommentActivity";
 import type { IUnlockTokens } from "../ports/IUnlockTokens";
 
 let counter = 0;
@@ -162,176 +156,6 @@ export class FakeGrants implements IBoardAccessRepository {
   };
 }
 
-export class FakeComments implements IBoardCommentRepository {
-  readonly rows = new Map<string, Comment>();
-  readonly reactions: { commentId: string; userId: string; emoji: string }[] =
-    [];
-  findById = (boardId: string, id: string) => {
-    const row = this.rows.get(id);
-    return Promise.resolve(row?.boardId === boardId ? row : null);
-  };
-  private viewOf(comment: Comment, viewerId?: string): CommentView {
-    const tally = new Map<string, ReactionSummary>();
-    for (const r of this.reactions.filter((x) => x.commentId === comment.id)) {
-      const entry = tally.get(r.emoji) ?? {
-        emoji: r.emoji,
-        count: 0,
-        mine: false,
-      };
-      tally.set(r.emoji, {
-        ...entry,
-        count: entry.count + 1,
-        mine: entry.mine || r.userId === viewerId,
-      });
-    }
-    return {
-      comment,
-      replyCount: [...this.rows.values()].filter(
-        (c) => c.parentId === comment.id
-      ).length,
-      reactions: [...tally.values()],
-    };
-  }
-  view = async (boardId: string, id: string, viewerId?: string) => {
-    const comment = await this.findById(boardId, id);
-    return comment ? this.viewOf(comment, viewerId) : null;
-  };
-  listThreads = (q: ThreadQuery) =>
-    Promise.resolve(
-      [...this.rows.values()]
-        .filter(
-          (c) =>
-            c.boardId === q.boardId &&
-            c.parentId === null &&
-            (q.pageId === undefined || c.pageId === q.pageId) &&
-            (q.status === "all" ||
-              (q.status === "open") === (c.resolvedAt === null))
-        )
-        .toSorted(
-          (a, b) =>
-            b.createdAt.getTime() - a.createdAt.getTime() ||
-            b.id.localeCompare(a.id)
-        )
-        .filter(
-          (c) =>
-            !q.after ||
-            c.createdAt.getTime() < q.after.at.getTime() ||
-            (c.createdAt.getTime() === q.after.at.getTime() &&
-              c.id < q.after.id)
-        )
-        .slice(0, q.limit)
-        .map((c) => this.viewOf(c, q.viewerId))
-    );
-  listReplies = (q: {
-    boardId: string;
-    threadId: string;
-    after: Cursor | null;
-    limit: number;
-    viewerId?: string;
-  }) =>
-    Promise.resolve(
-      [...this.rows.values()]
-        .filter((c) => c.boardId === q.boardId && c.parentId === q.threadId)
-        .toSorted(
-          (a, b) =>
-            a.createdAt.getTime() - b.createdAt.getTime() ||
-            a.id.localeCompare(b.id)
-        )
-        .filter(
-          (c) =>
-            !q.after ||
-            c.createdAt.getTime() > q.after.at.getTime() ||
-            (c.createdAt.getTime() === q.after.at.getTime() &&
-              c.id > q.after.id)
-        )
-        .slice(0, q.limit)
-        .map((c) => this.viewOf(c, q.viewerId))
-    );
-  save = (comment: Comment) => {
-    this.rows.set(comment.id, comment);
-    return Promise.resolve();
-  };
-  update = (
-    boardId: string,
-    id: string,
-    patch: Parameters<IBoardCommentRepository["update"]>[2]
-  ) => {
-    const row = this.rows.get(id);
-    if (row?.boardId === boardId) {
-      this.rows.set(id, { ...row, ...patch });
-    }
-    return Promise.resolve();
-  };
-  delete = (_: string, id: string) => {
-    this.rows.delete(id);
-    return Promise.resolve();
-  };
-  addReaction = (commentId: string, userId: string, emoji: string) => {
-    if (
-      !this.reactions.some(
-        (r) =>
-          r.commentId === commentId && r.userId === userId && r.emoji === emoji
-      )
-    ) {
-      this.reactions.push({ commentId, userId, emoji });
-    }
-    return Promise.resolve();
-  };
-  removeReaction = (commentId: string, userId: string, emoji: string) => {
-    const index = this.reactions.findIndex(
-      (r) =>
-        r.commentId === commentId && r.userId === userId && r.emoji === emoji
-    );
-    if (index !== -1) {
-      this.reactions.splice(index, 1);
-    }
-    return Promise.resolve();
-  };
-  clearAssignee = (boardId: string, userId: string) => {
-    for (const [id, c] of this.rows) {
-      if (c.boardId === boardId && c.assigneeId === userId) {
-        this.rows.set(id, { ...c, assigneeId: null });
-      }
-    }
-    return Promise.resolve();
-  };
-  listActivity = (q: {
-    boardId: string;
-    after: Cursor;
-    limit: number;
-    viewerId?: string;
-  }) => {
-    const activityAt = (c: Comment) =>
-      new Date(
-        Math.max(
-          c.createdAt.getTime(),
-          c.editedAt?.getTime() ?? 0,
-          c.resolvedAt?.getTime() ?? 0
-        )
-      );
-    return Promise.resolve(
-      [...this.rows.values()]
-        .filter((c) => c.boardId === q.boardId)
-        .map((c) => ({
-          ...this.viewOf(c, q.viewerId),
-          activityAt: activityAt(c),
-        }))
-        .filter(
-          (v) =>
-            v.activityAt.getTime() > q.after.at.getTime() ||
-            (v.activityAt.getTime() === q.after.at.getTime() &&
-              v.comment.id > q.after.id)
-        )
-        .toSorted(
-          (a, b) =>
-            a.activityAt.getTime() - b.activityAt.getTime() ||
-            a.comment.id.localeCompare(b.comment.id)
-        )
-        .slice(0, q.limit)
-    );
-  };
-}
-
 export class FakeProfiles implements IProfileReader {
   readonly people = new Map<string, Person>();
   add(id: string, username: string | null = null, name = id.toUpperCase()) {
@@ -373,11 +197,18 @@ export class FakeNotifications implements INotificationRepository {
 }
 
 export class FakeOutbox implements IOutbox {
-  readonly messages: { message: OutboxMessage; key: string }[] = [];
+  readonly messages: {
+    message: OutboxMessage | OutboxEvent;
+    key: string | null;
+  }[] = [];
   enqueue = (message: OutboxMessage, key: string) => {
     if (!this.messages.some((m) => m.key === key)) {
       this.messages.push({ message, key });
     }
+    return Promise.resolve();
+  };
+  publish = (event: OutboxEvent) => {
+    this.messages.push({ message: event, key: null });
     return Promise.resolve();
   };
   forget = (key: string) => {
@@ -479,6 +310,15 @@ export const fakeUnlock: IUnlockTokens = {
   verify: (boardId, _hash, proof) => proof === `ok:${boardId}`,
 };
 
+/** Records which members were cleared as assignee; discussion owns the threads themselves. */
+export class FakeAssignees implements ICommentAssignees {
+  readonly cleared: { boardId: string; userId: string }[] = [];
+  clearAssignee = (boardId: string, userId: string) => {
+    this.cleared.push({ boardId, userId });
+    return Promise.resolve();
+  };
+}
+
 export const newBoard = (id = "b1", owner = "owner") =>
   Board.create(id, owner, BoardTitle.restore("Mine"), new Date());
 
@@ -486,7 +326,7 @@ export const setupAccess = () => {
   const boards = new FakeBoards();
   const grants = new FakeGrants();
   const scenes = new FakeScenes();
-  const comments = new FakeComments();
+  const comments = new FakeAssignees();
   const profiles = new FakeProfiles();
   const notifications = new FakeNotifications();
   const outbox = new FakeOutbox();

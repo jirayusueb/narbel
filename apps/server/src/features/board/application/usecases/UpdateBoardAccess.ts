@@ -1,12 +1,13 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Board } from "../../domain/entities/Board";
 import type { MemberRole, Visibility } from "../../domain/values/Access";
 import { validatePassword } from "../../domain/values/Password";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { toAccessDto } from "../dtos/AccessDto";
 import type { BoardAccessDto } from "../dtos/AccessDto";
 import type { BoardTx } from "../ports/BoardTx";

@@ -2,8 +2,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor } from "../../application/BoardAccess";
 import type { BoardUseCases } from "../../ioc";
 
 export type ToolRegistrar = (

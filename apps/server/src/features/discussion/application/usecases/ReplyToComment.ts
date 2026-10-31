@@ -1,27 +1,29 @@
+import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
+import { requirePerson } from "../../../../shared/application/requirePerson";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { reopened, resolved } from "../../domain/entities/Comment";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { memberIdsOf, requirePerson } from "../BoardPeople";
-import { CommentEvents } from "../CommentEvents";
+import { isThread, replyTo } from "../../domain/entities/Thread";
 import { presentOne } from "../CommentPresenter";
+import { DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
-import type { BoardTx } from "../ports/BoardTx";
+import type { DiscussionTx } from "../ports/DiscussionTx";
+import type { IBoardAccess } from "../ports/IBoardAccess";
 
-/** Resolves or reopens the thread `commentId` belongs to. Repeating either is a no-op. */
-export class ResolveComment {
+export class ReplyToComment {
   constructor(
-    private readonly guard: BoardAccessGuard,
-    private readonly uow: IUnitOfWork<BoardTx>
+    private readonly guard: IBoardAccess,
+    private readonly uow: IUnitOfWork<DiscussionTx>,
+    private readonly ids: IIdGenerator
   ) {}
 
   async execute(input: {
     actor: Actor;
     boardId: string;
     commentId: string;
-    resolve: boolean;
+    body: string;
   }): Promise<Result<CommentDto, AppError>> {
     const granted = await this.guard.require(
       input.boardId,
@@ -38,32 +40,31 @@ export class ResolveComment {
         return err(actor.error);
       }
       const target = await tx.comments.findById(board.id, input.commentId);
+      // replies are one level deep: answering a reply answers its thread
       const root = target?.parentId
         ? await tx.comments.findById(board.id, target.parentId)
         : target;
-      if (!root) {
+      if (!(root && isThread(root))) {
         return err(AppError.notFound("Comment"));
       }
-      const next = input.resolve
-        ? resolved(root, actor.value.id, new Date())
-        : reopened(root);
-      if (next.resolvedAt?.getTime() !== root.resolvedAt?.getTime()) {
-        await tx.comments.update(board.id, root.id, {
-          resolvedAt: next.resolvedAt,
-          resolvedById: next.resolvedById,
-        });
-        if (input.resolve) {
-          await new CommentEvents(tx, actor.value, next).resolved(
-            next,
-            await memberIdsOf(board, tx.grants)
-          );
-        }
+      const reply = replyTo(
+        root,
+        { id: this.ids.generate(), body: input.body, authorId: actor.value.id },
+        new Date()
+      );
+      if (reply.isErr()) {
+        return err(reply.error);
       }
+      await tx.comments.save(reply.value);
+      const events = new DiscussionEvents(tx, actor.value, reply.value);
+      const members = await tx.members.idsOf(board);
+      const mentioned = await events.mentions(members);
+      await events.reply(root, mentioned, members);
       return await presentOne(
         tx.comments,
         tx.profiles,
         board.id,
-        root.id,
+        reply.value.id,
         actor.value.id
       );
     });

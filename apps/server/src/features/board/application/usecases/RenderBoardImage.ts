@@ -1,12 +1,13 @@
 import type { ICache } from "../../../../shared/application/interfaces/ICache";
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import { buildSceneSvg } from "../../domain/rendering/sceneSvg";
 import type { Bounds } from "../../domain/rules/geometry";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { MAX_RENDER_BYTES, loadBoardImages } from "../boardImages";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardRasterizer } from "../ports/IBoardRasterizer";

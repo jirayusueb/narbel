@@ -2,12 +2,15 @@ import { Elysia, status, t } from "elysia";
 import { websocket } from "elysia/websocket";
 
 import { STATUS_BY_CODE } from "../../../../shared/kernel/errors/AppError";
+import {
+  actorFrom,
+  shareQuery,
+} from "../../../../shared/presentation/http/actor";
 import { errorBody } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import { SYNC_CLOSE_TRASHED } from "../../application/ports/IBoardSyncGateway";
 import type { SyncSession } from "../../application/ports/IBoardSyncGateway";
 import type { BoardUseCases } from "../../ioc";
-import { actorFrom, shareQuery } from "../http/actor";
 
 const WS_POLICY_VIOLATION = 1008;
 

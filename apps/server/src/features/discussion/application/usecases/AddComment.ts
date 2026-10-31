@@ -1,20 +1,21 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import { AppError } from "../../../../shared/kernel/errors/AppError";
+import { requirePerson } from "../../../../shared/application/requirePerson";
+import type { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { newComment } from "../../domain/entities/Comment";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { memberIdsOf, requirePerson } from "../BoardPeople";
-import { CommentEvents } from "../CommentEvents";
+import { startThread } from "../../domain/entities/Thread";
 import { presentOne } from "../CommentPresenter";
+import { DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
-import type { BoardTx } from "../ports/BoardTx";
+import type { DiscussionTx } from "../ports/DiscussionTx";
+import type { IBoardAccess } from "../ports/IBoardAccess";
 
 export class AddComment {
   constructor(
-    private readonly guard: BoardAccessGuard,
-    private readonly uow: IUnitOfWork<BoardTx>,
+    private readonly guard: IBoardAccess,
+    private readonly uow: IUnitOfWork<DiscussionTx>,
     private readonly ids: IIdGenerator
   ) {}
 
@@ -41,7 +42,8 @@ export class AddComment {
       if (actor.isErr()) {
         return err(actor.error);
       }
-      const comment = newComment(
+      const members = await tx.members.idsOf(board);
+      const comment = startThread(
         {
           id: this.ids.generate(),
           boardId: board.id,
@@ -50,23 +52,17 @@ export class AddComment {
           y: input.y,
           body: input.body,
           authorId: actor.value.id,
-          parentId: null,
           assigneeId: input.assigneeId ?? null,
         },
+        members,
         new Date()
       );
       if (comment.isErr()) {
         return err(comment.error);
       }
-      const members = await memberIdsOf(board, tx.grants);
-      const assignee = input.assigneeId;
-      if (assignee && !members.has(assignee)) {
-        return err(
-          AppError.validation("Assignee must have access to the board")
-        );
-      }
+      const assignee = comment.value.assigneeId;
       await tx.comments.save(comment.value);
-      const events = new CommentEvents(tx, actor.value, comment.value);
+      const events = new DiscussionEvents(tx, actor.value, comment.value);
       if (assignee) {
         const [person] = await tx.profiles.findPeople([assignee]);
         if (person) {

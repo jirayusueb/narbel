@@ -1,12 +1,14 @@
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import type { IBoardCommentRepository } from "../ports/IBoardCommentRepository";
+import { mayDelete } from "../../domain/entities/Thread";
+import type { IBoardAccess } from "../ports/IBoardAccess";
+import type { IBoardCommentRepository } from "../ports/ICommentRepository";
 
 export class DeleteComment {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly guard: IBoardAccess,
     private readonly comments: IBoardCommentRepository
   ) {}
 
@@ -30,10 +32,13 @@ export class DeleteComment {
     if (!comment) {
       return err(AppError.notFound("Comment"));
     }
-    const mayDelete =
-      granted.value.access.role === "owner" ||
-      comment.authorId === input.actor.userId;
-    if (!mayDelete) {
+    if (
+      !mayDelete(
+        comment,
+        input.actor.userId,
+        granted.value.access.role === "owner"
+      )
+    ) {
       return err(AppError.forbidden("Only the author or the owner can delete"));
     }
     await this.comments.delete(input.boardId, input.commentId);

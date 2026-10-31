@@ -16,6 +16,7 @@ const adapter = dependencyCruiser({
     schemaBoardOwner: "server-schema-board-owner",
     schemaAuthOwner: "server-schema-auth-owner",
     schemaAccountOwner: "server-schema-account-owner",
+    schemaDiscussionOwner: "server-schema-discussion-owner",
   },
 });
 
@@ -92,6 +93,14 @@ export const proofs = defineProofs(gate, [
     mutate.appendText(
       "apps/server/src/features/board/ioc.ts",
       '\nimport { outbox } from "@narbel/db/schema/account";\n'
+    )
+  ),
+  proof.red(
+    adapter.rules.schemaDiscussionOwner,
+    "detects a discussion schema import outside features/discussion",
+    mutate.appendText(
+      "apps/server/src/features/board/ioc.ts",
+      '\nimport { comment } from "@narbel/db/schema/discussion";\n'
     )
   ),
   proof.green("accepts the current server architecture"),

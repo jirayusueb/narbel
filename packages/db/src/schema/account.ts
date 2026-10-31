@@ -3,6 +3,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -57,4 +58,15 @@ export const outbox = pgTable(
     dedupeKey: text("dedupe_key").unique(),
   },
   (table) => [index("outbox_due_idx").on(table.status, table.nextAttemptAt)]
+);
+
+/** One consumer's record of an integration event it already handled, so a retried delivery is a no-op. */
+export const processedEvent = pgTable(
+  "processed_event",
+  {
+    consumer: text("consumer").notNull(),
+    eventId: uuid("event_id").notNull(),
+    handledAt: timestamp("handled_at").defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.consumer, table.eventId] })]
 );

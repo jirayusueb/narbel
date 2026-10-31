@@ -9,7 +9,7 @@ import type { CommentDto, Paged } from "./dtos/CommentDto";
 import type {
   CommentView,
   IBoardCommentRepository,
-} from "./ports/IBoardCommentRepository";
+} from "./ports/ICommentRepository";
 
 export const presentComments = async (
   views: CommentView[],

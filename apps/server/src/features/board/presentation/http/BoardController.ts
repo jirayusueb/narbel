@@ -1,5 +1,9 @@
 import { Elysia, t } from "elysia";
 
+import {
+  actorFrom,
+  shareQuery,
+} from "../../../../shared/presentation/http/actor";
 import { idempotencyPlugin } from "../../../../shared/presentation/plugins/idempotencyPlugin";
 import {
   asWire,
@@ -7,7 +11,6 @@ import {
 } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import type { BoardUseCases } from "../../ioc";
-import { actorFrom, shareQuery } from "./actor";
 import { previewResponse } from "./previewResponse";
 
 const PREVIEW_SIZE = 480;

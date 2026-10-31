@@ -1,7 +1,7 @@
 import type { SceneElement } from "../../domain/entities/SceneElement";
 import { labelIdOf } from "../../domain/rules/bindings";
 import type { ElementTouch, SceneAccess } from "../ports/IBoardScenes";
-import type { CommentDto } from "./CommentDto";
+import type { ChangedComment } from "../ports/ICommentActivity";
 import { byZOrder, toSceneElementDto } from "./SceneDto";
 import type { SceneElementDto } from "./SceneDto";
 
@@ -28,7 +28,7 @@ export interface BoardChangesDto {
   /** element changes left out past the cap; get_board has them */
   omitted: number;
   /** threads and replies created, edited or resolved since the cursor, oldest first */
-  comments: CommentDto[];
+  comments: ChangedComment[];
   /** more comment activity waits; call again with `cursor` */
   moreComments: boolean;
 }

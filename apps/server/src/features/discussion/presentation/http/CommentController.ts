@@ -1,13 +1,16 @@
 import { Elysia, t } from "elysia";
 
+import {
+  actorFrom,
+  shareQuery,
+} from "../../../../shared/presentation/http/actor";
 import { idempotencyPlugin } from "../../../../shared/presentation/plugins/idempotencyPlugin";
 import {
   asWire,
   resultPlugin,
 } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
-import type { BoardUseCases } from "../../ioc";
-import { actorFrom, shareQuery } from "./actor";
+import type { CommentUseCases } from "../../ioc";
 
 const params = t.Object({ id: t.String() });
 const commentParams = t.Object({ id: t.String(), commentId: t.String() });
@@ -19,7 +22,7 @@ const paging = {
 
 export const createBoardCommentController = (
   betterAuth: BetterAuthPlugin,
-  uc: BoardUseCases
+  uc: CommentUseCases
 ) =>
   new Elysia({ name: "board/comments", prefix: "/api/boards/:id/comments" })
     .use(betterAuth)

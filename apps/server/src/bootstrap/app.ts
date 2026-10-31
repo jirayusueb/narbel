@@ -32,6 +32,8 @@ export interface AppDeps {
   pubsub: IPubSub;
   redis: Redis;
   idempotency: IIdempotencyStore;
+  /** asks the outbox worker for a pass now; called after a commit that queued an event */
+  wakeOutbox: () => void;
 }
 
 export const createApp = ({
@@ -46,6 +48,7 @@ export const createApp = ({
   pubsub,
   redis,
   idempotency,
+  wakeOutbox,
 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
   return new Elysia({
@@ -93,6 +96,7 @@ export const createApp = ({
         pubsub,
         redis,
         betterAuth,
+        wakeOutbox,
       })
     );
 };

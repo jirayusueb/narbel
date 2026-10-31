@@ -61,25 +61,3 @@ export const newComment = (
     resolvedById: null,
   });
 };
-
-export const withBody = (
-  comment: Comment,
-  raw: string,
-  now: Date
-): Result<Comment, AppError> => {
-  const body = validateCommentBody(raw);
-  return body.isErr()
-    ? err(body.error)
-    : ok({ ...comment, body: body.value, editedAt: now });
-};
-
-export const resolved = (comment: Comment, by: string, now: Date): Comment =>
-  comment.resolvedAt
-    ? comment
-    : { ...comment, resolvedAt: now, resolvedById: by };
-
-export const reopened = (comment: Comment): Comment => ({
-  ...comment,
-  resolvedAt: null,
-  resolvedById: null,
-});

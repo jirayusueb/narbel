@@ -1,6 +1,6 @@
 # Bounded contexts of narbel
 
-Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 4 are done. Each later step starts only after the owner confirms it.
+Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 5 are done. Each later step starts only after the owner confirms it.
 
 This document splits the server's `features/board` module into bounded contexts, defines how the contexts talk, and lists the current behavior that the split must keep. It also covers the matching frontend changes. Every "today" claim cites the code it comes from, so a reviewer can check it.
 
@@ -86,18 +86,18 @@ The decision rules move unchanged from `domain/rules/resolveAccess.ts` into the 
 
 ### Tell: integration events
 
-An integration event is a fact one context publishes and others react to. The producer owns its type. The type lives in the producer's public API (`features/<context>/index.ts`), so consumers import it through the path the dependency rules already allow.
+An integration event is a fact one context publishes and others react to. The producer owns its type. The types are a published language in `shared/application/events/` (`DiscussionEvent.ts` today), because the dependency rules forbid one context's application layer from importing another's. Each consumer validates what it reads where it enters (`notification/infrastructure/events/`), and a payload it cannot read is parked as dead instead of retried.
 
 Today the side effects of a comment run in the same database transaction as the comment (`CommentEvents.ts`, called inside `uow.run`). That couples two contexts in one transaction: a failed notification insert fails the comment. The proposal changes this on purpose, following the rule of one aggregate per transaction and eventual consistency between contexts:
 
 1. The producer writes the event into the existing `outbox` table, in the same transaction as its aggregate. The event cannot be lost, and it cannot exist without the change that caused it.
-2. The unit of work's `afterCommit` hook (`DrizzleUnitOfWork.ts:46-51`) wakes the outbox worker at once. The 2-second poll stays as the fallback. The expected delay for a notification is one worker pass after commit. That delay is not measured yet; step 5 of the migration measures it.
+2. The unit of work's `afterCommit` hook wakes the outbox worker at once, and the worker runs another pass right after an event whose consumer queued emails. The 2-second poll stays as the fallback. Measured on the local stack (5 mentions through HTTP, 2026-10-31): from the comment's HTTP response to the notification row, 14, 209, 213, 217 and 324 ms. The longer ones wait behind the previous email send in the same pass.
 3. Each consumer handles an event at most once. A `processed_event(consumer, event_id)` row, written in the consumer's transaction, makes a retried delivery a no-op.
 4. The worker's retry, backoff, and dead-letter rules (`OutboxWorker.ts`) apply to events as they apply to email today.
 
 Email becomes one more consumer of the same events instead of a separate message type that use cases enqueue.
 
-Each event carries a `type` and a `version`. A payload change that removes or renames a field needs a new version.
+Each event carries a `type` and a `version`. A payload change that removes or renames a field needs a new version. Events carry no dedupe key: a second resolve or a later mention is news. The consumer dedupes what it sends (the email keys below) and records each event it handled in `processed_event`.
 
 | Event | Producer | Payload | Consumers and what they do | Today |
 | --- | --- | --- | --- | --- |
@@ -108,10 +108,10 @@ Each event carries a `type` and a `version`. A payload change that removes or re
 | `MemberRemoved` v1 | `boards` | boardId, email, personId or null | `discussion`: clear that person as assignee. `notification`: forget the invite email. `drawing.live`: re-check that person's open peers (decision 1). | `RemoveBoardMember.ts:31-41` |
 | `AccessChanged` v1 | `boards` | boardId | `drawing.live`: re-check every open peer of the board (decision 1). | nothing |
 | `PersonDeleted` v1 | `identity` | personId | `notification`: delete the person's pending outbox rows (decision 4). | nothing |
-| `CommentAssigned` v1 | `discussion` | boardId, threadId, commentId, actorId, assigneeId, excerpt | `notification`: add `comment.assigned`, enqueue email `assigned:<commentId>:<assigneeId>`. | `CommentEvents.ts:37-63` |
-| `PeopleMentioned` v1 | `discussion` | boardId, threadId, commentId, actorId, recipientIds, excerpt | `notification`: one `comment.mentioned` and one email `mentioned:<commentId>:<personId>` per recipient. | `CommentEvents.ts:67-95` |
-| `ThreadReplied` v1 | `discussion` | boardId, threadId, commentId, actorId, recipientIds, excerpt | `notification`: add `comment.reply` per recipient. | `CommentEvents.ts:100-120` |
-| `ThreadResolved` v1 | `discussion` | boardId, threadId, actorId, recipientIds | `notification`: add `comment.resolved` per recipient. | `CommentEvents.ts:122-140` |
+| `event.comment-assigned` v1 | `discussion` | boardId, threadId, commentId, actor, excerpt, recipient (id, email) | `notification`: add `comment.assigned`, enqueue email `assigned:<commentId>:<assigneeId>`. | done in step 5 |
+| `event.people-mentioned` v1 | `discussion` | boardId, threadId, commentId, actor, excerpt, recipients (id, email) | `notification`: one `comment.mentioned` and one email `mentioned:<commentId>:<personId>` per recipient. | done in step 5 |
+| `event.thread-replied` v1 | `discussion` | boardId, threadId, commentId, actor, excerpt, recipientIds | `notification`: add `comment.reply` per recipient. | done in step 5 |
+| `event.thread-resolved` v1 | `discussion` | boardId, threadId, commentId, actor, recipientIds | `notification`: add `comment.resolved` per recipient. | done in step 5 |
 | `CommentPosted`, `CommentEdited`, `CommentDeleted` v1 | `discussion` | boardId, commentId, body or nothing | `search`: maintain `search_comment`. | `search` reads `comment.body` live |
 | `DrawingTextChanged` v1 | `drawing` | boardId, upserts, removals | `search`: write `board_text` rows. | `DrizzleBoardDocumentStore.save`, same transaction |
 
@@ -235,8 +235,8 @@ Each step is one pull request. The tests from [Behavior the split must keep](#be
 1. Done (2026-10-30). CI runs every redproof gate on push and pull request, `main` requires the `redproof` check, and the unlock and sign-in rate limits key on the client address that the trusted proxy appends (decision 5).
 2. Done (2026-10-30). This document and [glossary.md](glossary.md), one section per context.
 3. Dependency rules: a context imports another only through its `index.ts`. Only the owning context imports a schema file. No `@excalidraw/*` or `yjs` in `domain/`. No port interfaces in `infrastructure/`.
-4. Done (2026-10-31). The Drizzle profile and notification repositories live in their features; the schema-owner rules now allow `features/profile` (identity's profile module). The notification list re-checks access through `readableBoards` from `features/board`'s public API and shows an invitation under the board's current title (decision 3). Deleting a person runs a Better Auth `delete.before` hook that removes the avatar and drops the person's pending outbox emails (decision 4); step 5 replaces the callback with the `PersonDeleted` event.
-5. Extract `discussion`, with the `Thread`, `Reply`, and `Reaction` aggregates. Move its side effects to outbox events, and measure the delay from comment commit to notification row.
+4. Done (2026-10-31). The Drizzle profile and notification repositories live in their features; the schema-owner rules now allow `features/profile` (identity's profile module). The notification list re-checks access through `readableBoards` from `features/board`'s public API and shows an invitation under the board's current title (decision 3). Deleting a person runs a Better Auth `delete.before` hook that removes the avatar and drops the person's pending outbox emails (decision 4); it becomes the `PersonDeleted` event when identity publishes events.
+5. Done (2026-10-31). `features/discussion` owns comments, replies and reactions, with `schema/discussion.ts` and its owner rule. The `Thread` aggregate (`domain/entities/Thread.ts`) holds the rules that sat in use cases: an assignee must be a member, only the author edits, the author or owner deletes, replies are created only through `replyTo`, resolve and reopen are idempotent. Comment side effects are the four events above, consumed by `notification` once per event; a recipient deleted in between is skipped. Discussion reaches boards only through its own ports (`IBoardAccess`, `IBoardMembers`), and boards reaches discussion through `ICommentActivity` and `ICommentAssignees`. `Actor` and the request helpers moved to `shared/`. Reactions stay a value checked against the allow-list, with one row per person, comment and emoji.
 6. Split `boards` from `drawing`, with `AccessPolicy`, the `Board` and `Grant` aggregates, the `Drawing` aggregate, the typed `Element` view, and closing the WebSocket of a removed member (decision 1).
 7. Rebuild `search` on events and `readableBoardIds`.
 8. Frontend entities per context, and the reactuse replacements with their lint rule.

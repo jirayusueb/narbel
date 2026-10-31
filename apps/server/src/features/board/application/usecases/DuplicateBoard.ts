@@ -1,6 +1,7 @@
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { Board } from "../../domain/entities/Board";
@@ -10,7 +11,7 @@ import type { SceneElement } from "../../domain/entities/SceneElement";
 import { MAX_FILE_BYTES } from "../../domain/rules/UploadRules";
 import { BoardTitle, TITLE_MAX_LENGTH } from "../../domain/values/BoardTitle";
 import { boardFileKey, boardFilePrefix } from "../../domain/values/FileKey";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { toBoardDto } from "../dtos/BoardDto";
 import type { BoardDto } from "../dtos/BoardDto";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";

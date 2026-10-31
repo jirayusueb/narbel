@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 
 import { createDb, sql } from "@narbel/db";
-import { comment } from "@narbel/db/schema/board";
+import { comment } from "@narbel/db/schema/discussion";
 
-import { DrizzleBoardCommentRepository } from "./DrizzleBoardCommentRepository";
+import { DrizzleCommentRepository } from "./DrizzleCommentRepository";
 
 const BASE =
   process.env.DATABASE_URL ??
@@ -36,7 +36,7 @@ const row = (
 });
 
 describe.skipIf(!reachable)("comment activity (postgres)", () => {
-  const repo = new DrizzleBoardCommentRepository(db);
+  const repo = new DrizzleCommentRepository(db);
   beforeAll(async () => {
     await admin.execute(sql.raw(`create schema "${SCHEMA}"`));
     for (const table of ["comment", "comment_reaction"]) {
@@ -67,7 +67,7 @@ describe.skipIf(!reachable)("comment activity (postgres)", () => {
         after: { at: after, id: afterId },
         limit,
       })
-    ).map((a) => a.comment.id);
+    ).map((a: { comment: { id: string } }) => a.comment.id);
 
   it("returns edits and resolves of old comments, oldest activity first, on this board only", async () => {
     expect(await ids(t(10))).toEqual(["resolved", "reply", "edited"]);

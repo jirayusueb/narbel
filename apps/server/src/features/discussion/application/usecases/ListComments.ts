@@ -1,15 +1,16 @@
 import type { IProfileReader } from "../../../../shared/application/interfaces/IProfiles";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { decodeCursor } from "../../../../shared/kernel/types/Cursor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { presentPage } from "../CommentPresenter";
 import type { CommentDto, Paged } from "../dtos/CommentDto";
+import type { IBoardAccess } from "../ports/IBoardAccess";
 import type {
   IBoardCommentRepository,
   ThreadStatus,
-} from "../ports/IBoardCommentRepository";
+} from "../ports/ICommentRepository";
 
 export const MAX_PAGE_SIZE = 100;
 export const DEFAULT_PAGE_SIZE = 20;
@@ -36,7 +37,7 @@ export const parsePaging = (input: {
 /** Thread roots, newest first; omit `pageId` for the whole board. */
 export class ListComments {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly guard: IBoardAccess,
     private readonly comments: IBoardCommentRepository,
     private readonly profiles: IProfileReader
   ) {}

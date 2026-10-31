@@ -5,6 +5,7 @@ import { outbox } from "@narbel/db/schema/account";
 import type { IIdGenerator } from "../../application/interfaces/IIdGenerator";
 import type {
   IOutbox,
+  OutboxEvent,
   OutboxMessage,
 } from "../../application/interfaces/IOutbox";
 
@@ -26,6 +27,15 @@ export class DrizzleOutbox implements IOutbox {
         dedupeKey,
       })
       .onConflictDoNothing({ target: outbox.dedupeKey });
+  }
+
+  async publish(event: OutboxEvent) {
+    await this.db.insert(outbox).values({
+      id: this.ids.generate(),
+      type: event.type,
+      payload: { ...event },
+      nextAttemptAt: new Date(),
+    });
   }
 
   async forget(dedupeKey: string) {

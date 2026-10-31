@@ -1,8 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { Actor } from "../../application/BoardAccess";
-import type { CommentDto } from "../../application/dtos/CommentDto";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { roundCoord } from "../../application/dtos/SceneDto";
 import {
   DEFAULT_MAX_SIZE,
@@ -100,7 +99,7 @@ const patch = z
 
 const pageName = z.string().describe("1 to 80 characters");
 
-const roundComment = (c: CommentDto): CommentDto => ({
+const roundComment = <C extends { x: number; y: number }>(c: C): C => ({
   ...c,
   x: roundCoord(c.x),
   y: roundCoord(c.y),

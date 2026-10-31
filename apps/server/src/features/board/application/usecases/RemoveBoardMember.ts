@@ -1,8 +1,9 @@
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import type { BoardTx } from "../ports/BoardTx";
 
 export class RemoveBoardMember {

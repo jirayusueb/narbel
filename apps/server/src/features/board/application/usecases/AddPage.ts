@@ -1,10 +1,11 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { PAGE_NAME_MAX_LENGTH } from "../../domain/entities/Page";
 import type { Page } from "../../domain/entities/Page";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 export const validPageName = (raw: string): Result<string, AppError> => {

@@ -4,10 +4,11 @@ import type {
 } from "../../../../shared/application/interfaces/IProfiles";
 import { toUserRef } from "../../../../shared/application/interfaces/IProfiles";
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Role } from "../../domain/values/Access";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import type { IBoardAccessRepository } from "../ports/IBoardAccessRepository";
 
 export interface MemberDto {

@@ -12,7 +12,7 @@ import {
   sql,
 } from "@narbel/db";
 import type { DbExecutor } from "@narbel/db";
-import { comment, commentReaction } from "@narbel/db/schema/board";
+import { comment, commentReaction } from "@narbel/db/schema/discussion";
 
 import type { Cursor } from "../../../../shared/kernel/types/Cursor";
 import type {
@@ -21,7 +21,7 @@ import type {
   IBoardCommentRepository,
   ReactionSummary,
   ThreadQuery,
-} from "../../application/ports/IBoardCommentRepository";
+} from "../../application/ports/ICommentRepository";
 import type { Comment } from "../../domain/entities/Comment";
 
 type Row = typeof comment.$inferSelect;
@@ -53,7 +53,7 @@ const statusFilter = (status: ThreadQuery["status"]) => {
     : isNotNull(comment.resolvedAt);
 };
 
-export class DrizzleBoardCommentRepository implements IBoardCommentRepository {
+export class DrizzleCommentRepository implements IBoardCommentRepository {
   constructor(private readonly db: DbExecutor) {}
 
   async findById(boardId: string, id: string) {
