@@ -6,6 +6,7 @@ import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox"
 import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
 import { UnreadableEventError } from "../../shared/infrastructure/outbox/OutboxWorker";
 import type { EventConsumer } from "../../shared/infrastructure/outbox/OutboxWorker";
+import { wakeWhenQueued } from "../../shared/infrastructure/outbox/WakingOutbox";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
@@ -67,11 +68,15 @@ export const createCommentUseCases = ({
   const ids = new UuidGenerator();
   // comment use cases commit with their own aggregate set: the comment, its outbox events, member and profile reads
   const uow = new DrizzleUnitOfWork<DiscussionTx>(db, (tx, afterCommit) => {
-    afterCommit(wakeOutbox);
+    const outbox = wakeWhenQueued(
+      new DrizzleOutbox(tx, ids),
+      afterCommit,
+      wakeOutbox
+    );
     return {
       comments: new DrizzleCommentRepository(tx),
       members: membersIn(tx),
-      outbox: new DrizzleOutbox(tx, ids),
+      outbox,
       profiles: new DrizzleProfileRepository(tx, apiOrigin),
     };
   });

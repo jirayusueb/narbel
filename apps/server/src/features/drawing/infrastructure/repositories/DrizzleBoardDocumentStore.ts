@@ -6,6 +6,7 @@ import type { DrawingEvent } from "../../../../shared/application/events/Drawing
 import type { IOutbox } from "../../../../shared/application/interfaces/IOutbox";
 import { UuidGenerator } from "../../../../shared/infrastructure/ids/UuidGenerator";
 import { DrizzleOutbox } from "../../../../shared/infrastructure/outbox/DrizzleOutbox";
+import { wakeWhenQueued } from "../../../../shared/infrastructure/outbox/WakingOutbox";
 import type { AfterCommit } from "../../../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import { DrizzleUnitOfWork } from "../../../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { IBoardRecords } from "../../application/ports/IBoardAccess";
@@ -51,11 +52,15 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
   ) {
     const ids = new UuidGenerator();
     this.saves = new DrizzleUnitOfWork(this.db, (tx, afterCommit) => {
-      afterCommit(wakeOutbox);
+      const outbox = wakeWhenQueued(
+        new DrizzleOutbox(tx, ids),
+        afterCommit,
+        wakeOutbox
+      );
       return {
         tx,
         boards: boardsIn(tx, afterCommit),
-        outbox: new DrizzleOutbox(tx, ids),
+        outbox,
       };
     });
   }
