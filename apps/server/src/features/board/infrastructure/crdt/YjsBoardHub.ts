@@ -273,6 +273,10 @@ export class YjsBoardHub
     if (!room || this.rooms.get(boardId) !== pending) {
       // an eviction already under way owns the save; wait for it so callers can trust the stored state
       await this.flushing.get(boardId);
+      if (room && this.rooms.has(boardId)) {
+        // that save failed and the room stays live; try again so this caller learns the truth
+        await this.evictLocal(boardId);
+      }
       return;
     }
     this.rooms.delete(boardId);
@@ -290,8 +294,34 @@ export class YjsBoardHub
       this.flushing.delete(boardId);
     }
     if (room.dirty) {
-      console.error(`Board ${boardId} evicted with unsaved changes`);
+      await this.retain(room);
+      throw new Error(
+        `Board ${boardId} could not be saved; its unsaved changes stay in memory for retry`
+      );
     }
+    this.destroy(room);
+  }
+
+  /**
+   * A final save failed: the live doc is the only copy of its edits, so it stays loaded and the idle
+   * timer retries the save. Limit: a process crash while the store is down still loses them.
+   */
+  private async retain(room: Room) {
+    const current = this.rooms.get(room.boardId);
+    if (!current) {
+      this.rooms.set(room.boardId, Promise.resolve(room));
+      room.timers.used();
+      return;
+    }
+    // a load slipped in while the save ran and read the stale row: fold the unsaved edits into it
+    const live = await current.catch(() => null);
+    if (!live) {
+      this.rooms.set(room.boardId, Promise.resolve(room));
+      room.timers.used();
+      return;
+    }
+    Y.applyUpdate(live.doc, Y.encodeStateAsUpdate(room.doc));
+    room.timers.stop();
     this.destroy(room);
   }
 
@@ -458,6 +488,14 @@ export class YjsBoardHub
     }
   }
 
+  private async evictFromBus(boardId: string) {
+    try {
+      await this.evictLocal(boardId);
+    } catch (error) {
+      console.error(`Board ${boardId} could not be evicted`, error);
+    }
+  }
+
   private receiveFromBus(room: Room, message: Uint8Array) {
     try {
       const decoder = decoding.createDecoder(message);
@@ -469,7 +507,7 @@ export class YjsBoardHub
           BUS_ORIGIN
         );
       } else if (type === MESSAGE_EVICT) {
-        void this.evictLocal(room.boardId);
+        void this.evictFromBus(room.boardId);
       } else if (type === MESSAGE_SYNC) {
         const isStep1 =
           decoding.readVarUint(decoding.createDecoder(message.subarray(1))) ===
@@ -580,10 +618,13 @@ export class YjsBoardHub
     this.flushing.set(room.boardId, done);
     this.rooms.delete(room.boardId);
     await done;
-    this.flushing.delete(room.boardId);
+    if (this.flushing.get(room.boardId) === done) {
+      this.flushing.delete(room.boardId);
+    }
     if (room.dirty) {
-      // the final save failed; nothing else holds this state, so surface it
-      console.error(`Board ${room.boardId} unloaded with unsaved changes`);
+      console.error(`Board ${room.boardId} kept loaded with unsaved changes`);
+      await this.retain(room);
+      return;
     }
     room.timers.stop();
     this.destroy(room);
