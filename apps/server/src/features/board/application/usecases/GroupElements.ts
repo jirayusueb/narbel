@@ -1,5 +1,6 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { SceneElement } from "../../domain/entities/SceneElement";
@@ -11,7 +12,7 @@ import {
   withGroupMates,
   withoutGroup,
 } from "../../domain/rules/groups";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { bumped } from "../connectors";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 

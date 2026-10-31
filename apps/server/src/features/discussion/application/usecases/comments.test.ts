@@ -1,13 +1,17 @@
 import { describe, expect, it } from "bun:test";
 
+import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
+import { memberIdsOf } from "../../../board/application/BoardPeople";
+import { ids, setupAccess } from "../../../board/application/usecases/fakes";
 import { newComment } from "../../domain/entities/Comment";
 import { excerptOf, extractMentions } from "../../domain/rules/mentions";
 import { parseReaction } from "../../domain/values/Reaction";
+import type { DiscussionTx } from "../ports/DiscussionTx";
 import { AddComment } from "./AddComment";
 import { AssignComment } from "./AssignComment";
 import { DeleteComment } from "./DeleteComment";
 import { EditComment } from "./EditComment";
-import { ids, setupAccess } from "./fakes";
+import { FakeComments } from "./fakes";
 import { ListComments } from "./ListComments";
 import { ListReplies } from "./ListReplies";
 import { ReplyToComment } from "./ReplyToComment";
@@ -98,17 +102,28 @@ describe("comment use cases", () => {
     s.profiles.add("owner", "olive");
     s.profiles.add("ed", "ed_");
     s.profiles.add("vi", "vivi");
+    const comments = new FakeComments();
+    const uow: IUnitOfWork<DiscussionTx> = {
+      run: (work) =>
+        work({
+          comments,
+          outbox: s.outbox,
+          profiles: s.profiles,
+          members: { idsOf: (board) => memberIdsOf(board, s.grants) },
+        }),
+    };
     return {
       ...s,
-      add: new AddComment(s.guard, s.uow, ids),
-      reply: new ReplyToComment(s.guard, s.uow, ids),
-      edit: new EditComment(s.guard, s.uow),
-      resolve: new ResolveComment(s.guard, s.uow),
-      assign: new AssignComment(s.guard, s.uow),
-      react: new SetCommentReaction(s.guard, s.comments, s.profiles),
-      list: new ListComments(s.guard, s.comments, s.profiles),
-      replies: new ListReplies(s.guard, s.comments, s.profiles),
-      del: new DeleteComment(s.guard, s.comments),
+      comments,
+      add: new AddComment(s.guard, uow, ids),
+      reply: new ReplyToComment(s.guard, uow, ids),
+      edit: new EditComment(s.guard, uow),
+      resolve: new ResolveComment(s.guard, uow),
+      assign: new AssignComment(s.guard, uow),
+      react: new SetCommentReaction(s.guard, comments, s.profiles),
+      list: new ListComments(s.guard, comments, s.profiles),
+      replies: new ListReplies(s.guard, comments, s.profiles),
+      del: new DeleteComment(s.guard, comments),
     };
   };
   const put = {
@@ -122,6 +137,8 @@ describe("comment use cases", () => {
   const owner = { userId: "owner" };
   const idOf = (result: { isOk(): boolean; value?: { id: string } }) =>
     (result.isOk() && result.value?.id) || "";
+
+  const asEvent = <T>(message: unknown): T => message as T;
 
   it("lets writers comment, lists per page, and refuses viewers and anonymous callers", async () => {
     const { add, list } = setup();
@@ -153,8 +170,8 @@ describe("comment use cases", () => {
     expect(other.isOk() && other.value.items).toHaveLength(0);
   });
 
-  it("assigns and mentions in one transaction: notifications plus emails, never to the actor", async () => {
-    const { add, notifications, outbox } = setup();
+  it("assigns and mentions in one transaction: events carry the recipients, never the actor", async () => {
+    const { add, outbox } = setup();
     const created = await add.execute({
       ...put,
       body: "ping @ed_ and @olive and @ghost and @vivi",
@@ -162,21 +179,19 @@ describe("comment use cases", () => {
       actor: owner,
     });
     expect(created.isOk()).toBe(true);
-    expect(notifications.kinds("ed")).toEqual([
-      "comment.assigned",
-      "comment.mentioned",
+    const events = outbox.messages.map((m) => m.message);
+    expect(events.map((e) => e.type)).toEqual([
+      "event.comment-assigned",
+      "event.people-mentioned",
     ]);
-    expect(notifications.kinds("vi")).toEqual(["comment.mentioned"]);
-    expect(notifications.kinds("owner")).toEqual([]);
-    expect(outbox.messages.map((m) => m.message.type)).toEqual([
-      "email.comment-assigned",
-      "email.mentioned",
-      "email.mentioned",
-    ]);
+    const assigned = asEvent<{ recipient: { id: string } }>(events[0]);
+    const mentioned = asEvent<{ recipients: { id: string }[] }>(events[1]);
+    expect(assigned.recipient.id).toBe("ed");
+    expect(mentioned.recipients.map((r) => r.id)).toEqual(["ed", "vi"]);
   });
 
   it("refuses assignees without access to the board, leaving nothing behind", async () => {
-    const { add, comments, notifications } = setup();
+    const { add, comments, outbox } = setup();
     const result = await add.execute({
       ...put,
       assigneeId: "stranger",
@@ -184,11 +199,11 @@ describe("comment use cases", () => {
     });
     expect(result.isErr() && result.error.code).toBe("ValidationFailed");
     expect(comments.rows.size).toBe(0);
-    expect(notifications.sent).toHaveLength(0);
+    expect(outbox.messages).toHaveLength(0);
   });
 
   it("replies attach to the thread root and notify its author once, mention wins over reply", async () => {
-    const { add, reply, replies, notifications } = setup();
+    const { add, reply, replies, outbox } = setup();
     const root = idOf(await add.execute({ ...put, actor: ed }));
     const first = await reply.execute({
       actor: owner,
@@ -215,10 +230,15 @@ describe("comment use cases", () => {
       pageId: "page:main",
     });
     expect(third.isOk() && third.value.parentId).toBe(root);
-    expect(notifications.kinds("ed")).toEqual([
-      "comment.reply",
-      "comment.mentioned",
+    const events = outbox.messages.map((m) => m.message);
+    expect(events.map((e) => e.type)).toEqual([
+      "event.thread-replied",
+      "event.people-mentioned",
     ]);
+    const replied = asEvent<{ recipientIds: string[] }>(events[0]);
+    const mentioned = asEvent<{ recipients: { id: string }[] }>(events[1]);
+    expect(replied.recipientIds).toEqual(["ed"]);
+    expect(mentioned.recipients.map((r) => r.id)).toEqual(["ed"]);
     const list = await replies.execute({
       actor: { userId: "vi" },
       boardId: "b1",
@@ -231,7 +251,7 @@ describe("comment use cases", () => {
   });
 
   it("does not notify a removed member about replies or resolution", async () => {
-    const { add, reply, resolve, grants, notifications } = setup();
+    const { add, reply, resolve, grants, outbox } = setup();
     const root = idOf(await add.execute({ ...put, actor: ed }));
     grants.members.splice(
       grants.members.findIndex((m) => m.userId === "ed"),
@@ -249,7 +269,7 @@ describe("comment use cases", () => {
       commentId: root,
       resolve: true,
     });
-    expect(notifications.kinds("ed")).toEqual([]);
+    expect(outbox.messages).toHaveLength(0);
   });
 
   it("assigning from a stale read keeps a concurrent edit", async () => {
@@ -287,7 +307,7 @@ describe("comment use cases", () => {
   });
 
   it("resolves and reopens idempotently and tells the author and assignee once", async () => {
-    const { add, resolve, notifications } = setup();
+    const { add, resolve, outbox } = setup();
     const root = idOf(
       await add.execute({ ...put, assigneeId: "vi", actor: ed })
     );
@@ -304,11 +324,13 @@ describe("comment use cases", () => {
     expect(again.isOk() && again.value.resolvedAt).toBe(
       first.isOk() ? first.value.resolvedAt : ""
     );
-    expect(notifications.kinds("ed")).toEqual(["comment.resolved"]);
-    expect(notifications.kinds("vi")).toEqual([
-      "comment.assigned",
-      "comment.resolved",
+    const events = outbox.messages.map((m) => m.message);
+    expect(events.map((e) => e.type)).toEqual([
+      "event.comment-assigned",
+      "event.thread-resolved",
     ]);
+    const resolved = asEvent<{ recipientIds: string[] }>(events[1]);
+    expect(resolved.recipientIds).toEqual(["ed", "vi"]);
     const reopened = await step(false);
     expect(reopened.isOk() && reopened.value).toMatchObject({
       resolvedAt: null,
@@ -316,6 +338,12 @@ describe("comment use cases", () => {
     });
     const viewer = await step(true, { userId: "vi" });
     expect(viewer.isErr() && viewer.error.code).toBe("Forbidden");
+    await step(true);
+    expect(outbox.messages.map((m) => m.message.type)).toEqual([
+      "event.comment-assigned",
+      "event.thread-resolved",
+      "event.thread-resolved",
+    ]);
   });
 
   it("filters threads by status", async () => {
@@ -340,14 +368,14 @@ describe("comment use cases", () => {
   });
 
   it("reassigns, unassigns and edits; only the author may edit", async () => {
-    const { add, assign, edit, notifications } = setup();
+    const { add, assign, edit, outbox } = setup();
     const root = idOf(await add.execute({ ...put, actor: ed }));
     const to = (assigneeId: string | null) =>
       assign.execute({ actor: ed, boardId: "b1", commentId: root, assigneeId });
     const assigned = await to("vi");
     expect(assigned.isOk() && assigned.value.assignee?.id).toBe("vi");
     await to("vi");
-    expect(notifications.kinds("vi")).toEqual(["comment.assigned"]);
+    expect(outbox.messages).toHaveLength(1);
     const none = await to(null);
     expect(none.isOk() && none.value.assignee).toBeNull();
     const edited = await edit.execute({
@@ -357,10 +385,22 @@ describe("comment use cases", () => {
       body: "changed @vivi",
     });
     expect(edited.isOk() && edited.value.editedAt).not.toBeNull();
-    expect(notifications.kinds("vi")).toEqual([
-      "comment.assigned",
-      "comment.mentioned",
+    expect(outbox.messages.map((m) => m.message.type)).toEqual([
+      "event.comment-assigned",
+      "event.people-mentioned",
     ]);
+    await edit.execute({
+      actor: ed,
+      boardId: "b1",
+      commentId: root,
+      body: "changed @vivi and @olive",
+    });
+    const later = outbox.messages.at(-1)?.message as {
+      type: string;
+      recipients: { id: string }[];
+    };
+    expect(later.type).toBe("event.people-mentioned");
+    expect(later.recipients.map((r) => r.id)).toEqual(["owner"]);
     const other = await edit.execute({
       actor: owner,
       boardId: "b1",

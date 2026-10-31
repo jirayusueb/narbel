@@ -1,17 +1,18 @@
 import type { IProfileReader } from "../../../../shared/application/interfaces/IProfiles";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { parseReaction } from "../../domain/values/Reaction";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
 import { presentOne } from "../CommentPresenter";
 import type { CommentDto } from "../dtos/CommentDto";
-import type { IBoardCommentRepository } from "../ports/IBoardCommentRepository";
+import type { IBoardAccess } from "../ports/IBoardAccess";
+import type { IBoardCommentRepository } from "../ports/ICommentRepository";
 
 /** Adds or removes the caller's reaction; viewers may react. Repeating either is a no-op. */
 export class SetCommentReaction {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly guard: IBoardAccess,
     private readonly comments: IBoardCommentRepository,
     private readonly profiles: IProfileReader
   ) {}

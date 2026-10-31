@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
-import type { Actor } from "../BoardAccess";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardPresence } from "../ports/IBoardPresence";
 import type {

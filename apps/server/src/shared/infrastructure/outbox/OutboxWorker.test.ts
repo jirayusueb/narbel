@@ -11,8 +11,10 @@ import type {
 import {
   DEFAULT_OUTBOX_POLICY,
   OutboxWorker,
+  UnreadableEventError,
   backoffSeconds,
 } from "./OutboxWorker";
+import type { EventConsumer } from "./OutboxWorker";
 
 const mention = (id: string) => ({
   type: "email.mentioned",
@@ -117,7 +119,10 @@ class RecordingSender implements IEmailSender {
 const LEASE_SLACK =
   (DEFAULT_OUTBOX_POLICY.batchSize * DEFAULT_OUTBOX_POLICY.sendTimeoutMs) /
   1000;
-const setup = (policy = DEFAULT_OUTBOX_POLICY) => {
+const setup = (
+  policy = DEFAULT_OUTBOX_POLICY,
+  consume?: (store: MemoryStore) => EventConsumer
+) => {
   const store = new MemoryStore();
   const sender = new RecordingSender();
   const clock = { now: new Date("2026-01-01T00:00:00Z") };
@@ -126,13 +131,66 @@ const setup = (policy = DEFAULT_OUTBOX_POLICY) => {
     sender,
     { webOrigin: "http://web" },
     policy,
-    () => clock.now
+    () => clock.now,
+    consume?.(store)
   );
   const advance = (seconds: number) => {
     clock.now = new Date(clock.now.getTime() + seconds * 1000);
   };
   return { store, sender, worker, advance };
 };
+
+describe("events", () => {
+  it("hands an event to its consumer once and sends the email it queued in the same tick", async () => {
+    const handled: string[] = [];
+    const { store, sender, worker } = setup(
+      DEFAULT_OUTBOX_POLICY,
+      (s) => (id) => {
+        handled.push(id);
+        s.add(`mail-for-${id}`);
+        return Promise.resolve();
+      }
+    );
+    store.add("e1", "event.people-mentioned", {
+      type: "event.people-mentioned",
+    });
+    expect(await worker.tick()).toBe(2);
+    expect(handled).toEqual(["e1"]);
+    expect(store.row("e1").status).toBe("sent");
+    expect(sender.sent.map((s) => s.key)).toEqual(["mail-for-e1"]);
+  });
+
+  it("parks an event nobody can read as dead and retries one whose consumer failed", async () => {
+    const { store, worker } = setup(
+      DEFAULT_OUTBOX_POLICY,
+      () => (id) =>
+        Promise.reject(
+          id === "bad"
+            ? new UnreadableEventError("bad shape")
+            : new Error("db down")
+        )
+    );
+    store.add("bad", "event.thread-replied", {});
+    store.add("flaky", "event.thread-replied", {});
+    await worker.tick();
+    expect(store.row("bad")).toMatchObject({
+      status: "dead",
+      lastError: "bad shape",
+    });
+    expect(store.row("flaky")).toMatchObject({
+      status: "pending",
+      lastError: "db down",
+    });
+  });
+
+  it("never sends an event as email when no consumer is registered", async () => {
+    const { store, sender, worker } = setup();
+    store.add("e1", "event.thread-resolved", {});
+    await worker.tick();
+    expect(store.row("e1").status).toBe("dead");
+    expect(sender.sent).toHaveLength(0);
+  });
+});
 
 describe("backoff", () => {
   it("is 30s * 2^attempts capped at an hour", () => {

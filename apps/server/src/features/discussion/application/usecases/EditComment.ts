@@ -1,30 +1,33 @@
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
+import { requirePerson } from "../../../../shared/application/requirePerson";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
-import { memberIdsOf, requirePerson } from "../BoardPeople";
-import { CommentEvents } from "../CommentEvents";
+import { editBody } from "../../domain/entities/Thread";
+import { extractMentions } from "../../domain/rules/mentions";
 import { presentOne } from "../CommentPresenter";
+import { DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
-import type { BoardTx } from "../ports/BoardTx";
+import type { DiscussionTx } from "../ports/DiscussionTx";
+import type { IBoardAccess } from "../ports/IBoardAccess";
 
-export class AssignComment {
+export class EditComment {
   constructor(
-    private readonly guard: BoardAccessGuard,
-    private readonly uow: IUnitOfWork<BoardTx>
+    private readonly guard: IBoardAccess,
+    private readonly uow: IUnitOfWork<DiscussionTx>
   ) {}
 
   async execute(input: {
     actor: Actor;
     boardId: string;
     commentId: string;
-    assigneeId: string | null;
+    body: string;
   }): Promise<Result<CommentDto, AppError>> {
     const granted = await this.guard.require(
       input.boardId,
       input.actor,
-      "write"
+      "read"
     );
     if (granted.isErr()) {
       return err(granted.error);
@@ -36,26 +39,22 @@ export class AssignComment {
         return err(actor.error);
       }
       const comment = await tx.comments.findById(board.id, input.commentId);
-      if (!comment || comment.parentId !== null) {
+      if (!comment) {
         return err(AppError.notFound("Comment"));
       }
-      const { assigneeId } = input;
-      const members = await memberIdsOf(board, tx.grants);
-      if (assigneeId && !members.has(assigneeId)) {
-        return err(
-          AppError.validation("Assignee must have access to the board")
-        );
+      const edited = editBody(comment, actor.value.id, input.body, new Date());
+      if (edited.isErr()) {
+        return err(edited.error);
       }
-      if (assigneeId !== comment.assigneeId) {
-        const next = { ...comment, assigneeId };
-        await tx.comments.update(board.id, comment.id, { assigneeId });
-        const [assignee] = assigneeId
-          ? await tx.profiles.findPeople([assigneeId])
-          : [];
-        if (assignee) {
-          await new CommentEvents(tx, actor.value, next).assigned(assignee);
-        }
-      }
+      await tx.comments.update(board.id, comment.id, {
+        body: edited.value.body,
+        editedAt: edited.value.editedAt,
+      });
+      // people already named before the edit are not told again
+      await new DiscussionEvents(tx, actor.value, edited.value).mentions(
+        await tx.members.idsOf(board),
+        extractMentions(comment.body)
+      );
       return await presentOne(
         tx.comments,
         tx.profiles,

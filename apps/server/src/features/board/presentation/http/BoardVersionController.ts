@@ -1,12 +1,15 @@
 import { Elysia, t } from "elysia";
 
 import {
+  actorFrom,
+  shareQuery,
+} from "../../../../shared/presentation/http/actor";
+import {
   asWire,
   resultPlugin,
 } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import type { BoardUseCases } from "../../ioc";
-import { actorFrom, shareQuery } from "./actor";
 
 const params = t.Object({ id: t.String(), versionId: t.String() });
 

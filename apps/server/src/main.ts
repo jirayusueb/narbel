@@ -9,6 +9,7 @@ import {
   RedisBoardPresence,
   sweepBoardFiles,
 } from "./features/board";
+import { createNotificationConsumer } from "./features/notification";
 import { DrizzleProfileRepository } from "./features/profile";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
@@ -45,7 +46,7 @@ await jobLock.runExclusive("boot:backfill-board-text", 60_000, () =>
   backfillBoardText(db)
 );
 // decision 4: identity deletes the avatar and drops the person's undelivered emails before
-// the user row goes; step 5 replaces this callback with a PersonDeleted outbox event
+// the user row goes; this becomes a PersonDeleted outbox event when identity publishes events
 const auth = createAuth(
   ENV,
   db,
@@ -65,6 +66,18 @@ const auth = createAuth(
 const pubsub = new RedisPubSub(redis);
 
 const storage = new BunS3FileStorage(ENV);
+const outbox = new OutboxWorker(
+  new DrizzleOutboxStore(db),
+  new ResendEmailSender(ENV),
+  { webOrigin: ENV.WEB_ORIGIN },
+  {
+    ...DEFAULT_OUTBOX_POLICY,
+    baseDelaySeconds: ENV.OUTBOX_BACKOFF_BASE_SECONDS,
+    maxAttempts: ENV.OUTBOX_MAX_ATTEMPTS,
+  },
+  () => new Date(),
+  createNotificationConsumer({ db, pubsub, apiOrigin: ENV.BETTER_AUTH_URL })
+);
 const app = createApp({
   auth,
   db,
@@ -77,6 +90,7 @@ const app = createApp({
   pubsub,
   redis,
   idempotency: new RedisIdempotencyStore(redis),
+  wakeOutbox: () => outbox.wake(),
 }).listen(Number(process.env.PORT ?? 3000), ({ url }) => {
   console.log(`Server is running on ${url}`);
 });
@@ -96,16 +110,6 @@ const gc = setInterval(() => {
   void runGc();
 }, GC_EVERY_MS);
 
-const outbox = new OutboxWorker(
-  new DrizzleOutboxStore(db),
-  new ResendEmailSender(ENV),
-  { webOrigin: ENV.WEB_ORIGIN },
-  {
-    ...DEFAULT_OUTBOX_POLICY,
-    baseDelaySeconds: ENV.OUTBOX_BACKOFF_BASE_SECONDS,
-    maxAttempts: ENV.OUTBOX_MAX_ATTEMPTS,
-  }
-);
 outbox.start();
 
 const shutdown = async () => {

@@ -1,6 +1,6 @@
 import { t } from "elysia";
 
-import type { Actor } from "../../application/BoardAccess";
+import type { Actor } from "../../kernel/types/Actor";
 
 /** Share links carry their token as `?share=`; declared so typed clients may pass it. */
 export const shareQuery = t.Object({ share: t.Optional(t.String()) });

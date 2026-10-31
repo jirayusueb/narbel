@@ -1,7 +1,8 @@
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { toVersionDto } from "../dtos/VersionDto";
 import type { VersionDto } from "../dtos/VersionDto";
 import type { IBoardHistory, VersionScene } from "../ports/IBoardHistory";

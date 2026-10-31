@@ -1,9 +1,10 @@
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { boardFileKey } from "../../domain/values/FileKey";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 
 export interface BoardFileContent {

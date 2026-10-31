@@ -10,23 +10,35 @@ import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
 import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
+import {
+  AddComment,
+  AssignComment,
+  CommentActivityFeed,
+  DeleteComment,
+  DrizzleCommentRepository,
+  EditComment,
+  ListComments,
+  ListReplies,
+  ReplyToComment,
+  ResolveComment,
+  SetCommentReaction,
+  createBoardCommentController,
+} from "../discussion";
+import type { DiscussionTx } from "../discussion";
 import { DrizzleNotificationRepository } from "../notification";
 import { DrizzleProfileRepository } from "../profile";
 import { BoardAccessGuard } from "./application/BoardAccess";
+import { memberIdsOf } from "./application/BoardPeople";
 import type { BoardTx } from "./application/ports/BoardTx";
 import { AddBoardElements } from "./application/usecases/AddBoardElements";
 import { AddBoardImage } from "./application/usecases/AddBoardImage";
-import { AddComment } from "./application/usecases/AddComment";
 import { AddPage } from "./application/usecases/AddPage";
 import { ArrangeElements } from "./application/usecases/ArrangeElements";
-import { AssignComment } from "./application/usecases/AssignComment";
 import { ConnectBoardSync } from "./application/usecases/ConnectBoardSync";
 import { CreateBoard } from "./application/usecases/CreateBoard";
 import { DeleteBoardElements } from "./application/usecases/DeleteBoardElements";
-import { DeleteComment } from "./application/usecases/DeleteComment";
 import { DeletePage } from "./application/usecases/DeletePage";
 import { DuplicateBoard } from "./application/usecases/DuplicateBoard";
-import { EditComment } from "./application/usecases/EditComment";
 import { ExportBoardScene } from "./application/usecases/ExportBoardScene";
 import { GetBoard } from "./application/usecases/GetBoard";
 import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
@@ -41,9 +53,7 @@ import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
 import { ListBoards } from "./application/usecases/ListBoards";
 import { ListBoardVersions } from "./application/usecases/ListBoardVersions";
 import { ListBoardViewers } from "./application/usecases/ListBoardViewers";
-import { ListComments } from "./application/usecases/ListComments";
 import { ListPages } from "./application/usecases/ListPages";
-import { ListReplies } from "./application/usecases/ListReplies";
 import { ListSharedBoards } from "./application/usecases/ListSharedBoards";
 import { ListTrash } from "./application/usecases/ListTrash";
 import { PresignBoardFileUpload } from "./application/usecases/PresignBoardFileUpload";
@@ -52,8 +62,6 @@ import { RemoveBoardMember } from "./application/usecases/RemoveBoardMember";
 import { RenameBoard } from "./application/usecases/RenameBoard";
 import { RenamePage } from "./application/usecases/RenamePage";
 import { RenderBoardImage } from "./application/usecases/RenderBoardImage";
-import { ReplyToComment } from "./application/usecases/ReplyToComment";
-import { ResolveComment } from "./application/usecases/ResolveComment";
 import { RestoreBoard } from "./application/usecases/RestoreBoard";
 import { RestoreBoardVersion } from "./application/usecases/RestoreBoardVersion";
 import { SaveLibrary } from "./application/usecases/SaveLibrary";
@@ -63,7 +71,6 @@ import {
   GetSelection,
   SelectElements,
 } from "./application/usecases/Selection";
-import { SetCommentReaction } from "./application/usecases/SetCommentReaction";
 import { TrashBoard } from "./application/usecases/TrashBoard";
 import { UnlockBoard } from "./application/usecases/UnlockBoard";
 import { UpdateBoardAccess } from "./application/usecases/UpdateBoardAccess";
@@ -72,7 +79,6 @@ import { YjsBoardHub } from "./infrastructure/crdt/YjsBoardHub";
 import { CachedBoardDocumentStore } from "./infrastructure/repositories/CachedBoardDocumentStore";
 import { CachedBoardRepository } from "./infrastructure/repositories/CachedBoardRepository";
 import { DrizzleBoardAccessRepository } from "./infrastructure/repositories/DrizzleBoardAccessRepository";
-import { DrizzleBoardCommentRepository } from "./infrastructure/repositories/DrizzleBoardCommentRepository";
 import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/DrizzleBoardDocumentStore";
 import { DrizzleBoardFileRepository } from "./infrastructure/repositories/DrizzleBoardFileRepository";
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
@@ -85,7 +91,6 @@ import { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence
 import { ResvgRasterizer } from "./infrastructure/services/ResvgRasterizer";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
 import { createBoardAccessController } from "./presentation/http/BoardAccessController";
-import { createBoardCommentController } from "./presentation/http/BoardCommentController";
 import {
   createBoardController,
   createSharedBoardsController,
@@ -111,6 +116,8 @@ export interface BoardDeps {
   /** shared by every server instance: unlock failure counts and who has which board open */
   redis: Redis;
   betterAuth: BetterAuthPlugin;
+  /** asks the outbox worker for a pass now; comment events wake it after they commit */
+  wakeOutbox: () => void;
 }
 
 const createUseCases = ({
@@ -122,13 +129,14 @@ const createUseCases = ({
   cache,
   pubsub,
   redis,
+  wakeOutbox,
 }: Omit<BoardDeps, "betterAuth">) => {
   const boards = new CachedBoardRepository(
     new DrizzleBoardRepository(db),
     cache
   );
   const grants = new DrizzleBoardAccessRepository(db);
-  const comments = new DrizzleBoardCommentRepository(db);
+  const comments = new DrizzleCommentRepository(db);
   const profiles = new DrizzleProfileRepository(db, apiOrigin);
   const files = new DrizzleBoardFileRepository(db);
   const hub = new YjsBoardHub(
@@ -145,7 +153,7 @@ const createUseCases = ({
         transactionalCache(cache, afterCommit)
       ),
       grants: new DrizzleBoardAccessRepository(tx),
-      comments: new DrizzleBoardCommentRepository(tx),
+      comments: new DrizzleCommentRepository(tx),
       notifications: new DrizzleNotificationRepository(
         tx,
         pubsub,
@@ -155,6 +163,22 @@ const createUseCases = ({
       outbox: new DrizzleOutbox(tx, ids),
       profiles: new DrizzleProfileRepository(tx, apiOrigin),
     })
+  );
+  // comment use cases commit with their own aggregate set: the comment, its outbox events, member and profile reads
+  const discussionUow = new DrizzleUnitOfWork<DiscussionTx>(
+    db,
+    (tx: DbExecutor, afterCommit) => {
+      afterCommit(wakeOutbox);
+      return {
+        comments: new DrizzleCommentRepository(tx),
+        members: {
+          idsOf: (board) =>
+            memberIdsOf(board, new DrizzleBoardAccessRepository(tx)),
+        },
+        outbox: new DrizzleOutbox(tx, ids),
+        profiles: new DrizzleProfileRepository(tx, apiOrigin),
+      };
+    }
   );
   const hasher = new ScryptPasswordHasher();
   const unlockTokens = new HmacUnlockTokens(secret);
@@ -200,7 +224,11 @@ const createUseCases = ({
     addPage: new AddPage(guard, hub, ids),
     renamePage: new RenamePage(guard, hub),
     deletePage: new DeletePage(guard, hub),
-    getBoardChanges: new GetBoardChanges(guard, hub, comments, profiles),
+    getBoardChanges: new GetBoardChanges(
+      guard,
+      hub,
+      new CommentActivityFeed(comments, profiles)
+    ),
     getSelection: new GetSelection(guard, hub),
     selectElements: new SelectElements(guard, hub),
     editSelection: new EditSelection(guard, hub, ids),
@@ -225,11 +253,11 @@ const createUseCases = ({
     ),
     listComments: new ListComments(guard, comments, profiles),
     listReplies: new ListReplies(guard, comments, profiles),
-    addComment: new AddComment(guard, uow, ids),
-    replyToComment: new ReplyToComment(guard, uow, ids),
-    editComment: new EditComment(guard, uow),
-    resolveComment: new ResolveComment(guard, uow),
-    assignComment: new AssignComment(guard, uow),
+    addComment: new AddComment(guard, discussionUow, ids),
+    replyToComment: new ReplyToComment(guard, discussionUow, ids),
+    editComment: new EditComment(guard, discussionUow),
+    resolveComment: new ResolveComment(guard, discussionUow),
+    assignComment: new AssignComment(guard, discussionUow),
     setCommentReaction: new SetCommentReaction(guard, comments, profiles),
     deleteComment: new DeleteComment(guard, comments),
   };

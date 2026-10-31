@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
-import type { BoardAccessGuard, Actor, Need } from "../BoardAccess";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
+import type { BoardAccessGuard, Need } from "../BoardAccess";
 import { fakeUnlock, ids, newBoard, setupAccess } from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { InviteBoardMember } from "./InviteBoardMember";
@@ -389,27 +390,12 @@ describe("invites", () => {
         role: "viewer",
       }
     );
-    comments.rows.set("c1", {
-      id: "c1",
-      boardId: "b1",
-      pageId: "p",
-      x: 0,
-      y: 0,
-      body: "hi",
-      authorId: "owner",
-      createdAt: new Date(),
-      editedAt: null,
-      resolvedAt: null,
-      resolvedById: null,
-      assigneeId: "u1",
-      parentId: null,
-    });
     const remove = new RemoveBoardMember(guard, uow);
     const actor = { userId: "owner" };
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "u1" })).isOk()
     ).toBe(true);
-    expect(comments.rows.get("c1")?.assigneeId).toBeNull();
+    expect(comments.cleared).toEqual([{ boardId: "b1", userId: "u1" }]);
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "p@x.io" })).isOk()
     ).toBe(true);

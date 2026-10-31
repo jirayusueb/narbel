@@ -1,4 +1,5 @@
 import { AppError } from "../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../shared/kernel/types/Result";
 import type { Result } from "../../../shared/kernel/types/Result";
 import type { Board } from "../domain/entities/Board";
@@ -7,15 +8,6 @@ import type { Access } from "../domain/values/Access";
 import type { IBoardAccessRepository } from "./ports/IBoardAccessRepository";
 import type { IBoardRepository } from "./ports/IBoardRepository";
 import type { IUnlockTokens } from "./ports/IUnlockTokens";
-
-/** Everything the caller can present as proof of access. All parts are optional. */
-export interface Actor {
-  userId?: string;
-  email?: string;
-  name?: string;
-  shareToken?: string;
-  unlockProof?: string;
-}
 
 export type Need = "read" | "write" | "owner";
 

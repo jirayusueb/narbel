@@ -1,5 +1,10 @@
 import { Elysia, t } from "elysia";
 
+import {
+  actorFrom,
+  shareQuery,
+  unlockCookieName,
+} from "../../../../shared/presentation/http/actor";
 import { clientAddress } from "../../../../shared/presentation/http/clientAddress";
 import {
   asWire,
@@ -8,7 +13,6 @@ import {
 } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
 import type { BoardUseCases } from "../../ioc";
-import { actorFrom, shareQuery, unlockCookieName } from "./actor";
 
 const params = t.Object({ id: t.String() });
 const role = t.Union([t.Literal("editor"), t.Literal("viewer")]);

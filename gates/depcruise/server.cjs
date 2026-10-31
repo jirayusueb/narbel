@@ -96,6 +96,14 @@ module.exports = {
       },
       to: { path: "packages/db/src/schema/account\\.ts$" },
     },
+    {
+      name: "server-schema-discussion-owner",
+      comment:
+        "schema/discussion.ts (comment, comment_reaction) belongs to features/discussion",
+      severity: "error",
+      from: { path: `${S}/`, pathNot: `${S}/features/discussion/` },
+      to: { path: "packages/db/src/schema/discussion\\.ts$" },
+    },
   ],
   options: {
     tsPreCompilationDeps: true,

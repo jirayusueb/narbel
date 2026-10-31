@@ -1,9 +1,6 @@
 import type { UserRef } from "../../../../shared/application/interfaces/IProfiles";
 import { threadIdOf } from "../../domain/entities/Comment";
-import type {
-  CommentView,
-  ReactionSummary,
-} from "../ports/IBoardCommentRepository";
+import type { CommentView, ReactionSummary } from "../ports/ICommentRepository";
 
 export interface CommentDto {
   id: string;

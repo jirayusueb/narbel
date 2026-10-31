@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 
 import { createDb, sql } from "@narbel/db";
-import { board, boardAccess, comment } from "@narbel/db/schema/board";
+import { board, boardAccess } from "@narbel/db/schema/board";
+import { comment } from "@narbel/db/schema/discussion";
 import * as Y from "yjs";
 
 import { SearchQuery } from "../../domain/values/SearchQuery";

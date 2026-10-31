@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
-import type { Comment } from "../../domain/entities/Comment";
+import { CommentActivityFeed } from "../../../discussion/application/CommentActivityFeed";
+import { FakeComments } from "../../../discussion/application/usecases/fakes";
+import type { Comment } from "../../../discussion/domain/entities/Comment";
 import { newBoard, setupAccess } from "./fakes";
 import type { FakeScenes } from "./fakes";
 import { GetBoardChanges, MAX_COMMENT_CHANGES } from "./GetBoardChanges";
@@ -30,11 +32,11 @@ const comment = (id: string, patch: Partial<Comment> = {}): Comment => ({
 const setup = () => {
   const access = setupAccess();
   access.profiles.add("owner");
+  const comments = new FakeComments();
   const usecase = new GetBoardChanges(
     access.guard,
     access.scenes,
-    access.comments,
-    access.profiles,
+    new CommentActivityFeed(comments, access.profiles),
     () => start
   );
   const call = async (since?: string) => {
@@ -44,7 +46,7 @@ const setup = () => {
     }
     return result.value;
   };
-  return { ...access, usecase, call };
+  return { ...access, comments, usecase, call };
 };
 
 describe("GetBoardChanges", () => {

@@ -1,6 +1,7 @@
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
@@ -20,7 +21,7 @@ import {
 } from "../../domain/rules/UploadRules";
 import { buildImage, imageSize } from "../../domain/shapes/imageElement";
 import { boardFileKey } from "../../domain/values/FileKey";
-import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { BoardAccessGuard } from "../BoardAccess";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
