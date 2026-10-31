@@ -33,7 +33,7 @@ describe("planImport", () => {
     });
     expect(plan.elements.map((e) => e.id)).toEqual(["r", "a", "i"]);
     expect(plan.elements[1]).toBe(arrow);
-    expect(plan.images.map((f) => f.id)).toEqual(["f1"]);
+    expect(plan.images.map((f) => String(f.id))).toEqual(["f1"]);
   });
 
   test("refuses a file whose image has no bytes instead of importing a broken placeholder", () => {

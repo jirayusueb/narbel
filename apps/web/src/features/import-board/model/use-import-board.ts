@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import {
   uploadBoardFile,
   useCreateBoard,
-  useDeleteBoard,
+  usePurgeBoard,
+  useTrashBoard,
 } from "@/entities/board";
 import { useDraftKey } from "@/shared/lib";
 
@@ -108,14 +109,22 @@ const runImport = async (
 export const useImportBoard = () => {
   const navigate = useNavigate();
   const create = useCreateBoard();
-  const remove = useDeleteBoard();
+  const trash = useTrashBoard();
+  const purge = usePurgeBoard();
   const draftKey = useDraftKey();
   const [isPending, setIsPending] = useState(false);
 
   const importFile = async (file: File) => {
     setIsPending(true);
     const boardId = await runImport(
-      { create: create.mutateAsync, remove: remove.mutateAsync, draftKey },
+      {
+        create: create.mutateAsync,
+        remove: async (id) => {
+          await trash.mutateAsync(id);
+          await purge.mutateAsync(id);
+        },
+        draftKey,
+      },
       file
     );
     setIsPending(false);

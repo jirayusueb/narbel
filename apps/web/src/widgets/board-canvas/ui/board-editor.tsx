@@ -255,6 +255,7 @@ export const BoardEditor = ({
     adapter: libraryAdapter,
   });
   usePendingImport({
+    boardId: board.id,
     pageId,
     api,
     doc,

@@ -145,7 +145,8 @@ export class DuplicateBoard {
       // only the new board's own id and prefix are touched, never the source
       await this.scenes.discard(board.id);
       await this.storage.deletePrefix(boardFilePrefix(board.id));
-      await this.boards.delete(board.id);
+      await this.boards.setTrashed(board.id, new Date());
+      await this.boards.deleteTrashed(board.id);
       throw error;
     }
   }
