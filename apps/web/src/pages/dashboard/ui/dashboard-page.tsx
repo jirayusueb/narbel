@@ -1,12 +1,14 @@
 import { Button } from "@narbel/ui/components/button";
 import { Skeleton } from "@narbel/ui/components/skeleton";
-import { Pencil, Plus } from "lucide-react";
+import { Copy, Pencil, Plus } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 
 import { BoardCard, useBoards, useSharedBoards } from "@/entities/board";
 import type { Board } from "@/entities/board";
 import { openCreateBoardDialog } from "@/features/create-board";
+import { useDuplicateBoard } from "@/features/duplicate-board";
+import { ImportBoardButton } from "@/features/import-board";
 import { McpKeysPanel } from "@/features/mcp-keys";
 import { openRenameBoardDialog } from "@/features/rename-board";
 import {
@@ -37,6 +39,7 @@ const BoardGrid = ({
   editable?: boolean;
 }) => {
   const reduce = useReducedMotion();
+  const { duplicate, isPending: duplicating } = useDuplicateBoard();
   return (
     <div className={boards.length ? GRID : "contents"}>
       {/* initial={false}: items present on first paint stay visible; only later additions animate. */}
@@ -67,6 +70,15 @@ const BoardGrid = ({
               actions={
                 editable ? (
                   <>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Duplicate ${board.title}`}
+                      isDisabled={duplicating}
+                      onPress={() => duplicate(board.id)}
+                    >
+                      <Copy />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -141,7 +153,12 @@ const DashboardHeader = ({ boards }: { boards: Board[] | undefined }) => (
         <Skeleton className="mt-1 h-4 w-16 rounded-full" />
       )}
     </div>
-    {boards?.length ? <NewBoardButton /> : null}
+    {boards ? (
+      <div className="flex items-center gap-2">
+        <ImportBoardButton />
+        {boards.length ? <NewBoardButton /> : null}
+      </div>
+    ) : null}
   </div>
 );
 

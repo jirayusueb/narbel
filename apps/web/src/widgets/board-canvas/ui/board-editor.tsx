@@ -47,6 +47,7 @@ import {
   PresenceBar,
   usePresence,
 } from "@/features/board-presence";
+import { usePendingImport } from "@/features/import-board";
 import { NotificationsBell } from "@/features/notifications";
 import { openRenameBoardDialog } from "@/features/rename-board";
 import { openShareBoardDialog } from "@/features/share-board";
@@ -253,6 +254,12 @@ export const BoardEditor = ({
     excalidrawAPI: signedIn ? api : null,
     adapter: libraryAdapter,
   });
+  usePendingImport({
+    pageId,
+    api,
+    doc,
+    ready: status === "live" && writable,
+  });
   const pages = usePages({
     doc,
     synced: status === "live",
@@ -411,6 +418,7 @@ export const BoardEditor = ({
     >
       <Excalidraw
         theme={resolvedTheme === "dark" ? "dark" : "light"}
+        name={board.title}
         viewModeEnabled={!writable}
         excalidrawAPI={bindApi}
         UIOptions={{ canvasActions: { toggleTheme: true } }}

@@ -17,6 +17,7 @@ export {
   useTrashedBoards,
   useUnlockBoard,
 } from "./api/queries";
+export { uploadBoardFile } from "./api/upload-file";
 export type {
   Board,
   BoardAccess,

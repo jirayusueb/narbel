@@ -25,6 +25,7 @@ import { CreateBoard } from "./application/usecases/CreateBoard";
 import { DeleteBoardElements } from "./application/usecases/DeleteBoardElements";
 import { DeleteComment } from "./application/usecases/DeleteComment";
 import { DeletePage } from "./application/usecases/DeletePage";
+import { DuplicateBoard } from "./application/usecases/DuplicateBoard";
 import { EditComment } from "./application/usecases/EditComment";
 import { ExportBoardScene } from "./application/usecases/ExportBoardScene";
 import { GetBoard } from "./application/usecases/GetBoard";
@@ -167,6 +168,7 @@ const createUseCases = ({
     restoreBoard: new RestoreBoard(guard, boards),
     listTrash: new ListTrash(boards),
     purgeBoard: new PurgeBoard(guard, uow, hub, storage),
+    duplicateBoard: new DuplicateBoard(guard, boards, hub, files, storage, ids),
     presignBoardFileUpload: new PresignBoardFileUpload(guard, files, storage),
     getBoardFile: new GetBoardFile(guard, files, storage),
     getBoardScene: new GetBoardScene(guard, hub),

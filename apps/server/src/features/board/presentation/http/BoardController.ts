@@ -91,6 +91,19 @@ export const createBoardController = (
           })
         )
     )
+    .post(
+      "/:id/duplicate",
+      { auth: true, idempotent: true, params, query: shareQuery },
+      async ({ user, request, params: { id }, set }) => {
+        set.status = 201;
+        return asWire(
+          await uc.duplicateBoard.execute({
+            actor: actorFrom(request, user, id),
+            boardId: id,
+          })
+        );
+      }
+    )
     .delete(
       "/:id",
       { auth: true, params },
