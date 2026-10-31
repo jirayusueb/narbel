@@ -50,6 +50,7 @@ import { openRenameBoardDialog } from "@/features/rename-board";
 import { openShareBoardDialog } from "@/features/share-board";
 import { UserMenu } from "@/features/user-menu";
 import { safeRedirect } from "@/shared/lib";
+import { installLatinShortcuts } from "@/shared/lib/latin-shortcuts";
 
 import { isPhoneSize } from "../model/chrome-fit";
 import { PHONE_QUERY } from "../model/phone-query";
@@ -294,6 +295,12 @@ export const BoardEditor = ({
     observer.observe(el);
     return () => observer.disconnect();
   }, [api]);
+
+  // Thai/non-Latin layouts report non-Latin `key`, so Excalidraw's tool shortcuts never match; shadow it per event.
+  useEffect(() => {
+    const el = canvasRef.current;
+    return el ? installLatinShortcuts(el) : undefined;
+  }, []);
 
   const presenceProps = {
     peers: presence.peers,
