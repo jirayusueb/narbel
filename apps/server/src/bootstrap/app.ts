@@ -71,7 +71,7 @@ export const createApp = ({
 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
   // the composition root: each context reaches another only through the ports wired here
-  const access = createAccessPolicy({ db, cache, secret });
+  const access = createAccessPolicy({ db, cache, secret, apiOrigin });
   const drawing = createDrawingUseCases({
     db,
     storage,
@@ -86,7 +86,7 @@ export const createApp = ({
     apiOrigin,
     wakeOutbox,
     access,
-    membersIn: (tx) => createAccessPolicy({ db, cache, secret }, tx),
+    membersIn: (tx) => createAccessPolicy({ db, cache, secret, apiOrigin }, tx),
   });
   const search = createSearchUseCases({ db, boards: access });
   const boards = createBoardsUseCases({

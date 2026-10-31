@@ -68,6 +68,12 @@ export class DrizzleProfileRepository implements IProfileRepository {
       : this.people(inArray(profile.username, usernames));
   }
 
+  findByEmails(emails: string[]) {
+    return emails.length === 0
+      ? Promise.resolve([])
+      : this.people(inArray(user.email, emails));
+  }
+
   async findPerson(id: string) {
     const [person] = await this.findPeople([id]);
     return person ?? null;

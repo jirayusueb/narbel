@@ -1,6 +1,5 @@
 import { and, eq, isNotNull, isNull, or, sql } from "@narbel/db";
 import type { DbExecutor } from "@narbel/db";
-import { user } from "@narbel/db/schema/auth";
 import { board, boardAccess, boardShare } from "@narbel/db/schema/boards";
 
 import type {
@@ -8,10 +7,19 @@ import type {
   ReadableBoard,
   Share,
 } from "../../application/ports/IBoardAccessRepository";
+import type { IBoardPeople } from "../../application/ports/IBoardPeople";
 import type { Role } from "../../domain/values/Access";
 
 export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
-  constructor(private readonly db: DbExecutor) {}
+  constructor(
+    private readonly db: DbExecutor,
+    private readonly people: IBoardPeople
+  ) {}
+
+  private async namesByEmail(emails: string[]) {
+    const found = await this.people.findByEmails(emails);
+    return new Map(found.map((person) => [person.email, person]));
+  }
 
   async findGrant(
     boardId: string,
@@ -84,27 +92,33 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
         userId: boardAccess.userId,
         email: boardAccess.email,
         role: boardAccess.role,
-        name: user.name,
       })
       .from(boardAccess)
-      .leftJoin(user, eq(user.email, boardAccess.email))
       .where(eq(boardAccess.boardId, boardId))
       .orderBy(boardAccess.createdAt);
-    return rows.map((row) => ({ ...row, name: row.name ?? row.email }));
+    const names = await this.namesByEmail(rows.map((row) => row.email));
+    return rows.map((row) => ({
+      ...row,
+      name: names.get(row.email)?.name ?? row.email,
+    }));
   }
 
   async listMemberRoles(boardId: string) {
     const rows = await this.db
       .select({
-        userId: sql<string | null>`coalesce(${boardAccess.userId}, ${user.id})`,
+        userId: boardAccess.userId,
+        email: boardAccess.email,
         role: boardAccess.role,
       })
       .from(boardAccess)
-      .leftJoin(user, eq(user.email, boardAccess.email))
       .where(eq(boardAccess.boardId, boardId));
-    return rows.flatMap(({ userId, role }) =>
-      userId ? [{ userId, role }] : []
+    const registered = await this.namesByEmail(
+      rows.filter((row) => !row.userId).map((row) => row.email)
     );
+    return rows.flatMap(({ userId, email, role }) => {
+      const id = userId ?? registered.get(email)?.id;
+      return id ? [{ userId: id, role }] : [];
+    });
   }
 
   async upsertMember(
@@ -137,12 +151,8 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
   }
 
   async findUserIdByEmail(email: string) {
-    const [row] = await this.db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.email, email))
-      .limit(1);
-    return row?.id ?? null;
+    const [person] = await this.people.findByEmails([email]);
+    return person?.id ?? null;
   }
 
   async findShare(boardId: string) {

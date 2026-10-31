@@ -12,7 +12,11 @@ const SCHEMA = `access_repo_test_${process.pid}`;
 const url = `${BASE}${BASE.includes("?") ? "&" : "?"}options=-c%20search_path%3D${SCHEMA}`;
 const admin = createDb({ DATABASE_URL: BASE });
 const db = createDb({ DATABASE_URL: url });
-const repo = new DrizzleBoardAccessRepository(db);
+const registered = [{ id: "ann", email: "ann@x.io", name: "Ann" }];
+const repo = new DrizzleBoardAccessRepository(db, {
+  findByEmails: (emails) =>
+    Promise.resolve(registered.filter((p) => emails.includes(p.email))),
+});
 const reachable = await admin
   .execute(sql`select 1`)
   .then(() => true)
@@ -94,5 +98,22 @@ describe.skipIf(!reachable)("DrizzleBoardAccessRepository (postgres)", () => {
     expect(
       await repo.findGrant("granted", { userId: alice.id, email: undefined })
     ).toEqual({ grantId: "ga1", userId: alice.id, role: "viewer" });
+  });
+
+  it("names members through identity, falls back to the email without an account, and resolves unclaimed invites", async () => {
+    await db.insert(boardAccess).values([
+      { id: "m1", boardId: "stranger", email: "ann@x.io", role: "editor" },
+      { id: "m2", boardId: "stranger", email: "ghost@x.io", role: "viewer" },
+    ]);
+    const members = await repo.listMembers("stranger");
+    expect(members.toSorted((a, b) => a.email.localeCompare(b.email))).toEqual([
+      { userId: null, email: "ann@x.io", role: "editor", name: "Ann" },
+      { userId: null, email: "ghost@x.io", role: "viewer", name: "ghost@x.io" },
+    ]);
+    expect(await repo.listMemberRoles("stranger")).toEqual([
+      { userId: "ann", role: "editor" },
+    ]);
+    expect(await repo.findUserIdByEmail("ann@x.io")).toBe("ann");
+    expect(await repo.findUserIdByEmail("ghost@x.io")).toBeNull();
   });
 });

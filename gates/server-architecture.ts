@@ -107,7 +107,7 @@ export const proofs = defineProofs(gate, [
   ),
   proof.red(
     adapter.rules.schemaAuthOwner,
-    "detects an auth schema import outside features/auth and the one legacy reader",
+    "detects an auth schema import outside features/auth and features/profile",
     mutate.appendText(
       "apps/server/src/features/notification/ioc.ts",
       '\nimport { user } from "@narbel/db/schema/auth";\n'
