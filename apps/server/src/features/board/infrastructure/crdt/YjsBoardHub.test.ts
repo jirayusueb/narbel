@@ -7,9 +7,12 @@ import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 
 import type { TextChange } from "../../application/ports/IBoardDocumentStore";
-import type { SyncPeer } from "../../application/ports/IBoardSyncGateway";
+import type {
+  PeerAccess,
+  SyncPeer,
+} from "../../application/ports/IBoardSyncGateway";
 import { MemoryBus } from "./MemoryBus";
-import { YjsBoardHub } from "./YjsBoardHub";
+import { recheckBoardPeers, YjsBoardHub } from "./YjsBoardHub";
 
 const store = {
   load: () => Promise.resolve(null),
@@ -73,8 +76,17 @@ class Client {
   }
 }
 
+// what a peer's recheck answers when a test does not change access
+const unchanged = (canWrite: boolean) => () =>
+  Promise.resolve<PeerAccess>(canWrite ? "write" : "read");
+
 const join = async (hub: YjsBoardHub, client: Client, canWrite: boolean) => {
-  client.session = await hub.connect("b1", client.peer(), canWrite);
+  client.session = await hub.connect(
+    "b1",
+    client.peer(),
+    canWrite,
+    unchanged(canWrite)
+  );
   // start the sync handshake the way y-websocket does: send our step 1
   const e = encoding.createEncoder();
   encoding.writeVarUint(e, 0);
@@ -490,8 +502,8 @@ describe("YjsBoardHub eviction", () => {
     const onB = new Client();
     const watchA = closing(onA);
     const watchB = closing(onB);
-    onA.session = await a.connect("b1", watchA.peer, true);
-    onB.session = await b.connect("b1", watchB.peer, true);
+    onA.session = await a.connect("b1", watchA.peer, true, unchanged(true));
+    onB.session = await b.connect("b1", watchB.peer, true, unchanged(true));
     await settle();
     onA.doc.getMap("elements").set("page:main:a", { id: "a" });
     await settle();
@@ -513,7 +525,12 @@ describe("YjsBoardHub eviction", () => {
     const { store: shared } = recordingStore();
     const hub = new YjsBoardHub(shared, new MemoryBus());
     const client = new Client();
-    client.session = await hub.connect("b1", closing(client).peer, true);
+    client.session = await hub.connect(
+      "b1",
+      closing(client).peer,
+      true,
+      unchanged(true)
+    );
     client.doc.getMap("elements").set("page:main:a", { id: "a" });
     await Promise.all([hub.evict("b1"), hub.evict("b1")]);
     await hub.evict("b1");
@@ -556,7 +573,12 @@ describe("YjsBoardHub eviction", () => {
       const hub = new YjsBoardHub(db, new MemoryBus());
       const client = new Client();
       const watch = closing(client);
-      client.session = await hub.connect("b1", watch.peer, true);
+      client.session = await hub.connect(
+        "b1",
+        watch.peer,
+        true,
+        unchanged(true)
+      );
       client.doc.getMap("elements").set("page:main:a", { id: "a" });
 
       await expect(hub.evict("b1")).rejects.toThrow("unsaved changes");
@@ -593,5 +615,97 @@ describe("YjsBoardHub eviction", () => {
       expect(doc.getMap("elements").size).toBe(1);
       await hub.discard("b1");
     });
+  });
+});
+
+describe("YjsBoardHub recheck", () => {
+  /** A client whose access the test sets; records how it was closed and how often it was decided. */
+  const guarded = (access: PeerAccess) => {
+    const client = new Client();
+    const watch = {
+      client,
+      access,
+      decided: 0,
+      closed: [] as { code?: number; reason?: string }[],
+    };
+    const peer: SyncPeer = {
+      ...client.peer(),
+      close: (code, reason) => {
+        watch.closed.push({ code, reason });
+      },
+    };
+    const connect = async (hub: YjsBoardHub, boardId = "b1") => {
+      client.session = await hub.connect(
+        boardId,
+        peer,
+        watch.access === "write",
+        () => {
+          watch.decided += 1;
+          return Promise.resolve(watch.access);
+        }
+      );
+      const e = encoding.createEncoder();
+      encoding.writeVarUint(e, 0);
+      syncProtocol.writeSyncStep1(e, client.doc);
+      client.session.receive(encoding.toUint8Array(e));
+    };
+    return Object.assign(watch, { connect });
+  };
+  const elements = (client: Client) => client.doc.getMap("elements");
+
+  it("closes a peer that lost read access with the revoke code on every instance; other rooms are untouched", async () => {
+    const bus = new MemoryBus();
+    const a = new YjsBoardHub(store, bus);
+    const b = new YjsBoardHub(store, bus);
+    const onA = guarded("write");
+    const onB = guarded("read");
+    const elsewhere = guarded("write");
+    await onA.connect(a);
+    await onB.connect(b);
+    await elsewhere.connect(a, "b2");
+    onA.access = "none";
+    onB.access = "none";
+    elsewhere.access = "none";
+
+    await recheckBoardPeers(bus, "b1");
+    await settle();
+
+    const revoked = [{ code: 1008, reason: "access-revoked" }];
+    expect(onA.closed).toEqual(revoked);
+    expect(onB.closed).toEqual(revoked);
+    expect(elsewhere.decided).toBe(0);
+    expect(elsewhere.closed).toEqual([]);
+    // the closed peer is out of the room: its edits no longer apply
+    elements(onA.client).set("page:main:late", { id: "late" });
+    expect(
+      await a.transact("b1", (s) => s.all("page:main").map((e) => e.id))
+    ).toEqual([]);
+  });
+
+  it("lowers a demoted peer to read-only without closing it, and raises it again", async () => {
+    const bus = new MemoryBus();
+    const hub = new YjsBoardHub(store, bus);
+    const editor = guarded("write");
+    const peer = guarded("write");
+    await editor.connect(hub);
+    await peer.connect(hub);
+    peer.access = "read";
+    await recheckBoardPeers(bus, "b1");
+    await settle();
+
+    expect(peer.closed).toEqual([]);
+    elements(peer.client).set("page:main:dropped", { id: "dropped" });
+    expect(elements(editor.client).get("page:main:dropped")).toBeUndefined();
+    elements(editor.client).set("page:main:a", { id: "a" });
+    expect(elements(peer.client).get("page:main:a")).toEqual({ id: "a" });
+    // presence keeps flowing from a read-only peer
+    peer.client.setSelection(["a"]);
+    expect(await hub.getSelection("b1")).toEqual(["a"]);
+
+    peer.access = "write";
+    await recheckBoardPeers(bus, "b1");
+    await settle();
+    elements(peer.client).set("page:main:b", { id: "b" });
+    expect(elements(editor.client).get("page:main:b")).toEqual({ id: "b" });
   });
 });

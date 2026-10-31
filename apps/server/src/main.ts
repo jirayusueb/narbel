@@ -6,10 +6,12 @@ import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
 import {
   backfillBoardText,
+  createLiveConsumer,
   RedisBoardPresence,
   sweepBoardFiles,
 } from "./features/board";
-import { createNotificationConsumer } from "./features/notification";
+import { createDiscussionConsumer } from "./features/discussion";
+import { createNotificationConsumers } from "./features/notification";
 import { DrizzleProfileRepository } from "./features/profile";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
@@ -23,6 +25,7 @@ import {
   DEFAULT_OUTBOX_POLICY,
   OutboxWorker,
 } from "./shared/infrastructure/outbox/OutboxWorker";
+import { routeEvents } from "./shared/infrastructure/outbox/routeEvents";
 import { RedisPubSub } from "./shared/infrastructure/pubsub/RedisPubSub";
 import { BunS3FileStorage } from "./shared/infrastructure/storage/BunS3FileStorage";
 
@@ -64,6 +67,12 @@ const auth = createAuth(
   }
 );
 const pubsub = new RedisPubSub(redis);
+const notification = createNotificationConsumers({
+  db,
+  pubsub,
+  apiOrigin: ENV.BETTER_AUTH_URL,
+});
+const live = createLiveConsumer({ pubsub });
 
 const storage = new BunS3FileStorage(ENV);
 const outbox = new OutboxWorker(
@@ -76,7 +85,19 @@ const outbox = new OutboxWorker(
     maxAttempts: ENV.OUTBOX_MAX_ATTEMPTS,
   },
   () => new Date(),
-  createNotificationConsumer({ db, pubsub, apiOrigin: ENV.BETTER_AUTH_URL })
+  // the event router: each type reaches every context that reacts to it
+  routeEvents({
+    "event.comment-assigned": [notification.discussion],
+    "event.people-mentioned": [notification.discussion],
+    "event.thread-replied": [notification.discussion],
+    "event.thread-resolved": [notification.discussion],
+    "event.member-removed": [
+      createDiscussionConsumer({ db }),
+      notification.memberRemoved,
+      live,
+    ],
+    "event.access-changed": [live],
+  })
 );
 const app = createApp({
   auth,

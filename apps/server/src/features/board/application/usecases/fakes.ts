@@ -35,7 +35,6 @@ import type {
   IBoardScenes,
   SceneAccess,
 } from "../ports/IBoardScenes";
-import type { ICommentAssignees } from "../ports/ICommentActivity";
 import type { IUnlockTokens } from "../ports/IUnlockTokens";
 
 let counter = 0;
@@ -251,6 +250,10 @@ export class FakeOutbox implements IOutbox {
     }
     return Promise.resolve();
   };
+  /** queued emails carry a dedupe key, published events do not */
+  emails = () => this.messages.filter((m) => m.key !== null);
+  events = (): unknown[] =>
+    this.messages.filter((m) => m.key === null).map((m) => m.message);
 }
 
 /** Runs the work directly on the fakes; there is nothing to roll back in memory. */
@@ -347,15 +350,6 @@ export const fakeUnlock: IUnlockTokens = {
   verify: (boardId, _hash, proof) => proof === `ok:${boardId}`,
 };
 
-/** Records which members were cleared as assignee; discussion owns the threads themselves. */
-export class FakeAssignees implements ICommentAssignees {
-  readonly cleared: { boardId: string; userId: string }[] = [];
-  clearAssignee = (boardId: string, userId: string) => {
-    this.cleared.push({ boardId, userId });
-    return Promise.resolve();
-  };
-}
-
 export const newBoard = (id = "b1", owner = "owner") =>
   Board.create(id, owner, BoardTitle.restore("Mine"), new Date());
 
@@ -375,7 +369,6 @@ export const setupAccess = () => {
   const boards = new FakeBoards();
   const grants = new FakeGrants(boards);
   const scenes = new FakeScenes();
-  const comments = new FakeAssignees();
   const profiles = new FakeProfiles();
   const notifications = new FakeNotifications();
   const outbox = new FakeOutbox();
@@ -384,7 +377,6 @@ export const setupAccess = () => {
   const uow = new FakeUow({
     boards,
     grants,
-    comments,
     notifications,
     outbox,
     profiles,
@@ -393,7 +385,6 @@ export const setupAccess = () => {
     boards,
     grants,
     scenes,
-    comments,
     profiles,
     notifications,
     outbox,

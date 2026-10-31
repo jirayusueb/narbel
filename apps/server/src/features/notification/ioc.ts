@@ -11,10 +11,12 @@ import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOf
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
 import type { IReadableBoards } from "./application/ports/IReadableBoards";
+import { ForgetRemovedInvite } from "./application/usecases/ForgetRemovedInvite";
 import { HandleDiscussionEvent } from "./application/usecases/HandleDiscussionEvent";
 import type { NotificationTx } from "./application/usecases/HandleDiscussionEvent";
 import { NotificationUseCases } from "./application/usecases/NotificationUseCases";
 import { discussionEventSchema } from "./infrastructure/events/discussionEventSchema";
+import { memberRemovedSchema } from "./infrastructure/events/memberRemovedSchema";
 import { DrizzleNotificationRepository } from "./infrastructure/repositories/DrizzleNotificationRepository";
 import { createNotificationController } from "./presentation/http/NotificationController";
 
@@ -43,10 +45,11 @@ export const createNotificationModule = ({
   );
 
 /**
- * Reads discussion events off the outbox: inbox entries, queued emails and the processed mark
- * commit together. The worker sends the queued emails in the pass right after.
+ * Reads discussion events and boards' member-removed off the outbox: inbox entries, queued or
+ * forgotten emails and the processed mark commit together. The worker sends queued emails in the
+ * pass right after.
  */
-export const createNotificationConsumer = ({
+export const createNotificationConsumers = ({
   db,
   pubsub,
   apiOrigin,
@@ -54,26 +57,35 @@ export const createNotificationConsumer = ({
   db: Database;
   pubsub: IPubSub;
   apiOrigin: string;
-}): EventConsumer => {
+}): { discussion: EventConsumer; memberRemoved: EventConsumer } => {
   const ids = new UuidGenerator();
-  const handle = new HandleDiscussionEvent(
-    new DrizzleUnitOfWork<NotificationTx>(db, (tx, afterCommit) => ({
-      notifications: new DrizzleNotificationRepository(
-        tx,
-        pubsub,
-        ids,
-        afterCommit
-      ),
-      outbox: new DrizzleOutbox(tx, ids),
-      processed: new DrizzleProcessedEvents(tx),
-      people: new DrizzleProfileRepository(tx, apiOrigin),
-    }))
-  );
-  return async (id, payload) => {
-    const event = discussionEventSchema.safeParse(payload);
-    if (!event.success) {
-      throw new UnreadableEventError(event.error.message);
-    }
-    await handle.execute(id, event.data);
+  const uow = new DrizzleUnitOfWork<NotificationTx>(db, (tx, afterCommit) => ({
+    notifications: new DrizzleNotificationRepository(
+      tx,
+      pubsub,
+      ids,
+      afterCommit
+    ),
+    outbox: new DrizzleOutbox(tx, ids),
+    processed: new DrizzleProcessedEvents(tx),
+    people: new DrizzleProfileRepository(tx, apiOrigin),
+  }));
+  const handle = new HandleDiscussionEvent(uow);
+  const forget = new ForgetRemovedInvite(uow);
+  return {
+    discussion: async (id, payload) => {
+      const event = discussionEventSchema.safeParse(payload);
+      if (!event.success) {
+        throw new UnreadableEventError(event.error.message);
+      }
+      await handle.execute(id, event.data);
+    },
+    memberRemoved: async (id, payload) => {
+      const event = memberRemovedSchema.safeParse(payload);
+      if (!event.success) {
+        throw new UnreadableEventError(event.error.message);
+      }
+      await forget.execute(id, event.data);
+    },
   };
 };

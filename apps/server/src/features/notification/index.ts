@@ -1,5 +1,5 @@
 export {
-  createNotificationConsumer,
+  createNotificationConsumers,
   createNotificationModule,
   type NotificationDeps,
 } from "./ioc";

@@ -12,3 +12,4 @@ export { CommentActivityFeed } from "./application/CommentActivityFeed";
 export type { DiscussionTx } from "./application/ports/DiscussionTx";
 export { DrizzleCommentRepository } from "./infrastructure/repositories/DrizzleCommentRepository";
 export { createBoardCommentController } from "./presentation/http/CommentController";
+export { createDiscussionConsumer } from "./ioc";

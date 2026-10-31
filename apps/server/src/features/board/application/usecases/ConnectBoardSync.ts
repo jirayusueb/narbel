@@ -36,7 +36,19 @@ export class ConnectBoardSync {
     const session = await this.gateway.connect(
       input.boardId,
       input.peer,
-      granted.value.access.canWrite
+      granted.value.access.canWrite,
+      // decided again with the proof the peer presented at connect
+      async () => {
+        const now = await this.policy.decide(
+          input.boardId,
+          input.actor,
+          "read"
+        );
+        if (now.isErr()) {
+          return "none";
+        }
+        return now.value.access.canWrite ? "write" : "read";
+      }
     );
     // a Trash that landed between the check above and the join must not leave this peer connected
     const again = await this.policy.decide(input.boardId, input.actor, "read");

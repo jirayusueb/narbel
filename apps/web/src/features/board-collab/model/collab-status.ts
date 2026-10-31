@@ -28,9 +28,20 @@ export const deriveCollabStatus = ({
   return wsUnsuccessfulReconnects > 0 ? "offline" : "connecting";
 };
 
-// Close code the server sends when the session is refused after the upgrade (BoardSyncController).
-export const WS_POLICY_VIOLATION = 1008;
-// Reason paired with that code for refusals; "malformed message" also closes with 1008 and is not a denial.
-export const WS_FORBIDDEN_REASON = "forbidden";
+// Close code the server sends when the session is refused after the upgrade (BoardSyncController) or a later
+// access recheck finds the person can no longer read the board (SYNC_CLOSE_REVOKED).
+const WS_POLICY_VIOLATION = 1008;
+// Reasons paired with that code for a denial; "malformed message" also closes with 1008 and is not one.
+const WS_FORBIDDEN_REASON = "forbidden";
+const WS_REVOKED_REASON = "access-revoked";
+
+/** The server will not let this person read the board: reconnecting cannot help. */
+export const isAccessDenial = ({
+  code,
+  reason,
+}: Pick<CloseEvent, "code" | "reason">) =>
+  code === WS_POLICY_VIOLATION &&
+  (reason === WS_FORBIDDEN_REASON || reason === WS_REVOKED_REASON);
+
 // Close code the server sends every peer when the board is moved to Trash (SYNC_CLOSE_TRASHED).
 export const WS_TRASHED_CODE = 4410;
