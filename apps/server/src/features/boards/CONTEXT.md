@@ -1,6 +1,6 @@
 # boards: ubiquitous language
 
-The words of the `boards` context, moved here from [docs/architecture/glossary.md](../../../../../docs/architecture/glossary.md) when the context got its own folder (migration step 6). A word means one thing inside this context; the third column names the neighbour's word it must not be confused with.
+The words of the `boards` context, which got its own folder in migration step 6. A word means one thing inside this context; the third column names the neighbour's word it must not be confused with.
 
 | Term | Meaning | Not to be confused with |
 | --- | --- | --- |
