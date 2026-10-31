@@ -121,16 +121,6 @@ export class FakeComments implements IBoardCommentRepository {
         (c) => c.boardId === boardId && (c.id === id || c.parentId === id)
       )
     ).map((c) => c.id);
-  deleteByAuthor = (authorId: string) => {
-    const roots = new Set(
-      [...this.rows.values()]
-        .filter((c) => c.authorId === authorId)
-        .map((c) => c.id)
-    );
-    return this.remove(
-      (c) => c.authorId === authorId || roots.has(c.parentId ?? "")
-    );
-  };
   addReaction = (commentId: string, userId: string, emoji: string) => {
     if (
       !this.reactions.some(

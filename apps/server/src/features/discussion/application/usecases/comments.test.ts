@@ -10,7 +10,6 @@ import { AddComment } from "./AddComment";
 import { AssignComment } from "./AssignComment";
 import { DeleteComment } from "./DeleteComment";
 import { EditComment } from "./EditComment";
-import { EraseAuthorComments } from "./EraseAuthorComments";
 import { FakeComments } from "./fakes";
 import { ListComments } from "./ListComments";
 import { ListReplies } from "./ListReplies";
@@ -141,7 +140,6 @@ describe("comment use cases", () => {
       list: new ListComments(s.policy, comments, s.profiles),
       replies: new ListReplies(s.policy, comments, s.profiles),
       del: new DeleteComment(s.policy, uow),
-      erase: new EraseAuthorComments(uow),
     };
   };
   const put = {
@@ -556,38 +554,5 @@ describe("comment use cases", () => {
     const times = mirrored.map((e) => asEvent<{ at: string }>(e).at);
     expect(times.every((at) => !Number.isNaN(Date.parse(at)))).toBe(true);
     expect(outside).toEqual([]);
-  });
-
-  it("erases a deleted person's comments and the replies under their threads, one delete event per page", async () => {
-    const { add, reply, erase, comments, outbox } = setup();
-    const mine = idOf(await add.execute({ ...put, actor: ed }));
-    const answer = idOf(
-      await reply.execute({
-        actor: owner,
-        boardId: "b1",
-        commentId: mine,
-        body: "re",
-      })
-    );
-    const theirs = idOf(
-      await add.execute({ ...put, pageId: "page:two", actor: owner })
-    );
-    const myReply = idOf(
-      await reply.execute({
-        actor: ed,
-        boardId: "b1",
-        commentId: theirs,
-        body: "me too",
-      })
-    );
-    await erase.execute("ed");
-    expect([...comments.rows.keys()]).toEqual([theirs]);
-    const deleted = outbox.messages
-      .map((m) => m.message)
-      .filter((event) => event.type === "event.comment-deleted");
-    expect(deleted).toMatchObject([
-      { pageId: "page:main", commentIds: [mine, answer] },
-      { pageId: "page:two", commentIds: [myReply] },
-    ]);
   });
 });

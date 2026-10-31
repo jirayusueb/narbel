@@ -54,7 +54,8 @@ const isForeignKeyViolation = (error: unknown): boolean => {
   );
 };
 
-// the board was purged after the event was written: its mirror rows went with it, so nothing is left to do
+// the board or comment was deleted after the event was written: its mirror rows went with it by
+// cascade, and a late post or edit cannot bring them back, so nothing is left to do
 const unlessBoardGone = async (work: Promise<void>) => {
   try {
     await work;

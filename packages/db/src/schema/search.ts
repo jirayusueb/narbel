@@ -7,6 +7,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { board } from "./boards";
+import { comment } from "./discussion";
 
 // Search mirror of the text elements inside board_document.state, one row per element, kept by drawing's text events.
 export const boardText = pgTable(
@@ -33,11 +34,15 @@ export const boardTextVersion = pgTable("board_text_version", {
   savedAt: timestamp("saved_at").notNull(),
 });
 
-// Search mirror of discussion's comments, kept by its comment events.
+// Search mirror of discussion's comments, kept by its comment events. The comment foreign key is
+// the migration-time safety net: a comment deleted by any cascade (its thread, its author's
+// account, its board) takes its mirror row in the same transaction.
 export const searchComment = pgTable(
   "search_comment",
   {
-    commentId: text("comment_id").primaryKey(),
+    commentId: text("comment_id")
+      .primaryKey()
+      .references(() => comment.id, { onDelete: "cascade" }),
     boardId: text("board_id")
       .notNull()
       .references(() => board.id, { onDelete: "cascade" }),

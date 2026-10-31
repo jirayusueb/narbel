@@ -1,0 +1,46 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "da074fb0-cb34-4e1f-9085-c1f730413e14",
+  "prevIds": ["444e62e4-875e-4acf-810b-1ff4d2944b04"],
+  "footprints": [
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "search_comment"],
+      "writes": [
+        "s|fk|public.search_comment.search_comment_comment_id_comment_id_fkey",
+        "n|fk|public.search_comment.search_comment_comment_id_comment_id_fkey",
+        "e|fk|public.search_comment.search_comment_comment_id_comment_id_fkey",
+        "n|con|public.search_comment.search_comment_comment_id_comment_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.search_comment",
+        "n|sch|public",
+        "n|tbl|public.comment",
+        "n|sch|public",
+        "n|col|public.search_comment.comment_id",
+        "n|col|public.comment.id",
+        "e|uniqueness|public.comment.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "search_comment_comment_id_comment_id_fkey",
+        "nameExplicit": false,
+        "columns": ["comment_id"],
+        "schemaTo": "public",
+        "tableTo": "comment",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    }
+  ]
+}

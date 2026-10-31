@@ -5,10 +5,7 @@ import Redis from "ioredis";
 import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
 import { boardRecordsIn, DrizzleBoardRepository } from "./features/boards";
-import {
-  createAuthorErasure,
-  createDiscussionConsumer,
-} from "./features/discussion";
+import { createDiscussionConsumer } from "./features/discussion";
 import {
   backfillBoardText,
   createDrawingConsumer,
@@ -56,9 +53,8 @@ await jobLock.runExclusive("boot:backfill-board-text", 60_000, () =>
   backfillBoardText(db)
 );
 // decision 4: identity deletes the avatar and drops the person's undelivered emails before
-// the user row goes, and discussion deletes the person's comments with their delete events, so
-// search forgets them too; this becomes a PersonDeleted outbox event when identity publishes events
-const eraseAuthorComments = createAuthorErasure({ db });
+// the user row goes; the person's comments, and search's mirror of them, go with the row by
+// foreign-key cascade. This becomes a PersonDeleted outbox event when identity publishes events.
 const auth = createAuth(
   ENV,
   db,
@@ -73,7 +69,6 @@ const auth = createAuth(
     await new DrizzleOutbox(db, new UuidGenerator()).forgetPendingTo(
       person.email
     );
-    await eraseAuthorComments(person.id);
   }
 );
 const pubsub = new RedisPubSub(redis);

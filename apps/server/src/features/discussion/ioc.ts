@@ -19,8 +19,6 @@ import { AddComment } from "./application/usecases/AddComment";
 import { AssignComment } from "./application/usecases/AssignComment";
 import { DeleteComment } from "./application/usecases/DeleteComment";
 import { EditComment } from "./application/usecases/EditComment";
-import { EraseAuthorComments } from "./application/usecases/EraseAuthorComments";
-import type { EraseTx } from "./application/usecases/EraseAuthorComments";
 import { ListComments } from "./application/usecases/ListComments";
 import { ListReplies } from "./application/usecases/ListReplies";
 import { ReplyToComment } from "./application/usecases/ReplyToComment";
@@ -99,17 +97,6 @@ export const createCommentActivity = ({
     new DrizzleCommentRepository(db),
     new DrizzleProfileRepository(db, apiOrigin)
   );
-
-/** Decision 4, run while the person still exists: their comments go with a delete event each page. */
-export const createAuthorErasure = ({ db }: { db: Database }) => {
-  const erase = new EraseAuthorComments(
-    new DrizzleUnitOfWork<EraseTx>(db, (tx) => ({
-      comments: new DrizzleCommentRepository(tx),
-      outbox: new DrizzleOutbox(tx, new UuidGenerator()),
-    }))
-  );
-  return (personId: string) => erase.execute(personId);
-};
 
 export const createDiscussionModule = (
   betterAuth: BetterAuthPlugin,

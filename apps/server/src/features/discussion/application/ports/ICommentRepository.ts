@@ -65,10 +65,6 @@ export interface IBoardCommentRepository {
   ): Promise<void>;
   /** Deletes the comment and, for a thread root, its replies; returns every deleted id. */
   delete(boardId: string, id: string): Promise<string[]>;
-  /** Deletes every comment `authorId` wrote and every reply to their threads; returns what went. */
-  deleteByAuthor(
-    authorId: string
-  ): Promise<Pick<Comment, "id" | "boardId" | "pageId">[]>;
   addReaction(commentId: string, userId: string, emoji: string): Promise<void>;
   removeReaction(
     commentId: string,
