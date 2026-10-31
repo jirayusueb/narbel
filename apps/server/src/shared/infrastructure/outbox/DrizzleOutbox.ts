@@ -1,4 +1,4 @@
-import { eq } from "@narbel/db";
+import { and, eq, sql } from "@narbel/db";
 import type { DbExecutor } from "@narbel/db";
 import { outbox } from "@narbel/db/schema/account";
 
@@ -30,5 +30,17 @@ export class DrizzleOutbox implements IOutbox {
 
   async forget(dedupeKey: string) {
     await this.db.delete(outbox).where(eq(outbox.dedupeKey, dedupeKey));
+  }
+
+  /** Drops the person's undelivered emails; decision 4, called while the person still exists. */
+  async forgetPendingTo(email: string) {
+    await this.db
+      .delete(outbox)
+      .where(
+        and(
+          eq(outbox.status, "pending"),
+          sql`${outbox.payload}->>'to' = ${email}`
+        )
+      );
   }
 }

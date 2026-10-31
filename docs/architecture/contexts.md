@@ -1,6 +1,6 @@
 # Bounded contexts of narbel
 
-Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 3 are done. Each later step starts only after the owner confirms it.
+Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 4 are done. Each later step starts only after the owner confirms it.
 
 This document splits the server's `features/board` module into bounded contexts, defines how the contexts talk, and lists the current behavior that the split must keep. It also covers the matching frontend changes. Every "today" claim cites the code it comes from, so a reviewer can check it.
 
@@ -235,7 +235,7 @@ Each step is one pull request. The tests from [Behavior the split must keep](#be
 1. Done (2026-10-30). CI runs every redproof gate on push and pull request, `main` requires the `redproof` check, and the unlock and sign-in rate limits key on the client address that the trusted proxy appends (decision 5).
 2. Done (2026-10-30). This document and [glossary.md](glossary.md), one section per context.
 3. Dependency rules: a context imports another only through its `index.ts`. Only the owning context imports a schema file. No `@excalidraw/*` or `yjs` in `domain/`. No port interfaces in `infrastructure/`.
-4. Move `identity.profile` and `notification` out of `shared/`, with the notification access check (decision 3) and the cleanup after a deleted person (decision 4).
+4. Done (2026-10-31). The Drizzle profile and notification repositories live in their features; the schema-owner rules now allow `features/profile` (identity's profile module). The notification list re-checks access through `readableBoards` from `features/board`'s public API and shows an invitation under the board's current title (decision 3). Deleting a person runs a Better Auth `delete.before` hook that removes the avatar and drops the person's pending outbox emails (decision 4); step 5 replaces the callback with the `PersonDeleted` event.
 5. Extract `discussion`, with the `Thread`, `Reply`, and `Reaction` aggregates. Move its side effects to outbox events, and measure the delay from comment commit to notification row.
 6. Split `boards` from `drawing`, with `AccessPolicy`, the `Board` and `Grant` aggregates, the `Drawing` aggregate, the typed `Element` view, and closing the WebSocket of a removed member (decision 1).
 7. Rebuild `search` on events and `readableBoardIds`.

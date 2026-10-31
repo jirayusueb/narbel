@@ -8,8 +8,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type * as Y from "yjs";
 
-import { uploadBoardFile } from "@/entities/board";
-import { SERVER_URL } from "@/shared/config";
+import { downloadAsDataUrl, uploadBoardFile } from "@/entities/board";
 import { isOnPage } from "@/shared/lib/page-keys";
 
 import { fileIdsOnPage } from "./page-files";
@@ -21,33 +20,6 @@ interface FileMeta {
 }
 
 const LOCAL_ORIGIN = Symbol("local-file");
-const BASE64_CHUNK = 0x80_00;
-
-const blobToDataUrl = async (blob: Blob) => {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += BASE64_CHUNK) {
-    binary += String.fromCodePoint(...bytes.subarray(i, i + BASE64_CHUNK));
-  }
-  return `data:${blob.type};base64,${btoa(binary)}`;
-};
-
-export const downloadAsDataUrl = async (
-  boardId: string,
-  fileId: string,
-  shareToken?: string
-) => {
-  const query = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
-  const res = await fetch(
-    `${SERVER_URL}/api/boards/${boardId}/files/${fileId}${query}`,
-    { credentials: "include" }
-  );
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-  return blobToDataUrl(await res.blob());
-};
-
 export const useBoardMedia = ({
   boardId,
   doc,

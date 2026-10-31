@@ -7,11 +7,11 @@ import type { IFileStorage } from "../../shared/application/interfaces/IFileStor
 import type { IPubSub } from "../../shared/application/interfaces/IPubSub";
 import { transactionalCache } from "../../shared/infrastructure/cache/TransactionalCache";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
-import { DrizzleNotificationRepository } from "../../shared/infrastructure/notifications/DrizzleNotificationRepository";
 import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
-import { DrizzleProfileRepository } from "../../shared/infrastructure/profile/DrizzleProfileRepository";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
+import { DrizzleNotificationRepository } from "../notification";
+import { DrizzleProfileRepository } from "../profile";
 import { BoardAccessGuard } from "./application/BoardAccess";
 import type { BoardTx } from "./application/ports/BoardTx";
 import { AddBoardElements } from "./application/usecases/AddBoardElements";

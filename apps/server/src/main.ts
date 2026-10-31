@@ -9,11 +9,14 @@ import {
   RedisBoardPresence,
   sweepBoardFiles,
 } from "./features/board";
+import { DrizzleProfileRepository } from "./features/profile";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
 import { RedisIdempotencyStore } from "./shared/infrastructure/idempotency/RedisIdempotencyStore";
+import { UuidGenerator } from "./shared/infrastructure/ids/UuidGenerator";
 import { RedisJobLock } from "./shared/infrastructure/lock/RedisJobLock";
+import { DrizzleOutbox } from "./shared/infrastructure/outbox/DrizzleOutbox";
 import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
 import {
   DEFAULT_OUTBOX_POLICY,
@@ -41,7 +44,24 @@ const jobLock = new RedisJobLock(redis);
 await jobLock.runExclusive("boot:backfill-board-text", 60_000, () =>
   backfillBoardText(db)
 );
-const auth = createAuth(ENV, db, [], new RedisSecondaryStorage(redis));
+// decision 4: identity deletes the avatar and drops the person's undelivered emails before
+// the user row goes; step 5 replaces this callback with a PersonDeleted outbox event
+const auth = createAuth(
+  ENV,
+  db,
+  [],
+  new RedisSecondaryStorage(redis),
+  async (person) => {
+    const profiles = new DrizzleProfileRepository(db, ENV.BETTER_AUTH_URL);
+    const avatarKey = await profiles.avatarKeyOf(person.id);
+    if (avatarKey) {
+      await new BunS3FileStorage(ENV).delete(avatarKey);
+    }
+    await new DrizzleOutbox(db, new UuidGenerator()).forgetPendingTo(
+      person.email
+    );
+  }
+);
 const pubsub = new RedisPubSub(redis);
 
 const storage = new BunS3FileStorage(ENV);

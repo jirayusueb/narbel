@@ -17,6 +17,7 @@ export {
   useTrashedBoards,
   useUnlockBoard,
 } from "./api/queries";
+export { downloadAsDataUrl } from "./api/download-file";
 export { uploadBoardFile } from "./api/upload-file";
 export type {
   Board,

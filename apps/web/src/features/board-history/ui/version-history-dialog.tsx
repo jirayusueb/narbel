@@ -27,7 +27,7 @@ import { overlay } from "overlay-kit";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { downloadAsDataUrl } from "@/features/board-media";
+import { downloadAsDataUrl } from "@/entities/board";
 import { timeAgo } from "@/shared/lib";
 
 import {
