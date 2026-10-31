@@ -157,6 +157,22 @@ describe.skipIf(!reachable)("board search (postgres)", () => {
     expect(await find(alice, "a_d")).toEqual([]);
   });
 
+  it("hides boards in Trash, owned or shared, until they are restored", async () => {
+    await db
+      .update(board)
+      .set({ trashedAt: new Date() })
+      .where(sql`id in ('a2', 'b2')`);
+    expect(await find(alice, "growth")).toEqual([]);
+    expect(await find(alice, "launch")).toEqual([]);
+    expect(await find(alice, "BUDGET")).toEqual([]);
+    await db
+      .update(board)
+      .set({ trashedAt: null })
+      .where(sql`id in ('a2', 'b2')`);
+    expect(await find(alice, "growth")).toHaveLength(1);
+    expect(await find(alice, "launch")).toHaveLength(1);
+  });
+
   it("orders title matches before newer text matches", async () => {
     const ids = (await find(alice, "plan")).map((hit) => hit.id);
     expect(ids).toEqual(["b2"]);

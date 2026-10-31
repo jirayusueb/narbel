@@ -453,3 +453,143 @@ describe("YjsBoardHub persistence", () => {
     });
   });
 });
+
+describe("YjsBoardHub eviction", () => {
+  const recordingStore = () => {
+    const saved: Uint8Array[] = [];
+    return {
+      saved,
+      store: {
+        load: () => Promise.resolve(saved.at(-1) ?? null),
+        save: (_id: string, state: Uint8Array) => {
+          saved.push(state);
+          return Promise.resolve("owner");
+        },
+      },
+    };
+  };
+  const closing = (client: Client) => {
+    const closed: { code?: number; reason?: string }[] = [];
+    const peer: SyncPeer = {
+      ...client.peer(),
+      close: (code, reason) => {
+        closed.push({ code, reason });
+      },
+    };
+    return { closed, peer };
+  };
+
+  it("saves unsaved edits and closes peers on every instance with the trashed code", async () => {
+    const { saved, store: shared } = recordingStore();
+    const bus = new MemoryBus();
+    const a = new YjsBoardHub(shared, bus);
+    const b = new YjsBoardHub(shared, bus);
+    const onA = new Client();
+    const onB = new Client();
+    const watchA = closing(onA);
+    const watchB = closing(onB);
+    onA.session = await a.connect("b1", watchA.peer, true);
+    onB.session = await b.connect("b1", watchB.peer, true);
+    await settle();
+    onA.doc.getMap("elements").set("page:main:a", { id: "a" });
+    await settle();
+    expect(saved).toEqual([]);
+
+    await a.evict("b1");
+    await settle();
+
+    const expected = [{ code: 4410, reason: "board-trashed" }];
+    expect(watchA.closed).toEqual(expected);
+    expect(watchB.closed).toEqual(expected);
+    const stored = new Y.Doc();
+    Y.applyUpdate(stored, saved.at(-1) ?? new Uint8Array());
+    expect(stored.getMap("elements").get("page:main:a")).toEqual({ id: "a" });
+    expect(bus.subscribers("sync:b1")).toBe(0);
+  });
+
+  it("lets a later load of the same board start from the saved state, and evicting twice is harmless", async () => {
+    const { store: shared } = recordingStore();
+    const hub = new YjsBoardHub(shared, new MemoryBus());
+    const client = new Client();
+    client.session = await hub.connect("b1", closing(client).peer, true);
+    client.doc.getMap("elements").set("page:main:a", { id: "a" });
+    await Promise.all([hub.evict("b1"), hub.evict("b1")]);
+    await hub.evict("b1");
+    expect(await hub.transact("b1", (s) => s.pages().length)).toBe(1);
+    const elements = await hub.transact("b1", (s) =>
+      s.all("page:main").map((e) => e.id)
+    );
+    expect(elements).toEqual(["a"]);
+  });
+
+  describe("when the store rejects the final save", () => {
+    const flaky = () => {
+      const saved: Uint8Array[] = [];
+      let up = false;
+      return {
+        saved,
+        recover: () => {
+          up = true;
+        },
+        store: {
+          load: () => Promise.resolve(saved.at(-1) ?? null),
+          save: (_id: string, state: Uint8Array) => {
+            if (!up) {
+              return Promise.reject(new Error("db down"));
+            }
+            saved.push(state);
+            return Promise.resolve("owner");
+          },
+        },
+      };
+    };
+    const hasElement = (state: Uint8Array | undefined) => {
+      const doc = new Y.Doc();
+      Y.applyUpdate(doc, state ?? new Uint8Array());
+      return doc.getMap("elements").get("page:main:a") !== undefined;
+    };
+
+    it("reports the eviction as failed, keeps the live doc, and saves it on retry", async () => {
+      const { saved, recover, store: db } = flaky();
+      const hub = new YjsBoardHub(db, new MemoryBus());
+      const client = new Client();
+      const watch = closing(client);
+      client.session = await hub.connect("b1", watch.peer, true);
+      client.doc.getMap("elements").set("page:main:a", { id: "a" });
+
+      await expect(hub.evict("b1")).rejects.toThrow("unsaved changes");
+      expect(watch.closed).toEqual([{ code: 4410, reason: "board-trashed" }]);
+      expect(saved).toEqual([]);
+
+      recover();
+      await hub.evict("b1");
+      expect(hasElement(saved.at(-1))).toBe(true);
+      await hub.discard("b1");
+    });
+
+    it("keeps an idle room loaded until the store recovers, then saves it", async () => {
+      const { saved, recover, store: db } = flaky();
+      const hub = new YjsBoardHub(db, new MemoryBus(), {
+        debounceMs: 5,
+        maxDelayMs: 10,
+        graceMs: 20,
+      });
+      await hub.transact("b1", (s) =>
+        s.put("page:main", { id: "a", version: 1 } as never)
+      );
+      await sleep(80);
+      expect(saved).toEqual([]);
+      expect(await hub.transact("b1", (s) => s.all("page:main").length)).toBe(
+        1
+      );
+
+      recover();
+      await sleep(80);
+      expect(saved.length).toBeGreaterThan(0);
+      const doc = new Y.Doc();
+      Y.applyUpdate(doc, saved.at(-1) ?? new Uint8Array());
+      expect(doc.getMap("elements").size).toBe(1);
+      await hub.discard("b1");
+    });
+  });
+});

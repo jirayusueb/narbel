@@ -37,11 +37,19 @@ export class BoardAccessGuard {
     actor: Actor,
     need: Need
   ): Promise<Result<GrantedBoard, AppError>> {
-    const board = await this.boards.findById(boardId);
+    const board = await this.boards.findIncludingTrashed(boardId);
     if (!board) {
       return err(AppError.notFound("Board"));
     }
     const access = await this.resolve(board, actor);
+    if (board.trashedAt) {
+      // only someone who could have opened the board while it was live learns it is in Trash
+      return err(
+        access
+          ? AppError.gone("Board is in the trash")
+          : AppError.notFound("Board")
+      );
+    }
     if (!access) {
       // the one place a locked board is told apart from a missing one, so the UI can ask for the password
       return board.visibility === "password" && need !== "owner"
@@ -59,6 +67,17 @@ export class BoardAccessGuard {
       return err(AppError.forbidden("This board is read-only for you"));
     }
     return ok({ board, access });
+  }
+
+  /** Owner-only entry for the Trash actions: the board may be live or in Trash; everyone else sees nothing. */
+  async requireOwnedAnyState(
+    boardId: string,
+    actor: Actor
+  ): Promise<Result<Board, AppError>> {
+    const board = await this.boards.findIncludingTrashed(boardId);
+    return board?.isOwnedBy(actor.userId)
+      ? ok(board)
+      : err(AppError.notFound("Board"));
   }
 
   private async resolve(board: Board, actor: Actor): Promise<Access | null> {

@@ -18,7 +18,9 @@ export const incomingFor = (
   pageId: string,
   keys: Iterable<string>,
   get: (key: string) => ExcalidrawElement | undefined,
-  local: ReadonlyMap<string, ExcalidrawElement>
+  local: ReadonlyMap<string, ExcalidrawElement>,
+  // a version restore is authoritative: its versions may sit below a local tombstone the server has pruned
+  isRestore = false
 ) => {
   const incoming: ExcalidrawElement[] = [];
   for (const key of keys) {
@@ -27,7 +29,7 @@ export const incomingFor = (
     }
     const remote = get(key);
     if (remote) {
-      if (shouldTakeIncoming(local.get(remote.id), remote)) {
+      if (isRestore || shouldTakeIncoming(local.get(remote.id), remote)) {
         incoming.push({ ...remote });
       }
       continue;
@@ -38,6 +40,32 @@ export const incomingFor = (
     }
   }
   return incoming;
+};
+
+/**
+ * Canvas elements that beat the shared document's value for a key that just changed. Yjs picks between
+ * concurrent writes of one key by client id, not by Excalidraw version, so after a merge the document can
+ * hold the loser while this canvas shows the winner; writing the winner back makes every peer agree.
+ */
+export const outranking = (
+  pageId: string,
+  keys: Iterable<string>,
+  get: (key: string) => ExcalidrawElement | undefined,
+  local: ReadonlyMap<string, ExcalidrawElement>,
+  canWrite: boolean
+) => {
+  const winners: { key: string; element: ExcalidrawElement }[] = [];
+  if (!canWrite) {
+    return winners;
+  }
+  for (const key of keys) {
+    const remote = isOnPage(pageId, key) ? get(key) : undefined;
+    const shown = remote && local.get(remote.id);
+    if (remote && shown && shouldTakeIncoming(remote, shown)) {
+      winners.push({ key, element: shown });
+    }
+  }
+  return winners;
 };
 
 type Indexed = Pick<ExcalidrawElement, "id"> & { index?: string | null };

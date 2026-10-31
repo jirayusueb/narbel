@@ -31,8 +31,14 @@ const runNow: AfterCommit = async (hook) => {
   }
 };
 
+// A notification about a board in Trash would open a dead page; it stays stored and reappears on restore.
+const notInTrash = sql`NOT EXISTS (
+  SELECT 1 FROM board
+  WHERE board.id = ${notification.payload}->>'boardId' AND board.trashed_at IS NOT NULL
+)`;
+
 const unread = (userId: string) =>
-  and(eq(notification.userId, userId), isNull(notification.readAt));
+  and(eq(notification.userId, userId), isNull(notification.readAt), notInTrash);
 
 export class DrizzleNotificationRepository implements INotificationRepository {
   constructor(
@@ -72,6 +78,7 @@ export class DrizzleNotificationRepository implements INotificationRepository {
       .where(
         and(
           eq(notification.userId, userId),
+          notInTrash,
           cursor
             ? or(
                 lt(notification.createdAt, cursor.at),

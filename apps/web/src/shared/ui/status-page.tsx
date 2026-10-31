@@ -127,12 +127,14 @@ const StatusPage = ({
 export const NotFound = ({
   title = "This page isn’t on any board.",
   description = "The link may be old, or the address has a typo.",
+  says = "I checked every board. Nothing lives at this address.",
   to = "/",
   action = "Back home",
   signInRedirect,
 }: {
   title?: string;
   description?: string;
+  says?: string;
   to?: "/" | "/dashboard";
   action?: string;
   signInRedirect?: string;
@@ -140,7 +142,7 @@ export const NotFound = ({
   <StatusPage
     word="404"
     tone="missing"
-    says="I checked every board. Nothing lives at this address."
+    says={says}
     title={title}
     description={description}
     actions={

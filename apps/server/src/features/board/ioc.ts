@@ -22,10 +22,10 @@ import { ArrangeElements } from "./application/usecases/ArrangeElements";
 import { AssignComment } from "./application/usecases/AssignComment";
 import { ConnectBoardSync } from "./application/usecases/ConnectBoardSync";
 import { CreateBoard } from "./application/usecases/CreateBoard";
-import { DeleteBoard } from "./application/usecases/DeleteBoard";
 import { DeleteBoardElements } from "./application/usecases/DeleteBoardElements";
 import { DeleteComment } from "./application/usecases/DeleteComment";
 import { DeletePage } from "./application/usecases/DeletePage";
+import { DuplicateBoard } from "./application/usecases/DuplicateBoard";
 import { EditComment } from "./application/usecases/EditComment";
 import { ExportBoardScene } from "./application/usecases/ExportBoardScene";
 import { GetBoard } from "./application/usecases/GetBoard";
@@ -33,22 +33,30 @@ import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
 import { GetBoardChanges } from "./application/usecases/GetBoardChanges";
 import { GetBoardFile } from "./application/usecases/GetBoardFile";
 import { GetBoardScene } from "./application/usecases/GetBoardScene";
+import { GetBoardVersion } from "./application/usecases/GetBoardVersion";
+import { GetLibrary } from "./application/usecases/GetLibrary";
 import { GroupElements } from "./application/usecases/GroupElements";
 import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
 import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
 import { ListBoards } from "./application/usecases/ListBoards";
+import { ListBoardVersions } from "./application/usecases/ListBoardVersions";
 import { ListBoardViewers } from "./application/usecases/ListBoardViewers";
 import { ListComments } from "./application/usecases/ListComments";
 import { ListPages } from "./application/usecases/ListPages";
 import { ListReplies } from "./application/usecases/ListReplies";
 import { ListSharedBoards } from "./application/usecases/ListSharedBoards";
+import { ListTrash } from "./application/usecases/ListTrash";
 import { PresignBoardFileUpload } from "./application/usecases/PresignBoardFileUpload";
+import { PurgeBoard } from "./application/usecases/PurgeBoard";
 import { RemoveBoardMember } from "./application/usecases/RemoveBoardMember";
 import { RenameBoard } from "./application/usecases/RenameBoard";
 import { RenamePage } from "./application/usecases/RenamePage";
 import { RenderBoardImage } from "./application/usecases/RenderBoardImage";
 import { ReplyToComment } from "./application/usecases/ReplyToComment";
 import { ResolveComment } from "./application/usecases/ResolveComment";
+import { RestoreBoard } from "./application/usecases/RestoreBoard";
+import { RestoreBoardVersion } from "./application/usecases/RestoreBoardVersion";
+import { SaveLibrary } from "./application/usecases/SaveLibrary";
 import { SearchBoards } from "./application/usecases/SearchBoards";
 import {
   EditSelection,
@@ -56,6 +64,7 @@ import {
   SelectElements,
 } from "./application/usecases/Selection";
 import { SetCommentReaction } from "./application/usecases/SetCommentReaction";
+import { TrashBoard } from "./application/usecases/TrashBoard";
 import { UnlockBoard } from "./application/usecases/UnlockBoard";
 import { UpdateBoardAccess } from "./application/usecases/UpdateBoardAccess";
 import { UpdateBoardElement } from "./application/usecases/UpdateBoardElement";
@@ -68,6 +77,8 @@ import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/Drizzle
 import { DrizzleBoardFileRepository } from "./infrastructure/repositories/DrizzleBoardFileRepository";
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
 import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
+import { DrizzleBoardVersionRepository } from "./infrastructure/repositories/DrizzleBoardVersionRepository";
+import { DrizzleLibraryRepository } from "./infrastructure/repositories/DrizzleLibraryRepository";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
 import { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence";
@@ -80,6 +91,8 @@ import {
   createSharedBoardsController,
 } from "./presentation/http/BoardController";
 import { createBoardFileController } from "./presentation/http/BoardFileController";
+import { createBoardVersionController } from "./presentation/http/BoardVersionController";
+import { createLibraryController } from "./presentation/http/LibraryController";
 import { createMcpController } from "./presentation/mcp/McpController";
 import { createBoardSyncController } from "./presentation/ws/BoardSyncController";
 
@@ -122,6 +135,7 @@ const createUseCases = ({
     new CachedBoardDocumentStore(new DrizzleBoardDocumentStore(db), cache),
     pubsub
   );
+  const versions = new DrizzleBoardVersionRepository(db);
   const ids = new UuidGenerator();
   const uow = new DrizzleUnitOfWork<BoardTx>(
     db,
@@ -146,23 +160,34 @@ const createUseCases = ({
   const unlockTokens = new HmacUnlockTokens(secret);
   const guard = new BoardAccessGuard(boards, grants, unlockTokens);
   const presence = new RedisBoardPresence(redis);
+  const library = new DrizzleLibraryRepository(db);
   return {
     createBoard: new CreateBoard(boards, ids),
+    getLibrary: new GetLibrary(library),
+    saveLibrary: new SaveLibrary(library),
     listBoards: new ListBoards(boards),
     listSharedBoards: new ListSharedBoards(boards),
     searchBoards: new SearchBoards(new DrizzleBoardSearch(db)),
     getBoard: new GetBoard(guard),
     renameBoard: new RenameBoard(guard, boards),
-    deleteBoard: new DeleteBoard(guard, uow, hub, storage),
+    trashBoard: new TrashBoard(guard, boards, hub),
+    restoreBoard: new RestoreBoard(guard, boards),
+    listTrash: new ListTrash(boards),
+    purgeBoard: new PurgeBoard(guard, uow, hub, storage),
+    duplicateBoard: new DuplicateBoard(guard, boards, hub, files, storage, ids),
     presignBoardFileUpload: new PresignBoardFileUpload(guard, files, storage),
     getBoardFile: new GetBoardFile(guard, files, storage),
     getBoardScene: new GetBoardScene(guard, hub),
+    listBoardVersions: new ListBoardVersions(guard, versions),
+    getBoardVersion: new GetBoardVersion(guard, versions, hub),
+    restoreBoardVersion: new RestoreBoardVersion(guard, versions, hub),
     renderBoardImage: new RenderBoardImage(
       guard,
       hub,
       files,
       storage,
-      new ResvgRasterizer()
+      new ResvgRasterizer(),
+      cache
     ),
     addBoardElements: new AddBoardElements(guard, hub, ids),
     addBoardImage: new AddBoardImage(guard, hub, files, storage, ids),
@@ -217,9 +242,11 @@ export const createBoardModule = ({ betterAuth, ...deps }: BoardDeps) => {
   return new Elysia({ name: "feature/board" })
     .use(createBoardSyncController(betterAuth, uc))
     .use(createBoardFileController(betterAuth, uc))
+    .use(createBoardVersionController(betterAuth, uc))
     .use(createBoardCommentController(betterAuth, uc))
     .use(createBoardAccessController(betterAuth, uc))
     .use(createBoardController(betterAuth, uc))
+    .use(createLibraryController(betterAuth, uc))
     .use(createSharedBoardsController(betterAuth, uc))
     .use(createMcpController(betterAuth, uc));
 };

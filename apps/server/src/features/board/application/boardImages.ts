@@ -36,20 +36,26 @@ const readHeader = async (storage: IFileStorage, key: string) => {
 };
 
 // Uploads through the presigned PUT are never inspected, so the declared pixel count is checked here before any decode.
-const withinPixelLimit = async (storage: IFileStorage, key: string) => {
+// Returns null when the file must not be decoded; `pixels` is undefined when the header declares no size.
+const declaredPixels = async (storage: IFileStorage, key: string) => {
   const header = await readHeader(storage, key);
   const size = header?.size;
-  return (
-    header !== null && (!size || size.width * size.height <= MAX_IMAGE_PIXELS)
-  );
+  const pixels = size ? size.width * size.height : undefined;
+  return header === null || (pixels !== undefined && pixels > MAX_IMAGE_PIXELS)
+    ? null
+    : { pixels };
 };
+
+const SVG = "image/svg+xml";
 
 export const loadBoardImages = async (
   files: IBoardFileRepository,
   storage: IFileStorage,
   boardId: string,
   fileIds: string[],
-  maxBytes: number
+  maxBytes: number,
+  /** server-side rasterising must not parse attacker-supplied SVG */
+  skipSvg = false
 ) => {
   const unique = [...new Set(fileIds)];
   const found = await Promise.all(
@@ -57,9 +63,19 @@ export const loadBoardImages = async (
       const file = await files.findById(boardId, fileId);
       const key = boardFileKey(boardId, fileId);
       // The presigned PUT does not bind the declared size, so budget on what storage holds.
-      const stored = file && (await storage.stat(key));
-      return file && stored && (await withinPixelLimit(storage, key))
-        ? { fileId, key, mimeType: file.mimeType, size: stored.size }
+      if (!file || (skipSvg && file.mimeType === SVG)) {
+        return null;
+      }
+      const stored = await storage.stat(key);
+      const header = stored && (await declaredPixels(storage, key));
+      return stored && header
+        ? {
+            fileId,
+            key,
+            mimeType: file.mimeType,
+            size: stored.size,
+            pixels: header.pixels,
+          }
         : null;
     })
   );
@@ -81,6 +97,7 @@ export const loadBoardImages = async (
       images.set(f.fileId, {
         mimeType: f.mimeType,
         base64: Buffer.from(bytes).toString("base64"),
+        pixels: f.pixels,
       });
     })
   );

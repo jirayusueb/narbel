@@ -7,7 +7,13 @@ import type {
   SocketId,
 } from "@excalidraw/excalidraw/types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
@@ -30,9 +36,10 @@ import {
   deriveCollabStatus,
   WS_FORBIDDEN_REASON,
   WS_POLICY_VIOLATION,
+  WS_TRASHED_CODE,
 } from "./collab-status";
 import type { CollabStatus } from "./collab-status";
-import { byZOrder, incomingFor } from "./merge";
+import { byZOrder, incomingFor, outranking } from "./merge";
 import { writeChangedElements } from "./write-changed-elements";
 
 export type { CollabStatus } from "./collab-status";
@@ -68,6 +75,8 @@ export const useBoardCollab = ({
   canWrite: boolean;
   shareToken?: string;
 }) => {
+  // read at event time so a role change does not tear down the scene subscription
+  const canWriteNow = useEffectEvent(() => canWrite);
   const queryClient = useQueryClient();
   const { id: userId, name: userName, username, avatarUrl } = user;
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
@@ -142,14 +151,20 @@ export const useBoardCollab = ({
         })
       );
     };
-    const denyAccess = () => {
+    // `keepCache` is for a board moved to Trash: the owner may restore it, and this device may hold edits
+    // the server never saw, so those edits are saved into the local copy instead of dropped.
+    const denyAccess = ({ keepCache = false } = {}) => {
       if (disposed) {
         return;
       }
       noAccess = true;
-      throttle.cancel();
+      if (keepCache) {
+        throttle.flush();
+      } else {
+        throttle.cancel();
+      }
       provider.disconnect();
-      if (cache) {
+      if (cache && !keepCache) {
         deleteBoardCache(userId, boardId);
       }
       refreshStatus();
@@ -175,6 +190,8 @@ export const useBoardCollab = ({
       probed = true;
       if (res.status === 403 || res.status === 404) {
         denyAccess();
+      } else if (res.status === 410) {
+        denyAccess({ keepCache: true });
       }
     };
     // y-websocket bumps its failure counter right after emitting connection-close.
@@ -187,6 +204,10 @@ export const useBoardCollab = ({
         event.reason === WS_FORBIDDEN_REASON
       ) {
         denyAccess();
+        return;
+      }
+      if (event?.code === WS_TRASHED_CODE) {
+        denyAccess({ keepCache: true });
         return;
       }
       queueMicrotask(refreshStatus);
@@ -278,16 +299,36 @@ export const useBoardCollab = ({
     });
     api.history.clear();
 
-    const applyRemote = (keys: Iterable<string>) => {
+    const meta = doc.getMap("meta");
+    const applyRemote = (keys: Iterable<string>, isRestore: boolean) => {
+      const changedKeys = [...keys];
       const local = new Map(
         api.getSceneElementsIncludingDeleted().map((el) => [el.id, el])
       );
+      const winners = isRestore
+        ? []
+        : outranking(
+            pageId,
+            changedKeys,
+            (key) => elements.get(key),
+            local,
+            canWriteNow()
+          );
       const incoming = incomingFor(
         pageId,
-        keys,
+        changedKeys,
         (key) => elements.get(key),
-        local
+        local,
+        isRestore
       );
+      if (winners.length > 0) {
+        doc.transact(() => {
+          for (const { key, element } of winners) {
+            sentVersions.current.set(element.id, element.version);
+            elements.set(key, { ...element });
+          }
+        }, LOCAL_ORIGIN);
+      }
       if (incoming.length === 0) {
         return;
       }
@@ -308,10 +349,21 @@ export const useBoardCollab = ({
 
     const onElements = (event: Y.YMapEvent<ExcalidrawElement>) => {
       if (event.transaction.origin !== LOCAL_ORIGIN) {
-        applyRemote(event.keysChanged);
+        const isRestore = [...event.transaction.changed].some(
+          ([type, keys]) => Object.is(type, meta) && keys.has("restore")
+        );
+        applyRemote(event.keysChanged, isRestore);
       }
     };
     elements.observe(onElements);
+
+    // A restore replaces the scene under every client; an undo step from before it must not replay over it.
+    const onMeta = (event: Y.YMapEvent<unknown>) => {
+      if (event.keysChanged.has("restore")) {
+        api.history.clear();
+      }
+    };
+    meta.observe(onMeta);
 
     const { awareness } = provider;
     const local = awareness.getLocalState();
@@ -357,6 +409,7 @@ export const useBoardCollab = ({
     return () => {
       session.writeElements.flush();
       elements.unobserve(onElements);
+      meta.unobserve(onMeta);
       awareness.off("change", onAwareness);
     };
   }, [session, api, sceneReady, pageId]);

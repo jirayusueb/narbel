@@ -20,6 +20,7 @@ class FakePresence implements IBoardPresence {
     return Promise.resolve();
   }
   list = () => Promise.resolve([...this.open.values()]);
+  countStrict = () => Promise.resolve(this.open.size);
 }
 
 const gateway: IBoardSyncGateway = {

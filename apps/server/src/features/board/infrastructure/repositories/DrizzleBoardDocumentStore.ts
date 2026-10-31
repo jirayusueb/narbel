@@ -4,6 +4,7 @@ import { board, boardDocument, boardText } from "@narbel/db/schema/board";
 import * as Y from "yjs";
 
 import type {
+  DocumentCheckpoint,
   IBoardDocumentStore,
   TextChange,
 } from "../../application/ports/IBoardDocumentStore";
@@ -13,6 +14,7 @@ import {
   indexTexts,
   replaceAllTexts,
 } from "../crdt/boardText";
+import { checkpointIfDue } from "./boardVersions";
 
 const BACKFILL_BATCH = 50;
 
@@ -79,7 +81,12 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
     return row?.state ?? null;
   }
 
-  save(boardId: string, state: Uint8Array, texts?: TextChange) {
+  save(
+    boardId: string,
+    state: Uint8Array,
+    texts?: TextChange,
+    checkpoint?: DocumentCheckpoint
+  ) {
     return this.db.transaction(async (tx) => {
       const now = new Date();
       await tx
@@ -91,6 +98,9 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
         });
       if (texts) {
         await writeTexts(tx, boardId, texts);
+      }
+      if (checkpoint) {
+        await checkpointIfDue(tx, boardId, state, checkpoint.fileIds, now);
       }
       // keeps "newest-updated first" in the board list honest for canvas edits
       const [row] = await tx

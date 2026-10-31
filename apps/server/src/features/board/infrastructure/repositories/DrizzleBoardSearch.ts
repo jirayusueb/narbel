@@ -38,7 +38,7 @@ export class DrizzleBoardSearch implements IBoardSearch {
         FROM board b
         LEFT JOIN board_access a ON a.board_id = b.id
           AND (a.user_id = ${user.id} OR a.email = ${user.email.toLowerCase()})
-        WHERE b.owner_id = ${user.id} OR a.id IS NOT NULL
+        WHERE b.trashed_at IS NULL AND (b.owner_id = ${user.id} OR a.id IS NOT NULL)
         ORDER BY b.id
       ),
       hits AS (

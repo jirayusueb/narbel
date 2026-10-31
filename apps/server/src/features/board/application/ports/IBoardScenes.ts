@@ -60,4 +60,9 @@ export interface IBoardScenes {
   setSelection(boardId: string, selection: AgentSelection): Promise<void>;
   /** Drops the live document and its connections without persisting (the board is gone). */
   discard(boardId: string): Promise<void>;
+  /**
+   * Saves the live document, then disconnects every peer on every server instance and unloads it
+   * (the board went to Trash). Unlike `discard`, unsaved edits survive.
+   */
+  evict(boardId: string): Promise<void>;
 }

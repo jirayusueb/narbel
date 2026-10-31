@@ -1,13 +1,14 @@
 import { Button } from "@narbel/ui/components/button";
 import { Skeleton } from "@narbel/ui/components/skeleton";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Pencil, Plus } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 
 import { BoardCard, useBoards, useSharedBoards } from "@/entities/board";
 import type { Board } from "@/entities/board";
 import { openCreateBoardDialog } from "@/features/create-board";
-import { openDeleteBoardDialog } from "@/features/delete-board";
+import { useDuplicateBoard } from "@/features/duplicate-board";
+import { ImportBoardButton } from "@/features/import-board";
 import { McpKeysPanel } from "@/features/mcp-keys";
 import { openRenameBoardDialog } from "@/features/rename-board";
 import {
@@ -15,6 +16,7 @@ import {
   BoardSearchResults,
   isSearching,
 } from "@/features/search-boards";
+import { TrashBoardButton, TrashedBoards } from "@/features/trash-board";
 import { BrandSticker, pen } from "@/shared/ui";
 
 const GRID = "grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3";
@@ -37,6 +39,7 @@ const BoardGrid = ({
   editable?: boolean;
 }) => {
   const reduce = useReducedMotion();
+  const { duplicate, isPending: duplicating } = useDuplicateBoard();
   return (
     <div className={boards.length ? GRID : "contents"}>
       {/* initial={false}: items present on first paint stay visible; only later additions animate. */}
@@ -70,19 +73,21 @@ const BoardGrid = ({
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      aria-label={`Duplicate ${board.title}`}
+                      isDisabled={duplicating}
+                      onPress={() => duplicate(board.id)}
+                    >
+                      <Copy />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       aria-label={`Rename ${board.title}`}
                       onPress={() => openRenameBoardDialog(board)}
                     >
                       <Pencil />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Delete ${board.title}`}
-                      onPress={() => openDeleteBoardDialog(board)}
-                    >
-                      <Trash2 />
-                    </Button>
+                    <TrashBoardButton board={board} />
                   </>
                 ) : undefined
               }
@@ -148,7 +153,12 @@ const DashboardHeader = ({ boards }: { boards: Board[] | undefined }) => (
         <Skeleton className="mt-1 h-4 w-16 rounded-full" />
       )}
     </div>
-    {boards?.length ? <NewBoardButton /> : null}
+    {boards ? (
+      <div className="flex items-center gap-2">
+        <ImportBoardButton />
+        {boards.length ? <NewBoardButton /> : null}
+      </div>
+    ) : null}
   </div>
 );
 
@@ -183,6 +193,7 @@ export const DashboardPage = () => {
             <BoardGrid boards={shared} />
           </section>
         ) : null}
+        {searching ? null : <TrashedBoards />}
         <div className="mt-20">
           <McpKeysPanel />
         </div>

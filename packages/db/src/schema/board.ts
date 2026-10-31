@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -35,9 +36,12 @@ export const board = pgTable(
     passwordHash: text("password_hash"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    // null while the board is live; set when its owner moved it to Trash
+    trashedAt: timestamp("trashed_at"),
   },
   (table) => [
     index("board_ownerId_idx").on(table.ownerId),
+    index("board_trashed_idx").on(table.ownerId, table.trashedAt),
     index("board_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
   ]
 );
@@ -137,6 +141,29 @@ export const boardDocument = pgTable("board_document", {
   textIndexed: boolean("text_indexed").default(false).notNull(),
 });
 
+// Full Yjs state of a board at one moment. `auto` checkpoints are taken in the transaction of a
+// board_document save; `pre_restore` is the recovery point before a restore.
+// file_ids lists every image fileId the state references, so file cleanup can keep what history needs.
+export const boardVersion = pgTable(
+  "board_version",
+  {
+    id: text("id").primaryKey(),
+    boardId: text("board_id")
+      .notNull()
+      .references(() => board.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["auto", "pre_restore"] }).notNull(),
+    state: bytea("state").notNull(),
+    fileIds: text("file_ids").array().notNull().default([]),
+    createdById: text("created_by_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("board_version_board_idx").on(table.boardId, table.createdAt),
+  ]
+);
+
 // Search mirror of the text elements inside board_document.state, one row per element.
 export const boardText = pgTable(
   "board_text",
@@ -154,6 +181,15 @@ export const boardText = pgTable(
   ]
 );
 
+// One Excalidraw library per account; items are stored exactly as the editor hands them over.
+export const userLibrary = pgTable("user_library", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  libraryItems: jsonb("library_items").$type<unknown[]>().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const boardFile = pgTable(
   "board_file",
   {
@@ -164,8 +200,20 @@ export const boardFile = pgTable(
     mimeType: text("mime_type").notNull(),
     size: integer("size").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    // last presign/upload/register; GC never claims a file touched within its grace
+    touchedAt: timestamp("touched_at").defaultNow().notNull(),
+    // set while no live element or retained version references the file; cleared when one does
+    orphanSince: timestamp("orphan_since"),
+    // `deleting` is a GC claim: its S3 object is about to go, so no write path may revive the row
+    state: text("state", { enum: ["live", "deleting"] })
+      .default("live")
+      .notNull(),
+    claimedAt: timestamp("claimed_at"),
   },
-  (table) => [primaryKey({ columns: [table.boardId, table.fileId] })]
+  (table) => [
+    primaryKey({ columns: [table.boardId, table.fileId] }),
+    index("board_file_gc_idx").on(table.state, table.orphanSince),
+  ]
 );
 
 export const boardRelations = defineRelationsPart(

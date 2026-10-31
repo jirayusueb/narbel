@@ -9,6 +9,8 @@ export interface IBoardPresence {
   /** Adds or refreshes a connection; sync repeats it periodically so a viewer pruned during an outage comes back. */
   join(boardId: string, connectionId: string, viewer: Viewer): Promise<void>;
   leave(boardId: string, connectionId: string): Promise<void>;
-  /** Empty when the store is unreachable. */
+  /** Empty when the store is unreachable: fine for a UI list, never proof that nobody is connected. */
   list(boardId: string): Promise<Viewer[]>;
+  /** Live connection count. Rejects when the store is unreachable, so a caller deciding something destructive fails closed. */
+  countStrict(boardId: string): Promise<number>;
 }

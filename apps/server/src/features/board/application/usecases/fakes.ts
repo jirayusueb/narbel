@@ -58,19 +58,46 @@ export const ids: IIdGenerator = {
 
 export class FakeBoards implements IBoardRepository {
   readonly rows = new Map<string, Board>();
-  findById = (id: string) => Promise.resolve(this.rows.get(id) ?? null);
+  findById = (id: string) => {
+    const row = this.rows.get(id);
+    return Promise.resolve(row && !row.trashedAt ? row : null);
+  };
+  findIncludingTrashed = (id: string) =>
+    Promise.resolve(this.rows.get(id) ?? null);
   listByOwner = (ownerId: string) =>
     Promise.resolve(
-      [...this.rows.values()].filter((b) => b.ownerId === ownerId)
+      [...this.rows.values()].filter(
+        (b) => b.ownerId === ownerId && !b.trashedAt
+      )
+    );
+  listTrashedByOwner = (ownerId: string) =>
+    Promise.resolve(
+      [...this.rows.values()].filter(
+        (b) => b.ownerId === ownerId && b.trashedAt
+      )
     );
   listSharedWith = () => Promise.resolve([]);
   save = (board: Board) => {
     this.rows.set(board.id, board);
     return Promise.resolve();
   };
-  delete = (id: string) => {
-    this.rows.delete(id);
-    return Promise.resolve();
+  setTrashed = (id: string, at: Date | null) => {
+    const row = this.rows.get(id);
+    if (!row || (row.trashedAt === null) === (at === null)) {
+      return Promise.resolve(false);
+    }
+    this.rows.set(
+      id,
+      Board.restore({ ...row, title: row.title.value, trashedAt: at })
+    );
+    return Promise.resolve(true);
+  };
+  deleteTrashed = (id: string) => {
+    const removable = Boolean(this.rows.get(id)?.trashedAt);
+    if (removable) {
+      this.rows.delete(id);
+    }
+    return Promise.resolve(removable);
   };
 }
 
@@ -376,6 +403,7 @@ export class FakeScenes implements IBoardScenes {
     { id: string; mimeType: string; created: number }
   >();
   discarded: string[] = [];
+  evicted: string[] = [];
   selection: string[] | undefined;
   lastSelection: AgentSelection | undefined;
   touches: ElementTouch[] = [];
@@ -437,6 +465,10 @@ export class FakeScenes implements IBoardScenes {
   };
   discard = (id: string) => {
     this.discarded.push(id);
+    return Promise.resolve();
+  };
+  evict = (id: string) => {
+    this.evicted.push(id);
     return Promise.resolve();
   };
 }

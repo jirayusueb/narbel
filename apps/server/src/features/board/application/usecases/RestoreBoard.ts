@@ -1,0 +1,28 @@
+import type { AppError } from "../../../../shared/kernel/errors/AppError";
+import { err, okEmpty } from "../../../../shared/kernel/types/Result";
+import type { Result } from "../../../../shared/kernel/types/Result";
+import type { Actor, BoardAccessGuard } from "../BoardAccess";
+import type { IBoardRepository } from "../ports/IBoardRepository";
+
+/** Takes a board out of Trash. Members, share links, pages and images were never touched, so they work again. */
+export class RestoreBoard {
+  constructor(
+    private readonly guard: BoardAccessGuard,
+    private readonly boards: IBoardRepository
+  ) {}
+
+  async execute(input: {
+    actor: Actor;
+    boardId: string;
+  }): Promise<Result<undefined, AppError>> {
+    const owned = await this.guard.requireOwnedAnyState(
+      input.boardId,
+      input.actor
+    );
+    if (owned.isErr()) {
+      return err(owned.error);
+    }
+    await this.boards.setTrashed(input.boardId, null);
+    return okEmpty();
+  }
+}
