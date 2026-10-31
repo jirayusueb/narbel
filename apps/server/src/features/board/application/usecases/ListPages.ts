@@ -3,12 +3,12 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Page } from "../../domain/entities/Page";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 export class ListPages {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes
   ) {}
 
@@ -16,7 +16,7 @@ export class ListPages {
     actor: Actor;
     boardId: string;
   }): Promise<Result<Page[], AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

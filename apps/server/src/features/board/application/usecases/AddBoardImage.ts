@@ -21,7 +21,7 @@ import {
 } from "../../domain/rules/UploadRules";
 import { buildImage, imageSize } from "../../domain/shapes/imageElement";
 import { boardFileKey } from "../../domain/values/FileKey";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
@@ -58,7 +58,7 @@ const insideFrame = (frame: SceneElement, live: SceneElement[]) => {
 
 export class AddBoardImage {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly files: IBoardFileRepository,
     private readonly storage: IFileStorage,
@@ -103,7 +103,7 @@ export class AddBoardImage {
     id?: string;
     frameId?: string;
   }): Promise<Result<AddedImage, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"

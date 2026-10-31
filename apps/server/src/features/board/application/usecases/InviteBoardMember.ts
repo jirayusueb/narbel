@@ -6,12 +6,12 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { MemberRole } from "../../domain/values/Access";
 import { normalizeEmail } from "../../domain/values/Email";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { BoardTx } from "../ports/BoardTx";
 
 export class InviteBoardMember {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly uow: IUnitOfWork<BoardTx>
   ) {}
 
@@ -21,7 +21,7 @@ export class InviteBoardMember {
     email: string;
     role: MemberRole;
   }): Promise<Result<{ queued: true }, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "owner"

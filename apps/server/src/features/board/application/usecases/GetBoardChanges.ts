@@ -3,7 +3,7 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { ChangeCursor } from "../../domain/values/ChangeCursor";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { toPageChanges } from "../dtos/ChangesDto";
 import type { BoardChangesDto } from "../dtos/ChangesDto";
 import type { IBoardScenes } from "../ports/IBoardScenes";
@@ -20,7 +20,7 @@ const badCursor = () =>
 /** What humans changed on a board since an agent's cursor: elements via the live CRDT, comments via discussion. */
 export class GetBoardChanges {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly comments: ICommentActivity,
     private readonly now: () => Date = () => new Date()
@@ -31,7 +31,7 @@ export class GetBoardChanges {
     boardId: string;
     since?: string;
   }): Promise<Result<BoardChangesDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

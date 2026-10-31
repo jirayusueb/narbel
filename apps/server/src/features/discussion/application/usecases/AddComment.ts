@@ -14,7 +14,7 @@ import type { IBoardAccess } from "../ports/IBoardAccess";
 
 export class AddComment {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly uow: IUnitOfWork<DiscussionTx>,
     private readonly ids: IIdGenerator
   ) {}
@@ -28,7 +28,7 @@ export class AddComment {
     body: string;
     assigneeId?: string;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "write"
@@ -42,7 +42,7 @@ export class AddComment {
       if (actor.isErr()) {
         return err(actor.error);
       }
-      const members = await tx.members.idsOf(board);
+      const members = await tx.members.memberIds(board);
       const comment = startThread(
         {
           id: this.ids.generate(),

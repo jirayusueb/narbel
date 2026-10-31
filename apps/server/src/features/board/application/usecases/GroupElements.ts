@@ -12,7 +12,7 @@ import {
   withGroupMates,
   withoutGroup,
 } from "../../domain/rules/groups";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { bumped } from "../connectors";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 
@@ -55,7 +55,7 @@ export const resolveOperands = (
 
 export class GroupElements {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly ids: IIdGenerator
   ) {}
@@ -67,7 +67,7 @@ export class GroupElements {
   }): Promise<
     Result<{ groupId: string; ids: string[]; locked?: string[] }, AppError>
   > {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"
@@ -122,7 +122,7 @@ export class GroupElements {
     boardId: string;
     ids: string[];
   }): Promise<Result<{ groupIds: string[] }, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"

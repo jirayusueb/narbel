@@ -4,7 +4,7 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { boardFileKey } from "../../domain/values/FileKey";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 
 export interface BoardFileContent {
@@ -14,7 +14,7 @@ export interface BoardFileContent {
 
 export class GetBoardFile {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly files: IBoardFileRepository,
     private readonly storage: IFileStorage
   ) {}
@@ -24,7 +24,7 @@ export class GetBoardFile {
     boardId: string;
     fileId: string;
   }): Promise<Result<BoardFileContent, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

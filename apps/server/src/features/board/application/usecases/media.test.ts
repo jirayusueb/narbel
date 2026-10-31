@@ -92,11 +92,11 @@ const setup = () => {
     stored,
     rows,
     deleting,
-    add: new AddBoardImage(base.guard, base.scenes, files, storage, ids),
-    exportScene: new ExportBoardScene(base.guard, base.scenes, files, storage),
+    add: new AddBoardImage(base.policy, base.scenes, files, storage, ids),
+    exportScene: new ExportBoardScene(base.policy, base.scenes, files, storage),
     rasterizations: () => rasterized,
     render: new RenderBoardImage(
-      base.guard,
+      base.policy,
       base.scenes,
       files,
       storage,
@@ -200,7 +200,7 @@ describe("AddBoardImage", () => {
 
   it("places an unplaced image to the right of the page content", async () => {
     const t = setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       shapes: [{ type: "rectangle", x: 10, y: 40, width: 100, height: 100 }],
@@ -264,7 +264,7 @@ describe("AddBoardImage", () => {
 
   it("places an image without x/y inside its frame, after the children, and grows the frame", async () => {
     const t = setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       shapes: [
@@ -310,7 +310,7 @@ describe("AddBoardImage", () => {
 
   it("keeps an explicit x/y inside a frame", async () => {
     const t = setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       shapes: [
@@ -375,12 +375,12 @@ describe("AddBoardImage", () => {
 
   it("refuses a deleted frame", async () => {
     const t = setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       shapes: [{ id: "f", type: "frame", x: 0, y: 0, width: 300, height: 200 }],
     });
-    await new DeleteBoardElements(t.guard, t.scenes, ids).execute({
+    await new DeleteBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       ids: ["f"],
@@ -412,7 +412,7 @@ describe("AddBoardImage", () => {
 
   it("does not grow a locked frame", async () => {
     const t = setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       shapes: [
@@ -428,7 +428,7 @@ describe("AddBoardImage", () => {
         },
       ],
     });
-    await new UpdateBoardElement(t.guard, t.scenes, ids).execute({
+    await new UpdateBoardElement(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       id: "f",
@@ -447,7 +447,7 @@ describe("AddBoardImage", () => {
 
   it("drops frameId when an explicit x/y puts the image outside the frame", async () => {
     const t = setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       shapes: [{ id: "f", type: "frame", x: 0, y: 0, width: 300, height: 200 }],
@@ -485,7 +485,7 @@ describe("AddBoardImage", () => {
 describe("ExportBoardScene", () => {
   it("exports live elements in z-order with labels, and files only on request", async () => {
     const t = setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor,
       boardId: "b1",
       shapes: [

@@ -1,7 +1,7 @@
-import { and, eq, isNull, or, sql } from "@narbel/db";
+import { and, eq, isNotNull, isNull, or, sql } from "@narbel/db";
 import type { DbExecutor } from "@narbel/db";
 import { user } from "@narbel/db/schema/auth";
-import { boardAccess, boardShare } from "@narbel/db/schema/board";
+import { board, boardAccess, boardShare } from "@narbel/db/schema/board";
 
 import type {
   IBoardAccessRepository,
@@ -11,13 +11,17 @@ import type {
 export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
   constructor(private readonly db: DbExecutor) {}
 
-  async findMemberRole(
+  async findGrant(
     boardId: string,
     who: { userId: string; email: string | undefined }
   ) {
     const email = who.email?.toLowerCase();
     const [row] = await this.db
-      .select()
+      .select({
+        grantId: boardAccess.id,
+        userId: boardAccess.userId,
+        role: boardAccess.role,
+      })
       .from(boardAccess)
       .where(
         and(
@@ -31,16 +35,38 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
         )
       )
       .limit(1);
-    if (!row) {
-      return null;
-    }
-    if (row.userId === null) {
-      await this.db
-        .update(boardAccess)
-        .set({ userId: who.userId })
-        .where(and(eq(boardAccess.id, row.id), isNull(boardAccess.userId)));
-    }
-    return row.role;
+    return row ?? null;
+  }
+
+  async claim(grantId: string, userId: string) {
+    await this.db
+      .update(boardAccess)
+      .set({ userId })
+      .where(and(eq(boardAccess.id, grantId), isNull(boardAccess.userId)));
+  }
+
+  async readableBoardTitles(person: { id: string; email: string }) {
+    const rows = await this.db
+      .select({ id: board.id, title: board.title })
+      .from(board)
+      .leftJoin(
+        boardAccess,
+        and(
+          eq(boardAccess.boardId, board.id),
+          or(
+            eq(boardAccess.userId, person.id),
+            eq(boardAccess.email, person.email.toLowerCase())
+          )
+        )
+      )
+      .where(
+        and(
+          or(eq(board.ownerId, person.id), isNotNull(boardAccess.id)),
+          isNull(board.trashedAt)
+        )
+      );
+    // a board matched by both user id and email comes back twice; the map keeps one
+    return new Map(rows.map((row) => [row.id, row.title]));
   }
 
   async listMembers(boardId: string) {

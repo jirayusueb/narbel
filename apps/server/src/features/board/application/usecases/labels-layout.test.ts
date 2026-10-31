@@ -11,10 +11,10 @@ const owner = { userId: "owner" };
 
 const setup = () => {
   const s = setupAccess();
-  const add = new AddBoardElements(s.guard, s.scenes, ids);
-  const update = new UpdateBoardElement(s.guard, s.scenes, ids);
-  const remove = new DeleteBoardElements(s.guard, s.scenes, ids);
-  const read = new GetBoardScene(s.guard, s.scenes);
+  const add = new AddBoardElements(s.policy, s.scenes, ids);
+  const update = new UpdateBoardElement(s.policy, s.scenes, ids);
+  const remove = new DeleteBoardElements(s.policy, s.scenes, ids);
+  const read = new GetBoardScene(s.policy, s.scenes);
   const el = (id: string) =>
     s.scenes.elements.get(`page:main:${id}`) as SceneElement;
   const labelOf = (id: string) => {

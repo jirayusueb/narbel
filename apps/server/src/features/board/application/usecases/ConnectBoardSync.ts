@@ -2,7 +2,7 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardPresence } from "../ports/IBoardPresence";
 import type {
   IBoardSyncGateway,
@@ -14,7 +14,7 @@ export const TOUCH_INTERVAL_MS = 15_000;
 
 export class ConnectBoardSync {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly gateway: IBoardSyncGateway,
     private readonly presence: IBoardPresence,
     private readonly now: () => number = Date.now
@@ -25,7 +25,7 @@ export class ConnectBoardSync {
     boardId: string;
     peer: SyncPeer;
   }): Promise<Result<SyncSession, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"
@@ -39,7 +39,7 @@ export class ConnectBoardSync {
       granted.value.access.canWrite
     );
     // a Trash that landed between the check above and the join must not leave this peer connected
-    const again = await this.guard.require(input.boardId, input.actor, "read");
+    const again = await this.policy.decide(input.boardId, input.actor, "read");
     if (again.isErr()) {
       session.close();
       return err(again.error);

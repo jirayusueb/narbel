@@ -14,7 +14,7 @@ import type { IBoardAccess } from "../ports/IBoardAccess";
 
 export class ReplyToComment {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly uow: IUnitOfWork<DiscussionTx>,
     private readonly ids: IIdGenerator
   ) {}
@@ -25,7 +25,7 @@ export class ReplyToComment {
     commentId: string;
     body: string;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "write"
@@ -57,7 +57,7 @@ export class ReplyToComment {
       }
       await tx.comments.save(reply.value);
       const events = new DiscussionEvents(tx, actor.value, reply.value);
-      const members = await tx.members.idsOf(board);
+      const members = await tx.members.memberIds(board);
       const mentioned = await events.mentions(members);
       await events.reply(root, mentioned, members);
       return await presentOne(

@@ -2,7 +2,7 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardPresence } from "../ports/IBoardPresence";
 
 export interface ViewersDto {
@@ -13,7 +13,7 @@ export interface ViewersDto {
 
 export class ListBoardViewers {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly presence: IBoardPresence
   ) {}
 
@@ -21,7 +21,7 @@ export class ListBoardViewers {
     actor: Actor;
     boardId: string;
   }): Promise<Result<ViewersDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

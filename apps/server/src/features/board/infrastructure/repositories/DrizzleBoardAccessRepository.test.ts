@@ -3,15 +3,16 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { createDb, eq, sql } from "@narbel/db";
 import { board, boardAccess } from "@narbel/db/schema/board";
 
-import { readableBoards } from "./ReadableBoards";
+import { DrizzleBoardAccessRepository } from "./DrizzleBoardAccessRepository";
 
 const BASE =
   process.env.DATABASE_URL ??
   "postgresql://postgres:password@localhost:5432/narbel";
-const SCHEMA = `readable_test_${process.pid}`;
+const SCHEMA = `access_repo_test_${process.pid}`;
 const url = `${BASE}${BASE.includes("?") ? "&" : "?"}options=-c%20search_path%3D${SCHEMA}`;
 const admin = createDb({ DATABASE_URL: BASE });
 const db = createDb({ DATABASE_URL: url });
+const repo = new DrizzleBoardAccessRepository(db);
 const reachable = await admin
   .execute(sql`select 1`)
   .then(() => true)
@@ -19,7 +20,7 @@ const reachable = await admin
 
 const alice = { id: "alice", email: "alice@x.io" };
 
-describe.skipIf(!reachable)("readableBoards (postgres)", () => {
+describe.skipIf(!reachable)("DrizzleBoardAccessRepository (postgres)", () => {
   beforeAll(async () => {
     await admin.execute(sql.raw(`create schema "${SCHEMA}"`));
     for (const table of ["board", "board_access"]) {
@@ -58,7 +59,7 @@ describe.skipIf(!reachable)("readableBoards (postgres)", () => {
   });
 
   it("lists owned, invited and claimed boards with current titles, nothing else", async () => {
-    const titles = await readableBoards(db, alice);
+    const titles = await repo.readableBoardTitles(alice);
     expect(titles.get("own")).toBe("Owned");
     expect(titles.get("granted")).toBe("Granted");
     expect(titles.get("claimed")).toBe("Claimed");
@@ -67,11 +68,28 @@ describe.skipIf(!reachable)("readableBoards (postgres)", () => {
   });
 
   it("hides a trashed board until it is restored", async () => {
-    expect((await readableBoards(db, alice)).has("trash")).toBe(false);
+    expect((await repo.readableBoardTitles(alice)).has("trash")).toBe(false);
     await db
       .update(board)
       .set({ trashedAt: null })
       .where(eq(board.id, "trash"));
-    expect((await readableBoards(db, alice)).has("trash")).toBe(true);
+    expect((await repo.readableBoardTitles(alice)).has("trash")).toBe(true);
+  });
+
+  it("reads an invitation without claiming it, and a claim never replaces the person", async () => {
+    const invite = await repo.findGrant("granted", {
+      userId: alice.id,
+      email: "Alice@x.io",
+    });
+    expect(invite).toEqual({ grantId: "ga1", userId: null, role: "viewer" });
+    expect(
+      (await repo.findGrant("granted", { userId: alice.id, email: undefined }))
+        ?.grantId
+    ).toBeUndefined();
+    await repo.claim("ga1", alice.id);
+    await repo.claim("ga1", "mallory");
+    expect(
+      await repo.findGrant("granted", { userId: alice.id, email: undefined })
+    ).toEqual({ grantId: "ga1", userId: alice.id, role: "viewer" });
   });
 });

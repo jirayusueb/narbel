@@ -7,7 +7,7 @@ import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import { buildSceneSvg } from "../../domain/rendering/sceneSvg";
 import type { Bounds } from "../../domain/rules/geometry";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { MAX_RENDER_BYTES, loadBoardImages } from "../boardImages";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardRasterizer } from "../ports/IBoardRasterizer";
@@ -38,7 +38,7 @@ type CachedBoardImage = Omit<BoardImage, "image"> & {
 
 export class RenderBoardImage {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly files: IBoardFileRepository,
     private readonly storage: IFileStorage,
@@ -52,7 +52,7 @@ export class RenderBoardImage {
     pageId?: string;
     maxSize?: number;
   }): Promise<Result<BoardImage, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

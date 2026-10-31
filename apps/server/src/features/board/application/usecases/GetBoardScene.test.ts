@@ -8,7 +8,7 @@ const owner = { userId: "owner" };
 
 const setup = async () => {
   const s = setupAccess();
-  await new AddBoardElements(s.guard, s.scenes, ids).execute({
+  await new AddBoardElements(s.policy, s.scenes, ids).execute({
     actor: owner,
     boardId: "b1",
     shapes: [
@@ -31,7 +31,7 @@ const setup = async () => {
       },
     ],
   });
-  const read = new GetBoardScene(s.guard, s.scenes);
+  const read = new GetBoardScene(s.policy, s.scenes);
   return (filter: Record<string, unknown> = {}) =>
     read.execute({ actor: owner, boardId: "b1", ...filter });
 };

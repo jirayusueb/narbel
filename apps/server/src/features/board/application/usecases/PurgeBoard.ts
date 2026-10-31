@@ -5,14 +5,14 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { boardFilePrefix } from "../../domain/values/FileKey";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { BoardTx } from "../ports/BoardTx";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 /** Permanently deletes a board that is in Trash. A live board is never purged. */
 export class PurgeBoard {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly uow: IUnitOfWork<BoardTx>,
     private readonly scenes: IBoardScenes,
     private readonly storage: IFileStorage
@@ -22,7 +22,7 @@ export class PurgeBoard {
     actor: Actor;
     boardId: string;
   }): Promise<Result<undefined, AppError>> {
-    const owned = await this.guard.requireOwnedAnyState(
+    const owned = await this.policy.decideOwnedAnyState(
       input.boardId,
       input.actor
     );
