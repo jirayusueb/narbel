@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { userKeys } from "@/entities/user";
+import { userKeys } from "@/entities/person";
 import { api, unwrap } from "@/shared/api";
 
 export const useUsernameAvailable = (username: string, enabled: boolean) =>

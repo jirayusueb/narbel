@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import type * as Y from "yjs";
 
 import { downloadAsDataUrl, uploadBoardFile } from "@/entities/board";
-import { isOnPage } from "@/shared/lib/page-keys";
+import { isOnPage } from "@/entities/drawing";
 
 import { fileIdsOnPage } from "./page-files";
 

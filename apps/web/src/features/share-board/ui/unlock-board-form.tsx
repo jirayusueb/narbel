@@ -4,8 +4,9 @@ import { Spinner } from "@narbel/ui/components/spinner";
 import { Lock } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { useUnlockBoard } from "@/entities/board";
 import { ApiError } from "@/shared/api";
+
+import { useUnlockBoard } from "../api/access";
 
 // The server answers both a wrong password and a lockout with 403; only the message tells them apart.
 const unlockMessage = (error: Error) => {

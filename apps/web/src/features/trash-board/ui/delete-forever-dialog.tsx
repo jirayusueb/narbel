@@ -12,8 +12,8 @@ import { toast } from "sonner";
 
 import { usePurgeBoard } from "@/entities/board";
 import type { Board } from "@/entities/board";
+import { deleteBoardCache } from "@/entities/drawing";
 import { useSession } from "@/entities/session";
-import { deleteBoardCache } from "@/shared/lib";
 
 const DeleteForeverDialog = ({
   board,

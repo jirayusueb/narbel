@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { toast } from "sonner";
 
-import { UserAvatar, useMe } from "@/entities/user";
+import { UserAvatar, useMe } from "@/entities/person";
 
 import {
   AVATAR_MAX_BYTES,

@@ -14,7 +14,7 @@ import type {
 } from "react";
 import { toast } from "sonner";
 
-import { UserAvatar } from "@/entities/user";
+import { UserAvatar } from "@/entities/person";
 import { useDraftKey } from "@/shared/lib";
 
 import { usePins } from "../api/comments";

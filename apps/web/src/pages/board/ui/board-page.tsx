@@ -2,10 +2,11 @@ import { useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { useBoard } from "@/entities/board";
+import { deleteBoardCache } from "@/entities/drawing";
 import { useSession } from "@/entities/session";
 import { UnlockBoardForm } from "@/features/share-board";
 import { ApiError } from "@/shared/api";
-import { deleteBoardCache, safeRedirect } from "@/shared/lib";
+import { safeRedirect } from "@/shared/lib";
 import { NotFound } from "@/shared/ui";
 import { BoardCanvas, BoardSkeleton } from "@/widgets/board-canvas";
 import { Header } from "@/widgets/header";

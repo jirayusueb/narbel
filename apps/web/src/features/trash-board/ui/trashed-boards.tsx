@@ -2,9 +2,10 @@ import { Button } from "@narbel/ui/components/button";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useRestoreBoard, useTrashedBoards } from "@/entities/board";
+import { useTrashedBoards } from "@/entities/board";
 import type { Board } from "@/entities/board";
 
+import { useRestoreBoard } from "../api/use-restore-board";
 import { openDeleteForeverDialog } from "./delete-forever-dialog";
 
 const formatter = new Intl.DateTimeFormat(undefined, {

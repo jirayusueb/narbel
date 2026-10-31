@@ -195,7 +195,7 @@ Item 10 is endorsed by decision 2. Item 9 changes by decision 1.
 
 ## Frontend
 
-The frontend follows the same contexts. Entities become `board`, `drawing` (page, element, `ElementKey`), `thread`, and `person`. The 7 mutations in `entities/board/api/queries.ts:54-141` move to the features that use them. `shared/lib/board-cache.ts` and `shared/lib/page-keys.ts` move to `entities/drawing`.
+The frontend follows the same contexts. The entities are `board` (boards a person owns or shares: read queries, query keys, types), `drawing` (`entities/drawing`: element keys per page and the per-user IndexedDB board cache, moved from `shared/lib/page-keys.ts` and `shared/lib/board-cache.ts`), and `person` (the former `entities/user`), next to `session`. There is no `thread` entity yet: comment and thread reads are used only by `features/board-comments`, so they stay there. Mutations live in the feature that runs them: rename in `rename-board`, restore in `trash-board`, access, invite, remove member and unlock in `share-board`, and search in `search-boards`. Create, trash and purge stay in `entities/board` because both their own feature and `import-board` run them.
 
 ### Hooks from `@reactuses/core`
 

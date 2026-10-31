@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { toast } from "sonner";
 
-import { UserAvatar, handle } from "@/entities/user";
+import { UserAvatar, handle } from "@/entities/person";
 import { timeAgo, useDraftKey } from "@/shared/lib";
 
 import { useReplies } from "../api/comments";

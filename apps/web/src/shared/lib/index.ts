@@ -1,11 +1,5 @@
-export {
-  boardCacheName,
-  deleteAllBoardCaches,
-  deleteBoardCache,
-} from "./board-cache";
 export { authClient } from "./auth-client";
 export { colorFromName } from "./identity";
-export { elementKey, isOnPage } from "./page-keys";
 export { timeAgo } from "./time-ago";
 export { useCopy } from "./use-copy";
 export { useDraftKey } from "./use-draft-key";

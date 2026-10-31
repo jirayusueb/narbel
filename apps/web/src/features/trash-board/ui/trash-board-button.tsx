@@ -2,8 +2,10 @@ import { Button } from "@narbel/ui/components/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { useRestoreBoard, useTrashBoard } from "@/entities/board";
+import { useTrashBoard } from "@/entities/board";
 import type { Board } from "@/entities/board";
+
+import { useRestoreBoard } from "../api/use-restore-board";
 
 export const TrashBoardButton = ({ board }: { board: Board }) => {
   const trash = useTrashBoard();

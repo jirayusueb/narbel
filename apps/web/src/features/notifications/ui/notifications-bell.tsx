@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { UserAvatar } from "@/entities/user";
+import { UserAvatar } from "@/entities/person";
 import { timeAgo, useLoadMore } from "@/shared/lib";
 
 import {
