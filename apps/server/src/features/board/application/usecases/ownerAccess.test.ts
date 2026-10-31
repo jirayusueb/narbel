@@ -28,7 +28,7 @@ const setup = () => {
     findById: (b, f) => Promise.resolve(fileRows.get(`${b}/${f}`) ?? null),
     save: (b, f) => {
       fileRows.set(`${b}/${f.id}`, f);
-      return Promise.resolve();
+      return Promise.resolve(true);
     },
   };
   const storage: IFileStorage = {

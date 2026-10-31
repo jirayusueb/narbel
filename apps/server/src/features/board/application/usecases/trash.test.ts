@@ -50,6 +50,7 @@ const setup = () => {
     join: () => Promise.resolve(),
     leave: () => Promise.resolve(),
     list: () => Promise.resolve([]),
+    countStrict: () => Promise.resolve(0),
   };
   const { boards, guard, scenes, uow } = base;
   return {
@@ -123,7 +124,7 @@ describe("trash: who sees a trashed board", () => {
     await trash.execute({ actor: owner, boardId: "b1" });
     const files: IBoardFileRepository = {
       findById: () => Promise.resolve(null),
-      save: () => Promise.resolve(),
+      save: () => Promise.resolve(true),
     };
     const read = new GetBoardFile(guard, files, storage);
     expect(

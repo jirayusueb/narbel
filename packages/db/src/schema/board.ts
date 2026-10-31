@@ -200,8 +200,20 @@ export const boardFile = pgTable(
     mimeType: text("mime_type").notNull(),
     size: integer("size").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    // last presign/upload/register; GC never claims a file touched within its grace
+    touchedAt: timestamp("touched_at").defaultNow().notNull(),
+    // set while no live element or retained version references the file; cleared when one does
+    orphanSince: timestamp("orphan_since"),
+    // `deleting` is a GC claim: its S3 object is about to go, so no write path may revive the row
+    state: text("state", { enum: ["live", "deleting"] })
+      .default("live")
+      .notNull(),
+    claimedAt: timestamp("claimed_at"),
   },
-  (table) => [primaryKey({ columns: [table.boardId, table.fileId] })]
+  (table) => [
+    primaryKey({ columns: [table.boardId, table.fileId] }),
+    index("board_file_gc_idx").on(table.state, table.orphanSince),
+  ]
 );
 
 export const boardRelations = defineRelationsPart(

@@ -32,7 +32,7 @@ const setup = () => {
     findById: (b, f) => Promise.resolve(rows.get(`${b}/${f}`) ?? null),
     save: (b, f) => {
       rows.set(`${b}/${f.id}`, f);
-      return Promise.resolve();
+      return Promise.resolve(true);
     },
   };
   let failStream = false;
@@ -82,9 +82,10 @@ const setup = () => {
       copies.set(boardId, copy);
       return copy.transact(boardId, fn);
     },
-    getSelection: () => Promise.resolve(),
+    getSelection: () => Promise.resolve([]),
     setSelection: () => Promise.resolve(),
     discard: (boardId) => source.discard(boardId),
+    evict: () => Promise.resolve(),
   };
   source.pageList.push({ id: "page:two", name: "Second" });
   source.elements.set("page:main:box", element("box", { boundElements: [] }));

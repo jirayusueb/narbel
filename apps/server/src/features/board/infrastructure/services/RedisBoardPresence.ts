@@ -42,20 +42,7 @@ export class RedisBoardPresence implements IBoardPresence {
 
   async list(boardId: string): Promise<Viewer[]> {
     try {
-      const cutoff = this.now() - STALE_AFTER_MS;
-      const stale = await this.redis.zrangebyscore(
-        membersKey(boardId),
-        "-inf",
-        `(${cutoff}`
-      );
-      if (stale.length > 0) {
-        await this.redis
-          .multi()
-          .zrem(membersKey(boardId), ...stale)
-          .hdel(viewersKey(boardId), ...stale)
-          .exec();
-      }
-      const ids = await this.redis.zrange(membersKey(boardId), "0", "-1");
+      const ids = await this.liveIds(boardId);
       if (ids.length === 0) {
         return [];
       }
@@ -65,6 +52,29 @@ export class RedisBoardPresence implements IBoardPresence {
       console.error(`Presence list failed for ${boardId}`, error);
       return [];
     }
+  }
+
+  // Counts members, not parsed viewers: a member whose viewer entry expired is still a connection.
+  async countStrict(boardId: string) {
+    const ids = await this.liveIds(boardId);
+    return ids.length;
+  }
+
+  private async liveIds(boardId: string) {
+    const cutoff = this.now() - STALE_AFTER_MS;
+    const stale = await this.redis.zrangebyscore(
+      membersKey(boardId),
+      "-inf",
+      `(${cutoff}`
+    );
+    if (stale.length > 0) {
+      await this.redis
+        .multi()
+        .zrem(membersKey(boardId), ...stale)
+        .hdel(viewersKey(boardId), ...stale)
+        .exec();
+    }
+    return this.redis.zrange(membersKey(boardId), "0", "-1");
   }
 
   private async run(op: string, command: () => Promise<unknown>) {

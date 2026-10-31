@@ -52,11 +52,15 @@ const setup = () => {
     string,
     { id: string; mimeType: string; size: number }
   >();
+  const deleting = new Set<string>();
   const files: IBoardFileRepository = {
     findById: (b, f) => Promise.resolve(rows.get(`${b}/${f}`) ?? null),
     save: (b, f) => {
+      if (deleting.has(`${b}/${f.id}`)) {
+        return Promise.resolve(false);
+      }
       rows.set(`${b}/${f.id}`, f);
-      return Promise.resolve();
+      return Promise.resolve(true);
     },
   };
   const storage: IFileStorage = {
@@ -85,6 +89,7 @@ const setup = () => {
     ...base,
     stored,
     rows,
+    deleting,
     add: new AddBoardImage(base.guard, base.scenes, files, storage, ids),
     exportScene: new ExportBoardScene(base.guard, base.scenes, files, storage),
     render: new RenderBoardImage(base.guard, base.scenes, files, storage, {
@@ -185,6 +190,18 @@ describe("AddBoardImage", () => {
       x: 230,
       y: 40,
     });
+  });
+
+  it("refuses an image the cleanup job is deleting before writing any byte or element", async () => {
+    const t = setup();
+    const bytes = png(3, 2);
+    const sha1 = createHash("sha1").update(bytes).digest("hex");
+    t.deleting.add(`b1/${sha1}`);
+    const result = await t.add.execute({ actor, boardId: "b1", bytes });
+    expect(result.isErr() && result.error.code).toBe("Conflict");
+    expect(t.stored.size).toBe(0);
+    expect(t.rows.size).toBe(0);
+    expect(t.scenes.elements.size).toBe(0);
   });
 
   it("rejects over-cap data before touching storage", async () => {
