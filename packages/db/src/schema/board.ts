@@ -142,7 +142,7 @@ export const boardDocument = pgTable("board_document", {
 });
 
 // Full Yjs state of a board at one moment. `auto` checkpoints are taken in the transaction of a
-// board_document save at most every 10 minutes; `pre_restore` is the recovery point before a restore.
+// board_document save; `pre_restore` is the recovery point before a restore.
 // file_ids lists every image fileId the state references, so file cleanup can keep what history needs.
 export const boardVersion = pgTable(
   "board_version",

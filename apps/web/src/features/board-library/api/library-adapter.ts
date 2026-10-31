@@ -4,7 +4,6 @@ import type { LibraryItems_anyVersion } from "@excalidraw/excalidraw/types";
 import { api, unwrap } from "@/shared/api";
 
 // Both methods throw on failure, which is how Excalidraw learns to show its library error.
-// Excalidraw keeps the adapter in a ref, so this must stay one stable object.
 export const libraryAdapter: LibraryPersistenceAdapter = {
   load: async () => {
     const { libraryItems } = unwrap(await api.api.library.get());

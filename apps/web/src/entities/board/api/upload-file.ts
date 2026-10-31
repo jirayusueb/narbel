@@ -29,7 +29,7 @@ export const uploadBoardFile = async (
       { query: { share: shareToken } }
     )
   );
-  // The URL is signed for this exact content type and length; S3 gets the bytes directly, no cookies.
+  // The URL is signed for this exact content type and length.
   const res = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "content-type": prepared.mimeType },

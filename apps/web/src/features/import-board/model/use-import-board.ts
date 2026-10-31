@@ -54,7 +54,6 @@ const mapPool = async <T, R>(
   return results;
 };
 
-// Module scope keeps the dynamic import and cleanup path out of the React-compiled hook.
 // Resolves with the new board id, or null after reporting and undoing a failure.
 const runImport = async (
   { create, remove, draftKey }: ImportDeps,

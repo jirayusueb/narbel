@@ -189,7 +189,6 @@ describe("trash: transitions", () => {
     expect(first).toBeInstanceOf(Date);
     await trash.execute({ actor: owner, boardId: "b1" });
     expect(boards.rows.get("b1")?.trashedAt).toBe(first);
-    // evicted on every call: a retry after a crash still disconnects the peers
     expect(scenes.evicted).toEqual(["b1", "b1"]);
     expect(scenes.discarded).toEqual([]);
     expect(grants.members).toHaveLength(1);

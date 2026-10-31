@@ -326,7 +326,6 @@ export const BoardEditor = ({
     return () => observer.disconnect();
   }, [api]);
 
-  // Thai/non-Latin layouts report non-Latin `key`, so Excalidraw's tool shortcuts never match; shadow it per event.
   useEffect(() => {
     const el = canvasRef.current;
     return el ? installLatinShortcuts(el) : undefined;

@@ -9,7 +9,6 @@ import type { IBoardVersions } from "../ports/IBoardVersions";
 
 export type VersionPreview = VersionDto & VersionScene;
 
-/** Reads one historical scene; the live board is not touched. */
 export class GetBoardVersion {
   constructor(
     private readonly guard: BoardAccessGuard,

@@ -46,7 +46,6 @@ const BUS_ORIGIN = Symbol("bus");
 const UNSAVED_ORIGIN = Symbol("unsaved");
 
 const channel = (boardId: string) => `sync:${boardId}`;
-// a restore retried after the board changed under it gives up after this many tries
 const RESTORE_ATTEMPTS = 5;
 
 interface PeerState {
@@ -197,7 +196,6 @@ export class YjsBoardHub
     }
   }
 
-  // one attempt per call: the board changing under the recovery point retries with a fresh one
   private async restoreWithin(
     boardId: string,
     target: Y.Doc,
@@ -220,7 +218,6 @@ export class YjsBoardHub
       state: Y.encodeStateAsUpdate(room.doc),
       fileIds: fileIdsOf(room.doc),
     });
-    // no await from here to the write: the check and the restore are one step on this instance
     const current = await this.rooms.get(boardId);
     const now = Y.encodeStateVector(room.doc);
     if (

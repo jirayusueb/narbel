@@ -76,7 +76,6 @@ export const useRenameBoard = () => {
   });
 };
 
-// Moving a board in or out of Trash changes the board lists, search hits and which notifications are visible.
 const useTrashTransition = (run: (id: string) => Promise<unknown>) => {
   const queryClient = useQueryClient();
   return useMutation({

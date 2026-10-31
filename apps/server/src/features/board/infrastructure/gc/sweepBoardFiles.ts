@@ -18,7 +18,6 @@ const DAY = 24 * 60 * MINUTE;
 
 /** An image must stay unreferenced this long, on a board idle this long, before its bytes go. */
 export const GRACE_MS = 30 * DAY;
-/** A `deleting` claim older than this belongs to a crashed sweep and is handed back. */
 export const CLAIM_LEASE_MS = 15 * MINUTE;
 
 const SWEEP_CONCURRENCY = 3;

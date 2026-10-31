@@ -1,6 +1,5 @@
 export type VersionKind = "auto" | "pre_restore";
 
-/** A saved scene without its bytes: what a history list shows. */
 export interface VersionInfo {
   id: string;
   kind: VersionKind;

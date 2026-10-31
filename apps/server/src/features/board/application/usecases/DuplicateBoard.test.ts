@@ -66,7 +66,6 @@ const setup = () => {
       return Promise.resolve();
     },
   };
-  // one document per board, as the live hub keeps them
   const source = base.scenes;
   const copies = new Map<string, FakeScenes>();
   let failCopyWrite = false;
