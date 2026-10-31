@@ -249,6 +249,7 @@ class FakeOutbox implements IOutbox {
     }
     return Promise.resolve();
   };
+  forgetPendingTo = () => Promise.resolve();
   /** queued emails carry a dedupe key, published events do not */
   emails = () => this.messages.filter((m) => m.key !== null);
   events = (): unknown[] =>
@@ -293,7 +294,6 @@ export const setupAccess = () => {
   const uow = new FakeUow({
     boards,
     grants,
-    notifications,
     outbox,
     profiles,
   });

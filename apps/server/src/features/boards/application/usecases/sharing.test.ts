@@ -378,7 +378,7 @@ describe("invites", () => {
     role: "editor" as const,
   };
 
-  it("stores the invite by lowercased email and queues the email with the notification", async () => {
+  it("stores the invite by lowercased email and publishes member-invited, writing no notification or email itself", async () => {
     const { invite, grants, outbox, notifications } = setup();
     grants.findUserIdByEmail = () => Promise.resolve("ann");
     const result = await invite.execute({ ...input, email: " Ann@X.io " });
@@ -388,40 +388,51 @@ describe("invites", () => {
       userId: "ann",
       role: "editor",
     });
-    expect(outbox.emails()[0]?.message).toEqual({
-      type: "email.board-invite",
-      to: "ann@x.io",
+    expect(outbox.emails()).toHaveLength(0);
+    expect(notifications.sent).toHaveLength(0);
+    expect(outbox.events()).toContainEqual({
+      type: "event.member-invited",
+      version: 1,
       boardId: "b1",
       boardTitle: "Mine",
+      email: "ann@x.io",
+      inviteeId: "ann",
+      inviterId: "owner",
       inviterName: "Olive",
+      firstInvite: true,
     });
-    expect(notifications.kinds("ann")).toEqual(["board.invited"]);
   });
 
-  it("queues the email but notifies nobody when the invitee has no account yet", async () => {
-    const { invite, outbox, notifications } = setup();
+  it("publishes inviteeId null when the invitee has no account yet", async () => {
+    const { invite, outbox } = setup();
     await invite.execute({ ...input, email: "new@x.io" });
-    expect(outbox.emails()).toHaveLength(1);
-    expect(notifications.sent).toHaveLength(0);
+    expect(outbox.events()).toContainEqual(
+      expect.objectContaining({
+        type: "event.member-invited",
+        inviteeId: null,
+        firstInvite: true,
+      })
+    );
   });
 
-  it("re-inviting does not queue another email or notify again; a new role tells live peers", async () => {
-    const { invite, grants, outbox, notifications } = setup();
+  it("a re-invite publishes member-invited with firstInvite false; a new role also tells live peers", async () => {
+    const { invite, grants, outbox } = setup();
     grants.findUserIdByEmail = () => Promise.resolve("ann");
     await invite.execute({ ...input, email: "ann@x.io" });
     await invite.execute({ ...input, email: "Ann@x.io", role: "viewer" });
     await invite.execute({ ...input, email: "ann@x.io", role: "viewer" });
-    expect(outbox.emails()).toHaveLength(1);
-    expect(notifications.kinds("ann")).toEqual(["board.invited"]);
     expect(grants.members).toHaveLength(1);
     expect(grants.members[0]?.role).toBe("viewer");
-    const changed = {
-      type: "event.access-changed",
-      version: 1,
-      boardId: "b1",
-    };
+    const events = outbox.events() as { type: string; firstInvite?: boolean }[];
+    expect(
+      events
+        .filter((e) => e.type === "event.member-invited")
+        .map((e) => e.firstInvite)
+    ).toEqual([true, false, false]);
     // the first grant and the role change; the same role again changes nothing
-    expect(outbox.events()).toEqual([changed, changed]);
+    expect(
+      events.filter((e) => e.type === "event.access-changed")
+    ).toHaveLength(2);
   });
 
   it("rejects bad addresses, self-invites and non-owners without side effects", async () => {

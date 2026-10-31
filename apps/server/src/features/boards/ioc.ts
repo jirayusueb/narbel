@@ -3,14 +3,12 @@ import { Elysia } from "elysia";
 import type Redis from "ioredis";
 
 import type { ICache } from "../../shared/application/interfaces/ICache";
-import type { IPubSub } from "../../shared/application/interfaces/IPubSub";
 import { transactionalCache } from "../../shared/infrastructure/cache/TransactionalCache";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
 import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
 import type { AfterCommit } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
-import { DrizzleNotificationRepository } from "../notification";
 import { DrizzleProfileRepository } from "../profile";
 import { AccessPolicy } from "./application/AccessPolicy";
 import type { BoardTx } from "./application/ports/BoardTx";
@@ -76,7 +74,6 @@ export interface BoardsDeps {
   secret: string;
   /** shared by every server instance: cache-aside reads */
   cache: ICache;
-  pubsub: IPubSub;
   /** shared by every server instance: unlock failure counts */
   redis: Redis;
   /** asks the outbox worker for a pass now; invites and access changes wake it after they commit */
@@ -115,7 +112,6 @@ export const createBoardsUseCases = ({
   apiOrigin,
   secret,
   cache,
-  pubsub,
   redis,
   wakeOutbox,
   drawings,
@@ -139,12 +135,6 @@ export const createBoardsUseCases = ({
           transactionalCache(cache, afterCommit)
         ),
         grants: new DrizzleBoardAccessRepository(tx),
-        notifications: new DrizzleNotificationRepository(
-          tx,
-          pubsub,
-          ids,
-          afterCommit
-        ),
         outbox: new DrizzleOutbox(tx, ids),
         profiles: new DrizzleProfileRepository(tx, apiOrigin),
       };

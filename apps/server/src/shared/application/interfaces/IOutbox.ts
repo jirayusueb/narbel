@@ -45,4 +45,6 @@ export interface IOutbox {
   publish(event: OutboxEvent): Promise<void>;
   /** Drops the message with `dedupeKey` (pending or sent) so the same key can be queued afresh. */
   forget(dedupeKey: string): Promise<void>;
+  /** Drops every undelivered email addressed to `email`. */
+  forgetPendingTo(email: string): Promise<void>;
 }
