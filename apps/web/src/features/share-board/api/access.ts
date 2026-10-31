@@ -41,7 +41,8 @@ export const useRemoveMember = (id: string) =>
     unwrap(
       await api.api
         .boards({ id })
-        .access.members({ member: encodeURIComponent(member) })
+        // Eden encodes path params itself; encoding here too turned "@" into %2540 and a 404
+        .access.members({ member })
         .delete()
     )
   );
