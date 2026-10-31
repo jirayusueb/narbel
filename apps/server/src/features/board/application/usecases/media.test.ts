@@ -376,17 +376,17 @@ describe("AddBoardImage", () => {
     expect(t.stored.size).toBe(0);
   });
 
-  it("leaves the object of a file that is already registered alone", async () => {
+  it("repairs an existing image whose stored bytes are unusable", async () => {
     const t = setup();
     const bytes = png(3, 2);
     const sha1 = createHash("sha1").update(bytes).digest("hex");
     const key = `boards/b1/${sha1}`;
-    const browserCopy = Uint8Array.of(1, 2, 3);
-    t.stored.set(key, { bytes: browserCopy, mimeType: "image/png" });
+    t.stored.set(key, { bytes: Uint8Array.of(1, 2, 3), mimeType: "image/png" });
     t.rows.set(`b1/${sha1}`, { id: sha1, mimeType: "image/png", size: 3 });
-    await t.add.execute({ actor, boardId: "b1", bytes });
-    expect(t.stored.get(key)?.bytes).toBe(browserCopy);
-    expect(t.rows.get(`b1/${sha1}`)?.size).toBe(3);
+    const result = await t.add.execute({ actor, boardId: "b1", bytes });
+    expect(result.isOk()).toBe(true);
+    expect(t.stored.get(key)?.bytes).toEqual(bytes);
+    expect(t.rows.get(`b1/${sha1}`)?.size).toBe(bytes.length);
     expect(t.scenes.files.has(sha1)).toBe(true);
   });
 

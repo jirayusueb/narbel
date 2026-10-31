@@ -28,10 +28,6 @@ const SCHEMA = `board_gc_test_${process.pid}`;
 const url = `${BASE}${BASE.includes("?") ? "&" : "?"}options=-c%20search_path%3D${SCHEMA}`;
 const admin = createDb({ DATABASE_URL: BASE });
 const db = createDb({ DATABASE_URL: url });
-const reachable = await admin
-  .execute(sql`select 1`)
-  .then(() => true)
-  .catch(() => false);
 
 const NOW = new Date(Date.UTC(2026, 5, 1));
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 86_400_000);
@@ -67,7 +63,7 @@ class FakeStorage implements IFileStorage {
   }
 }
 
-describe.skipIf(!reachable)("board file GC (postgres)", () => {
+describe("board file GC (postgres)", () => {
   const storage = new FakeStorage();
   const files = new DrizzleBoardFileRepository(db);
   let onPresence: () => Promise<void> = () => Promise.resolve();
