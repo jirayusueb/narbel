@@ -32,9 +32,7 @@ export const loadState = (state: Uint8Array) => {
 export const readSnapshot = (state: Uint8Array): VersionScene => {
   const doc = loadState(state);
   try {
-    const elements = Object.entries(
-      doc.getMap<SceneElement>("elements").toJSON()
-    );
+    const elements = [...doc.getMap<SceneElement>("elements").entries()];
     const files = doc.getMap<VersionFile>("files").toJSON();
     const used = new Set<string>();
     const pages = doc

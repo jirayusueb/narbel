@@ -202,11 +202,11 @@ const PageTabs = ({
   onPick: (id: string) => void;
 }) =>
   pages.length > 1 ? (
-    <div role="tablist" className="flex flex-wrap gap-1">
+    <fieldset aria-label="Version pages" className="flex flex-wrap gap-1">
       {pages.map((page) => (
         <Button
           key={page.id}
-          role="tab"
+          aria-pressed={page.id === activeId}
           size="sm"
           variant={page.id === activeId ? "secondary" : "ghost"}
           onPress={() => onPick(page.id)}
@@ -214,7 +214,7 @@ const PageTabs = ({
           {page.name}
         </Button>
       ))}
-    </div>
+    </fieldset>
   ) : null;
 
 const RestoreButton = ({
