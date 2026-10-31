@@ -52,8 +52,8 @@ export const createNotificationModule = ({
 
 /**
  * Reads discussion events, boards' member-invited, member-removed and board-deleted, and identity's
- * person-deleted off the outbox: inbox entries, queued or forgotten emails and the processed mark commit together. The worker sends queued emails in the
- * pass right after.
+ * person-deleted off the outbox: inbox entries, queued or forgotten emails and the processed mark
+ * commit together. The worker sends queued emails in the pass right after.
  */
 export const createNotificationConsumers = ({
   db,

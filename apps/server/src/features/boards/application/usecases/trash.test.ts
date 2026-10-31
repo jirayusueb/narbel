@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
-import { protectedBoard, setupAccess } from "../../../../testing";
+import {
+  FakeNotifications,
+  protectedBoard,
+  setupAccess,
+} from "../../../../testing";
 import type { IBoardFileRepository } from "../../../drawing/application/ports/IBoardFileRepository";
 import type { IBoardPresence } from "../../../drawing/application/ports/IBoardPresence";
 import type {
@@ -24,7 +28,11 @@ const member: Actor = { userId: "ed", email: "ed@x.io" };
 const stranger: Actor = { userId: "zed" };
 
 const setup = () => {
-  const base = { ...setupAccess(), scenes: new FakeScenes() };
+  const base = {
+    ...setupAccess(),
+    scenes: new FakeScenes(),
+    notifications: new FakeNotifications(),
+  };
   base.grants.members.push({
     boardId: "b1",
     userId: "ed",

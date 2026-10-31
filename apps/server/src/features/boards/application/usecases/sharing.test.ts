@@ -379,7 +379,7 @@ describe("invites", () => {
   };
 
   it("stores the invite by lowercased email and publishes member-invited, writing no notification or email itself", async () => {
-    const { invite, grants, outbox, notifications } = setup();
+    const { invite, grants, outbox } = setup();
     grants.findUserIdByEmail = () => Promise.resolve("ann");
     const result = await invite.execute({ ...input, email: " Ann@X.io " });
     expect(result.isOk() && result.value).toEqual({ queued: true });
@@ -389,7 +389,6 @@ describe("invites", () => {
       role: "editor",
     });
     expect(outbox.emails()).toHaveLength(0);
-    expect(notifications.sent).toHaveLength(0);
     expect(outbox.events()).toContainEqual({
       type: "event.member-invited",
       version: 1,
