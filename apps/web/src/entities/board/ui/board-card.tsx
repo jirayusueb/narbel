@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { Clock } from "lucide-react";
-import { ViewTransition } from "react";
+import { ViewTransition, useState } from "react";
 import type { ReactNode } from "react";
+
+import { PUBLIC_SERVER_URL } from "@/shared/config";
 
 import type { Board } from "../model/types";
 
@@ -9,6 +11,26 @@ const formatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
   timeStyle: "short",
 });
+
+const BoardPreview = ({ board }: { board: Board }) => {
+  const src = `${PUBLIC_SERVER_URL}/api/boards/${board.id}/preview.png?v=${encodeURIComponent(board.updatedAt)}`;
+  const [failed, setFailed] = useState<string | null>(null);
+  // an empty board answers 204, which the browser reports as an image error
+  return failed === src ? null : (
+    <div className="bg-muted -mx-5 -mt-5 aspect-video overflow-hidden rounded-t-xl">
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        crossOrigin="use-credentials"
+        draggable={false}
+        onError={() => setFailed(src)}
+        className="size-full object-contain"
+      />
+    </div>
+  );
+};
 
 export const BoardCard = ({
   board,
@@ -18,6 +40,7 @@ export const BoardCard = ({
   actions?: ReactNode;
 }) => (
   <div className="bg-card shadow-surface ease-intent hover:shadow-elevated group relative flex min-h-36 flex-col justify-between gap-6 rounded-xl p-5 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+    <BoardPreview board={board} />
     <h3 className="font-display text-feature line-clamp-2 pr-16 leading-tight font-normal break-words">
       <ViewTransition name={`board-title-${board.id}`}>
         <Link

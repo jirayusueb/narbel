@@ -8,6 +8,9 @@ import {
 import type { BetterAuthPlugin } from "../../../auth";
 import type { BoardUseCases } from "../../ioc";
 import { actorFrom, shareQuery } from "./actor";
+import { previewResponse } from "./previewResponse";
+
+const PREVIEW_SIZE = 480;
 
 const params = t.Object({ id: t.String() });
 const titleBody = t.Object({ title: t.String({ maxLength: 1000 }) });
@@ -56,6 +59,25 @@ export const createBoardController = (
             boardId: id,
           })
         )
+    )
+    .get(
+      "/:id/preview.png",
+      {
+        authOptional: true,
+        params,
+        query: t.Object({
+          share: t.Optional(t.String()),
+          v: t.Optional(t.String()),
+        }),
+      },
+      async ({ user, request, params: { id } }) => {
+        const result = await uc.renderBoardImage.execute({
+          actor: actorFrom(request, user, id),
+          boardId: id,
+          maxSize: PREVIEW_SIZE,
+        });
+        return result.isErr() ? asWire(result) : previewResponse(result.value);
+      }
     )
     .patch(
       "/:id",
