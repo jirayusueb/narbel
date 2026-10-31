@@ -33,11 +33,13 @@ import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
 import { GetBoardChanges } from "./application/usecases/GetBoardChanges";
 import { GetBoardFile } from "./application/usecases/GetBoardFile";
 import { GetBoardScene } from "./application/usecases/GetBoardScene";
+import { GetBoardVersion } from "./application/usecases/GetBoardVersion";
 import { GetLibrary } from "./application/usecases/GetLibrary";
 import { GroupElements } from "./application/usecases/GroupElements";
 import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
 import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
 import { ListBoards } from "./application/usecases/ListBoards";
+import { ListBoardVersions } from "./application/usecases/ListBoardVersions";
 import { ListBoardViewers } from "./application/usecases/ListBoardViewers";
 import { ListComments } from "./application/usecases/ListComments";
 import { ListPages } from "./application/usecases/ListPages";
@@ -53,6 +55,7 @@ import { RenderBoardImage } from "./application/usecases/RenderBoardImage";
 import { ReplyToComment } from "./application/usecases/ReplyToComment";
 import { ResolveComment } from "./application/usecases/ResolveComment";
 import { RestoreBoard } from "./application/usecases/RestoreBoard";
+import { RestoreBoardVersion } from "./application/usecases/RestoreBoardVersion";
 import { SaveLibrary } from "./application/usecases/SaveLibrary";
 import { SearchBoards } from "./application/usecases/SearchBoards";
 import {
@@ -74,6 +77,7 @@ import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/Drizzle
 import { DrizzleBoardFileRepository } from "./infrastructure/repositories/DrizzleBoardFileRepository";
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
 import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
+import { DrizzleBoardVersionRepository } from "./infrastructure/repositories/DrizzleBoardVersionRepository";
 import { DrizzleLibraryRepository } from "./infrastructure/repositories/DrizzleLibraryRepository";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
@@ -87,6 +91,7 @@ import {
   createSharedBoardsController,
 } from "./presentation/http/BoardController";
 import { createBoardFileController } from "./presentation/http/BoardFileController";
+import { createBoardVersionController } from "./presentation/http/BoardVersionController";
 import { createLibraryController } from "./presentation/http/LibraryController";
 import { createMcpController } from "./presentation/mcp/McpController";
 import { createBoardSyncController } from "./presentation/ws/BoardSyncController";
@@ -130,6 +135,7 @@ const createUseCases = ({
     new CachedBoardDocumentStore(new DrizzleBoardDocumentStore(db), cache),
     pubsub
   );
+  const versions = new DrizzleBoardVersionRepository(db);
   const ids = new UuidGenerator();
   const uow = new DrizzleUnitOfWork<BoardTx>(
     db,
@@ -172,6 +178,9 @@ const createUseCases = ({
     presignBoardFileUpload: new PresignBoardFileUpload(guard, files, storage),
     getBoardFile: new GetBoardFile(guard, files, storage),
     getBoardScene: new GetBoardScene(guard, hub),
+    listBoardVersions: new ListBoardVersions(guard, versions),
+    getBoardVersion: new GetBoardVersion(guard, versions, hub),
+    restoreBoardVersion: new RestoreBoardVersion(guard, versions, hub),
     renderBoardImage: new RenderBoardImage(
       guard,
       hub,
@@ -232,6 +241,7 @@ export const createBoardModule = ({ betterAuth, ...deps }: BoardDeps) => {
   return new Elysia({ name: "feature/board" })
     .use(createBoardSyncController(betterAuth, uc))
     .use(createBoardFileController(betterAuth, uc))
+    .use(createBoardVersionController(betterAuth, uc))
     .use(createBoardCommentController(betterAuth, uc))
     .use(createBoardAccessController(betterAuth, uc))
     .use(createBoardController(betterAuth, uc))

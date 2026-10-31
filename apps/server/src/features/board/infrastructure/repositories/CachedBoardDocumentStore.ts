@@ -1,5 +1,6 @@
 import type { ICache } from "../../../../shared/application/interfaces/ICache";
 import type {
+  DocumentCheckpoint,
   IBoardDocumentStore,
   TextChange,
 } from "../../application/ports/IBoardDocumentStore";
@@ -16,8 +17,13 @@ export class CachedBoardDocumentStore implements IBoardDocumentStore {
     return this.inner.load(boardId);
   }
 
-  async save(boardId: string, state: Uint8Array, texts?: TextChange) {
-    const ownerId = await this.inner.save(boardId, state, texts);
+  async save(
+    boardId: string,
+    state: Uint8Array,
+    texts?: TextChange,
+    checkpoint?: DocumentCheckpoint
+  ) {
+    const ownerId = await this.inner.save(boardId, state, texts, checkpoint);
     await this.cache.del(
       boardKey(boardId),
       ...(ownerId ? [userBoardsKey(ownerId)] : [])

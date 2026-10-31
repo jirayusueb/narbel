@@ -12,15 +12,23 @@ export interface TextChange {
   remove: Pick<BoardText, "pageId" | "elementId">[];
 }
 
+/** Lets a save also take a history checkpoint of the state it persists, when one is due. */
+export interface DocumentCheckpoint {
+  /** every image fileId the state references */
+  fileIds: string[];
+}
+
 export interface IBoardDocumentStore {
   load(boardId: string): Promise<Uint8Array | null>;
   /**
-   * Persists the state together with the change to the search mirror of its text (none when unchanged).
+   * Persists the state together with the change to the search mirror of its text (none when unchanged)
+   * and, in the same transaction, an automatic history version when the last one is old enough.
    * Resolves to the owner of the board (for cache invalidation), or undefined if the board is gone.
    */
   save(
     boardId: string,
     state: Uint8Array,
-    texts?: TextChange
+    texts?: TextChange,
+    checkpoint?: DocumentCheckpoint
   ): Promise<string | undefined>;
 }

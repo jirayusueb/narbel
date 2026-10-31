@@ -32,7 +32,7 @@ const blobToDataUrl = async (blob: Blob) => {
   return `data:${blob.type};base64,${btoa(binary)}`;
 };
 
-const downloadAsDataUrl = async (
+export const downloadAsDataUrl = async (
   boardId: string,
   fileId: string,
   shareToken?: string

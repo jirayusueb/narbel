@@ -33,7 +33,7 @@ import {
   WS_TRASHED_CODE,
 } from "./collab-status";
 import type { CollabStatus } from "./collab-status";
-import { byZOrder, incomingFor } from "./merge";
+import { byZOrder, incomingFor, outranking } from "./merge";
 import { writeChangedElements } from "./write-changed-elements";
 
 export type { CollabStatus } from "./collab-status";
@@ -292,15 +292,30 @@ export const useBoardCollab = ({
     api.history.clear();
 
     const applyRemote = (keys: Iterable<string>) => {
+      const changedKeys = [...keys];
       const local = new Map(
         api.getSceneElementsIncludingDeleted().map((el) => [el.id, el])
       );
-      const incoming = incomingFor(
+      const winners = outranking(
         pageId,
-        keys,
+        changedKeys,
         (key) => elements.get(key),
         local
       );
+      const incoming = incomingFor(
+        pageId,
+        changedKeys,
+        (key) => elements.get(key),
+        local
+      );
+      if (winners.length > 0) {
+        doc.transact(() => {
+          for (const { key, element } of winners) {
+            sentVersions.current.set(element.id, element.version);
+            elements.set(key, { ...element });
+          }
+        }, LOCAL_ORIGIN);
+      }
       if (incoming.length === 0) {
         return;
       }
@@ -325,6 +340,15 @@ export const useBoardCollab = ({
       }
     };
     elements.observe(onElements);
+
+    // A restore replaces the scene under every client; an undo step from before it must not replay over it.
+    const meta = doc.getMap("meta");
+    const onMeta = (event: Y.YMapEvent<unknown>) => {
+      if (event.keysChanged.has("restore")) {
+        api.history.clear();
+      }
+    };
+    meta.observe(onMeta);
 
     const { awareness } = provider;
     const local = awareness.getLocalState();
@@ -370,6 +394,7 @@ export const useBoardCollab = ({
     return () => {
       session.writeElements.flush();
       elements.unobserve(onElements);
+      meta.unobserve(onMeta);
       awareness.off("change", onAwareness);
     };
   }, [session, api, sceneReady, pageId]);

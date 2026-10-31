@@ -11,7 +11,7 @@ import "./excalidraw-theme.css";
 import { Button } from "@narbel/ui/components/button";
 import { useBoolean, useMediaQuery } from "@reactuses/core";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Pencil, Share2, Users } from "lucide-react";
+import { ArrowLeft, History, Pencil, Share2, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,6 +30,7 @@ import {
   CommentsPanelToggle,
   useCommentsWorkspace,
 } from "@/features/board-comments";
+import { openVersionHistoryDialog } from "@/features/board-history";
 import { libraryAdapter } from "@/features/board-library";
 import { useBoardMedia } from "@/features/board-media";
 import {
@@ -116,11 +117,13 @@ const BoardMainMenu = ({
   board,
   canWrite,
   isOwner,
+  shareToken,
   preferences,
 }: {
   board: Board;
   canWrite: boolean;
   isOwner: boolean;
+  shareToken?: string;
   preferences: ComponentProps<typeof PreferencesMenuItems>;
 }) => {
   const navigate = useNavigate();
@@ -149,6 +152,18 @@ const BoardMainMenu = ({
           </MainMenu.Item>
         </>
       ) : null}
+      <MainMenu.Item
+        icon={<History />}
+        onSelect={() =>
+          openVersionHistoryDialog({
+            boardId: board.id,
+            canWrite,
+            shareToken,
+          })
+        }
+      >
+        Version history
+      </MainMenu.Item>
       <MainMenu.Separator />
       <PreferencesMenuItems {...preferences} />
       <MainMenu.Separator />
@@ -451,6 +466,7 @@ export const BoardEditor = ({
           board={board}
           canWrite={writable}
           isOwner={isOwner}
+          shareToken={shareToken}
           preferences={{
             prefs: preferences.prefs,
             onChange: preferences.handleChange,

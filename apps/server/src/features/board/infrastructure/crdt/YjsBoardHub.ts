@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import * as awarenessProtocol from "y-protocols/awareness";
@@ -9,6 +11,12 @@ import type {
   BoardText,
   IBoardDocumentStore,
 } from "../../application/ports/IBoardDocumentStore";
+import type {
+  IBoardHistory,
+  RestoreOutcome,
+  RestorePoint,
+  VersionScene,
+} from "../../application/ports/IBoardHistory";
 import type {
   IBoardScenes,
   AgentSelection,
@@ -23,6 +31,7 @@ import type {
 import type { TextIndex } from "./boardText";
 import { diffTexts, extractBoardText, indexTexts } from "./boardText";
 import { markAgentWriter } from "./changes";
+import { fileIdsOf, loadState, readSnapshot, restoreScene } from "./history";
 import { ensurePages, pruneTombstones, sceneAccess } from "./pages";
 import { ROOM_TIMING, RoomTimers } from "./RoomTimers";
 import type { RoomTiming } from "./RoomTimers";
@@ -37,6 +46,8 @@ const BUS_ORIGIN = Symbol("bus");
 const UNSAVED_ORIGIN = Symbol("unsaved");
 
 const channel = (boardId: string) => `sync:${boardId}`;
+// a restore retried after the board changed under it gives up after this many tries
+const RESTORE_ATTEMPTS = 5;
 
 interface PeerState {
   clients: Set<number>;
@@ -56,6 +67,8 @@ interface Room {
   /** focus calls so far; each one publishes a fresh number so viewers react once per call */
   reveals: number;
   saving: Promise<void>;
+  /** persist attempts that failed; lets a caller tell whether the save it waited on succeeded */
+  saveFailures: number;
   timers: RoomTimers;
   /** the `board_text` rows as last written by this instance; unknown until the first save */
   writtenTexts: TextIndex | undefined;
@@ -77,7 +90,9 @@ const encodeMessage = (
  * persisted ~1s after changes (at most 10s after the first unsaved one), and unloaded once it has
  * had no peers and no use for the grace period.
  */
-export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
+export class YjsBoardHub
+  implements IBoardScenes, IBoardSyncGateway, IBoardHistory
+{
   private readonly rooms = new Map<string, Promise<Room>>();
   // a room being unloaded must finish saving before the next load reads the row
   private readonly flushing = new Map<string, Promise<void>>();
@@ -163,6 +178,68 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       receive: (message) => this.receive(room, peer, message),
       close: () => this.disconnect(room, peer),
     };
+  }
+
+  read(state: Uint8Array): VersionScene {
+    return readSnapshot(state);
+  }
+
+  async restore(
+    boardId: string,
+    state: Uint8Array,
+    keep: (point: RestorePoint) => Promise<void>
+  ): Promise<RestoreOutcome> {
+    const target = loadState(state);
+    try {
+      return await this.restoreWithin(boardId, target, keep, RESTORE_ATTEMPTS);
+    } finally {
+      target.destroy();
+    }
+  }
+
+  // one attempt per call: the board changing under the recovery point retries with a fresh one
+  private async restoreWithin(
+    boardId: string,
+    target: Y.Doc,
+    keep: (point: RestorePoint) => Promise<void>,
+    attemptsLeft: number
+  ): Promise<RestoreOutcome> {
+    if (attemptsLeft === 0) {
+      return { status: "busy" };
+    }
+    const room = await this.room(boardId);
+    // other instances may hold edits this one has not received yet; their reply arrives while the point is saved
+    this.publish(
+      room,
+      encodeMessage(MESSAGE_SYNC, (e) => {
+        syncProtocol.writeSyncStep1(e, room.doc);
+      })
+    );
+    const seen = Y.encodeStateVector(room.doc);
+    await keep({
+      state: Y.encodeStateAsUpdate(room.doc),
+      fileIds: fileIdsOf(room.doc),
+    });
+    // no await from here to the write: the check and the restore are one step on this instance
+    const current = await this.rooms.get(boardId);
+    const now = Y.encodeStateVector(room.doc);
+    if (
+      current !== room ||
+      now.length !== seen.length ||
+      now.some((b, i) => b !== seen[i])
+    ) {
+      return this.restoreWithin(boardId, target, keep, attemptsLeft - 1);
+    }
+    const changed = restoreScene(room.doc, target, Date.now(), randomUUID());
+    const failuresBefore = room.saveFailures;
+    this.flush(room);
+    await room.saving;
+    if (room.saveFailures !== failuresBefore) {
+      // persist kept the room dirty; make sure a retry is scheduled
+      room.timers.changed();
+      return { status: "unsaved" };
+    }
+    return { status: "restored", changed };
   }
 
   async discard(boardId: string): Promise<void> {
@@ -258,6 +335,7 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       dirty: ensurePages(doc, SERVER_ORIGIN),
       reveals: 0,
       saving: Promise.resolve(),
+      saveFailures: 0,
       timers: new RoomTimers(this.timing, {
         save: () => this.flush(room),
         idle: () => this.unload(room),
@@ -484,7 +562,12 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     if (room.dirty) {
       room.dirty = false;
       const state = Y.encodeStateAsUpdate(room.doc);
-      room.saving = this.persist(room, state, extractBoardText(room.doc));
+      room.saving = this.persist(
+        room,
+        state,
+        extractBoardText(room.doc),
+        fileIdsOf(room.doc)
+      );
     }
   }
 
@@ -506,7 +589,12 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     this.destroy(room);
   }
 
-  private async persist(room: Room, state: Uint8Array, texts: BoardText[]) {
+  private async persist(
+    room: Room,
+    state: Uint8Array,
+    texts: BoardText[],
+    fileIds: string[]
+  ) {
     try {
       await room.saving;
       const next = indexTexts(texts);
@@ -514,12 +602,14 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
       await this.store.save(
         room.boardId,
         state,
-        diffTexts(room.writtenTexts, next)
+        diffTexts(room.writtenTexts, next),
+        { fileIds }
       );
       room.writtenTexts = next;
     } catch (error) {
       // keep the changes; the next update or disconnect retries
       room.dirty = true;
+      room.saveFailures += 1;
       console.error(`Failed to persist board ${room.boardId}`, error);
     }
   }

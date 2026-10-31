@@ -141,6 +141,29 @@ export const boardDocument = pgTable("board_document", {
   textIndexed: boolean("text_indexed").default(false).notNull(),
 });
 
+// Full Yjs state of a board at one moment. `auto` checkpoints are taken in the transaction of a
+// board_document save at most every 10 minutes; `pre_restore` is the recovery point before a restore.
+// file_ids lists every image fileId the state references, so file cleanup can keep what history needs.
+export const boardVersion = pgTable(
+  "board_version",
+  {
+    id: text("id").primaryKey(),
+    boardId: text("board_id")
+      .notNull()
+      .references(() => board.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: ["auto", "pre_restore"] }).notNull(),
+    state: bytea("state").notNull(),
+    fileIds: text("file_ids").array().notNull().default([]),
+    createdById: text("created_by_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("board_version_board_idx").on(table.boardId, table.createdAt),
+  ]
+);
+
 // Search mirror of the text elements inside board_document.state, one row per element.
 export const boardText = pgTable(
   "board_text",
