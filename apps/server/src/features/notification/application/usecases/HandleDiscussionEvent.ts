@@ -4,6 +4,7 @@ import type { IOutbox } from "../../../../shared/application/interfaces/IOutbox"
 import type { IProcessedEvents } from "../../../../shared/application/interfaces/IProcessedEvents";
 import type { IProfileReader } from "../../../../shared/application/interfaces/IProfiles";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
+import { inSequence } from "../../../../shared/kernel/inSequence";
 import { reactTo } from "../DiscussionReactions";
 
 export const NOTIFICATION_CONSUMER = "notification";
@@ -37,18 +38,14 @@ export class HandleDiscussionEvent {
       ];
       const people = await tx.people.findPeople(ids);
       const alive = new Set(people.map((person) => person.id));
-      await Promise.all([
-        ...reaction.notifications
-          .filter(({ userId }) => alive.has(userId))
-          .map(({ userId, payload: entry }) =>
-            tx.notifications.add(userId, entry)
-          ),
-        ...reaction.emails
-          .filter(({ recipientId }) => alive.has(recipientId))
-          .map(({ message, dedupeKey }) =>
-            tx.outbox.enqueue(message, dedupeKey)
-          ),
-      ]);
+      await inSequence(
+        reaction.notifications.filter(({ userId }) => alive.has(userId)),
+        ({ userId, payload: entry }) => tx.notifications.add(userId, entry)
+      );
+      await inSequence(
+        reaction.emails.filter(({ recipientId }) => alive.has(recipientId)),
+        ({ message, dedupeKey }) => tx.outbox.enqueue(message, dedupeKey)
+      );
     });
   }
 }
