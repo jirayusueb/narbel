@@ -14,6 +14,7 @@ const setup = () => {
       enqueue: () => Promise.resolve(),
       publish: () =>
         Promise.reject(new Error("the consumer publishes nothing")),
+      forgetPendingTo: () => Promise.reject(new Error("not this consumer")),
       forget: (key) => {
         forgotten.push(key);
         return Promise.resolve();

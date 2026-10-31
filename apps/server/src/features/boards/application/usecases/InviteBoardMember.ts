@@ -38,7 +38,7 @@ export class InviteBoardMember {
       return err(AppError.validation("You already own this board"));
     }
     const boardTitle = granted.value.board.title.value;
-    // the access row, the in-app notice and the queued email commit together; delivery happens later
+    // the access row and the invitation event commit together; notification reacts to the event later
     return await this.uow.run(async (tx) => {
       const inviter = await requirePerson(tx.profiles, input.actor.userId);
       if (inviter.isErr()) {
@@ -61,28 +61,18 @@ export class InviteBoardMember {
         };
         await tx.outbox.publish(event);
       }
-      if (userId && !previous) {
-        await tx.notifications.add(userId, {
-          kind: "board.invited",
-          boardId: input.boardId,
-          boardTitle,
-          actor: {
-            userId: inviter.value.id,
-            username: inviter.value.username,
-            name: inviter.value.name,
-          },
-        });
-      }
-      await tx.outbox.enqueue(
-        {
-          type: "email.board-invite",
-          to: email.value,
-          boardId: input.boardId,
-          boardTitle,
-          inviterName: inviter.value.name,
-        },
-        `invite:${input.boardId}:${email.value}`
-      );
+      const invited: BoardsEvent = {
+        type: "event.member-invited",
+        version: 1,
+        boardId: input.boardId,
+        boardTitle,
+        email: email.value,
+        inviteeId: userId,
+        inviterId: inviter.value.id,
+        inviterName: inviter.value.name,
+        firstInvite: !previous,
+      };
+      await tx.outbox.publish(invited);
       return ok({ queued: true as const });
     });
   }

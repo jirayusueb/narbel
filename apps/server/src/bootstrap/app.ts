@@ -95,7 +95,6 @@ export const createApp = ({
     apiOrigin,
     secret,
     cache,
-    pubsub,
     redis,
     wakeOutbox,
     drawings: rooms,

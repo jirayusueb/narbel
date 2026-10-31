@@ -42,7 +42,6 @@ export class DrizzleOutbox implements IOutbox {
     await this.db.delete(outbox).where(eq(outbox.dedupeKey, dedupeKey));
   }
 
-  /** Drops the person's undelivered emails; decision 4, called while the person still exists. */
   async forgetPendingTo(email: string) {
     await this.db
       .delete(outbox)

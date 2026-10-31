@@ -15,15 +15,13 @@ import {
   sweepBoardFiles,
 } from "./features/drawing";
 import { createNotificationConsumers } from "./features/notification";
-import { DrizzleProfileRepository } from "./features/profile";
+import { createDeletePerson } from "./features/profile";
 import { createSearchConsumers } from "./features/search";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
 import { RedisIdempotencyStore } from "./shared/infrastructure/idempotency/RedisIdempotencyStore";
-import { UuidGenerator } from "./shared/infrastructure/ids/UuidGenerator";
 import { RedisJobLock } from "./shared/infrastructure/lock/RedisJobLock";
-import { DrizzleOutbox } from "./shared/infrastructure/outbox/DrizzleOutbox";
 import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
 import {
   DEFAULT_OUTBOX_POLICY,
@@ -52,24 +50,20 @@ const jobLock = new RedisJobLock(redis);
 await jobLock.runExclusive("boot:backfill-board-text", 60_000, () =>
   backfillBoardText(db)
 );
-// decision 4: identity deletes the avatar and drops the person's undelivered emails before
-// the user row goes; the person's comments, and search's mirror of them, go with the row by
-// foreign-key cascade. This becomes a PersonDeleted outbox event when identity publishes events.
+// decision 4: the hook deletes the avatar and publishes event.person-deleted before the user row
+// goes; the person's comments, and search's mirror of them, go with the row by foreign-key cascade.
+const storage = new BunS3FileStorage(ENV);
+const deletePerson = createDeletePerson({
+  db,
+  storage,
+  apiOrigin: ENV.BETTER_AUTH_URL,
+});
 const auth = createAuth(
   ENV,
   db,
   [],
   new RedisSecondaryStorage(redis),
-  async (person) => {
-    const profiles = new DrizzleProfileRepository(db, ENV.BETTER_AUTH_URL);
-    const avatarKey = await profiles.avatarKeyOf(person.id);
-    if (avatarKey) {
-      await new BunS3FileStorage(ENV).delete(avatarKey);
-    }
-    await new DrizzleOutbox(db, new UuidGenerator()).forgetPendingTo(
-      person.email
-    );
-  }
+  (person) => deletePerson.execute(person)
 );
 const pubsub = new RedisPubSub(redis);
 const notification = createNotificationConsumers({
@@ -80,7 +74,6 @@ const notification = createNotificationConsumers({
 const live = createLiveConsumer({ pubsub });
 const search = createSearchConsumers({ db });
 const cache = new RedisCache(redis);
-const storage = new BunS3FileStorage(ENV);
 // one set of live rooms per instance: the HTTP and WebSocket use cases and the board-deleted consumer share it
 const rooms = createDrawingRooms({
   db,
@@ -110,6 +103,8 @@ const outbox = new OutboxWorker(
     "event.comment-edited": [search.comment],
     "event.comment-deleted": [search.comment],
     "event.drawing-text-changed": [search.text],
+    "event.member-invited": [notification.memberInvited],
+    "event.person-deleted": [notification.personDeleted],
     "event.member-removed": [
       createDiscussionConsumer({ db }),
       notification.memberRemoved,

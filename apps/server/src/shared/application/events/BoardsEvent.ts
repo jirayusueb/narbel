@@ -14,6 +14,20 @@ export type BoardsEvent =
       personId: string | null;
     }
   | {
+      type: "event.member-invited";
+      version: 1;
+      boardId: string;
+      boardTitle: string;
+      /** normalized: the address the invitation went to */
+      email: string;
+      /** null while the invited email has no account */
+      inviteeId: string | null;
+      inviterId: string;
+      inviterName: string;
+      /** false when the email already held a grant, as in a role change */
+      firstInvite: boolean;
+    }
+  | {
       type: "event.access-changed";
       version: 1;
       boardId: string;

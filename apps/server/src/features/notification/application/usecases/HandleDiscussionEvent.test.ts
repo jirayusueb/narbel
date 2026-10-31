@@ -31,6 +31,7 @@ const inMemory = (deleted: string[] = []) => {
     },
     publish: () => Promise.reject(new Error("the consumer publishes nothing")),
     forget: () => Promise.resolve(),
+    forgetPendingTo: () => Promise.resolve(),
   };
   const tx: NotificationTx = {
     notifications,

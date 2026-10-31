@@ -12,13 +12,17 @@ import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
 import type { IReadableBoards } from "./application/ports/IReadableBoards";
 import { DropBoardNotifications } from "./application/usecases/DropBoardNotifications";
+import { ForgetDeletedPerson } from "./application/usecases/ForgetDeletedPerson";
 import { ForgetRemovedInvite } from "./application/usecases/ForgetRemovedInvite";
 import { HandleDiscussionEvent } from "./application/usecases/HandleDiscussionEvent";
 import type { NotificationTx } from "./application/usecases/HandleDiscussionEvent";
+import { HandleMemberInvited } from "./application/usecases/HandleMemberInvited";
 import { NotificationUseCases } from "./application/usecases/NotificationUseCases";
 import { boardDeletedSchema } from "./infrastructure/events/boardDeletedSchema";
 import { discussionEventSchema } from "./infrastructure/events/discussionEventSchema";
+import { memberInvitedSchema } from "./infrastructure/events/memberInvitedSchema";
 import { memberRemovedSchema } from "./infrastructure/events/memberRemovedSchema";
+import { personDeletedSchema } from "./infrastructure/events/personDeletedSchema";
 import { DrizzleNotificationRepository } from "./infrastructure/repositories/DrizzleNotificationRepository";
 import { createNotificationController } from "./presentation/http/NotificationController";
 
@@ -47,9 +51,9 @@ export const createNotificationModule = ({
   );
 
 /**
- * Reads discussion events and boards' member-removed and board-deleted off the outbox: inbox entries, queued or
- * forgotten emails and the processed mark commit together. The worker sends queued emails in the
- * pass right after.
+ * Reads discussion events, boards' member-invited, member-removed and board-deleted, and identity's
+ * person-deleted off the outbox: inbox entries, queued or forgotten emails and the processed mark
+ * commit together. The worker sends queued emails in the pass right after.
  */
 export const createNotificationConsumers = ({
   db,
@@ -61,8 +65,10 @@ export const createNotificationConsumers = ({
   apiOrigin: string;
 }): {
   discussion: EventConsumer;
+  memberInvited: EventConsumer;
   memberRemoved: EventConsumer;
   boardDeleted: EventConsumer;
+  personDeleted: EventConsumer;
 } => {
   const ids = new UuidGenerator();
   const uow = new DrizzleUnitOfWork<NotificationTx>(db, (tx, afterCommit) => ({
@@ -77,7 +83,9 @@ export const createNotificationConsumers = ({
     people: new DrizzleProfileRepository(tx, apiOrigin),
   }));
   const handle = new HandleDiscussionEvent(uow);
+  const invited = new HandleMemberInvited(uow);
   const forget = new ForgetRemovedInvite(uow);
+  const forgetPerson = new ForgetDeletedPerson(uow);
   const drop = new DropBoardNotifications(uow);
   return {
     discussion: async (id, payload) => {
@@ -86,6 +94,13 @@ export const createNotificationConsumers = ({
         throw new UnreadableEventError(event.error.message);
       }
       await handle.execute(id, event.data);
+    },
+    memberInvited: async (id, payload) => {
+      const event = memberInvitedSchema.safeParse(payload);
+      if (!event.success) {
+        throw new UnreadableEventError(event.error.message);
+      }
+      await invited.execute(id, event.data);
     },
     memberRemoved: async (id, payload) => {
       const event = memberRemovedSchema.safeParse(payload);
@@ -100,6 +115,13 @@ export const createNotificationConsumers = ({
         throw new UnreadableEventError(event.error.message);
       }
       await drop.execute(id, event.data);
+    },
+    personDeleted: async (id, payload) => {
+      const event = personDeletedSchema.safeParse(payload);
+      if (!event.success) {
+        throw new UnreadableEventError(event.error.message);
+      }
+      await forgetPerson.execute(id, event.data);
     },
   };
 };

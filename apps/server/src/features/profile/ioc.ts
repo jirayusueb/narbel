@@ -3,7 +3,9 @@ import { Elysia } from "elysia";
 
 import type { IFileStorage } from "../../shared/application/interfaces/IFileStorage";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
+import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
 import type { AuthDeps, BetterAuthPlugin } from "../auth";
+import { DeletePerson } from "./application/usecases/DeletePerson";
 import { ProfileUseCases } from "./application/usecases/ProfileUseCases";
 import { DrizzleProfileRepository } from "./infrastructure/repositories/DrizzleProfileRepository";
 import { createProfileController } from "./presentation/http/ProfileController";
@@ -37,3 +39,17 @@ export const createProfileModule = ({
       )
     )
   );
+
+/** Better Auth's delete hook: the avatar goes now, `event.person-deleted` tells the other contexts. */
+export const createDeletePerson = ({
+  db,
+  storage,
+  apiOrigin,
+}: Pick<ProfileDeps, "db" | "storage" | "apiOrigin">) => {
+  const ids = new UuidGenerator();
+  return new DeletePerson(
+    new DrizzleProfileRepository(db, apiOrigin),
+    storage,
+    new DrizzleOutbox(db, ids)
+  );
+};

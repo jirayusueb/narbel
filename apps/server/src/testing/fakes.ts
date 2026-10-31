@@ -208,7 +208,7 @@ class FakeProfiles implements IProfileReader {
     );
 }
 
-class FakeNotifications implements INotificationRepository {
+export class FakeNotifications implements INotificationRepository {
   readonly sent: { userId: string; payload: NotificationPayload }[] = [];
   add = (userId: string, payload: NotificationPayload) => {
     this.sent.push({ userId, payload });
@@ -249,6 +249,7 @@ class FakeOutbox implements IOutbox {
     }
     return Promise.resolve();
   };
+  forgetPendingTo = () => Promise.resolve();
   /** queued emails carry a dedupe key, published events do not */
   emails = () => this.messages.filter((m) => m.key !== null);
   events = (): unknown[] =>
@@ -286,14 +287,12 @@ export const setupAccess = () => {
   const boards = new FakeBoards();
   const grants = new FakeGrants(boards);
   const profiles = new FakeProfiles();
-  const notifications = new FakeNotifications();
   const outbox = new FakeOutbox();
   boards.rows.set("b1", newBoard());
   const policy = new AccessPolicy(boards, grants, fakeUnlock);
   const uow = new FakeUow({
     boards,
     grants,
-    notifications,
     outbox,
     profiles,
   });
@@ -301,7 +300,6 @@ export const setupAccess = () => {
     boards,
     grants,
     profiles,
-    notifications,
     outbox,
     uow,
     policy,
