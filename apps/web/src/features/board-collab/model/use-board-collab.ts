@@ -6,6 +6,7 @@ import type {
   ExcalidrawImperativeAPI,
   SocketId,
 } from "@excalidraw/excalidraw/types";
+import { useEventListener } from "@reactuses/core";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
@@ -88,6 +89,18 @@ export const useBoardCollab = ({
   const activePage = useRef<string | null>(null);
   const lastSelection = useRef("");
 
+  // A closing tab never runs effect cleanups, so the pending write goes out as the page hides.
+  useEventListener("pagehide", () => session?.writeElements.flush());
+  useEventListener(
+    "visibilitychange",
+    () => {
+      if (document.visibilityState === "hidden") {
+        session?.writeElements.flush();
+      }
+    },
+    document
+  );
+
   useEffect(() => {
     const doc = new Y.Doc();
     // Signed-in only: a guest's share-link session must leave nothing on disk. Cached state paints the
@@ -111,14 +124,6 @@ export const useBoardCollab = ({
         ),
       ELEMENT_SYNC_MS
     );
-    // A closing tab never runs effect cleanups, so the pending write goes out as the page hides.
-    const flushOnHide = () => {
-      if (document.visibilityState === "hidden") {
-        throttle.flush();
-      }
-    };
-    window.addEventListener("pagehide", throttle.flush);
-    document.addEventListener("visibilitychange", flushOnHide);
     // The doc and socket are external resources owned by this effect; consumers need them as state.
     // oxlint-disable-next-line react/set-state-in-effect
     setSession({ doc, provider, writeElements: throttle });
@@ -219,8 +224,6 @@ export const useBoardCollab = ({
 
     return () => {
       disposed = true;
-      window.removeEventListener("pagehide", throttle.flush);
-      document.removeEventListener("visibilitychange", flushOnHide);
       throttle.flush();
       provider.destroy();
       cache?.destroy();

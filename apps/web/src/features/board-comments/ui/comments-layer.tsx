@@ -1,13 +1,7 @@
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
-import { useEventListener } from "@reactuses/core";
+import { useEvent, useEventListener, useResizeObserver } from "@reactuses/core";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  useEffect,
-  useEffectEvent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
@@ -152,7 +146,8 @@ export const CommentsLayer = ({
   const popover = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
 
-  const apply = useEffectEvent((list: Comment[]) => {
+  // useEvent, not useEffectEvent: the listener hooks below call these, and effect events may only run inside effects.
+  const apply = useEvent((list: Comment[]) => {
     const view = viewRef.current;
     for (const el of [pinsEl.current, draftEl.current]) {
       if (el) {
@@ -181,26 +176,26 @@ export const CommentsLayer = ({
         .join(",")
     );
   });
-  const reposition = useEffectEvent(() => apply(pins));
+  const reposition = useEvent(() => apply(pins));
 
   useEffect(() => {
     apply(pins);
-  }, [pins]);
+  }, [apply, pins]);
+
+  const schedule = useEvent(() => {
+    if (!frame.current) {
+      frame.current = requestAnimationFrame(() => {
+        frame.current = 0;
+        reposition();
+      });
+    }
+  });
 
   useEffect(() => {
-    const schedule = () => {
-      if (!frame.current) {
-        frame.current = requestAnimationFrame(() => {
-          frame.current = 0;
-          reposition();
-        });
-      }
-    };
     const sync = (scrollX: number, scrollY: number, z: { value: number }) => {
       viewRef.current = { scrollX, scrollY, zoom: z.value };
       schedule();
     };
-    globalThis.addEventListener("resize", schedule);
     let off: (() => void) | undefined;
     if (api) {
       const { scrollX, scrollY, zoom: z } = api.getAppState();
@@ -209,11 +204,10 @@ export const CommentsLayer = ({
     }
     return () => {
       off?.();
-      globalThis.removeEventListener("resize", schedule);
       cancelAnimationFrame(frame.current);
       frame.current = 0;
     };
-  }, [api]);
+  }, [api, schedule]);
 
   const focusBoard = () => {
     const target =
@@ -247,7 +241,7 @@ export const CommentsLayer = ({
   }, [mode, canWrite]);
 
   // Place the draft card inside the layer from its measured size; the editor mounts after the first render and grows with text, so it is re-measured.
-  const placeDraft = useEffectEvent(() => {
+  const placeDraft = useEvent(() => {
     const card = popover.current;
     const layer = host.current;
     if (!(draft && card && layer)) {
@@ -269,26 +263,24 @@ export const CommentsLayer = ({
   });
 
   useLayoutEffect(() => {
-    const card = popover.current;
     if (draftEl.current) {
       // Before paint, so the card never flashes at the origin; apply() keeps it in step afterwards.
       paint(draftEl.current, viewRef.current);
     }
     placeDraft();
-    if (!draft || !card) {
-      return;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- a new draft is placed before paint
+  }, [draft, placeDraft]);
+
+  useResizeObserver(draft ? popover : null, placeDraft);
+  useEventListener("resize", () => {
+    schedule();
+    if (draft) {
+      placeDraft();
     }
-    const observer = new ResizeObserver(() => placeDraft());
-    observer.observe(card);
-    globalThis.addEventListener("resize", placeDraft);
-    return () => {
-      observer.disconnect();
-      globalThis.removeEventListener("resize", placeDraft);
-    };
-  }, [draft]);
+  });
 
   // Excalidraw swallows Escape on its own element, so the layer claims it in the capture phase.
-  const onEscape = useEffectEvent((e: KeyboardEvent) => {
+  const onEscape = (e: KeyboardEvent) => {
     const target = e.target as Element | null;
     if (
       e.key !== "Escape" ||
@@ -318,14 +310,13 @@ export const CommentsLayer = ({
     }
     e.preventDefault();
     e.stopPropagation();
-  });
-
-  useEffect(() => {
-    const canvas = host.current?.closest("[data-board-canvas]");
-    canvas?.addEventListener("keydown", onEscape as EventListener, true);
-    return () =>
-      canvas?.removeEventListener("keydown", onEscape as EventListener, true);
-  }, []);
+  };
+  useEventListener(
+    "keydown",
+    onEscape,
+    () => host.current?.closest("[data-board-canvas]"),
+    true
+  );
 
   useEventListener("keydown", (e: KeyboardEvent) => {
     if (

@@ -9,7 +9,7 @@ import {
 import "@excalidraw/excalidraw/index.css";
 import "./excalidraw-theme.css";
 import { Button } from "@narbel/ui/components/button";
-import { useBoolean, useMediaQuery } from "@reactuses/core";
+import { useBoolean, useEventListener, useMediaQuery } from "@reactuses/core";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, History, Pencil, Share2, Users } from "lucide-react";
 import { motion } from "motion/react";
@@ -54,12 +54,12 @@ import { openRenameBoardDialog } from "@/features/rename-board";
 import { openShareBoardDialog } from "@/features/share-board";
 import { UserMenu } from "@/features/user-menu";
 import { safeRedirect } from "@/shared/lib";
-import { installLatinShortcuts } from "@/shared/lib/latin-shortcuts";
+import { onLatinShortcutKeyDown } from "@/shared/lib/latin-shortcuts";
 
-import { isPhoneSize } from "../model/chrome-fit";
 import { PHONE_QUERY } from "../model/phone-query";
 import { useCommentsSheet } from "../model/use-comments-sheet";
 import { useCompactChrome } from "../model/use-compact-chrome";
+import { usePhoneRefresh } from "../model/use-phone-refresh";
 import { BoardDrawer } from "./board-drawer";
 import { BoardIdentity, BoardStatus, StatusAnnouncer } from "./board-identity";
 
@@ -305,31 +305,9 @@ export const BoardEditor = ({
       setPageId,
     });
 
-  // Excalidraw's ResizeObserver updates its phone/desktop flag without re-rendering, so a live resize across the
-  // breakpoint left the old layout (no page tabs or zoom) until some other update. This observer runs after its
-  // own (created later); refresh() re-renders, and only when the flag flips so window drags don't redraw.
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!(api && el)) {
-      return;
-    }
-    let wasPhone = isPhoneSize(el.clientWidth, el.clientHeight);
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      const phone = isPhoneSize(width, height);
-      if (phone !== wasPhone) {
-        wasPhone = phone;
-        api.refresh();
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [api]);
+  usePhoneRefresh(canvasRef, api);
 
-  useEffect(() => {
-    const el = canvasRef.current;
-    return el ? installLatinShortcuts(el) : undefined;
-  }, []);
+  useEventListener("keydown", onLatinShortcutKeyDown, canvasRef, true);
 
   const presenceProps = {
     peers: presence.peers,

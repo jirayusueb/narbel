@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { installLatinShortcuts, latinShortcutKey } from "./latin-shortcuts";
+import { latinShortcutKey, onLatinShortcutKeyDown } from "./latin-shortcuts";
 import type { ShortcutKeyEvent } from "./latin-shortcuts";
 
 const ev = (over: Partial<ShortcutKeyEvent>): ShortcutKeyEvent => ({
@@ -58,24 +58,10 @@ test("editable targets, dialogs, IME and Alt are skipped", () => {
   expect(latinShortcutKey(ev({ ...thai, altKey: true }))).toBeNull();
 });
 
-test("installed listener shadows key on the same event and cleans up", () => {
-  const added: [string, unknown, unknown][] = [];
-  const removed: [string, unknown, unknown][] = [];
-  const root = {
-    addEventListener: (...a: [string, unknown, unknown]) => added.push(a),
-    removeEventListener: (...a: [string, unknown, unknown]) => removed.push(a),
-  } as unknown as HTMLElement;
-  const cleanup = installLatinShortcuts(root);
-  const handler = added[0][1] as (e: KeyboardEvent) => void;
-  expect(added[0][0]).toBe("keydown");
-  expect(added[0][2]).toBe(true);
-
+test("the listener shadows key on the same event", () => {
   const event = {
     ...ev({ code: "KeyR", key: "พ" }),
   } as unknown as KeyboardEvent;
-  handler(event);
+  onLatinShortcutKeyDown(event);
   expect(event.key).toBe("r");
-
-  cleanup();
-  expect(removed[0]).toEqual(added[0]);
 });

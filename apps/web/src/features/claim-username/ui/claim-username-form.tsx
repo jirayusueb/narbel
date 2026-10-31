@@ -5,12 +5,12 @@ import {
   InputGroupInput,
 } from "@narbel/ui/components/input-group";
 import { Spinner } from "@narbel/ui/components/spinner";
+import { useDebounce } from "@reactuses/core";
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { FormEvent } from "react";
 
 import { UserAvatar, useMe } from "@/entities/person";
-import { useDebounced } from "@/shared/lib";
 
 import { useClaimUsername, useUsernameAvailable } from "../api/username";
 import {
@@ -34,7 +34,7 @@ export const ClaimUsernameForm = ({ redirectTo }: { redirectTo?: string }) => {
   const claim = useClaimUsername();
 
   const valid = USERNAME_PATTERN.test(username);
-  const settled = useDebounced(username, 300);
+  const settled = useDebounce(username, 300);
   const check = useUsernameAvailable(settled, valid && settled === username);
   const available =
     valid && settled === username ? check.data?.available : undefined;

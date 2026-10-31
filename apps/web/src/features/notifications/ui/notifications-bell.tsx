@@ -1,20 +1,24 @@
 import { Button } from "@narbel/ui/components/button";
 import { Popover, PopoverTrigger } from "@narbel/ui/components/popover";
 import { Skeleton } from "@narbel/ui/components/skeleton";
+import { useIntersectionObserver } from "@reactuses/core";
 import { useNavigate } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { UserAvatar } from "@/entities/person";
-import { timeAgo, useLoadMore } from "@/shared/lib";
+import { timeAgo } from "@/shared/lib";
 
 import {
   useMarkRead,
   useNotificationList,
-  useNotificationStream,
   useUnreadCount,
 } from "../api/notifications";
 import { describe, target } from "../model/describe";
+import { useNotificationStream } from "../model/use-notification-stream";
+
+// Loads the next page once the sentinel comes within this distance of the list's bottom edge.
+const LOAD_MORE = { rootMargin: "160px" };
 
 export const NotificationsBell = () => {
   useNotificationStream();
@@ -33,9 +37,16 @@ export const NotificationsBell = () => {
     }
     previous.current = unread;
   }, [unread]);
-  const sentinel = useLoadMore(
-    () => list.fetchNextPage(),
-    open && !!list.hasNextPage && !list.isFetchingNextPage
+  const sentinel = useRef<HTMLLIElement>(null);
+  // A null target drops the observer; a new one reports at once, so a sentinel still in view keeps loading.
+  useIntersectionObserver(
+    open && list.hasNextPage && !list.isFetchingNextPage ? sentinel : null,
+    ([entry]) => {
+      if (entry?.isIntersecting) {
+        list.fetchNextPage();
+      }
+    },
+    LOAD_MORE
   );
 
   return (
@@ -167,7 +178,7 @@ export const NotificationsBell = () => {
                 </li>
               );
             })}
-            <li ref={sentinel as never} aria-hidden="true" className="h-px" />
+            <li ref={sentinel} aria-hidden="true" className="h-px" />
           </ul>
         </Popover>
       </PopoverTrigger>

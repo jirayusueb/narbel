@@ -2,6 +2,7 @@ import type {
   AppState,
   ExcalidrawImperativeAPI,
 } from "@excalidraw/excalidraw/types";
+import { useEventListener, useReducedMotion } from "@reactuses/core";
 import { useEffect, useRef, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
@@ -22,6 +23,8 @@ interface Viewport {
   scrollY: number;
   zoom: number;
 }
+
+const CAPTURE = { capture: true };
 
 export const usePresence = ({
   awareness,
@@ -126,42 +129,45 @@ export const usePresence = ({
         });
       }
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !e.defaultPrevented) {
-        setFollowId(null);
-      }
-    };
-    // Our own scrolling is the signal to stop; programmatic scrolls from follow() fire neither of these.
-    const onUserInput = (e: Event) => {
-      const target = e.target as Element | null;
-      // Closing the phone drawer (overlay tap, handle drag) is a pointerdown outside the bar.
-      if (
-        !target?.closest?.(
-          "[data-presence], [data-slot=drawer-overlay], [data-slot=drawer-content]"
-        )
-      ) {
-        setFollowId(null);
-      }
-    };
     awareness.on("change", follow);
     follow();
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("wheel", onUserInput, { capture: true });
-    document.addEventListener("pointerdown", onUserInput, { capture: true });
     return () => {
       awareness.off("change", follow);
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("wheel", onUserInput, { capture: true });
-      document.removeEventListener("pointerdown", onUserInput, {
-        capture: true,
-      });
     };
   }, [awareness, api, followId, pageId, setPageId]);
 
+  // Listeners live only while following: the target resolves to null otherwise (a missing target would mean window).
+  const following = awareness !== null && api !== null && followId !== null;
+  const whileFollowing = () => (following ? document : null);
+  useEventListener(
+    "keydown",
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) {
+        setFollowId(null);
+      }
+    },
+    whileFollowing
+  );
+  // Our own scrolling is the signal to stop; programmatic scrolls from follow() fire neither of these.
+  const onUserInput = (e: Event) => {
+    const target = e.target as Element | null;
+    // Closing the phone drawer (overlay tap, handle drag) is a pointerdown outside the bar.
+    if (
+      !target?.closest?.(
+        "[data-presence], [data-slot=drawer-overlay], [data-slot=drawer-content]"
+      )
+    ) {
+      setFollowId(null);
+    }
+  };
+  useEventListener("wheel", onUserInput, whileFollowing, CAPTURE);
+  useEventListener("pointerdown", onUserInput, whileFollowing, CAPTURE);
+
   // Latest values for the reveal handler, so a page switch or follow toggle does not re-absorb reveals.
-  const latest = useRef({ pageId, followId, setPageId });
+  const reducedMotion = useReducedMotion();
+  const latest = useRef({ pageId, followId, setPageId, reducedMotion });
   useEffect(() => {
-    latest.current = { pageId, followId, setPageId };
+    latest.current = { pageId, followId, setPageId, reducedMotion };
   });
   const pending = useRef<Reveal | null>(null);
 
@@ -179,7 +185,7 @@ export const usePresence = ({
         return;
       }
       if (next.pageId === latest.current.pageId) {
-        reveal(api, next.ids);
+        reveal(api, next.ids, !latest.current.reducedMotion);
       } else {
         pending.current = next;
         latest.current.setPageId(next.pageId);
@@ -194,7 +200,7 @@ export const usePresence = ({
     const next = pending.current;
     if (api && next && next.pageId === pageId) {
       pending.current = null;
-      reveal(api, next.ids);
+      reveal(api, next.ids, !latest.current.reducedMotion);
     }
   }, [api, pageId]);
 

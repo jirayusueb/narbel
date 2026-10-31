@@ -218,7 +218,7 @@ The app already depends on `@reactuses/core` 6.6.1 and uses only `useClipboard`.
 
 The cursor path needs the steady 33 ms rhythm that Excalidraw's own collaboration uses (`CURSOR_SYNC_TIMEOUT = 33`), so the hand-written helper earns its 40 lines.
 
-An oxlint `no-restricted-syntax` rule for `apps/web/src/**` bans `new ResizeObserver`, `new IntersectionObserver`, `new EventSource`, and direct `addEventListener` calls, with a message that names the hook to use. `shared/lib/board-cache.ts` is exempt, because IndexedDB requests are not DOM events.
+oxlint 1.90 has no `no-restricted-syntax`, so the redproof gate `web-hooks` (`gates/web-hooks.ts`, scanner `gate-checks/web-hooks.ts`) bans `new ResizeObserver`, `new IntersectionObserver`, `new EventSource`, and `.addEventListener(` in `apps/web/src/**` outside tests, with a message that names the hook to use. Its allowlist names each exempt file and why: `entities/drawing/model/board-cache.ts`, because IndexedDB requests are not DOM events; the vendored stickers; the comments sheet, whose panel mounts in the same commit that opens it while `useEventListener` resolves its target during render; and the compact-chrome measure, which observes up to five elements with one observer.
 
 ## Decisions
 

@@ -58,15 +58,10 @@ export const latinShortcutKey = (e: ShortcutKeyEvent): string | null => {
   return THAI_BLOCK.test(e.key) || thaiPunct ? digit : null;
 };
 
-/** Capture-phase shadowing of `key` on the original event so Excalidraw's document handler sees Latin keys. */
-const onKeyDown = (e: KeyboardEvent) => {
+/** Capture-phase listener for the board root: shadows `key` on the original event so Excalidraw's document handler sees Latin keys. */
+export const onLatinShortcutKeyDown = (e: KeyboardEvent) => {
   const key = latinShortcutKey(e);
   if (key) {
     Object.defineProperty(e, "key", { value: key, configurable: true });
   }
-};
-
-export const installLatinShortcuts = (root: HTMLElement): (() => void) => {
-  root.addEventListener("keydown", onKeyDown, true);
-  return () => root.removeEventListener("keydown", onKeyDown, true);
 };
