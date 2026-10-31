@@ -5,6 +5,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -153,6 +154,15 @@ export const boardText = pgTable(
     index("board_text_trgm_idx").using("gin", table.text.op("gin_trgm_ops")),
   ]
 );
+
+// One Excalidraw library per account; items are stored exactly as the editor hands them over.
+export const userLibrary = pgTable("user_library", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  libraryItems: jsonb("library_items").$type<unknown[]>().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 export const boardFile = pgTable(
   "board_file",

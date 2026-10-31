@@ -33,6 +33,7 @@ import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
 import { GetBoardChanges } from "./application/usecases/GetBoardChanges";
 import { GetBoardFile } from "./application/usecases/GetBoardFile";
 import { GetBoardScene } from "./application/usecases/GetBoardScene";
+import { GetLibrary } from "./application/usecases/GetLibrary";
 import { GroupElements } from "./application/usecases/GroupElements";
 import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
 import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
@@ -49,6 +50,7 @@ import { RenamePage } from "./application/usecases/RenamePage";
 import { RenderBoardImage } from "./application/usecases/RenderBoardImage";
 import { ReplyToComment } from "./application/usecases/ReplyToComment";
 import { ResolveComment } from "./application/usecases/ResolveComment";
+import { SaveLibrary } from "./application/usecases/SaveLibrary";
 import { SearchBoards } from "./application/usecases/SearchBoards";
 import {
   EditSelection,
@@ -68,6 +70,7 @@ import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/Drizzle
 import { DrizzleBoardFileRepository } from "./infrastructure/repositories/DrizzleBoardFileRepository";
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
 import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
+import { DrizzleLibraryRepository } from "./infrastructure/repositories/DrizzleLibraryRepository";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
 import { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence";
@@ -80,6 +83,7 @@ import {
   createSharedBoardsController,
 } from "./presentation/http/BoardController";
 import { createBoardFileController } from "./presentation/http/BoardFileController";
+import { createLibraryController } from "./presentation/http/LibraryController";
 import { createMcpController } from "./presentation/mcp/McpController";
 import { createBoardSyncController } from "./presentation/ws/BoardSyncController";
 
@@ -146,8 +150,11 @@ const createUseCases = ({
   const unlockTokens = new HmacUnlockTokens(secret);
   const guard = new BoardAccessGuard(boards, grants, unlockTokens);
   const presence = new RedisBoardPresence(redis);
+  const library = new DrizzleLibraryRepository(db);
   return {
     createBoard: new CreateBoard(boards, ids),
+    getLibrary: new GetLibrary(library),
+    saveLibrary: new SaveLibrary(library),
     listBoards: new ListBoards(boards),
     listSharedBoards: new ListSharedBoards(boards),
     searchBoards: new SearchBoards(new DrizzleBoardSearch(db)),
@@ -220,6 +227,7 @@ export const createBoardModule = ({ betterAuth, ...deps }: BoardDeps) => {
     .use(createBoardCommentController(betterAuth, uc))
     .use(createBoardAccessController(betterAuth, uc))
     .use(createBoardController(betterAuth, uc))
+    .use(createLibraryController(betterAuth, uc))
     .use(createSharedBoardsController(betterAuth, uc))
     .use(createMcpController(betterAuth, uc));
 };

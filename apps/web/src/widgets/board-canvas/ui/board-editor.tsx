@@ -3,6 +3,7 @@ import {
   Footer,
   MainMenu,
   useDevice,
+  useHandleLibrary,
 } from "@excalidraw/excalidraw";
 
 import "@excalidraw/excalidraw/index.css";
@@ -29,6 +30,7 @@ import {
   CommentsPanelToggle,
   useCommentsWorkspace,
 } from "@/features/board-comments";
+import { libraryAdapter } from "@/features/board-library";
 import { useBoardMedia } from "@/features/board-media";
 import {
   PagesBar,
@@ -245,6 +247,11 @@ export const BoardEditor = ({
     canWrite: writable,
     shareToken,
     pageId,
+  });
+  // Guests keep Excalidraw's in-memory library; only an account owns a persisted one.
+  useHandleLibrary({
+    excalidrawAPI: signedIn ? api : null,
+    adapter: libraryAdapter,
   });
   const pages = usePages({
     doc,
