@@ -5,7 +5,22 @@ import { Elysia } from "elysia";
 import type Redis from "ioredis";
 
 import { createAuthModule, createBetterAuthPlugin } from "../features/auth";
-import { createAccessPolicy, createBoardModule } from "../features/board";
+import {
+  createAccessPolicy,
+  createBoardsModule,
+  createBoardsUseCases,
+} from "../features/boards";
+import {
+  createCommentActivity,
+  createCommentUseCases,
+  createDiscussionModule,
+} from "../features/discussion";
+import {
+  createDrawingModule,
+  createDrawingUseCases,
+} from "../features/drawing";
+import type { DrawingRooms } from "../features/drawing";
+import { createMcpController } from "../features/mcp";
 import { createNotificationModule } from "../features/notification";
 import { createProfileModule } from "../features/profile";
 import type { ICache } from "../shared/application/interfaces/ICache";
@@ -34,6 +49,8 @@ export interface AppDeps {
   idempotency: IIdempotencyStore;
   /** asks the outbox worker for a pass now; called after a commit that queued an event */
   wakeOutbox: () => void;
+  /** drawing's live rooms, shared with the board-deleted consumer */
+  rooms: DrawingRooms;
 }
 
 export const createApp = ({
@@ -49,8 +66,39 @@ export const createApp = ({
   redis,
   idempotency,
   wakeOutbox,
+  rooms,
 }: AppDeps) => {
   const betterAuth = createBetterAuthPlugin(auth);
+  // the composition root: each context reaches another only through the ports wired here
+  const access = createAccessPolicy({ db, cache, secret });
+  const drawing = createDrawingUseCases({
+    db,
+    storage,
+    cache,
+    redis,
+    rooms,
+    access,
+    comments: createCommentActivity({ db, apiOrigin }),
+  });
+  const comments = createCommentUseCases({
+    db,
+    apiOrigin,
+    wakeOutbox,
+    access,
+    membersIn: (tx) => createAccessPolicy({ db, cache, secret }, tx),
+  });
+  const boards = createBoardsUseCases({
+    db,
+    webOrigin,
+    apiOrigin,
+    secret,
+    cache,
+    pubsub,
+    redis,
+    wakeOutbox,
+    drawings: rooms,
+    copier: drawing.copyDrawing,
+  });
   return new Elysia({
     // the notification stream is idle between 25s heartbeats; Bun's 10s default would cut it
     serve: { maxRequestBodySize: MAX_REQUEST_BODY_BYTES, idleTimeout: 60 },
@@ -80,22 +128,14 @@ export const createApp = ({
         db,
         pubsub,
         betterAuth,
-        readableBoards: createAccessPolicy({ db, cache, secret }),
+        readableBoards: access,
       })
     )
+    .use(createDrawingModule(betterAuth, drawing))
+    .use(createDiscussionModule(betterAuth, comments))
+    .use(createBoardsModule(betterAuth, boards))
     .use(
-      createBoardModule({
-        db,
-        storage,
-        webOrigin,
-        apiOrigin,
-        secret,
-        cache,
-        pubsub,
-        redis,
-        betterAuth,
-        wakeOutbox,
-      })
+      createMcpController(betterAuth, { ...boards, ...drawing, ...comments })
     );
 };
 

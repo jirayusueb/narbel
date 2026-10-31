@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import { ids, setupAccess } from "../../../board/application/usecases/fakes";
+import { ids, setupAccess } from "../../../boards/application/usecases/fakes";
 import { newComment } from "../../domain/entities/Comment";
 import { excerptOf, extractMentions } from "../../domain/rules/mentions";
 import { parseReaction } from "../../domain/values/Reaction";

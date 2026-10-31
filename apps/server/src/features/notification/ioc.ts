@@ -11,10 +11,12 @@ import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOf
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
 import type { IReadableBoards } from "./application/ports/IReadableBoards";
+import { DropBoardNotifications } from "./application/usecases/DropBoardNotifications";
 import { ForgetRemovedInvite } from "./application/usecases/ForgetRemovedInvite";
 import { HandleDiscussionEvent } from "./application/usecases/HandleDiscussionEvent";
 import type { NotificationTx } from "./application/usecases/HandleDiscussionEvent";
 import { NotificationUseCases } from "./application/usecases/NotificationUseCases";
+import { boardDeletedSchema } from "./infrastructure/events/boardDeletedSchema";
 import { discussionEventSchema } from "./infrastructure/events/discussionEventSchema";
 import { memberRemovedSchema } from "./infrastructure/events/memberRemovedSchema";
 import { DrizzleNotificationRepository } from "./infrastructure/repositories/DrizzleNotificationRepository";
@@ -45,7 +47,7 @@ export const createNotificationModule = ({
   );
 
 /**
- * Reads discussion events and boards' member-removed off the outbox: inbox entries, queued or
+ * Reads discussion events and boards' member-removed and board-deleted off the outbox: inbox entries, queued or
  * forgotten emails and the processed mark commit together. The worker sends queued emails in the
  * pass right after.
  */
@@ -57,7 +59,11 @@ export const createNotificationConsumers = ({
   db: Database;
   pubsub: IPubSub;
   apiOrigin: string;
-}): { discussion: EventConsumer; memberRemoved: EventConsumer } => {
+}): {
+  discussion: EventConsumer;
+  memberRemoved: EventConsumer;
+  boardDeleted: EventConsumer;
+} => {
   const ids = new UuidGenerator();
   const uow = new DrizzleUnitOfWork<NotificationTx>(db, (tx, afterCommit) => ({
     notifications: new DrizzleNotificationRepository(
@@ -72,6 +78,7 @@ export const createNotificationConsumers = ({
   }));
   const handle = new HandleDiscussionEvent(uow);
   const forget = new ForgetRemovedInvite(uow);
+  const drop = new DropBoardNotifications(uow);
   return {
     discussion: async (id, payload) => {
       const event = discussionEventSchema.safeParse(payload);
@@ -86,6 +93,13 @@ export const createNotificationConsumers = ({
         throw new UnreadableEventError(event.error.message);
       }
       await forget.execute(id, event.data);
+    },
+    boardDeleted: async (id, payload) => {
+      const event = boardDeletedSchema.safeParse(payload);
+      if (!event.success) {
+        throw new UnreadableEventError(event.error.message);
+      }
+      await drop.execute(id, event.data);
     },
   };
 };

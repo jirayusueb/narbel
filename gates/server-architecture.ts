@@ -13,7 +13,9 @@ const adapter = dependencyCruiser({
     presentationNoInfrastructure: "server-presentation-no-infrastructure",
     infrastructureNoPresentation: "server-infrastructure-no-presentation",
     featurePublicApi: "server-feature-public-api",
-    schemaBoardOwner: "server-schema-board-owner",
+    schemaBoardsOwner: "server-schema-boards-owner",
+    schemaDrawingOwner: "server-schema-drawing-owner",
+    schemaSearchOwner: "server-schema-search-owner",
     schemaAuthOwner: "server-schema-auth-owner",
     schemaAccountOwner: "server-schema-account-owner",
     schemaDiscussionOwner: "server-schema-discussion-owner",
@@ -28,14 +30,14 @@ export const proofs = defineProofs(gate, [
     "detects shared importing a feature",
     mutate.appendText(
       "apps/server/src/shared/kernel/errors/AppError.ts",
-      '\nimport "../../../features/board/index";\n'
+      '\nimport "../../../features/boards/index";\n'
     )
   ),
   proof.red(
     adapter.rules.domainPure,
     "detects a framework import in the domain",
     mutate.appendText(
-      `${F}/board/domain/values/BoardTitle.ts`,
+      `${F}/boards/domain/values/BoardTitle.ts`,
       '\nimport "elysia";\n'
     )
   ),
@@ -43,24 +45,24 @@ export const proofs = defineProofs(gate, [
     adapter.rules.applicationInward,
     "detects a use case importing infrastructure",
     mutate.appendText(
-      `${F}/board/application/usecases/CreateBoard.ts`,
-      '\nimport "../../infrastructure/crdt/YjsBoardHub";\n'
+      `${F}/boards/application/usecases/CreateBoard.ts`,
+      '\nimport "../../infrastructure/repositories/DrizzleBoardRepository";\n'
     )
   ),
   proof.red(
     adapter.rules.presentationNoInfrastructure,
     "detects a controller importing infrastructure",
     mutate.appendText(
-      `${F}/board/presentation/http/BoardController.ts`,
-      '\nimport "../../infrastructure/crdt/YjsBoardHub";\n'
+      `${F}/boards/presentation/http/BoardController.ts`,
+      '\nimport "../../infrastructure/repositories/DrizzleBoardRepository";\n'
     )
   ),
   proof.red(
     adapter.rules.infrastructureNoPresentation,
     "detects infrastructure importing presentation",
     mutate.appendText(
-      `${F}/board/infrastructure/crdt/YjsBoardHub.ts`,
-      '\nimport "../../presentation/http/BoardController";\n'
+      `${F}/drawing/infrastructure/crdt/YjsBoardHub.ts`,
+      '\nimport "../../presentation/http/BoardFileController";\n'
     )
   ),
   proof.red(
@@ -68,15 +70,31 @@ export const proofs = defineProofs(gate, [
     "detects a feature reaching into another feature's internals",
     mutate.appendText(
       `${F}/auth/ioc.ts`,
-      '\nimport "../board/domain/values/BoardTitle";\n'
+      '\nimport "../drawing/domain/values/FileKey";\n'
     )
   ),
   proof.red(
-    adapter.rules.schemaBoardOwner,
-    "detects a board schema import outside features/board",
+    adapter.rules.schemaBoardsOwner,
+    "detects a boards schema import outside features/boards",
     mutate.appendText(
-      "apps/server/src/shared/kernel/errors/AppError.ts",
-      '\nimport { board } from "@narbel/db/schema/board";\n'
+      `${F}/drawing/infrastructure/repositories/DrizzleBoardFileRepository.ts`,
+      '\nimport { board } from "@narbel/db/schema/boards";\n'
+    )
+  ),
+  proof.red(
+    adapter.rules.schemaDrawingOwner,
+    "detects a drawing schema import outside features/drawing",
+    mutate.appendText(
+      `${F}/boards/infrastructure/repositories/DrizzleBoardRepository.ts`,
+      '\nimport { boardDocument } from "@narbel/db/schema/drawing";\n'
+    )
+  ),
+  proof.red(
+    adapter.rules.schemaSearchOwner,
+    "detects a search schema import outside features/drawing",
+    mutate.appendText(
+      `${F}/boards/infrastructure/repositories/DrizzleBoardSearch.ts`,
+      '\nimport { boardText } from "@narbel/db/schema/search";\n'
     )
   ),
   proof.red(
@@ -91,7 +109,7 @@ export const proofs = defineProofs(gate, [
     adapter.rules.schemaAccountOwner,
     "detects an account schema import outside shared and features/notification",
     mutate.appendText(
-      "apps/server/src/features/board/ioc.ts",
+      "apps/server/src/features/boards/ioc.ts",
       '\nimport { outbox } from "@narbel/db/schema/account";\n'
     )
   ),
@@ -99,7 +117,7 @@ export const proofs = defineProofs(gate, [
     adapter.rules.schemaDiscussionOwner,
     "detects a discussion schema import outside features/discussion",
     mutate.appendText(
-      "apps/server/src/features/board/ioc.ts",
+      "apps/server/src/features/boards/ioc.ts",
       '\nimport { comment } from "@narbel/db/schema/discussion";\n'
     )
   ),

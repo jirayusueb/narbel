@@ -1,3 +1,3 @@
 export { createProfileModule, type ProfileDeps } from "./ioc";
-// board builds this itself until step 6 replaces it with PeopleDirectory
+// boards, discussion and notification build this themselves until PeopleDirectory replaces it
 export { DrizzleProfileRepository } from "./infrastructure/repositories/DrizzleProfileRepository";

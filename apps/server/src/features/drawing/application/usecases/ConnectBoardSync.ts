@@ -1,0 +1,100 @@
+import type { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { Actor } from "../../../../shared/kernel/types/Actor";
+import { err, ok, okEmpty } from "../../../../shared/kernel/types/Result";
+import type { Result } from "../../../../shared/kernel/types/Result";
+import type { IBoardAccess } from "../ports/IBoardAccess";
+import type { IBoardPresence } from "../ports/IBoardPresence";
+import type {
+  IBoardSyncGateway,
+  SyncPeer,
+  SyncSession,
+} from "../ports/IBoardSyncGateway";
+
+export const TOUCH_INTERVAL_MS = 15_000;
+
+export class ConnectBoardSync {
+  constructor(
+    private readonly policy: IBoardAccess,
+    private readonly gateway: IBoardSyncGateway,
+    private readonly presence: IBoardPresence,
+    private readonly now: () => number = Date.now
+  ) {}
+
+  /** The upgrade-time check: the same read decision `execute` makes, so strangers get a plain HTTP error. */
+  async admit(input: {
+    actor: Actor;
+    boardId: string;
+  }): Promise<Result<undefined, AppError>> {
+    const granted = await this.policy.decide(
+      input.boardId,
+      input.actor,
+      "read"
+    );
+    return granted.isErr() ? err(granted.error) : okEmpty();
+  }
+
+  async execute(input: {
+    actor: Actor;
+    boardId: string;
+    peer: SyncPeer;
+  }): Promise<Result<SyncSession, AppError>> {
+    const granted = await this.policy.decide(
+      input.boardId,
+      input.actor,
+      "read"
+    );
+    if (granted.isErr()) {
+      return err(granted.error);
+    }
+    const session = await this.gateway.connect(
+      input.boardId,
+      input.peer,
+      granted.value.access.canWrite,
+      // decided again with the proof the peer presented at connect
+      async () => {
+        const now = await this.policy.decide(
+          input.boardId,
+          input.actor,
+          "read"
+        );
+        if (now.isErr()) {
+          return "none";
+        }
+        return now.value.access.canWrite ? "write" : "read";
+      }
+    );
+    // a Trash that landed between the check above and the join must not leave this peer connected
+    const again = await this.policy.decide(input.boardId, input.actor, "read");
+    if (again.isErr()) {
+      session.close();
+      return err(again.error);
+    }
+    return ok(this.track(input.boardId, input.actor, session));
+  }
+
+  // presence calls are not awaited: a slow or dead Redis must never delay sync frames
+  private track(
+    boardId: string,
+    actor: Actor,
+    session: SyncSession
+  ): SyncSession {
+    const connectionId = crypto.randomUUID();
+    let lastTouch = this.now();
+    const viewer = { userId: actor.userId ?? null, name: actor.name ?? null };
+    void this.presence.join(boardId, connectionId, viewer);
+    return {
+      receive: (message) => {
+        session.receive(message);
+        const at = this.now();
+        if (at - lastTouch >= TOUCH_INTERVAL_MS) {
+          lastTouch = at;
+          void this.presence.join(boardId, connectionId, viewer);
+        }
+      },
+      close: () => {
+        session.close();
+        void this.presence.leave(boardId, connectionId);
+      },
+    };
+  }
+}
