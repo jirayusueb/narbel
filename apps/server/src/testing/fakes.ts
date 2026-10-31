@@ -43,7 +43,7 @@ export const ids: IIdGenerator = {
   token: () => "t".repeat(43),
 };
 
-export class FakeBoards implements IBoardRepository {
+class FakeBoards implements IBoardRepository {
   readonly rows = new Map<string, Board>();
   findById = (id: string) => {
     const row = this.rows.get(id);
@@ -89,7 +89,7 @@ export class FakeBoards implements IBoardRepository {
   };
 }
 
-export class FakeGrants implements IBoardAccessRepository {
+class FakeGrants implements IBoardAccessRepository {
   readonly members: (Member & { boardId: string })[] = [];
   share: Share | null = null;
   constructor(private readonly boards = new FakeBoards()) {}
@@ -187,7 +187,7 @@ export class FakeGrants implements IBoardAccessRepository {
   };
 }
 
-export class FakeProfiles implements IProfileReader {
+class FakeProfiles implements IProfileReader {
   readonly people = new Map<string, Person>();
   add(id: string, username: string | null = null, name = id.toUpperCase()) {
     this.people.set(id, {
@@ -208,7 +208,7 @@ export class FakeProfiles implements IProfileReader {
     );
 }
 
-export class FakeNotifications implements INotificationRepository {
+class FakeNotifications implements INotificationRepository {
   readonly sent: { userId: string; payload: NotificationPayload }[] = [];
   add = (userId: string, payload: NotificationPayload) => {
     this.sent.push({ userId, payload });
@@ -227,7 +227,7 @@ export class FakeNotifications implements INotificationRepository {
     this.sent.filter((n) => n.userId === userId).map((n) => n.payload.kind);
 }
 
-export class FakeOutbox implements IOutbox {
+class FakeOutbox implements IOutbox {
   readonly messages: {
     message: OutboxMessage | OutboxEvent;
     key: string | null;
@@ -256,7 +256,7 @@ export class FakeOutbox implements IOutbox {
 }
 
 /** Runs the work directly on the fakes; there is nothing to roll back in memory. */
-export class FakeUow implements IUnitOfWork<BoardTx> {
+class FakeUow implements IUnitOfWork<BoardTx> {
   constructor(private readonly tx: BoardTx) {}
   run = <T>(work: (tx: BoardTx) => Promise<T>) => work(this.tx);
 }
