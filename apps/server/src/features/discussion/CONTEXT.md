@@ -1,6 +1,6 @@
 # discussion: ubiquitous language
 
-The words of the `discussion` context, moved here from [docs/architecture/glossary.md](../../../../../docs/architecture/glossary.md) (migration step 7; the context got its folder in step 5). A word means one thing inside this context; the third column names the neighbour's word it must not be confused with.
+The words of the `discussion` context (the context got its folder in step 5). A word means one thing inside this context; the third column names the neighbour's word it must not be confused with.
 
 | Term | Meaning | Not to be confused with |
 | --- | --- | --- |
