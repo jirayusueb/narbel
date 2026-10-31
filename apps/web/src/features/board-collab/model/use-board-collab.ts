@@ -7,7 +7,13 @@ import type {
   SocketId,
 } from "@excalidraw/excalidraw/types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
@@ -69,6 +75,8 @@ export const useBoardCollab = ({
   canWrite: boolean;
   shareToken?: string;
 }) => {
+  // read at event time so a role change does not tear down the scene subscription
+  const canWriteNow = useEffectEvent(() => canWrite);
   const queryClient = useQueryClient();
   const { id: userId, name: userName, username, avatarUrl } = user;
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
@@ -291,22 +299,27 @@ export const useBoardCollab = ({
     });
     api.history.clear();
 
-    const applyRemote = (keys: Iterable<string>) => {
+    const meta = doc.getMap("meta");
+    const applyRemote = (keys: Iterable<string>, isRestore: boolean) => {
       const changedKeys = [...keys];
       const local = new Map(
         api.getSceneElementsIncludingDeleted().map((el) => [el.id, el])
       );
-      const winners = outranking(
-        pageId,
-        changedKeys,
-        (key) => elements.get(key),
-        local
-      );
+      const winners = isRestore
+        ? []
+        : outranking(
+            pageId,
+            changedKeys,
+            (key) => elements.get(key),
+            local,
+            canWriteNow()
+          );
       const incoming = incomingFor(
         pageId,
         changedKeys,
         (key) => elements.get(key),
-        local
+        local,
+        isRestore
       );
       if (winners.length > 0) {
         doc.transact(() => {
@@ -336,13 +349,15 @@ export const useBoardCollab = ({
 
     const onElements = (event: Y.YMapEvent<ExcalidrawElement>) => {
       if (event.transaction.origin !== LOCAL_ORIGIN) {
-        applyRemote(event.keysChanged);
+        const isRestore = [...event.transaction.changed].some(
+          ([type, keys]) => Object.is(type, meta) && keys.has("restore")
+        );
+        applyRemote(event.keysChanged, isRestore);
       }
     };
     elements.observe(onElements);
 
     // A restore replaces the scene under every client; an undo step from before it must not replay over it.
-    const meta = doc.getMap("meta");
     const onMeta = (event: Y.YMapEvent<unknown>) => {
       if (event.keysChanged.has("restore")) {
         api.history.clear();

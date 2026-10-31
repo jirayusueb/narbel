@@ -29,7 +29,7 @@ export const uploadBoardFile = async (
       { query: { share: shareToken } }
     )
   );
-  // The URL is signed for this exact content type and length.
+  // The URL is signed for the content type only, not the body length.
   const res = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "content-type": prepared.mimeType },

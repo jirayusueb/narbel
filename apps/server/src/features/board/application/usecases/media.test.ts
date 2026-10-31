@@ -53,6 +53,8 @@ const setup = () => {
     { id: string; mimeType: string; size: number }
   >();
   const deleting = new Set<string>();
+  const cached = new Map<string, unknown>();
+  let rasterized = 0;
   const files: IBoardFileRepository = {
     findById: (b, f) => Promise.resolve(rows.get(`${b}/${f}`) ?? null),
     save: (b, f) => {
@@ -92,9 +94,27 @@ const setup = () => {
     deleting,
     add: new AddBoardImage(base.guard, base.scenes, files, storage, ids),
     exportScene: new ExportBoardScene(base.guard, base.scenes, files, storage),
-    render: new RenderBoardImage(base.guard, base.scenes, files, storage, {
-      rasterize: (svg) => Promise.resolve(new TextEncoder().encode(svg)),
-    }),
+    rasterizations: () => rasterized,
+    render: new RenderBoardImage(
+      base.guard,
+      base.scenes,
+      files,
+      storage,
+      {
+        rasterize: (svg) => {
+          rasterized += 1;
+          return Promise.resolve(new TextEncoder().encode(svg));
+        },
+      },
+      {
+        get: <T>(key: string) => Promise.resolve(cached.get(key) as T),
+        set: (key, value) => {
+          cached.set(key, value);
+          return Promise.resolve();
+        },
+        del: () => Promise.resolve(),
+      }
+    ),
   };
 };
 
@@ -577,6 +597,75 @@ describe("images declared over the pixel limit", () => {
     });
     expect(result.isOk() && Object.keys(result.value.files)).toEqual([smallId]);
     expect(result.isOk() && result.value.omittedFiles).toEqual([bigId]);
+  });
+});
+
+describe("get_board_image on a board that reuses one file", () => {
+  const placeCopies = async (copies: number, declared = png(3, 2)) => {
+    const t = setup();
+    let fileId = "";
+    for (let i = 0; i < copies; i += 1) {
+      const r = await t.add.execute({
+        actor,
+        boardId: "b1",
+        bytes: png(3, 2),
+      });
+      fileId = r.isOk() ? r.value.fileId : fileId;
+    }
+    t.stored.set(`boards/b1/${fileId}`, {
+      bytes: declared,
+      mimeType: "image/png",
+    });
+    return { t, fileId };
+  };
+  const render = async (t: ReturnType<typeof setup>) => {
+    const result = await t.render.execute({ actor, boardId: "b1" });
+    if (result.isErr()) {
+      throw new Error("render failed");
+    }
+    return {
+      svg: new TextDecoder().decode(result.value.image?.png),
+      omitted: result.value.omittedFiles,
+    };
+  };
+
+  it("embeds the bytes once and references them per element", async () => {
+    const { t } = await placeCopies(3);
+    const { svg } = await render(t);
+    expect(svg.match(/base64,/gu)).toHaveLength(1);
+    expect(svg.match(/<use /gu)).toHaveLength(3);
+  });
+
+  it("omits the copies past the per-render pixel budget", async () => {
+    // 5 x 16M pixels against a 64M budget
+    const { t, fileId } = await placeCopies(5, png(4000, 4000));
+    const { svg, omitted } = await render(t);
+    expect(svg.match(/<use /gu)).toHaveLength(4);
+    expect(omitted).toEqual([fileId]);
+  });
+
+  it("leaves SVG files out of the render", async () => {
+    const { t, fileId } = await placeCopies(1);
+    const row = t.rows.get(`b1/${fileId}`);
+    if (row) {
+      t.rows.set(`b1/${fileId}`, { ...row, mimeType: "image/svg+xml" });
+    }
+    const { svg, omitted } = await render(t);
+    expect(svg).not.toContain("base64,");
+    expect(omitted).toEqual([fileId]);
+  });
+
+  it("serves a repeat from the cache but still checks access first", async () => {
+    const { t } = await placeCopies(1);
+    await render(t);
+    await render(t);
+    expect(t.rasterizations()).toBe(1);
+    const stranger = await t.render.execute({
+      actor: { userId: "stranger" },
+      boardId: "b1",
+    });
+    expect(stranger.isErr()).toBe(true);
+    expect(t.rasterizations()).toBe(1);
   });
 });
 

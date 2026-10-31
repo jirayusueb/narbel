@@ -23,6 +23,7 @@ const copyTitle = (title: string) =>
   `${title.slice(0, TITLE_MAX_LENGTH - COPY_SUFFIX.length).trimEnd()}${COPY_SUFFIX}`;
 
 const COPY_CONCURRENCY = 3;
+const COPY_MAX_TOTAL_BYTES = 256 * 1024 * 1024;
 
 /** Runs `fn` over `items`, at most COPY_CONCURRENCY in flight. After a failure nothing new starts, in-flight work settles, then it rethrows. */
 const inPool = async <T, R>(
@@ -108,11 +109,18 @@ export class DuplicateBoard {
       this.checkFile(input.boardId, fileId)
     );
     const mimeTypes = new Map<string, string>();
+    let totalBytes = 0;
     for (const [index, checked] of checks.entries()) {
       if (checked.isErr()) {
         return err(checked.error);
       }
-      mimeTypes.set(ids[index] as string, checked.value);
+      totalBytes += checked.value.size;
+      mimeTypes.set(ids[index] as string, checked.value.mimeType);
+    }
+    if (totalBytes > COPY_MAX_TOTAL_BYTES) {
+      return err(
+        AppError.payloadTooLarge("The board's images are too large to copy")
+      );
     }
     const board = Board.create(
       this.ids.generate(),
@@ -155,7 +163,7 @@ export class DuplicateBoard {
   private async checkFile(
     sourceId: string,
     fileId: string
-  ): Promise<Result<string, AppError>> {
+  ): Promise<Result<{ mimeType: string; size: number }, AppError>> {
     const row = await this.files.findById(sourceId, fileId);
     const stored =
       row && (await this.storage.stat(boardFileKey(sourceId, fileId)));
@@ -171,7 +179,7 @@ export class DuplicateBoard {
         })
       );
     }
-    return ok(row.mimeType);
+    return ok({ mimeType: row.mimeType, size: stored.size });
   }
 
   private async copyFile(

@@ -186,7 +186,8 @@ const createUseCases = ({
       hub,
       files,
       storage,
-      new ResvgRasterizer()
+      new ResvgRasterizer(),
+      cache
     ),
     addBoardElements: new AddBoardElements(guard, hub, ids),
     addBoardImage: new AddBoardImage(guard, hub, files, storage, ids),

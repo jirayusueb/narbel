@@ -195,6 +195,14 @@ describe("trash: transitions", () => {
     expect(deleted).toEqual([]);
   });
 
+  it("still reports success when the room save fails after the board is trashed", async () => {
+    const { boards, trash, scenes } = setup();
+    scenes.evict = () => Promise.reject(new Error("could not be saved"));
+    const result = await trash.execute({ actor: owner, boardId: "b1" });
+    expect(result.isOk()).toBe(true);
+    expect(boards.rows.get("b1")?.trashedAt).toBeInstanceOf(Date);
+  });
+
   it("restores access for members and link visitors, idempotently, without touching the scene", async () => {
     const { boards, guard, trash, restore, scenes } = setup();
     await trash.execute({ actor: owner, boardId: "b1" });

@@ -18,7 +18,9 @@ export const incomingFor = (
   pageId: string,
   keys: Iterable<string>,
   get: (key: string) => ExcalidrawElement | undefined,
-  local: ReadonlyMap<string, ExcalidrawElement>
+  local: ReadonlyMap<string, ExcalidrawElement>,
+  // a version restore is authoritative: its versions may sit below a local tombstone the server has pruned
+  isRestore = false
 ) => {
   const incoming: ExcalidrawElement[] = [];
   for (const key of keys) {
@@ -27,7 +29,7 @@ export const incomingFor = (
     }
     const remote = get(key);
     if (remote) {
-      if (shouldTakeIncoming(local.get(remote.id), remote)) {
+      if (isRestore || shouldTakeIncoming(local.get(remote.id), remote)) {
         incoming.push({ ...remote });
       }
       continue;
@@ -49,9 +51,13 @@ export const outranking = (
   pageId: string,
   keys: Iterable<string>,
   get: (key: string) => ExcalidrawElement | undefined,
-  local: ReadonlyMap<string, ExcalidrawElement>
+  local: ReadonlyMap<string, ExcalidrawElement>,
+  canWrite: boolean
 ) => {
   const winners: { key: string; element: ExcalidrawElement }[] = [];
+  if (!canWrite) {
+    return winners;
+  }
   for (const key of keys) {
     const remote = isOnPage(pageId, key) ? get(key) : undefined;
     const shown = remote && local.get(remote.id);

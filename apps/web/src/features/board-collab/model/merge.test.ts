@@ -93,7 +93,8 @@ test.each([
       "p1",
       ["p1:a"],
       (key) => clientMap.get(key),
-      canvas
+      canvas,
+      true
     );
     // whichever id order Yjs used, the canvas ends up showing v5 and the document must agree
     client.transact(() => {
@@ -119,6 +120,30 @@ test("outranking ignores other pages, missing keys and elements the document alr
     ["c", el("c", 9)],
   ]);
   expect(
-    outranking("p1", ["p1:a", "p2:b", "p1:c"], (key) => remote[key], canvas)
+    outranking(
+      "p1",
+      ["p1:a", "p2:b", "p1:c"],
+      (key) => remote[key],
+      canvas,
+      true
+    )
   ).toEqual([]);
+});
+
+test("a version restore replaces a local tombstone whose version is higher", () => {
+  const remote = { "p1:a": el("a", 3) };
+  const canvas = new Map([["a", el("a", 10, true)]]);
+  const get = (key: string) => remote[key as "p1:a"];
+  expect(incomingFor("p1", ["p1:a"], get, canvas)).toEqual([]);
+  expect(incomingFor("p1", ["p1:a"], get, canvas, true)).toEqual([
+    remote["p1:a"],
+  ]);
+});
+
+test("a client that cannot write never writes a winner back into the document", () => {
+  const remote = { "p1:a": el("a", 1) };
+  const canvas = new Map([["a", el("a", 5)]]);
+  const get = (key: string) => remote[key as "p1:a"];
+  expect(outranking("p1", ["p1:a"], get, canvas, true)).toHaveLength(1);
+  expect(outranking("p1", ["p1:a"], get, canvas, false)).toEqual([]);
 });

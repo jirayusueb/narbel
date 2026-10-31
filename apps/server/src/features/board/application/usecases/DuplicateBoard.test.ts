@@ -205,6 +205,30 @@ describe("DuplicateBoard", () => {
     expect([...t.boards.rows.keys()]).toEqual(["b1"]);
   });
 
+  it("refuses a board whose images together exceed the copy budget and creates nothing", async () => {
+    const t = setup();
+    const bytes = new Uint8Array(MAX_FILE_BYTES);
+    // 26 x MAX_FILE_BYTES is over 256 MiB while every image is individually allowed
+    for (let i = 0; i < 26; i += 1) {
+      const fileId = `big${i}`;
+      t.source.elements.set(
+        `page:main:${fileId}`,
+        element(fileId, { type: "image", fileId, status: "saved" })
+      );
+      t.stored.set(`boards/b1/${fileId}`, { bytes, mimeType: "image/png" });
+      t.rows.set(`b1/${fileId}`, {
+        id: fileId,
+        mimeType: "image/png",
+        size: bytes.length,
+      });
+    }
+    const result = await t.duplicate.execute({ actor: owner, boardId: "b1" });
+    expect(result.isErr() && result.error.code).toBe("PayloadTooLarge");
+    expect([...t.boards.rows.keys()]).toEqual(["b1"]);
+    expect(t.copies.size).toBe(0);
+    expect(t.stored.size).toBe(27);
+  });
+
   it("rolls the new board back when an image vanishes mid-copy", async () => {
     const t = setup();
     t.failStream();

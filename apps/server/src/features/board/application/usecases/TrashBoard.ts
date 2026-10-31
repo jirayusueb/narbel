@@ -27,7 +27,15 @@ export class TrashBoard {
     }
     await this.boards.setTrashed(input.boardId, this.now());
     // also on a repeat call, so a crash after the row changed still ends with the peers gone
-    await this.scenes.evict(input.boardId);
+    try {
+      await this.scenes.evict(input.boardId);
+    } catch (error) {
+      // the row is already trashed and the hub closed the peers; it keeps the unsaved room and retries the save itself
+      console.error(
+        `Board ${input.boardId} is trashed but its room is not yet saved`,
+        error
+      );
+    }
     return okEmpty();
   }
 }
