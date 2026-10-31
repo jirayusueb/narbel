@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { randomUUID } from "node:crypto";
 
 import { createDb, sql } from "@narbel/db";
-import { outbox } from "@narbel/db/schema/account";
+import { outbox, processedEvent } from "@narbel/db/schema/account";
 
 import { UuidGenerator } from "../ids/UuidGenerator";
 import { DrizzleOutbox } from "./DrizzleOutbox";
 import { DrizzleOutboxStore } from "./DrizzleOutboxStore";
+import { OUTBOX_RETENTION_MS, pruneOutbox } from "./pruneOutbox";
 
 // Runs against the local dev postgres inside a throwaway schema: the pool's search_path points
 // every unqualified table at it, so nothing in `public` is touched. Skipped when postgres is down.
@@ -85,5 +87,58 @@ describe.skipIf(!reachable)("DrizzleOutboxStore (postgres)", () => {
     const ids = batches.flat().map((m) => m.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toHaveLength(6);
+  });
+
+  it("prunes sent and dead rows and processed marks past retention, nothing else", async () => {
+    await admin.execute(
+      sql.raw(
+        `create table "${SCHEMA}".processed_event (like public.processed_event including all)`
+      )
+    );
+    await db.delete(outbox);
+    const now = new Date();
+    const old = new Date(now.getTime() - OUTBOX_RETENTION_MS - 60_000);
+    const recent = new Date(now.getTime() - OUTBOX_RETENTION_MS + 60_000);
+    const row = (
+      id: string,
+      status: "pending" | "sent" | "dead",
+      at: Date
+    ) => ({
+      id,
+      type: "email.mentioned",
+      payload: {},
+      status,
+      nextAttemptAt: at,
+      sentAt: status === "sent" ? at : null,
+    });
+    const [oldSent, recentSent, oldDead, recentDead, oldPending] = [
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+    ];
+    await db
+      .insert(outbox)
+      .values([
+        row(oldSent, "sent", old),
+        row(recentSent, "sent", recent),
+        row(oldDead, "dead", old),
+        row(recentDead, "dead", recent),
+        row(oldPending, "pending", old),
+      ]);
+    await db.insert(processedEvent).values([
+      { consumer: "c", eventId: randomUUID(), handledAt: old },
+      { consumer: "c", eventId: randomUUID(), handledAt: recent },
+    ]);
+
+    await pruneOutbox(db, now);
+    await pruneOutbox(db, now);
+
+    const kept = await db.select({ id: outbox.id }).from(outbox);
+    expect(kept.map((r) => r.id).toSorted()).toEqual(
+      [recentSent, recentDead, oldPending].toSorted()
+    );
+    expect(await db.select().from(processedEvent)).toHaveLength(1);
   });
 });

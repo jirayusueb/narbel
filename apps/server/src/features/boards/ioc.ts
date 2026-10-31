@@ -6,6 +6,7 @@ import type { ICache } from "../../shared/application/interfaces/ICache";
 import { transactionalCache } from "../../shared/infrastructure/cache/TransactionalCache";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
 import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
+import { wakeWhenQueued } from "../../shared/infrastructure/outbox/WakingOutbox";
 import type { AfterCommit } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
@@ -139,7 +140,11 @@ export const createBoardsUseCases = ({
     db,
     (tx: DbExecutor, afterCommit) => {
       // invites queue an email and access changes publish events; either goes out now, not at the next poll
-      afterCommit(wakeOutbox);
+      const outbox = wakeWhenQueued(
+        new DrizzleOutbox(tx, ids),
+        afterCommit,
+        wakeOutbox
+      );
       return {
         boards: new CachedBoardRepository(
           new DrizzleBoardRepository(tx),
@@ -149,7 +154,7 @@ export const createBoardsUseCases = ({
           tx,
           new DrizzleProfileRepository(tx, apiOrigin)
         ),
-        outbox: new DrizzleOutbox(tx, ids),
+        outbox,
         profiles: new DrizzleProfileRepository(tx, apiOrigin),
       };
     }

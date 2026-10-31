@@ -27,6 +27,7 @@ import {
   DEFAULT_OUTBOX_POLICY,
   OutboxWorker,
 } from "./shared/infrastructure/outbox/OutboxWorker";
+import { pruneOutbox } from "./shared/infrastructure/outbox/pruneOutbox";
 import { routeEvents } from "./shared/infrastructure/outbox/routeEvents";
 import { RedisPubSub } from "./shared/infrastructure/pubsub/RedisPubSub";
 import { BunS3FileStorage } from "./shared/infrastructure/storage/BunS3FileStorage";
@@ -156,10 +157,25 @@ const gc = setInterval(() => {
   void runGc();
 }, GC_EVERY_MS);
 
+const OUTBOX_PRUNE_EVERY_MS = 60 * 60_000;
+const runOutboxPrune = async () => {
+  try {
+    await jobLock.runExclusive("prune:outbox", 10 * 60_000, () =>
+      pruneOutbox(db, new Date())
+    );
+  } catch (error) {
+    console.error("Outbox prune failed", error);
+  }
+};
+const prune = setInterval(() => {
+  void runOutboxPrune();
+}, OUTBOX_PRUNE_EVERY_MS);
+
 outbox.start();
 
 const shutdown = async () => {
   clearInterval(gc);
+  clearInterval(prune);
   await outbox.stop();
   await app.stop();
   await pubsub.close();
