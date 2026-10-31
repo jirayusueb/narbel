@@ -23,13 +23,34 @@ export const createAuth = (
   env: AuthConfig,
   database: Database,
   desktopOrigins: readonly string[] = [],
-  secondaryStorage?: SecondaryStorage
+  secondaryStorage?: SecondaryStorage,
+  /** Runs before the user row goes, while the person's rows still exist; an error aborts the delete. */
+  onPersonDeleting?: (person: {
+    id: string;
+    name: string;
+    email: string;
+  }) => Promise<void>
 ) =>
   betterAuth({
     database: drizzleAdapter(database, {
       provider: "pg",
       schema,
     }),
+    databaseHooks: onPersonDeleting
+      ? {
+          user: {
+            delete: {
+              before: async (user) => {
+                await onPersonDeleting({
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                });
+              },
+            },
+          },
+        }
+      : undefined,
     trustedOrigins: [env.CORS_ORIGIN, ...desktopOrigins],
     // Postgres stays the source of truth; Redis is the read path and the shared rate-limit counter
     ...(secondaryStorage && {

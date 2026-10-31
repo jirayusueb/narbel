@@ -2,18 +2,23 @@ import { and, desc, eq, inArray, isNull, lt, or, sql } from "@narbel/db";
 import type { DbExecutor } from "@narbel/db";
 import { notification } from "@narbel/db/schema/account";
 
-import type { IIdGenerator } from "../../application/interfaces/IIdGenerator";
-import { notificationChannel } from "../../application/interfaces/INotifications";
+import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
+import { notificationChannel } from "../../../../shared/application/interfaces/INotifications";
 import type {
   INotificationRepository,
   NotificationDto,
   NotificationPayload,
-} from "../../application/interfaces/INotifications";
-import type { IPubSub } from "../../application/interfaces/IPubSub";
-import { decodeCursor, encodeCursor } from "../../kernel/types/Cursor";
-import type { AfterCommit } from "../uow/DrizzleUnitOfWork";
+} from "../../../../shared/application/interfaces/INotifications";
+import type { IPubSub } from "../../../../shared/application/interfaces/IPubSub";
+import type { AfterCommit } from "../../../../shared/infrastructure/uow/DrizzleUnitOfWork";
+import {
+  decodeCursor,
+  encodeCursor,
+} from "../../../../shared/kernel/types/Cursor";
 
 type Row = typeof notification.$inferSelect;
+const onReadableBoards = (readableBoardIds: string[]) =>
+  inArray(sql`${notification.payload}->>'boardId'`, readableBoardIds);
 
 const toDto = (row: Row): NotificationDto =>
   ({
@@ -64,7 +69,15 @@ export class DrizzleNotificationRepository implements INotificationRepository {
       .where(sql`${notification.payload}->>'boardId' = ${boardId}`);
   }
 
-  async list(userId: string, page: { cursor: string | null; limit: number }) {
+  async list(
+    userId: string,
+    page: { cursor: string | null; limit: number },
+    readableBoardIds: string[]
+  ) {
+    if (readableBoardIds.length === 0) {
+      return { items: [], nextCursor: null, unreadCount: 0 };
+    }
+    const readable = onReadableBoards(readableBoardIds);
     const cursor = page.cursor ? decodeCursor(page.cursor) : null;
     const rows = await this.db
       .select()
@@ -72,6 +85,7 @@ export class DrizzleNotificationRepository implements INotificationRepository {
       .where(
         and(
           eq(notification.userId, userId),
+          readable,
           cursor
             ? or(
                 lt(notification.createdAt, cursor.at),
@@ -93,27 +107,39 @@ export class DrizzleNotificationRepository implements INotificationRepository {
         rows.length > page.limit && last
           ? encodeCursor({ at: last.createdAt, id: last.id })
           : null,
-      unreadCount: await this.countUnread(userId),
+      unreadCount: await this.countUnread(userId, readableBoardIds),
     };
   }
 
-  async markRead(userId: string, ids: string[] | undefined) {
+  async markRead(
+    userId: string,
+    ids: string[] | undefined,
+    readableBoardIds: string[]
+  ) {
+    if (readableBoardIds.length === 0) {
+      return 0;
+    }
+    const readable = onReadableBoards(readableBoardIds);
     if (ids?.length !== 0) {
       await this.db
         .update(notification)
         .set({ readAt: new Date() })
         .where(
-          and(unread(userId), ids ? inArray(notification.id, ids) : undefined)
+          and(
+            unread(userId),
+            readable,
+            ids ? inArray(notification.id, ids) : undefined
+          )
         );
     }
-    return await this.countUnread(userId);
+    return await this.countUnread(userId, readableBoardIds);
   }
 
-  private async countUnread(userId: string) {
+  private async countUnread(userId: string, readableBoardIds: string[]) {
     const [row] = await this.db
       .select({ value: sql<number>`count(*)::int` })
       .from(notification)
-      .where(unread(userId));
+      .where(and(unread(userId), onReadableBoards(readableBoardIds)));
     return row?.value ?? 0;
   }
 }

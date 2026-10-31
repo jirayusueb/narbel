@@ -72,7 +72,8 @@ export const createNotificationController = (
           limit: t.Optional(t.Numeric()),
         }),
       },
-      async ({ user, query }) => asWire(await uc.list(user.id, query))
+      async ({ user, query }) =>
+        asWire(await uc.list(user.id, user.email, query))
     )
     .post(
       "/read",
@@ -82,7 +83,8 @@ export const createNotificationController = (
           ids: t.Optional(t.Array(t.String(), { maxItems: 200 })),
         }),
       },
-      async ({ user, body }) => asWire(await uc.markRead(user.id, body.ids))
+      async ({ user, body }) =>
+        asWire(await uc.markRead(user.id, user.email, body.ids))
     )
     .get(
       "/stream",
