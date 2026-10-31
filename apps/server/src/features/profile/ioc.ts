@@ -3,9 +3,9 @@ import { Elysia } from "elysia";
 
 import type { IFileStorage } from "../../shared/application/interfaces/IFileStorage";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
-import { DrizzleProfileRepository } from "../../shared/infrastructure/profile/DrizzleProfileRepository";
 import type { AuthDeps, BetterAuthPlugin } from "../auth";
 import { ProfileUseCases } from "./application/usecases/ProfileUseCases";
+import { DrizzleProfileRepository } from "./infrastructure/repositories/DrizzleProfileRepository";
 import { createProfileController } from "./presentation/http/ProfileController";
 
 export interface ProfileDeps {

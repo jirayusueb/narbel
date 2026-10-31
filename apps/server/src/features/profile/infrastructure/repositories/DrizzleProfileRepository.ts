@@ -7,7 +7,7 @@ import type {
   IProfileRepository,
   Person,
   UsernameOutcome,
-} from "../../application/interfaces/IProfiles";
+} from "../../../../shared/application/interfaces/IProfiles";
 
 const UNIQUE_VIOLATION = "23505";
 

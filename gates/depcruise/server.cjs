@@ -69,13 +69,13 @@ module.exports = {
     {
       name: "server-schema-auth-owner",
       comment:
-        "schema/auth.ts belongs to features/auth and the profile reader in shared; DrizzleBoardAccessRepository keeps one legacy read until step 6 replaces it with PeopleDirectory",
+        "schema/auth.ts belongs to features/auth and features/profile (identity's profile module); DrizzleBoardAccessRepository keeps one legacy read until step 6 replaces it with PeopleDirectory",
       severity: "error",
       from: {
         path: `${S}/`,
         pathNot: [
           `${S}/features/auth/`,
-          `${S}/shared/infrastructure/profile/`,
+          `${S}/features/profile/`,
           "features/board/infrastructure/repositories/DrizzleBoardAccessRepository\\.ts$",
         ],
       },
@@ -84,11 +84,15 @@ module.exports = {
     {
       name: "server-schema-account-owner",
       comment:
-        "schema/account.ts (notification, outbox, profile tables) stays with shared and features/notification until step 4 splits it",
+        "schema/account.ts (notification, outbox, profile tables) stays with shared, features/notification and features/profile until the contexts own their tables",
       severity: "error",
       from: {
         path: `${S}/`,
-        pathNot: [`${S}/shared/`, `${S}/features/notification/`],
+        pathNot: [
+          `${S}/shared/`,
+          `${S}/features/notification/`,
+          `${S}/features/profile/`,
+        ],
       },
       to: { path: "packages/db/src/schema/account\\.ts$" },
     },
