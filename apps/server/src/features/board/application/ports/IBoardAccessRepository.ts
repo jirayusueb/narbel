@@ -1,4 +1,5 @@
 import type { MemberRole } from "../../domain/values/Access";
+import type { ShareLink } from "../../domain/values/ShareLink";
 
 export interface Member {
   /** null while the invited email has not signed in yet */
@@ -8,25 +9,36 @@ export interface Member {
   role: MemberRole;
 }
 
-export interface Share {
+export interface Share extends ShareLink {
   boardId: string;
-  token: string;
-  role: MemberRole;
   createdAt: Date;
-  expiresAt: Date | null;
+}
+
+export interface Grant {
+  grantId: string;
+  /** null until the invited person claims it */
+  userId: string | null;
+  role: MemberRole;
 }
 
 export interface IBoardAccessRepository {
-  /** Matches by user id or invited email, and links the id to the invite on first match. */
-  findMemberRole(
+  /** Matches by user id or invited email. */
+  findGrant(
     boardId: string,
     who: { userId: string; email: string | undefined }
-  ): Promise<MemberRole | null>;
+  ): Promise<Grant | null>;
+  /** Attaches the person to an unclaimed grant; a claimed grant keeps its person. */
+  claim(grantId: string, userId: string): Promise<void>;
   listMembers(boardId: string): Promise<Member[]>;
   /** Users (other than the owner) who hold an access row, including invites that match a registered email. */
   listMemberRoles(
     boardId: string
   ): Promise<{ userId: string; role: MemberRole }[]>;
+  /** Live boards the person owns or holds a grant on (by id or email), keyed by id, with their current titles. */
+  readableBoardTitles(person: {
+    id: string;
+    email: string;
+  }): Promise<Map<string, string>>;
   upsertMember(
     boardId: string,
     member: { email: string; userId: string | null; role: MemberRole }

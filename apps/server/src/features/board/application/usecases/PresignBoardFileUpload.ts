@@ -5,14 +5,14 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { validateUpload } from "../../domain/rules/UploadRules";
 import { boardFileKey } from "../../domain/values/FileKey";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 
 const PRESIGN_SECONDS = 5 * 60;
 
 export class PresignBoardFileUpload {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly files: IBoardFileRepository,
     private readonly storage: IFileStorage
   ) {}
@@ -24,7 +24,7 @@ export class PresignBoardFileUpload {
     mimeType: string;
     size: number;
   }): Promise<Result<{ fileId: string; uploadUrl: string }, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"

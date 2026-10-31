@@ -34,7 +34,7 @@ const setup = () => {
   access.profiles.add("owner");
   const comments = new FakeComments();
   const usecase = new GetBoardChanges(
-    access.guard,
+    access.policy,
     access.scenes,
     new CommentActivityFeed(comments, access.profiles),
     () => start
@@ -142,9 +142,9 @@ const fakeScene = (scenes: FakeScenes) => {
 
 describe("focus", () => {
   it("selects, publishes the page of the first live element and asks viewers to reveal", async () => {
-    const { guard, scenes } = setupAccess();
+    const { policy, scenes } = setupAccess();
     fakeScene(scenes);
-    const result = await new SelectElements(guard, scenes).execute({
+    const result = await new SelectElements(policy, scenes).execute({
       actor,
       boardId: "b1",
       ids: ["ghost", "on2", "on1"],
@@ -159,9 +159,9 @@ describe("focus", () => {
   });
 
   it("is NotFound when no id is live, and publishes nothing", async () => {
-    const { guard, scenes } = setupAccess();
+    const { policy, scenes } = setupAccess();
     fakeScene(scenes);
-    const result = await new SelectElements(guard, scenes).execute({
+    const result = await new SelectElements(policy, scenes).execute({
       actor,
       boardId: "b1",
       ids: ["ghost", "dead"],
@@ -172,9 +172,9 @@ describe("focus", () => {
   });
 
   it("select sets the page but never asks for a reveal", async () => {
-    const { guard, scenes } = setupAccess();
+    const { policy, scenes } = setupAccess();
     fakeScene(scenes);
-    await new SelectElements(guard, scenes).execute({
+    await new SelectElements(policy, scenes).execute({
       actor,
       boardId: "b1",
       ids: ["on1"],

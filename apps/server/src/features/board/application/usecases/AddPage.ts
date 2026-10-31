@@ -5,7 +5,7 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { PAGE_NAME_MAX_LENGTH } from "../../domain/entities/Page";
 import type { Page } from "../../domain/entities/Page";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 export const validPageName = (raw: string): Result<string, AppError> => {
@@ -21,7 +21,7 @@ export const validPageName = (raw: string): Result<string, AppError> => {
 
 export class AddPage {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly ids: IIdGenerator
   ) {}
@@ -31,7 +31,7 @@ export class AddPage {
     boardId: string;
     name: string;
   }): Promise<Result<Page, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"

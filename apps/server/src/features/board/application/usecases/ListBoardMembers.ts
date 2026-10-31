@@ -8,7 +8,7 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Role } from "../../domain/values/Access";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardAccessRepository } from "../ports/IBoardAccessRepository";
 
 export interface MemberDto {
@@ -22,7 +22,7 @@ export interface MemberDto {
 /** Everyone who can be assigned or mentioned: the owner first, then the access rows. */
 export class ListBoardMembers {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly grants: IBoardAccessRepository,
     private readonly profiles: IProfileReader
   ) {}
@@ -31,7 +31,7 @@ export class ListBoardMembers {
     actor: Actor;
     boardId: string;
   }): Promise<Result<MemberDto[], AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

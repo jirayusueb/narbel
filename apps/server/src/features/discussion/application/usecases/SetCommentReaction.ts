@@ -12,7 +12,7 @@ import type { IBoardCommentRepository } from "../ports/ICommentRepository";
 /** Adds or removes the caller's reaction; viewers may react. Repeating either is a no-op. */
 export class SetCommentReaction {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly comments: IBoardCommentRepository,
     private readonly profiles: IProfileReader
   ) {}
@@ -24,7 +24,7 @@ export class SetCommentReaction {
     emoji: string;
     present: boolean;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "read"

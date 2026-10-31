@@ -2,14 +2,14 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import type { IBoardRepository } from "../ports/IBoardRepository";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 /** Moves a board to Trash and sends everyone connected away. Nothing is deleted. */
 export class TrashBoard {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly boards: IBoardRepository,
     private readonly scenes: IBoardScenes,
     private readonly now: () => Date = () => new Date()
@@ -19,7 +19,7 @@ export class TrashBoard {
     actor: Actor;
     boardId: string;
   }): Promise<Result<undefined, AppError>> {
-    const owned = await this.guard.requireOwnedAnyState(
+    const owned = await this.policy.decideOwnedAnyState(
       input.boardId,
       input.actor
     );

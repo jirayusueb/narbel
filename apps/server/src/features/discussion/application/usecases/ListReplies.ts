@@ -12,7 +12,7 @@ import { parsePaging } from "./ListComments";
 /** Replies of one thread, oldest first. */
 export class ListReplies {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly comments: IBoardCommentRepository,
     private readonly profiles: IProfileReader
   ) {}
@@ -24,7 +24,7 @@ export class ListReplies {
     cursor?: string;
     limit?: number;
   }): Promise<Result<Paged<CommentDto>, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "read"

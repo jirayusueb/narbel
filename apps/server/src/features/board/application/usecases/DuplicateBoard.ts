@@ -11,7 +11,7 @@ import type { Page } from "../../domain/entities/Page";
 import { MAX_FILE_BYTES } from "../../domain/rules/UploadRules";
 import { BoardTitle, TITLE_MAX_LENGTH } from "../../domain/values/BoardTitle";
 import { boardFileKey, boardFilePrefix } from "../../domain/values/FileKey";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { toBoardDto } from "../dtos/BoardDto";
 import type { BoardDto } from "../dtos/BoardDto";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
@@ -60,7 +60,7 @@ const inPool = async <T, R>(
 
 export class DuplicateBoard {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly boards: IBoardRepository,
     private readonly scenes: IBoardScenes,
     private readonly files: IBoardFileRepository,
@@ -76,7 +76,7 @@ export class DuplicateBoard {
     if (userId === undefined) {
       return err(AppError.unauthorized());
     }
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

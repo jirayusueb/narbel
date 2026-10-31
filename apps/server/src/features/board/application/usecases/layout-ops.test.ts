@@ -13,10 +13,10 @@ const owner = { userId: "owner" };
 
 const setup = async () => {
   const s = setupAccess();
-  const add = new AddBoardElements(s.guard, s.scenes, ids);
-  const update = new UpdateBoardElement(s.guard, s.scenes, ids);
-  const arrange = new ArrangeElements(s.guard, s.scenes, ids);
-  const group = new GroupElements(s.guard, s.scenes, ids);
+  const add = new AddBoardElements(s.policy, s.scenes, ids);
+  const update = new UpdateBoardElement(s.policy, s.scenes, ids);
+  const arrange = new ArrangeElements(s.policy, s.scenes, ids);
+  const group = new GroupElements(s.policy, s.scenes, ids);
   const el = (id: string) =>
     s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
   const labelOf = (id: string) => {
@@ -162,7 +162,7 @@ describe("align_elements", () => {
 
   it("distributes a group as one item", async () => {
     const t = await setup();
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor: owner,
       boardId: "b1",
       shapes: [
@@ -192,7 +192,7 @@ describe("align_elements", () => {
       width: 5,
       height: 5,
     }));
-    await new AddBoardElements(t.guard, t.scenes, ids).execute({
+    await new AddBoardElements(t.policy, t.scenes, ids).execute({
       actor: owner,
       boardId: "b1",
       shapes: many,
@@ -278,7 +278,7 @@ describe("group_elements", () => {
 describe("align_elements and frames", () => {
   it("takes a framed shape out of its frame when it is aligned completely outside", async () => {
     const s = setupAccess();
-    await new AddBoardElements(s.guard, s.scenes, ids).execute({
+    await new AddBoardElements(s.policy, s.scenes, ids).execute({
       actor: owner,
       boardId: "b1",
       shapes: [
@@ -310,7 +310,7 @@ describe("align_elements and frames", () => {
         },
       ],
     });
-    await new ArrangeElements(s.guard, s.scenes, ids).execute({
+    await new ArrangeElements(s.policy, s.scenes, ids).execute({
       actor: owner,
       boardId: "b1",
       ids: ["c", "far"],
@@ -353,7 +353,7 @@ describe("group_elements nesting", () => {
 describe("align_elements with a frame and its children", () => {
   it("moves the frame's children once, through the frame, and settles", async () => {
     const s = setupAccess();
-    await new AddBoardElements(s.guard, s.scenes, ids).execute({
+    await new AddBoardElements(s.policy, s.scenes, ids).execute({
       actor: owner,
       boardId: "b1",
       shapes: [
@@ -384,7 +384,7 @@ describe("align_elements with a frame and its children", () => {
         },
       ],
     });
-    const arrange = new ArrangeElements(s.guard, s.scenes, ids);
+    const arrange = new ArrangeElements(s.policy, s.scenes, ids);
     const input = {
       actor: owner,
       boardId: "b1",
@@ -404,7 +404,7 @@ describe("align_elements with a frame and its children", () => {
 describe("align_elements with a frame child pulled in by a group", () => {
   const frameWithChild = async (grouped: string[], farX: number) => {
     const s = setupAccess();
-    await new AddBoardElements(s.guard, s.scenes, ids).execute({
+    await new AddBoardElements(s.policy, s.scenes, ids).execute({
       actor: owner,
       boardId: "b1",
       shapes: [
@@ -428,7 +428,7 @@ describe("align_elements with a frame child pulled in by a group", () => {
         },
       ],
     });
-    await new GroupElements(s.guard, s.scenes, ids).group({
+    await new GroupElements(s.policy, s.scenes, ids).group({
       actor: owner,
       boardId: "b1",
       ids: grouped,
@@ -436,7 +436,7 @@ describe("align_elements with a frame child pulled in by a group", () => {
     const el = (id: string) =>
       s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
     const alignOn = (named: string[], edge: "left" | "right") =>
-      new ArrangeElements(s.guard, s.scenes, ids).execute({
+      new ArrangeElements(s.policy, s.scenes, ids).execute({
         actor: owner,
         boardId: "b1",
         ids: named,

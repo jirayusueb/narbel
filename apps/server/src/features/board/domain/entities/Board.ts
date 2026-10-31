@@ -1,5 +1,19 @@
-import type { Visibility } from "../values/Access";
+import { AppError } from "../../../../shared/kernel/errors/AppError";
+import { err, ok } from "../../../../shared/kernel/types/Result";
+import type { Result } from "../../../../shared/kernel/types/Result";
+import type { Access, MemberRole, Role, Visibility } from "../values/Access";
 import { BoardTitle } from "../values/BoardTitle";
+
+/** What a caller proved about a board; the board decides what the proofs are worth. */
+export interface AccessProofs {
+  /** set when the caller is signed in; guests never get write access */
+  userId: string | undefined;
+  grantRole: MemberRole | null;
+  /** role of a share link whose token matched and has not expired */
+  shareRole: MemberRole | null;
+  /** the caller holds a valid unlock proof for the current password */
+  unlocked: boolean;
+}
 
 export class Board {
   private constructor(
@@ -58,24 +72,61 @@ export class Board {
     );
   }
 
-  withProtection(
+  protect(
     visibility: Visibility,
     passwordHash: string | null,
     now: Date
-  ): Board {
-    return new Board(
-      this.id,
-      this.ownerId,
-      this.title,
-      this.createdAt,
-      now,
-      visibility,
-      passwordHash,
-      this.trashedAt
+  ): Result<Board, AppError> {
+    if (visibility === "password" && passwordHash === null) {
+      return err(
+        AppError.validation("Set a password before locking the board")
+      );
+    }
+    return ok(
+      new Board(
+        this.id,
+        this.ownerId,
+        this.title,
+        this.createdAt,
+        now,
+        visibility,
+        passwordHash,
+        this.trashedAt
+      )
     );
   }
 
   isOwnedBy(userId: string | undefined): boolean {
     return userId !== undefined && this.ownerId === userId;
+  }
+
+  /** null when the proofs open nothing; guests get viewer at most. */
+  accessFor(proofs: AccessProofs): Access | null {
+    const role = this.grantedRole(proofs);
+    if (!role) {
+      return null;
+    }
+    const capped = proofs.userId === undefined ? "viewer" : role;
+    return { role: capped, canRead: true, canWrite: capped !== "viewer" };
+  }
+
+  // Order matters: the most specific grant wins, a public setting is the last resort.
+  private grantedRole(proofs: AccessProofs): Role | null {
+    if (this.isOwnedBy(proofs.userId)) {
+      return "owner";
+    }
+    if (proofs.grantRole) {
+      return proofs.grantRole;
+    }
+    if (proofs.shareRole) {
+      return proofs.shareRole;
+    }
+    if (
+      this.visibility === "link" ||
+      (this.visibility === "password" && proofs.unlocked)
+    ) {
+      return "viewer";
+    }
+    return null;
   }
 }

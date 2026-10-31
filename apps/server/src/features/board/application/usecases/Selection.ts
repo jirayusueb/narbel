@@ -3,7 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { patchElement, stripReserved } from "../connectors";
 import { toSceneElementDto } from "../dtos/SceneDto";
 import type { SceneElementDto } from "../dtos/SceneDto";
@@ -37,7 +37,7 @@ const firstLive = (s: SceneAccess, ids: string[]) =>
 /** Selection lives in awareness, which only the live hub sees; these tools follow the newest client selection. */
 export class GetSelection {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes
   ) {}
 
@@ -45,7 +45,7 @@ export class GetSelection {
     actor: Actor;
     boardId: string;
   }): Promise<Result<SelectionDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"
@@ -66,7 +66,7 @@ export class GetSelection {
 
 export class SelectElements {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes
   ) {}
 
@@ -77,7 +77,7 @@ export class SelectElements {
     ids: string[];
     reveal?: boolean;
   }): Promise<Result<SelectionDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"
@@ -107,7 +107,7 @@ export class SelectElements {
 
 export class EditSelection {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly ids: IIdGenerator
   ) {}
@@ -117,7 +117,7 @@ export class EditSelection {
     boardId: string;
     patch: Record<string, unknown>;
   }): Promise<Result<{ updated: string[]; locked?: string[] }, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"

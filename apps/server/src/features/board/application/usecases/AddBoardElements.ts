@@ -39,7 +39,7 @@ import {
   textOf,
 } from "../../domain/shapes/ShapeRegistry";
 import type { Shape, ShapeInput } from "../../domain/shapes/ShapeRegistry";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 
@@ -359,7 +359,7 @@ const unframeStrays = (placed: Built[], known: Map<string, Element>) => {
 
 export class AddBoardElements {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly ids: IIdGenerator
   ) {}
@@ -371,7 +371,7 @@ export class AddBoardElements {
     shapes: ShapeInput[];
     direction?: LayoutDirection;
   }): Promise<Result<{ ids: string[] }, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"

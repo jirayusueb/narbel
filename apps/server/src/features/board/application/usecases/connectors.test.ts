@@ -11,9 +11,9 @@ const owner = { userId: "owner" };
 
 const setup = () => {
   const s = setupAccess();
-  const add = new AddBoardElements(s.guard, s.scenes, ids);
-  const update = new UpdateBoardElement(s.guard, s.scenes, ids);
-  const remove = new DeleteBoardElements(s.guard, s.scenes, ids);
+  const add = new AddBoardElements(s.policy, s.scenes, ids);
+  const update = new UpdateBoardElement(s.policy, s.scenes, ids);
+  const remove = new DeleteBoardElements(s.policy, s.scenes, ids);
   const el = (id: string) =>
     s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
   const bound = (id: string) =>
@@ -404,7 +404,7 @@ describe("labels follow their container", () => {
 
   it("drops style fields that do not apply when updating, and edit_selection works on a mixed selection", async () => {
     const t = await labelled();
-    const edit = new EditSelection(t.guard, t.scenes, ids);
+    const edit = new EditSelection(t.policy, t.scenes, ids);
     t.scenes.selection = ["a", "ab"];
     const result = await edit.execute({
       actor: owner,
@@ -463,7 +463,7 @@ describe("lock enforcement", () => {
       patch: { locked: true },
     });
     t.scenes.selection = ["a", "b"];
-    const edit = new EditSelection(t.guard, t.scenes, ids);
+    const edit = new EditSelection(t.policy, t.scenes, ids);
     const result = await edit.execute({
       actor: owner,
       boardId: "b1",

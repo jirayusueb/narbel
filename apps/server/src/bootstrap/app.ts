@@ -5,7 +5,7 @@ import { Elysia } from "elysia";
 import type Redis from "ioredis";
 
 import { createAuthModule, createBetterAuthPlugin } from "../features/auth";
-import { createBoardModule, readableBoards } from "../features/board";
+import { createAccessPolicy, createBoardModule } from "../features/board";
 import { createNotificationModule } from "../features/notification";
 import { createProfileModule } from "../features/profile";
 import type { ICache } from "../shared/application/interfaces/ICache";
@@ -80,9 +80,7 @@ export const createApp = ({
         db,
         pubsub,
         betterAuth,
-        readableBoards: {
-          readableBoardTitles: (person) => readableBoards(db, person),
-        },
+        readableBoards: createAccessPolicy({ db, cache, secret }),
       })
     )
     .use(

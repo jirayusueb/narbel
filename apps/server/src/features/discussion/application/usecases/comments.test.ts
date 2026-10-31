@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import { memberIdsOf } from "../../../board/application/BoardPeople";
 import { ids, setupAccess } from "../../../board/application/usecases/fakes";
 import { newComment } from "../../domain/entities/Comment";
 import { excerptOf, extractMentions } from "../../domain/rules/mentions";
@@ -109,21 +108,21 @@ describe("comment use cases", () => {
           comments,
           outbox: s.outbox,
           profiles: s.profiles,
-          members: { idsOf: (board) => memberIdsOf(board, s.grants) },
+          members: s.policy,
         }),
     };
     return {
       ...s,
       comments,
-      add: new AddComment(s.guard, uow, ids),
-      reply: new ReplyToComment(s.guard, uow, ids),
-      edit: new EditComment(s.guard, uow),
-      resolve: new ResolveComment(s.guard, uow),
-      assign: new AssignComment(s.guard, uow),
-      react: new SetCommentReaction(s.guard, comments, s.profiles),
-      list: new ListComments(s.guard, comments, s.profiles),
-      replies: new ListReplies(s.guard, comments, s.profiles),
-      del: new DeleteComment(s.guard, comments),
+      add: new AddComment(s.policy, uow, ids),
+      reply: new ReplyToComment(s.policy, uow, ids),
+      edit: new EditComment(s.policy, uow),
+      resolve: new ResolveComment(s.policy, uow),
+      assign: new AssignComment(s.policy, uow),
+      react: new SetCommentReaction(s.policy, comments, s.profiles),
+      list: new ListComments(s.policy, comments, s.profiles),
+      replies: new ListReplies(s.policy, comments, s.profiles),
+      del: new DeleteComment(s.policy, comments),
     };
   };
   const put = {

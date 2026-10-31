@@ -10,8 +10,8 @@ const actor = { userId: "owner" };
 
 describe("pages", () => {
   it("adds, renames and deletes pages, keeping the last one", async () => {
-    const { guard, scenes } = setupAccess();
-    const added = await new AddPage(guard, scenes, ids).execute({
+    const { policy, scenes } = setupAccess();
+    const added = await new AddPage(policy, scenes, ids).execute({
       actor,
       boardId: "b1",
       name: " Two ",
@@ -19,7 +19,7 @@ describe("pages", () => {
     const page = added.isOk() ? added.value : undefined;
     expect(page?.name).toBe("Two");
     expect(scenes.pageList).toHaveLength(2);
-    const renamed = await new RenamePage(guard, scenes).execute({
+    const renamed = await new RenamePage(policy, scenes).execute({
       actor,
       boardId: "b1",
       pageId: page?.id ?? "",
@@ -27,7 +27,7 @@ describe("pages", () => {
     });
     expect(renamed.isOk()).toBe(true);
     expect(scenes.pageList[1]?.name).toBe("Deux");
-    const del = new DeletePage(guard, scenes);
+    const del = new DeletePage(policy, scenes);
     expect(
       (
         await del.execute({ actor, boardId: "b1", pageId: page?.id ?? "" })
@@ -48,8 +48,8 @@ describe("pages", () => {
   });
 
   it("rejects bad page names", async () => {
-    const { guard, scenes } = setupAccess();
-    const add = new AddPage(guard, scenes, ids);
+    const { policy, scenes } = setupAccess();
+    const add = new AddPage(policy, scenes, ids);
     expect(
       (await add.execute({ actor, boardId: "b1", name: " " })).isErr()
     ).toBe(true);
@@ -76,15 +76,15 @@ describe("selection tools", () => {
   };
 
   it("reads the live selection and patches only the selected elements", async () => {
-    const { guard, scenes } = setupAccess();
+    const { policy, scenes } = setupAccess();
     seed(scenes);
     scenes.selection = ["a", "ghost"];
-    const got = await new GetSelection(guard, scenes).execute({
+    const got = await new GetSelection(policy, scenes).execute({
       actor,
       boardId: "b1",
     });
     expect(got.isOk() && got.value.ids).toEqual(["a"]);
-    const edited = await new EditSelection(guard, scenes, ids).execute({
+    const edited = await new EditSelection(policy, scenes, ids).execute({
       actor,
       boardId: "b1",
       patch: { x: 9, version: 50 },
@@ -101,13 +101,13 @@ describe("selection tools", () => {
   });
 
   it("reports no selection when no client is connected", async () => {
-    const { guard, scenes } = setupAccess();
-    const got = await new GetSelection(guard, scenes).execute({
+    const { policy, scenes } = setupAccess();
+    const got = await new GetSelection(policy, scenes).execute({
       actor,
       boardId: "b1",
     });
     expect(got.isErr() && got.error.code).toBe("NotFound");
-    const edit = await new EditSelection(guard, scenes, ids).execute({
+    const edit = await new EditSelection(policy, scenes, ids).execute({
       actor,
       boardId: "b1",
       patch: { x: 1 },
@@ -116,9 +116,9 @@ describe("selection tools", () => {
   });
 
   it("select publishes only existing elements", async () => {
-    const { guard, scenes } = setupAccess();
+    const { policy, scenes } = setupAccess();
     seed(scenes);
-    const picked = await new SelectElements(guard, scenes).execute({
+    const picked = await new SelectElements(policy, scenes).execute({
       actor,
       boardId: "b1",
       ids: ["b", "ghost"],

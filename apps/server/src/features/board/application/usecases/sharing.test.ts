@@ -1,8 +1,16 @@
 import { describe, expect, it } from "bun:test";
 
 import type { Actor } from "../../../../shared/kernel/types/Actor";
-import type { BoardAccessGuard, Need } from "../BoardAccess";
-import { fakeUnlock, ids, newBoard, setupAccess } from "./fakes";
+import { HmacUnlockTokens } from "../../infrastructure/services/HmacUnlockTokens";
+import { AccessPolicy } from "../AccessPolicy";
+import type { Need } from "../AccessPolicy";
+import {
+  fakeUnlock,
+  ids,
+  newBoard,
+  protectedBoard,
+  setupAccess,
+} from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { InviteBoardMember } from "./InviteBoardMember";
 import { RemoveBoardMember } from "./RemoveBoardMember";
@@ -14,11 +22,11 @@ const future = new Date(Date.now() + 3_600_000);
 const past = new Date(Date.now() - 3_600_000);
 
 const outcome = async (
-  guard: BoardAccessGuard,
+  policy: AccessPolicy,
   actor: Actor,
   need: Need = "read"
 ) => {
-  const result = await guard.require("b1", actor, need);
+  const result = await policy.decide("b1", actor, need);
   return result.isOk()
     ? `${result.value.access.role}:${result.value.access.canWrite}`
     : `${result.error.code}${result.error.details ? "+details" : ""}`;
@@ -26,7 +34,7 @@ const outcome = async (
 
 describe("access matrix", () => {
   it("private board: owner, invited editor and viewer; everyone else gets 404", async () => {
-    const { guard, grants } = setupAccess();
+    const { policy, grants } = setupAccess();
     grants.members.push(
       {
         boardId: "b1",
@@ -43,17 +51,18 @@ describe("access matrix", () => {
         role: "viewer",
       }
     );
-    expect(await outcome(guard, { userId: "owner" })).toBe("owner:true");
-    expect(await outcome(guard, { userId: "ed" })).toBe("editor:true");
-    expect(await outcome(guard, { userId: "zzz", email: "vi@x.io" })).toBe(
+    expect(await outcome(policy, { userId: "owner" })).toBe("owner:true");
+    expect(await outcome(policy, { userId: "ed" })).toBe("editor:true");
+    expect(await outcome(policy, { userId: "zzz", email: "vi@x.io" })).toBe(
       "viewer:false"
     );
-    expect(await outcome(guard, { userId: "zzz" })).toBe("NotFound");
-    expect(await outcome(guard, {})).toBe("NotFound");
+    // zzz claimed vi's invitation above, so the stranger is someone else
+    expect(await outcome(policy, { userId: "yyy" })).toBe("NotFound");
+    expect(await outcome(policy, {})).toBe("NotFound");
   });
 
   it("enforces need: viewers cannot write, only the owner passes owner routes", async () => {
-    const { guard, grants } = setupAccess();
+    const { policy, grants } = setupAccess();
     grants.members.push(
       {
         boardId: "b1",
@@ -70,23 +79,25 @@ describe("access matrix", () => {
         role: "editor",
       }
     );
-    expect(await outcome(guard, { userId: "vi" }, "write")).toBe("Forbidden");
-    expect(await outcome(guard, { userId: "ed" }, "write")).toBe("editor:true");
-    expect(await outcome(guard, { userId: "ed" }, "owner")).toBe("NotFound");
-    expect(await outcome(guard, { userId: "owner" }, "owner")).toBe(
+    expect(await outcome(policy, { userId: "vi" }, "write")).toBe("Forbidden");
+    expect(await outcome(policy, { userId: "ed" }, "write")).toBe(
+      "editor:true"
+    );
+    expect(await outcome(policy, { userId: "ed" }, "owner")).toBe("NotFound");
+    expect(await outcome(policy, { userId: "owner" }, "owner")).toBe(
       "owner:true"
     );
   });
 
   it("link visibility grants anonymous viewers", async () => {
-    const { guard, boards } = setupAccess();
-    boards.rows.set("b1", newBoard().withProtection("link", null, new Date()));
-    expect(await outcome(guard, {})).toBe("viewer:false");
-    expect(await outcome(guard, {}, "write")).toBe("Forbidden");
+    const { policy, boards } = setupAccess();
+    boards.rows.set("b1", protectedBoard("link", null));
+    expect(await outcome(policy, {})).toBe("viewer:false");
+    expect(await outcome(policy, {}, "write")).toBe("Forbidden");
   });
 
   it("share token grants its role, and expired or wrong tokens grant nothing", async () => {
-    const { guard, grants } = setupAccess();
+    const { policy, grants } = setupAccess();
     grants.share = {
       boardId: "b1",
       token: TOKEN,
@@ -94,14 +105,14 @@ describe("access matrix", () => {
       createdAt: past,
       expiresAt: future,
     };
-    expect(await outcome(guard, { userId: "u1", shareToken: TOKEN })).toBe(
+    expect(await outcome(policy, { userId: "u1", shareToken: TOKEN })).toBe(
       "editor:true"
     );
-    expect(await outcome(guard, { shareToken: TOKEN })).toBe("viewer:false");
-    expect(await outcome(guard, { shareToken: TOKEN }, "write")).toBe(
+    expect(await outcome(policy, { shareToken: TOKEN })).toBe("viewer:false");
+    expect(await outcome(policy, { shareToken: TOKEN }, "write")).toBe(
       "Forbidden"
     );
-    expect(await outcome(guard, { shareToken: "x".repeat(43) })).toBe(
+    expect(await outcome(policy, { shareToken: "x".repeat(43) })).toBe(
       "NotFound"
     );
     grants.share = {
@@ -111,7 +122,7 @@ describe("access matrix", () => {
       createdAt: past,
       expiresAt: past,
     };
-    expect(await outcome(guard, { shareToken: TOKEN })).toBe("NotFound");
+    expect(await outcome(policy, { shareToken: TOKEN })).toBe("NotFound");
     grants.share = {
       boardId: "b1",
       token: TOKEN,
@@ -119,30 +130,72 @@ describe("access matrix", () => {
       createdAt: past,
       expiresAt: null,
     };
-    expect(await outcome(guard, { shareToken: TOKEN })).toBe("viewer:false");
+    expect(await outcome(policy, { shareToken: TOKEN })).toBe("viewer:false");
   });
 
   it("password board asks for the password until a valid unlock proof is presented", async () => {
-    const { guard, boards } = setupAccess();
-    boards.rows.set(
-      "b1",
-      newBoard().withProtection("password", "hash", new Date())
-    );
-    expect(await outcome(guard, {})).toBe("Forbidden+details");
-    expect(await outcome(guard, { unlockProof: "forged" })).toBe(
+    const { policy, boards } = setupAccess();
+    boards.rows.set("b1", protectedBoard("password", "hash"));
+    expect(await outcome(policy, {})).toBe("Forbidden+details");
+    expect(await outcome(policy, { unlockProof: "forged" })).toBe(
       "Forbidden+details"
     );
-    expect(await outcome(guard, { unlockProof: "ok:b1" })).toBe("viewer:false");
-    expect(await outcome(guard, {}, "owner")).toBe("NotFound");
+    expect(await outcome(policy, { unlockProof: "ok:b1" })).toBe(
+      "viewer:false"
+    );
+    expect(await outcome(policy, {}, "owner")).toBe("NotFound");
   });
 
   it("an unlock proof is worthless once the board is no longer password protected", async () => {
-    const { guard, boards } = setupAccess();
-    boards.rows.set(
-      "b1",
-      newBoard().withProtection("private", "hash", new Date())
+    const { policy, boards } = setupAccess();
+    boards.rows.set("b1", protectedBoard("private", "hash"));
+    expect(await outcome(policy, { unlockProof: "ok:b1" })).toBe("NotFound");
+  });
+
+  it("tells a viewer asking to write that the board is read-only", async () => {
+    const { policy, grants } = setupAccess();
+    grants.members.push({
+      boardId: "b1",
+      userId: "vi",
+      email: "vi@x.io",
+      name: "Vi",
+      role: "viewer",
+    });
+    const result = await policy.decide("b1", { userId: "vi" }, "write");
+    expect(result.isErr() && result.error.message).toBe(
+      "This board is read-only for you"
     );
-    expect(await outcome(guard, { unlockProof: "ok:b1" })).toBe("NotFound");
+  });
+
+  it("changing the password invalidates every unlock proof", async () => {
+    const { boards, grants } = setupAccess();
+    const tokens = new HmacUnlockTokens("secret-secret-secret-secret-secret");
+    const policy = new AccessPolicy(boards, grants, tokens);
+    boards.rows.set("b1", protectedBoard("password", "hash-1"));
+    const proof = tokens.issue("b1", "hash-1");
+    expect(await outcome(policy, { unlockProof: proof })).toBe("viewer:false");
+    boards.rows.set("b1", protectedBoard("password", "hash-2"));
+    expect(await outcome(policy, { unlockProof: proof })).toBe(
+      "Forbidden+details"
+    );
+  });
+
+  it("the first access through an invited email claims the invitation, once", async () => {
+    const { policy, grants } = setupAccess();
+    grants.members.push({
+      boardId: "b1",
+      userId: null,
+      email: "vi@x.io",
+      name: "Vi",
+      role: "viewer",
+    });
+    expect(await outcome(policy, { userId: "vi", email: "vi@x.io" })).toBe(
+      "viewer:false"
+    );
+    expect(grants.members[0]?.userId).toBe("vi");
+    await policy.decide("b1", { userId: "other", email: "vi@x.io" }, "read");
+    expect(grants.members[0]?.userId).toBe("vi");
+    expect(await outcome(policy, { userId: "vi" })).toBe("viewer:false");
   });
 });
 
@@ -153,10 +206,7 @@ describe("unlock", () => {
 
   const setup = () => {
     const base = setupAccess();
-    base.boards.rows.set(
-      "b1",
-      newBoard().withProtection("password", "h(secret-pass)", new Date())
-    );
+    base.boards.rows.set("b1", protectedBoard("password", "h(secret-pass)"));
     const failures: string[] = [];
     const limiter = {
       isBlocked: (key: string) =>
@@ -204,7 +254,7 @@ describe("access administration", () => {
   const setup = () => {
     const base = setupAccess();
     const update = new UpdateBoardAccess(
-      base.guard,
+      base.policy,
       base.uow,
       hasher,
       ids,
@@ -298,7 +348,7 @@ describe("invites", () => {
     base.profiles.add("ann", "ann");
     return {
       ...base,
-      invite: new InviteBoardMember(base.guard, base.uow),
+      invite: new InviteBoardMember(base.policy, base.uow),
     };
   };
   const input = {
@@ -335,7 +385,7 @@ describe("invites", () => {
   });
 
   it("re-inviting does not queue another email or notify again; removing the member allows a fresh invite", async () => {
-    const { invite, grants, outbox, notifications, guard, uow } = setup();
+    const { invite, grants, outbox, notifications, policy, uow } = setup();
     grants.findUserIdByEmail = () => Promise.resolve("ann");
     await invite.execute({ ...input, email: "ann@x.io" });
     await invite.execute({ ...input, email: "Ann@x.io", role: "viewer" });
@@ -343,7 +393,7 @@ describe("invites", () => {
     expect(notifications.kinds("ann")).toEqual(["board.invited"]);
     expect(grants.members).toHaveLength(1);
     expect(grants.members[0]?.role).toBe("viewer");
-    const removed = await new RemoveBoardMember(guard, uow).execute({
+    const removed = await new RemoveBoardMember(policy, uow).execute({
       actor: input.actor,
       boardId: "b1",
       member: "ann@x.io",
@@ -373,7 +423,7 @@ describe("invites", () => {
   });
 
   it("removes members by user id or pending email; the owner is protected", async () => {
-    const { grants, guard, uow, comments } = setup();
+    const { grants, policy, uow, comments } = setup();
     grants.members.push(
       {
         boardId: "b1",
@@ -390,7 +440,7 @@ describe("invites", () => {
         role: "viewer",
       }
     );
-    const remove = new RemoveBoardMember(guard, uow);
+    const remove = new RemoveBoardMember(policy, uow);
     const actor = { userId: "owner" };
     expect(
       (await remove.execute({ actor, boardId: "b1", member: "u1" })).isOk()
@@ -408,7 +458,7 @@ describe("invites", () => {
   });
 
   it("GetBoard reports the shared role to an invited viewer", async () => {
-    const { grants, guard } = setup();
+    const { grants, policy } = setup();
     grants.members.push({
       boardId: "b1",
       userId: "u1",
@@ -416,7 +466,7 @@ describe("invites", () => {
       name: "A",
       role: "viewer",
     });
-    const view = await new GetBoard(guard).execute({
+    const view = await new GetBoard(policy).execute({
       actor: { userId: "u1" },
       boardId: "b1",
     });
