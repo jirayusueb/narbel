@@ -1,85 +1,63 @@
-import { and, eq, or, sql } from "@narbel/db";
+import { eq } from "@narbel/db";
 import type { Database, DbExecutor } from "@narbel/db";
 import { boardDocument } from "@narbel/db/schema/drawing";
-import { boardText } from "@narbel/db/schema/search";
 
+import type { DrawingEvent } from "../../../../shared/application/events/DrawingEvent";
+import type { IOutbox } from "../../../../shared/application/interfaces/IOutbox";
+import { UuidGenerator } from "../../../../shared/infrastructure/ids/UuidGenerator";
+import { DrizzleOutbox } from "../../../../shared/infrastructure/outbox/DrizzleOutbox";
 import type { AfterCommit } from "../../../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import { DrizzleUnitOfWork } from "../../../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { IBoardRecords } from "../../application/ports/IBoardAccess";
 import type {
+  BoardText,
   DocumentCheckpoint,
   IBoardDocumentStore,
-  TextChange,
 } from "../../application/ports/IBoardDocumentStore";
-import { diffTexts, indexTexts } from "../crdt/boardText";
 import { checkpointIfDue } from "./boardVersions";
 
-export const writeTexts = async (
-  db: DbExecutor,
+/**
+ * Tells search the board's full text set. Called after the document row is written: its row lock
+ * orders saves of one board, so a later save always carries a later `savedAt`.
+ */
+export const publishTexts = (
+  outbox: IOutbox,
   boardId: string,
-  change: TextChange
-): Promise<void> => {
-  if (change.replaceAll) {
-    // A full set (first save after a load, backfill) is diffed against the stored rows, so an
-    // unchanged board writes nothing. The document upsert above already holds this board's row lock.
-    const stored = await db
-      .select({
-        pageId: boardText.pageId,
-        elementId: boardText.elementId,
-        text: boardText.text,
-      })
-      .from(boardText)
-      .where(eq(boardText.boardId, boardId));
-    const diff = diffTexts(indexTexts(stored), indexTexts(change.upsert));
-    if (diff) {
-      await writeTexts(db, boardId, diff);
-    }
-    return;
-  }
-  const { upsert, remove } = change;
-  if (remove.length > 0) {
-    await db
-      .delete(boardText)
-      .where(
-        and(
-          eq(boardText.boardId, boardId),
-          or(
-            ...remove.map((key) =>
-              and(
-                eq(boardText.pageId, key.pageId),
-                eq(boardText.elementId, key.elementId)
-              )
-            )
-          )
-        )
-      );
-  }
-  if (upsert.length > 0) {
-    await db
-      .insert(boardText)
-      .values(upsert.map((text) => ({ boardId, ...text })))
-      .onConflictDoUpdate({
-        target: [boardText.boardId, boardText.pageId, boardText.elementId],
-        set: { text: sql`excluded.text` },
-      });
-  }
+  texts: BoardText[]
+) => {
+  const event: DrawingEvent = {
+    type: "event.drawing-text-changed",
+    version: 1,
+    boardId,
+    savedAt: new Date().toISOString(),
+    texts,
+  };
+  return outbox.publish(event);
 };
 
 export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
   private readonly saves: DrizzleUnitOfWork<{
     tx: DbExecutor;
     boards: IBoardRecords;
+    outbox: IOutbox;
   }>;
 
   constructor(
     private readonly db: Database,
     /** boards' record of the board, bound to the save's transaction */
-    boardsIn: (tx: DbExecutor, afterCommit: AfterCommit) => IBoardRecords
+    boardsIn: (tx: DbExecutor, afterCommit: AfterCommit) => IBoardRecords,
+    /** asks the outbox worker for a pass now; a save wakes it after it commits */
+    wakeOutbox: () => void
   ) {
-    this.saves = new DrizzleUnitOfWork(this.db, (tx, afterCommit) => ({
-      tx,
-      boards: boardsIn(tx, afterCommit),
-    }));
+    const ids = new UuidGenerator();
+    this.saves = new DrizzleUnitOfWork(this.db, (tx, afterCommit) => {
+      afterCommit(wakeOutbox);
+      return {
+        tx,
+        boards: boardsIn(tx, afterCommit),
+        outbox: new DrizzleOutbox(tx, ids),
+      };
+    });
   }
 
   async load(boardId: string) {
@@ -94,10 +72,10 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
   save(
     boardId: string,
     state: Uint8Array,
-    texts?: TextChange,
+    texts?: BoardText[],
     checkpoint?: DocumentCheckpoint
   ) {
-    return this.saves.run(async ({ tx, boards }) => {
+    return this.saves.run(async ({ tx, boards, outbox }) => {
       const now = new Date();
       await tx
         .insert(boardDocument)
@@ -107,7 +85,7 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
           set: { state, updatedAt: now, textIndexed: true },
         });
       if (texts) {
-        await writeTexts(tx, boardId, texts);
+        await publishTexts(outbox, boardId, texts);
       }
       if (checkpoint) {
         await checkpointIfDue(tx, boardId, state, checkpoint.fileIds, now);

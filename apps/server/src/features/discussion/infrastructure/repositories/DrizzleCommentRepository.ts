@@ -136,9 +136,39 @@ export class DrizzleCommentRepository implements IBoardCommentRepository {
   }
 
   async delete(boardId: string, id: string) {
-    await this.db
+    // the replies would go by the parent cascade anyway; naming them here returns their ids
+    const removed = await this.db
       .delete(comment)
-      .where(and(eq(comment.boardId, boardId), eq(comment.id, id)));
+      .where(
+        and(
+          eq(comment.boardId, boardId),
+          or(eq(comment.id, id), eq(comment.parentId, id))
+        )
+      )
+      .returning({ id: comment.id });
+    return removed.map((row) => row.id);
+  }
+
+  deleteByAuthor(authorId: string) {
+    return this.db
+      .delete(comment)
+      .where(
+        or(
+          eq(comment.authorId, authorId),
+          inArray(
+            comment.parentId,
+            this.db
+              .select({ id: comment.id })
+              .from(comment)
+              .where(eq(comment.authorId, authorId))
+          )
+        )
+      )
+      .returning({
+        id: comment.id,
+        boardId: comment.boardId,
+        pageId: comment.pageId,
+      });
   }
 
   async addReaction(commentId: string, userId: string, emoji: string) {

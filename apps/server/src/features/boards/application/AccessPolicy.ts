@@ -5,7 +5,10 @@ import type { Result } from "../../../shared/kernel/types/Result";
 import type { Board } from "../domain/entities/Board";
 import type { Access, MemberRole } from "../domain/values/Access";
 import { shareRoleFor } from "../domain/values/ShareLink";
-import type { IBoardAccessRepository } from "./ports/IBoardAccessRepository";
+import type {
+  IBoardAccessRepository,
+  ReadableBoard,
+} from "./ports/IBoardAccessRepository";
 import type { IBoardRepository } from "./ports/IBoardRepository";
 import type { IUnlockTokens } from "./ports/IUnlockTokens";
 
@@ -87,12 +90,12 @@ export class AccessPolicy {
       : err(AppError.notFound("Board"));
   }
 
-  /** The live boards a person can read now, with their current titles. */
-  readableBoardTitles(person: {
+  /** The live boards a person can read now, with their current titles and the person's role. */
+  readableBoards(person: {
     id: string;
     email: string;
-  }): Promise<Map<string, string>> {
-    return this.grants.readableBoardTitles(person);
+  }): Promise<ReadableBoard[]> {
+    return this.grants.readableBoards(person);
   }
 
   /** The owner plus everyone holding a grant: who may be assigned or mentioned. */

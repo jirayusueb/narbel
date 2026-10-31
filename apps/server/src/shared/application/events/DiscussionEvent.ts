@@ -42,3 +42,24 @@ export type DiscussionEvent =
       type: "event.thread-resolved";
       recipientIds: string[];
     });
+
+interface CommentChangeBase {
+  version: 1;
+  boardId: string;
+  pageId: string;
+  /** ISO time of the change; a consumer applies it only over an older one */
+  at: string;
+}
+
+/** What a comment says now, for readers that mirror comment text (search); no recipients, no excerpt. */
+export type CommentChangeEvent =
+  | (CommentChangeBase & {
+      type: "event.comment-posted" | "event.comment-edited";
+      commentId: string;
+      body: string;
+    })
+  | (CommentChangeBase & {
+      type: "event.comment-deleted";
+      /** the deleted comment and, for a thread root, every reply that went with it */
+      commentIds: string[];
+    });

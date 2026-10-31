@@ -108,9 +108,28 @@ export class FakeComments implements IBoardCommentRepository {
     }
     return Promise.resolve();
   };
-  delete = (_: string, id: string) => {
-    this.rows.delete(id);
-    return Promise.resolve();
+  private remove(gone: (c: Comment) => boolean) {
+    const removed = [...this.rows.values()].filter(gone);
+    for (const c of removed) {
+      this.rows.delete(c.id);
+    }
+    return Promise.resolve(removed);
+  }
+  delete = async (boardId: string, id: string) =>
+    (
+      await this.remove(
+        (c) => c.boardId === boardId && (c.id === id || c.parentId === id)
+      )
+    ).map((c) => c.id);
+  deleteByAuthor = (authorId: string) => {
+    const roots = new Set(
+      [...this.rows.values()]
+        .filter((c) => c.authorId === authorId)
+        .map((c) => c.id)
+    );
+    return this.remove(
+      (c) => c.authorId === authorId || roots.has(c.parentId ?? "")
+    );
   };
   addReaction = (commentId: string, userId: string, emoji: string) => {
     if (

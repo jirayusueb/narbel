@@ -3,10 +3,13 @@ import type { Database } from "@narbel/db";
 import { boardDocument } from "@narbel/db/schema/drawing";
 import * as Y from "yjs";
 
-import { extractBoardText, replaceAllTexts } from "../crdt/boardText";
-import { writeTexts } from "./DrizzleBoardDocumentStore";
+import { UuidGenerator } from "../../../../shared/infrastructure/ids/UuidGenerator";
+import { DrizzleOutbox } from "../../../../shared/infrastructure/outbox/DrizzleOutbox";
+import { extractBoardText } from "../crdt/boardText";
+import { publishTexts } from "./DrizzleBoardDocumentStore";
 
 const BACKFILL_BATCH = 50;
+const ids = new UuidGenerator();
 
 const indexOne = (db: Database, boardId: string) =>
   db.transaction(async (tx) => {
@@ -18,13 +21,18 @@ const indexOne = (db: Database, boardId: string) =>
     if (row) {
       const doc = new Y.Doc();
       Y.applyUpdate(doc, row.state);
-      await writeTexts(tx, boardId, replaceAllTexts(extractBoardText(doc)));
+      await publishTexts(
+        new DrizzleOutbox(tx, ids),
+        boardId,
+        extractBoardText(doc)
+      );
     }
   });
 
 /**
- * Mirrors the text of documents saved before search existed. Each board is claimed under a
- * row lock, so a concurrent save either lands first (nothing left to claim) or waits and overwrites.
+ * Publishes the full text set of documents whose text search has not been told yet. Each board is
+ * claimed under a row lock, so a concurrent save either lands first (nothing left to claim) or
+ * waits and publishes a later set.
  */
 export const backfillTexts = async (
   db: Database,
@@ -44,6 +52,6 @@ export const backfillTexts = async (
 export const backfillBoardText = async (db: Database) => {
   const count = await backfillTexts(db);
   if (count > 0) {
-    console.log(`Indexed text of ${count} board(s) for search`);
+    console.log(`Published the text of ${count} board(s) for search`);
   }
 };

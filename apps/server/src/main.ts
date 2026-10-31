@@ -5,7 +5,10 @@ import Redis from "ioredis";
 import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
 import { boardRecordsIn, DrizzleBoardRepository } from "./features/boards";
-import { createDiscussionConsumer } from "./features/discussion";
+import {
+  createAuthorErasure,
+  createDiscussionConsumer,
+} from "./features/discussion";
 import {
   backfillBoardText,
   createDrawingConsumer,
@@ -16,6 +19,7 @@ import {
 } from "./features/drawing";
 import { createNotificationConsumers } from "./features/notification";
 import { DrizzleProfileRepository } from "./features/profile";
+import { createSearchConsumers } from "./features/search";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
 import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
@@ -52,7 +56,9 @@ await jobLock.runExclusive("boot:backfill-board-text", 60_000, () =>
   backfillBoardText(db)
 );
 // decision 4: identity deletes the avatar and drops the person's undelivered emails before
-// the user row goes; this becomes a PersonDeleted outbox event when identity publishes events
+// the user row goes, and discussion deletes the person's comments with their delete events, so
+// search forgets them too; this becomes a PersonDeleted outbox event when identity publishes events
+const eraseAuthorComments = createAuthorErasure({ db });
 const auth = createAuth(
   ENV,
   db,
@@ -67,6 +73,7 @@ const auth = createAuth(
     await new DrizzleOutbox(db, new UuidGenerator()).forgetPendingTo(
       person.email
     );
+    await eraseAuthorComments(person.id);
   }
 );
 const pubsub = new RedisPubSub(redis);
@@ -76,6 +83,7 @@ const notification = createNotificationConsumers({
   apiOrigin: ENV.BETTER_AUTH_URL,
 });
 const live = createLiveConsumer({ pubsub });
+const search = createSearchConsumers({ db });
 const cache = new RedisCache(redis);
 const storage = new BunS3FileStorage(ENV);
 // one set of live rooms per instance: the HTTP and WebSocket use cases and the board-deleted consumer share it
@@ -83,6 +91,9 @@ const rooms = createDrawingRooms({
   db,
   pubsub,
   boardsIn: boardRecordsIn(cache),
+  // the worker needs the rooms and the rooms wake the worker; no save runs before both exist
+  // oxlint-disable-next-line no-use-before-define -- called only after `outbox` below is built
+  wakeOutbox: () => outbox.wake(),
 });
 const outbox = new OutboxWorker(
   new DrizzleOutboxStore(db),
@@ -100,13 +111,17 @@ const outbox = new OutboxWorker(
     "event.people-mentioned": [notification.discussion],
     "event.thread-replied": [notification.discussion],
     "event.thread-resolved": [notification.discussion],
+    "event.comment-posted": [search.comment],
+    "event.comment-edited": [search.comment],
+    "event.comment-deleted": [search.comment],
+    "event.drawing-text-changed": [search.text],
     "event.member-removed": [
       createDiscussionConsumer({ db }),
       notification.memberRemoved,
       live,
     ],
     "event.access-changed": [live],
-    // discussion has no consumer: the comment foreign keys still cascade with the board row
+    // discussion and search have no consumer: comments and their search rows still cascade with the board row
     "event.board-deleted": [
       createDrawingConsumer({ db, storage, rooms }),
       notification.boardDeleted,

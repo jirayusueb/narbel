@@ -33,7 +33,7 @@ import type {
   SyncSession,
 } from "../../application/ports/IBoardSyncGateway";
 import type { TextIndex } from "./boardText";
-import { diffTexts, extractBoardText, indexTexts } from "./boardText";
+import { extractBoardText, indexTexts, sameTexts } from "./boardText";
 import { markAgentWriter } from "./changes";
 import { fileIdsOf, loadState, readSnapshot, restoreScene } from "./history";
 import { ensurePages, pruneTombstones, sceneAccess } from "./pages";
@@ -76,7 +76,7 @@ interface Room {
   /** persist attempts that failed; lets a caller tell whether the save it waited on succeeded */
   saveFailures: number;
   timers: RoomTimers;
-  /** the `board_text` rows as last written by this instance; unknown until the first save */
+  /** the text set this instance last published; unknown until the first save */
   writtenTexts: TextIndex | undefined;
   unsubscribe: (() => Promise<void>) | undefined;
 }
@@ -686,11 +686,11 @@ export class YjsBoardHub
     try {
       await room.saving;
       const next = indexTexts(texts);
-      // text rows are rewritten only when they differ from what this instance last wrote
+      // search hears the full set only when it differs from what this instance last published
       await this.store.save(
         room.boardId,
         state,
-        diffTexts(room.writtenTexts, next),
+        sameTexts(room.writtenTexts, next) ? undefined : texts,
         { fileIds }
       );
       room.writtenTexts = next;

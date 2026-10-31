@@ -1,0 +1,350 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "444e62e4-875e-4acf-810b-1ff4d2944b04",
+  "prevIds": ["1eadd028-f3ad-43a6-824e-45b968573ad5"],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "board_text_version"],
+      "writes": [
+        "s|tbl|public.board_text_version",
+        "n|tbl|public.board_text_version",
+        "e|tbl|public.board_text_version",
+        "n|rel|public.board_text_version",
+        "n|type|public.board_text_version",
+        "n|rel|public.board_text_version_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "search_comment"],
+      "writes": [
+        "s|tbl|public.search_comment",
+        "n|tbl|public.search_comment",
+        "e|tbl|public.search_comment",
+        "n|rel|public.search_comment",
+        "n|type|public.search_comment",
+        "n|rel|public.search_comment_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "search_comment",
+        "search_comment_board_idx"
+      ],
+      "writes": [
+        "s|idx|public.search_comment_board_idx",
+        "n|idx|public.search_comment_board_idx",
+        "e|idx|public.search_comment_board_idx",
+        "n|rel|public.search_comment_board_idx"
+      ],
+      "reads": [
+        "n|tbl|public.search_comment",
+        "n|sch|public",
+        "n|col|public.search_comment.board_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "search_comment",
+        "search_comment_body_trgm_idx"
+      ],
+      "writes": [
+        "s|idx|public.search_comment_body_trgm_idx",
+        "n|idx|public.search_comment_body_trgm_idx",
+        "e|idx|public.search_comment_body_trgm_idx",
+        "n|rel|public.search_comment_body_trgm_idx"
+      ],
+      "reads": [
+        "n|tbl|public.search_comment",
+        "n|sch|public",
+        "n|col|public.search_comment.body"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "board_text_version"],
+      "writes": [
+        "s|fk|public.board_text_version.board_text_version_board_id_board_id_fkey",
+        "n|fk|public.board_text_version.board_text_version_board_id_board_id_fkey",
+        "e|fk|public.board_text_version.board_text_version_board_id_board_id_fkey",
+        "n|con|public.board_text_version.board_text_version_board_id_board_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.board_text_version",
+        "n|sch|public",
+        "n|tbl|public.board",
+        "n|sch|public",
+        "n|col|public.board_text_version.board_id",
+        "n|col|public.board.id",
+        "e|uniqueness|public.board.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "search_comment"],
+      "writes": [
+        "s|fk|public.search_comment.search_comment_board_id_board_id_fkey",
+        "n|fk|public.search_comment.search_comment_board_id_board_id_fkey",
+        "e|fk|public.search_comment.search_comment_board_id_board_id_fkey",
+        "n|con|public.search_comment.search_comment_board_id_board_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.search_comment",
+        "n|sch|public",
+        "n|tbl|public.board",
+        "n|sch|public",
+        "n|col|public.search_comment.board_id",
+        "n|col|public.board.id",
+        "e|uniqueness|public.board.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "board_text_version",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "search_comment",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text_version",
+        "name": "board_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text_version",
+        "name": "saved_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "comment_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "board_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "page_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "body",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "changed_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "search_comment_board_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "board_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "search_comment_body_trgm_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "body",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text_version",
+        "name": "board_text_version_board_id_board_id_fkey",
+        "nameExplicit": false,
+        "columns": ["board_id"],
+        "schemaTo": "public",
+        "tableTo": "board",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "search_comment_board_id_board_id_fkey",
+        "nameExplicit": false,
+        "columns": ["board_id"],
+        "schemaTo": "public",
+        "tableTo": "board",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_text_version",
+        "name": "board_text_version_pkey",
+        "columns": ["board_id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "search_comment",
+        "name": "search_comment_pkey",
+        "columns": ["comment_id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

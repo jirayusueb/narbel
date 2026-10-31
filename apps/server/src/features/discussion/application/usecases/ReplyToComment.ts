@@ -7,7 +7,7 @@ import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { isThread, replyTo } from "../../domain/entities/Thread";
 import { presentOne } from "../CommentPresenter";
-import { DiscussionEvents } from "../DiscussionEvents";
+import { commentChanged, DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
 import type { DiscussionTx } from "../ports/DiscussionTx";
 import type { IBoardAccess } from "../ports/IBoardAccess";
@@ -56,6 +56,13 @@ export class ReplyToComment {
         return err(reply.error);
       }
       await tx.comments.save(reply.value);
+      await tx.outbox.publish(
+        commentChanged(
+          "event.comment-posted",
+          reply.value,
+          reply.value.createdAt
+        )
+      );
       const events = new DiscussionEvents(tx, actor.value, reply.value);
       const members = await tx.members.memberIds(board);
       const mentioned = await events.mentions(members);

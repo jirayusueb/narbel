@@ -5,8 +5,10 @@ import { board, boardAccess, boardShare } from "@narbel/db/schema/boards";
 
 import type {
   IBoardAccessRepository,
+  ReadableBoard,
   Share,
 } from "../../application/ports/IBoardAccessRepository";
+import type { Role } from "../../domain/values/Access";
 
 export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
   constructor(private readonly db: DbExecutor) {}
@@ -45,9 +47,16 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
       .where(and(eq(boardAccess.id, grantId), isNull(boardAccess.userId)));
   }
 
-  async readableBoardTitles(person: { id: string; email: string }) {
-    const rows = await this.db
-      .select({ id: board.id, title: board.title })
+  async readableBoards(person: { id: string; email: string }) {
+    const rows: ReadableBoard[] = await this.db
+      .select({
+        id: board.id,
+        title: board.title,
+        role: sql<Role>`CASE WHEN ${board.ownerId} = ${person.id} THEN 'owner' ELSE ${boardAccess.role} END`,
+        visibility: board.visibility,
+        createdAt: board.createdAt,
+        updatedAt: board.updatedAt,
+      })
       .from(board)
       .leftJoin(
         boardAccess,
@@ -66,7 +75,7 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
         )
       );
     // a board matched by both user id and email comes back twice; the map keeps one
-    return new Map(rows.map((row) => [row.id, row.title]));
+    return [...new Map(rows.map((row) => [row.id, row])).values()];
   }
 
   async listMembers(boardId: string) {

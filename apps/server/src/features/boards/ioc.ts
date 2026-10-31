@@ -31,14 +31,12 @@ import { PurgeBoard } from "./application/usecases/PurgeBoard";
 import { RemoveBoardMember } from "./application/usecases/RemoveBoardMember";
 import { RenameBoard } from "./application/usecases/RenameBoard";
 import { RestoreBoard } from "./application/usecases/RestoreBoard";
-import { SearchBoards } from "./application/usecases/SearchBoards";
 import { TrashBoard } from "./application/usecases/TrashBoard";
 import { UnlockBoard } from "./application/usecases/UnlockBoard";
 import { UpdateBoardAccess } from "./application/usecases/UpdateBoardAccess";
 import { CachedBoardRepository } from "./infrastructure/repositories/CachedBoardRepository";
 import { DrizzleBoardAccessRepository } from "./infrastructure/repositories/DrizzleBoardAccessRepository";
 import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
-import { DrizzleBoardSearch } from "./infrastructure/repositories/DrizzleBoardSearch";
 import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
 import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
 import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
@@ -63,7 +61,6 @@ export interface BoardsUseCases {
   removeBoardMember: RemoveBoardMember;
   renameBoard: RenameBoard;
   restoreBoard: RestoreBoard;
-  searchBoards: SearchBoards;
   trashBoard: TrashBoard;
   unlockBoard: UnlockBoard;
   updateBoardAccess: UpdateBoardAccess;
@@ -170,8 +167,6 @@ export const createBoardsUseCases = ({
     removeBoardMember: new RemoveBoardMember(policy, uow),
     renameBoard: new RenameBoard(policy, boards),
     restoreBoard: new RestoreBoard(policy, boards),
-    // search stays with boards until step 7 rebuilds it as its own context on events
-    searchBoards: new SearchBoards(new DrizzleBoardSearch(db)),
     trashBoard: new TrashBoard(policy, boards, drawings),
     unlockBoard: new UnlockBoard(
       boards,

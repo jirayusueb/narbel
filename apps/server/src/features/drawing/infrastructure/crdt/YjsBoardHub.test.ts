@@ -6,7 +6,7 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 
-import type { TextChange } from "../../application/ports/IBoardDocumentStore";
+import type { BoardText } from "../../application/ports/IBoardDocumentStore";
 import type {
   PeerAccess,
   SyncPeer,
@@ -284,7 +284,7 @@ const timing = { debounceMs: 20, maxDelayMs: 100, graceMs: 150 };
 
 describe("YjsBoardHub persistence", () => {
   const recorder = () => {
-    const saves: { state: Uint8Array; texts: TextChange | undefined }[] = [];
+    const saves: { state: Uint8Array; texts: BoardText[] | undefined }[] = [];
     let loads = 0;
     return {
       saves,
@@ -297,7 +297,7 @@ describe("YjsBoardHub persistence", () => {
         save: (
           _id: string,
           state: Uint8Array,
-          texts: TextChange | undefined
+          texts: BoardText[] | undefined
         ) => {
           saves.push({ state, texts });
           return Promise.resolve();
@@ -314,7 +314,7 @@ describe("YjsBoardHub persistence", () => {
     rest: {},
   });
 
-  it("writes text rows only when the text changed, and only the difference", async () => {
+  it("hands over the full text set only when the text changed", async () => {
     const { saves, store: db } = recorder();
     const hub = new YjsBoardHub(db, new MemoryBus(), timing);
     await hub.transact("b1", (s) => {
@@ -323,8 +323,7 @@ describe("YjsBoardHub persistence", () => {
     });
     await sleep(60);
     expect(saves).toHaveLength(1);
-    expect(saves[0]?.texts?.replaceAll).toBe(true);
-    expect(saves[0]?.texts?.upsert).toHaveLength(2);
+    expect(saves[0]?.texts).toHaveLength(2);
 
     await hub.transact("b1", (s) => {
       s.put("page:main", {
@@ -342,21 +341,18 @@ describe("YjsBoardHub persistence", () => {
 
     await hub.transact("b1", (s) => s.put("page:main", text("a", "uno", 2)));
     await sleep(60);
-    expect(saves[2]?.texts).toEqual({
-      replaceAll: false,
-      upsert: [{ pageId: "page:main", elementId: "a", text: "uno" }],
-      remove: [],
-    });
+    expect(saves[2]?.texts).toEqual([
+      { pageId: "page:main", elementId: "a", text: "uno" },
+      { pageId: "page:main", elementId: "b", text: "two" },
+    ]);
 
     await hub.transact("b1", (s) =>
       s.put("page:main", { ...text("b", "two", 2), isDeleted: true })
     );
     await sleep(60);
-    expect(saves[3]?.texts).toEqual({
-      replaceAll: false,
-      upsert: [],
-      remove: [{ pageId: "page:main", elementId: "b" }],
-    });
+    expect(saves[3]?.texts).toEqual([
+      { pageId: "page:main", elementId: "a", text: "uno" },
+    ]);
     await hub.discard("b1");
   });
 

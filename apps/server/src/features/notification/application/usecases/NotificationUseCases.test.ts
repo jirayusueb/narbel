@@ -58,13 +58,11 @@ describe("NotificationUseCases list", () => {
   it("asks boards which boards are readable and passes the set down", async () => {
     const repo = new RecordingRepo(pageOf([]));
     const readable: IReadableBoards = {
-      readableBoardTitles: () =>
-        Promise.resolve(
-          new Map([
-            ["b1", "T1"],
-            ["b2", "T2"],
-          ])
-        ),
+      readableBoards: () =>
+        Promise.resolve([
+          { id: "b1", title: "T1" },
+          { id: "b2", title: "T2" },
+        ]),
     };
     const uc = new NotificationUseCases(repo, pubsub, readable);
     await uc.list("u1", "u1@x.io", {});
@@ -74,8 +72,7 @@ describe("NotificationUseCases list", () => {
   it("shows an invitation under the board's current title", async () => {
     const repo = new RecordingRepo(pageOf([invited("b1", "Old title")]));
     const uc = new NotificationUseCases(repo, pubsub, {
-      readableBoardTitles: () =>
-        Promise.resolve(new Map([["b1", "New title"]])),
+      readableBoards: () => Promise.resolve([{ id: "b1", title: "New title" }]),
     });
     const result = await uc.list("u1", "u1@x.io", {});
     expect(titleOf(result.isOk() ? result.value.items[0] : undefined)).toBe(
@@ -86,7 +83,7 @@ describe("NotificationUseCases list", () => {
   it("keeps the sent title when the board is gone from the readable set", async () => {
     const repo = new RecordingRepo(pageOf([invited("b9", "Old title")]));
     const uc = new NotificationUseCases(repo, pubsub, {
-      readableBoardTitles: () => Promise.resolve(new Map()),
+      readableBoards: () => Promise.resolve([]),
     });
     const result = await uc.list("u1", "u1@x.io", {});
     expect(titleOf(result.isOk() ? result.value.items[0] : undefined)).toBe(
@@ -97,7 +94,7 @@ describe("NotificationUseCases list", () => {
   it("markRead counts only readable boards", async () => {
     const repo = new RecordingRepo(pageOf([]));
     const uc = new NotificationUseCases(repo, pubsub, {
-      readableBoardTitles: () => Promise.resolve(new Map([["b1", "T1"]])),
+      readableBoards: () => Promise.resolve([{ id: "b1", title: "T1" }]),
     });
     const result = await uc.markRead("u1", "u1@x.io");
     expect(repo.markedWith).toEqual(["b1"]);

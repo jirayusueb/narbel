@@ -1,10 +1,7 @@
 import type * as Y from "yjs";
 
 import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
-import type {
-  BoardText,
-  TextChange,
-} from "../../application/ports/IBoardDocumentStore";
+import type { BoardText } from "../../application/ports/IBoardDocumentStore";
 
 /**
  * The searchable text of a document: live text elements, shape labels included (they are
@@ -40,35 +37,7 @@ export const indexTexts = (texts: BoardText[]): TextIndex =>
     texts.map((entry) => [`${entry.pageId}\u0000${entry.elementId}`, entry])
   );
 
-export const replaceAllTexts = (texts: BoardText[]): TextChange => ({
-  replaceAll: true,
-  upsert: texts,
-  remove: [],
-});
-
-/**
- * What to write given the rows last written (undefined when unknown, which hands over the full
- * set), or undefined when the stored text is already current.
- */
-export const diffTexts = (
-  written: TextIndex | undefined,
-  next: TextIndex
-): TextChange | undefined => {
-  if (!written) {
-    return replaceAllTexts([...next.values()]);
-  }
-  const upsert = [...next].filter(
-    ([key, entry]) => written.get(key)?.text !== entry.text
-  );
-  const remove = [...written].filter(([key]) => !next.has(key));
-  return upsert.length === 0 && remove.length === 0
-    ? undefined
-    : {
-        replaceAll: false,
-        upsert: upsert.map(([, entry]) => entry),
-        remove: remove.map(([, { pageId, elementId }]) => ({
-          pageId,
-          elementId,
-        })),
-      };
-};
+/** True when `next` holds exactly the texts last published; an unknown set (`undefined`) never matches. */
+export const sameTexts = (written: TextIndex | undefined, next: TextIndex) =>
+  written?.size === next.size &&
+  [...next].every(([key, entry]) => written.get(key)?.text === entry.text);

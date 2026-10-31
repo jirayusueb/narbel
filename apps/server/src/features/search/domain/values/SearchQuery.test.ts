@@ -25,6 +25,15 @@ describe("SearchQuery", () => {
     expect(parse("50%_\\x").likePattern()).toBe("%50\\%\\_\\\\x%");
   });
 
+  it("matches in memory as ILIKE does: any case, wildcards literal, Thai without word breaks", () => {
+    expect(parse("ROAD").matches("My roadmap")).toBe(true);
+    expect(parse("100%").matches("growth 100% of 1000")).toBe(true);
+    expect(parse("10%0").matches("growth 100% of 1000")).toBe(false);
+    expect(parse("a_c").matches("a_c")).toBe(true);
+    expect(parse("a_c").matches("abc")).toBe(false);
+    expect(parse("ชาวโลก").matches("สวัสดีชาวโลก")).toBe(true);
+  });
+
   it("windows the snippet around the match", () => {
     const text = `${"a".repeat(100)} needle ${"b".repeat(100)}`;
     const snippet = parse("NEEDLE").snippet(text);

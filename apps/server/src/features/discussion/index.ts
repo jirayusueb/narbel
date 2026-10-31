@@ -1,4 +1,5 @@
 export {
+  createAuthorErasure,
   createCommentActivity,
   createCommentUseCases,
   createDiscussionConsumer,

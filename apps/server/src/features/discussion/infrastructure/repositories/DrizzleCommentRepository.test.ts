@@ -96,4 +96,30 @@ describe.skipIf(!reachable)("comment activity (postgres)", () => {
     });
     expect(first?.activityAt).toEqual(t(20));
   });
+
+  it("deletes a thread with its replies, and a person's comments with the replies under their threads, naming what went", async () => {
+    await db.insert(comment).values([
+      row("root", "b3", { authorId: "u2" }),
+      row("root-reply", "b3", { authorId: "u1", parentId: "root" }),
+      row("u2-thread", "b3", { authorId: "u2", pageId: "page:two" }),
+      row("under-u2", "b3", {
+        authorId: "u3",
+        parentId: "u2-thread",
+        pageId: "page:two",
+      }),
+      row("u2-reply", "b3", { authorId: "u2", parentId: "kept" }),
+      row("kept", "b3", { authorId: "u3" }),
+    ]);
+    expect((await repo.delete("b3", "root")).toSorted()).toEqual([
+      "root",
+      "root-reply",
+    ]);
+    const erased = await repo.deleteByAuthor("u2");
+    expect(erased.map((c) => `${c.id}@${c.pageId}`).toSorted()).toEqual([
+      "u2-reply@page:main",
+      "u2-thread@page:two",
+      "under-u2@page:two",
+    ]);
+    expect(await repo.findById("b3", "kept")).not.toBeNull();
+  });
 });

@@ -74,6 +74,14 @@ export const proofs = defineProofs(gate, [
     )
   ),
   proof.red(
+    adapter.rules.featurePublicApi,
+    "detects a context reaching into search's internals",
+    mutate.appendText(
+      `${F}/drawing/ioc.ts`,
+      '\nimport "../search/infrastructure/repositories/DrizzleSearchMirrors";\n'
+    )
+  ),
+  proof.red(
     adapter.rules.schemaBoardsOwner,
     "detects a boards schema import outside features/boards",
     mutate.appendText(
@@ -91,9 +99,9 @@ export const proofs = defineProofs(gate, [
   ),
   proof.red(
     adapter.rules.schemaSearchOwner,
-    "detects a search schema import outside features/drawing",
+    "detects a search schema import outside features/search, drawing's former write path included",
     mutate.appendText(
-      `${F}/boards/infrastructure/repositories/DrizzleBoardSearch.ts`,
+      `${F}/drawing/infrastructure/repositories/DrizzleBoardDocumentStore.ts`,
       '\nimport { boardText } from "@narbel/db/schema/search";\n'
     )
   ),

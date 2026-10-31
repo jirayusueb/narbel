@@ -23,6 +23,7 @@ import type { DrawingRooms } from "../features/drawing";
 import { createMcpController } from "../features/mcp";
 import { createNotificationModule } from "../features/notification";
 import { createProfileModule } from "../features/profile";
+import { createSearchModule, createSearchUseCases } from "../features/search";
 import type { ICache } from "../shared/application/interfaces/ICache";
 import type { IFileStorage } from "../shared/application/interfaces/IFileStorage";
 import type { IIdempotencyStore } from "../shared/application/interfaces/IIdempotencyStore";
@@ -87,6 +88,7 @@ export const createApp = ({
     access,
     membersIn: (tx) => createAccessPolicy({ db, cache, secret }, tx),
   });
+  const search = createSearchUseCases({ db, boards: access });
   const boards = createBoardsUseCases({
     db,
     webOrigin,
@@ -133,9 +135,15 @@ export const createApp = ({
     )
     .use(createDrawingModule(betterAuth, drawing))
     .use(createDiscussionModule(betterAuth, comments))
+    .use(createSearchModule(betterAuth, search))
     .use(createBoardsModule(betterAuth, boards))
     .use(
-      createMcpController(betterAuth, { ...boards, ...drawing, ...comments })
+      createMcpController(betterAuth, {
+        ...boards,
+        ...drawing,
+        ...comments,
+        ...search,
+      })
     );
 };
 

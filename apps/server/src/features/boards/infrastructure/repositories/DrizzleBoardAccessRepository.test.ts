@@ -58,22 +58,25 @@ describe.skipIf(!reachable)("DrizzleBoardAccessRepository (postgres)", () => {
     await admin.execute(sql.raw(`drop schema "${SCHEMA}" cascade`));
   });
 
-  it("lists owned, invited and claimed boards with current titles, nothing else", async () => {
-    const titles = await repo.readableBoardTitles(alice);
-    expect(titles.get("own")).toBe("Owned");
-    expect(titles.get("granted")).toBe("Granted");
-    expect(titles.get("claimed")).toBe("Claimed");
-    expect(titles.get("renamed")).toBe("New title");
-    expect(titles.has("stranger")).toBe(false);
+  it("lists owned, invited and claimed boards once each, with current titles and roles, nothing else", async () => {
+    const readable = await repo.readableBoards(alice);
+    const byId = new Map(readable.map((b) => [b.id, [b.title, b.role]]));
+    expect(readable).toHaveLength(byId.size);
+    expect(byId.get("own")).toEqual(["Owned", "owner"]);
+    expect(byId.get("granted")).toEqual(["Granted", "viewer"]);
+    expect(byId.get("claimed")).toEqual(["Claimed", "editor"]);
+    expect(byId.get("renamed")).toEqual(["New title", "owner"]);
+    expect(byId.has("stranger")).toBe(false);
   });
 
   it("hides a trashed board until it is restored", async () => {
-    expect((await repo.readableBoardTitles(alice)).has("trash")).toBe(false);
+    const ids = async () => (await repo.readableBoards(alice)).map((b) => b.id);
+    expect(await ids()).not.toContain("trash");
     await db
       .update(board)
       .set({ trashedAt: null })
       .where(eq(board.id, "trash"));
-    expect((await repo.readableBoardTitles(alice)).has("trash")).toBe(true);
+    expect(await ids()).toContain("trash");
   });
 
   it("reads an invitation without claiming it, and a claim never replaces the person", async () => {

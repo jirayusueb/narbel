@@ -7,7 +7,7 @@ import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { startThread } from "../../domain/entities/Thread";
 import { presentOne } from "../CommentPresenter";
-import { DiscussionEvents } from "../DiscussionEvents";
+import { commentChanged, DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
 import type { DiscussionTx } from "../ports/DiscussionTx";
 import type { IBoardAccess } from "../ports/IBoardAccess";
@@ -62,6 +62,13 @@ export class AddComment {
       }
       const assignee = comment.value.assigneeId;
       await tx.comments.save(comment.value);
+      await tx.outbox.publish(
+        commentChanged(
+          "event.comment-posted",
+          comment.value,
+          comment.value.createdAt
+        )
+      );
       const events = new DiscussionEvents(tx, actor.value, comment.value);
       if (assignee) {
         const [person] = await tx.profiles.findPeople([assignee]);

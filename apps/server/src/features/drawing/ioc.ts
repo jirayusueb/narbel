@@ -97,17 +97,25 @@ export interface DrawingUseCases {
 /** The live rooms of one server instance: every use case and the board-deleted consumer share them. */
 export type DrawingRooms = YjsBoardHub;
 
-/** Builds the live rooms; `boardsIn` is boards' record of a board, bound to a document save's transaction. */
+/**
+ * Builds the live rooms; `boardsIn` is boards' record of a board, bound to a document save's
+ * transaction, and `wakeOutbox` asks for an outbox pass after a save published its text.
+ */
 export const createDrawingRooms = ({
   db,
   pubsub,
   boardsIn,
+  wakeOutbox,
 }: {
   db: Database;
   pubsub: IPubSub;
   boardsIn: (tx: DbExecutor, afterCommit: AfterCommit) => IBoardRecords;
+  wakeOutbox: () => void;
 }): DrawingRooms =>
-  new YjsBoardHub(new DrizzleBoardDocumentStore(db, boardsIn), pubsub);
+  new YjsBoardHub(
+    new DrizzleBoardDocumentStore(db, boardsIn, wakeOutbox),
+    pubsub
+  );
 
 export interface DrawingDeps {
   db: Database;

@@ -21,6 +21,7 @@ import type { BoardTx } from "../ports/BoardTx";
 import type {
   IBoardAccessRepository,
   Member,
+  ReadableBoard,
   Share,
 } from "../ports/IBoardAccessRepository";
 import type { IBoardRepository } from "../ports/IBoardRepository";
@@ -113,23 +114,28 @@ export class FakeGrants implements IBoardAccessRepository {
     }
     return Promise.resolve();
   };
-  readableBoardTitles = (person: { id: string; email: string }) =>
+  readableBoards = (person: { id: string; email: string }) =>
     Promise.resolve(
-      new Map(
-        [...this.boards.rows.values()]
-          .filter(
-            (b) =>
-              !b.trashedAt &&
-              (b.ownerId === person.id ||
-                this.members.some(
-                  (m) =>
-                    m.boardId === b.id &&
-                    (m.userId === person.id ||
-                      m.email === person.email.toLowerCase())
-                ))
-          )
-          .map((b): [string, string] => [b.id, b.title.value])
-      )
+      [...this.boards.rows.values()].flatMap((b): ReadableBoard[] => {
+        const grant = this.members.find(
+          (m) =>
+            m.boardId === b.id &&
+            (m.userId === person.id || m.email === person.email.toLowerCase())
+        );
+        const role = b.ownerId === person.id ? "owner" : grant?.role;
+        return !b.trashedAt && role
+          ? [
+              {
+                id: b.id,
+                title: b.title.value,
+                role,
+                visibility: b.visibility,
+                createdAt: b.createdAt,
+                updatedAt: b.updatedAt,
+              },
+            ]
+          : [];
+      })
     );
   listMembers = (boardId: string) =>
     Promise.resolve(this.members.filter((m) => m.boardId === boardId));

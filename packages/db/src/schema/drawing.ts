@@ -26,7 +26,7 @@ export const boardDocument = pgTable("board_document", {
     .references(() => board.id, { onDelete: "cascade" }),
   state: bytea("state").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  // false until board_text mirrors this state; the startup backfill picks these rows up
+  // false until a text event with this state's full text set was published; the startup backfill picks these rows up
   textIndexed: boolean("text_indexed").default(false).notNull(),
 });
 
