@@ -57,6 +57,7 @@ export const BoardPage = ({
         <NotFound
           title="This board is in the trash"
           description="Its owner moved it to the trash. Edits made on this device are kept and sync again if it is restored."
+          says="Found it in the trash. Only its owner can bring it back."
           to="/dashboard"
           action="Back to boards"
         />

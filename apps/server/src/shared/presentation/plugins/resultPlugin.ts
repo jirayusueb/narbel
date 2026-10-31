@@ -25,9 +25,13 @@ export const resultToResponse = (
 ): Response | undefined => {
   if (responseValue instanceof Err) {
     const { code, message, details } = responseValue.error;
+    // Errors describe current state (a trashed board can be restored); Chromium caches a header-less 410 forever.
     return Response.json(errorBody(code, message, details), {
       status: STATUS_BY_CODE[code as keyof typeof STATUS_BY_CODE] ?? 500,
-      headers: set.headers as Record<string, string>,
+      headers: {
+        ...(set.headers as Record<string, string>),
+        "Cache-Control": "no-store",
+      },
     });
   }
   if (responseValue instanceof Ok) {

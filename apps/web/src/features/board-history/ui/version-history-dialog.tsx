@@ -275,7 +275,7 @@ const VersionHistoryDialog = ({
         }
       }}
       onExitComplete={unmount}
-      className="h-[85svh] sm:max-w-5xl"
+      className="sm:max-w-5xl"
     >
       <DialogHeader>
         <DialogTitle className="font-display text-feature font-normal">
@@ -286,7 +286,7 @@ const VersionHistoryDialog = ({
           edited, and kept for 30 days.
         </DialogDescription>
       </DialogHeader>
-      <div className="grid min-h-0 grid-cols-1 gap-4 sm:grid-cols-[14rem_1fr]">
+      <div className="grid min-h-0 grid-cols-1 gap-4 sm:h-[60svh] sm:grid-cols-[14rem_1fr]">
         <VersionList
           versions={list.data}
           isPending={list.isPending}
