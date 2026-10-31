@@ -1,4 +1,4 @@
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 import { elementBounds, union } from "./geometry";
 import type { Bounds } from "./geometry";
 import { outermostGroup } from "./groups";
@@ -103,11 +103,11 @@ export const arrangeMoves = (
 
 export interface Unit {
   key: string;
-  members: SceneElement[];
+  members: Element[];
 }
 
 /** Like Excalidraw, a group is one unit under its outermost group id; an ungrouped element is its own. */
-export const unitsOf = (elements: SceneElement[]): Unit[] => {
+export const unitsOf = (elements: Element[]): Unit[] => {
   const units = new Map<string, Unit>();
   for (const e of elements) {
     const key = outermostGroup(e) ?? e.id;

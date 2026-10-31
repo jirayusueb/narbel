@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 import { buildSceneSvg } from "./sceneSvg";
 
-const rect = (extra: Partial<SceneElement> = {}): SceneElement => ({
+const rect = (extra: Partial<Element> = {}): Element => ({
   id: "r1",
   type: "rectangle",
   x: 100,
@@ -12,10 +12,11 @@ const rect = (extra: Partial<SceneElement> = {}): SceneElement => ({
   height: 100,
   version: 1,
   versionNonce: 1,
+  rest: {},
   ...extra,
 });
 
-const build = (elements: SceneElement[], maxSize?: number) => {
+const build = (elements: Element[], maxSize?: number) => {
   const scene = buildSceneSvg(elements, new Map(), maxSize);
   if (!scene) {
     throw new Error("expected a scene");
@@ -43,7 +44,7 @@ describe("buildSceneSvg", () => {
   });
 
   it("places a label inside its container, centered", () => {
-    const label: SceneElement = {
+    const label: Element = {
       id: "t1",
       type: "text",
       containerId: "r1",
@@ -55,6 +56,7 @@ describe("buildSceneSvg", () => {
       y: 0,
       version: 1,
       versionNonce: 1,
+      rest: {},
     };
     const { svg } = build([rect(), label]);
     expect(svg).toContain('text-anchor="middle"');
@@ -62,7 +64,7 @@ describe("buildSceneSvg", () => {
   });
 
   it("escapes text so it cannot inject markup", () => {
-    const text: SceneElement = {
+    const text: Element = {
       id: "t1",
       type: "text",
       text: `<script>&"`,
@@ -72,6 +74,7 @@ describe("buildSceneSvg", () => {
       height: 25,
       version: 1,
       versionNonce: 1,
+      rest: {},
     };
     const { svg } = build([text]);
     expect(svg).not.toContain("<script>");
@@ -79,7 +82,7 @@ describe("buildSceneSvg", () => {
   });
 
   it("draws an arrowhead at the end of an arrow and none on a line", () => {
-    const connector = (type: string): SceneElement => ({
+    const connector = (type: string): Element => ({
       id: "a1",
       type,
       x: 0,
@@ -93,13 +96,14 @@ describe("buildSceneSvg", () => {
       endArrowhead: "triangle",
       version: 1,
       versionNonce: 1,
+      rest: {},
     });
     expect(build([connector("arrow")]).svg).toContain("<polygon");
     expect(build([connector("line")]).svg).not.toContain("<polygon");
   });
 
   it("draws no arrowhead for an explicit null and the default head when the field is absent", () => {
-    const arrow = (extra: Partial<SceneElement>): SceneElement => ({
+    const arrow = (extra: Partial<Element>): Element => ({
       id: "a1",
       type: "arrow",
       x: 0,
@@ -112,6 +116,7 @@ describe("buildSceneSvg", () => {
       ],
       version: 1,
       versionNonce: 1,
+      rest: {},
       ...extra,
     });
     expect(build([arrow({ endArrowhead: null })]).svg).not.toContain(
@@ -121,7 +126,7 @@ describe("buildSceneSvg", () => {
   });
 
   it("draws an arrow's label at its own box, on the arrow's midpoint", () => {
-    const arrow: SceneElement = {
+    const arrow: Element = {
       id: "a1",
       type: "arrow",
       x: 0,
@@ -134,8 +139,9 @@ describe("buildSceneSvg", () => {
       ],
       version: 1,
       versionNonce: 1,
+      rest: {},
     };
-    const label: SceneElement = {
+    const label: Element = {
       id: "t1",
       type: "text",
       containerId: "a1",
@@ -148,6 +154,7 @@ describe("buildSceneSvg", () => {
       height: 25,
       version: 1,
       versionNonce: 1,
+      rest: {},
     };
     expect(build([arrow, label]).svg).toContain(
       '<tspan x="100" y="0">go</tspan>'
@@ -155,7 +162,7 @@ describe("buildSceneSvg", () => {
   });
 
   it("renders each wrapped line of an arrow label as its own tspan", () => {
-    const arrow: SceneElement = {
+    const arrow: Element = {
       id: "a1",
       type: "arrow",
       x: 0,
@@ -168,8 +175,9 @@ describe("buildSceneSvg", () => {
       ],
       version: 1,
       versionNonce: 1,
+      rest: {},
     };
-    const label: SceneElement = {
+    const label: Element = {
       id: "t1",
       type: "text",
       containerId: "a1",
@@ -183,6 +191,7 @@ describe("buildSceneSvg", () => {
       height: 50,
       version: 1,
       versionNonce: 1,
+      rest: {},
     };
     const { svg } = build([arrow, label]);
     expect(svg).toContain(">one two</tspan>");
@@ -190,7 +199,7 @@ describe("buildSceneSvg", () => {
   });
 
   it("hides the line behind an arrow's label with a backdrop, and gives a box label none", () => {
-    const arrow: SceneElement = {
+    const arrow: Element = {
       id: "a1",
       type: "arrow",
       x: 0,
@@ -203,8 +212,9 @@ describe("buildSceneSvg", () => {
       ],
       version: 1,
       versionNonce: 1,
+      rest: {},
     };
-    const label = (containerId: string): SceneElement => ({
+    const label = (containerId: string): Element => ({
       id: "t1",
       type: "text",
       containerId,
@@ -217,6 +227,7 @@ describe("buildSceneSvg", () => {
       height: 25,
       version: 1,
       versionNonce: 1,
+      rest: {},
     });
     const { svg } = build([arrow, label("a1")]);
     const backdrop =
@@ -234,7 +245,7 @@ describe("buildSceneSvg", () => {
   });
 
   it("draws a placeholder for an image whose bytes are missing", () => {
-    const image: SceneElement = {
+    const image: Element = {
       ...rect({ id: "i1", type: "image" }),
       fileId: "gone",
     };

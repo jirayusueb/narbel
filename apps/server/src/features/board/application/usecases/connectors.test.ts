@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import { AddBoardElements } from "./AddBoardElements";
 import { DeleteBoardElements } from "./DeleteBoardElements";
 import { ids, setupAccess } from "./fakes";
@@ -15,7 +15,7 @@ const setup = () => {
   const update = new UpdateBoardElement(s.guard, s.scenes, ids);
   const remove = new DeleteBoardElements(s.guard, s.scenes, ids);
   const el = (id: string) =>
-    s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+    s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
   const bound = (id: string) =>
     ((el(id).boundElements as { id: string }[] | null) ?? []).map((b) => b.id);
   const ends = (id: string) => ({
@@ -280,20 +280,23 @@ describe("arrow connectors", () => {
 });
 
 describe("labels follow their container", () => {
-  const labelOf = (t: { el: (id: string) => SceneElement }, id: string) => {
+  const labelOf = (
+    t: { el: (id: string) => ExcalidrawElement },
+    id: string
+  ) => {
     const entry = (
       (t.el(id).boundElements as { id: string; type: string }[] | null) ?? []
     ).find((b) => b.type === "text");
     return entry && t.el(entry.id);
   };
-  const middle = (arrow: SceneElement) => {
+  const middle = (arrow: ExcalidrawElement) => {
     const [, tip] = arrow.points as number[][];
     return {
       x: Number(arrow.x) + (tip?.[0] ?? 0) / 2,
       y: Number(arrow.y) + (tip?.[1] ?? 0) / 2,
     };
   };
-  const centerOf = (e: SceneElement) => ({
+  const centerOf = (e: ExcalidrawElement) => ({
     x: Number(e.x) + Number(e.width) / 2,
     y: Number(e.y) + Number(e.height) / 2,
   });
@@ -319,14 +322,14 @@ describe("labels follow their container", () => {
 
   it("re-centers an arrow's label when either end shape moves", async () => {
     const t = await labelled();
-    const before = labelOf(t, "ab") as SceneElement;
+    const before = labelOf(t, "ab") as ExcalidrawElement;
     await t.update.execute({
       actor: owner,
       boardId: "b1",
       id: "b",
       patch: { y: 400 },
     });
-    const label = labelOf(t, "ab") as SceneElement;
+    const label = labelOf(t, "ab") as ExcalidrawElement;
     expect(label.version).toBeGreaterThan(before.version);
     expect(centerOf(label)).toEqual(middle(t.el("ab")));
     expect(centerOf(label).y).toBeGreaterThan(centerOf(before).y);
@@ -341,7 +344,7 @@ describe("labels follow their container", () => {
       patch: {},
       rebind: { endElementId: "c" },
     });
-    expect(centerOf(labelOf(t, "ab") as SceneElement)).toEqual(
+    expect(centerOf(labelOf(t, "ab") as ExcalidrawElement)).toEqual(
       middle(t.el("ab"))
     );
     await t.update.execute({
@@ -350,7 +353,7 @@ describe("labels follow their container", () => {
       id: "ab",
       patch: { x: 5, y: 5 },
     });
-    expect(centerOf(labelOf(t, "ab") as SceneElement)).toEqual(
+    expect(centerOf(labelOf(t, "ab") as ExcalidrawElement)).toEqual(
       middle(t.el("ab"))
     );
   });
@@ -362,14 +365,14 @@ describe("labels follow their container", () => {
       boardId: "b1",
       shapes: [{ id: "a", type: "rectangle", x: 0, y: 0, text: "Hello" }],
     });
-    const before = labelOf(t, "a") as SceneElement;
+    const before = labelOf(t, "a") as ExcalidrawElement;
     await t.update.execute({
       actor: owner,
       boardId: "b1",
       id: "a",
       patch: { fontSize: 36, strokeWidth: 4 },
     });
-    const label = labelOf(t, "a") as SceneElement;
+    const label = labelOf(t, "a") as ExcalidrawElement;
     expect(label.fontSize).toBe(36);
     expect(Number(label.width)).toBeGreaterThan(Number(before.width));
     expect(label.version).toBeGreaterThan(before.version);
@@ -415,7 +418,7 @@ describe("labels follow their container", () => {
 
   it("deleting an arrow tombstones its label and deleting a shape its own", async () => {
     const t = await labelled();
-    const label = labelOf(t, "ab") as SceneElement;
+    const label = labelOf(t, "ab") as ExcalidrawElement;
     await t.remove.execute({ actor: owner, boardId: "b1", ids: ["ab"] });
     expect(t.el(label.id).isDeleted).toBe(true);
     expect(t.bound("a")).toEqual([]);

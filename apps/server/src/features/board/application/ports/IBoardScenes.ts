@@ -1,12 +1,12 @@
+import type { Element } from "../../domain/entities/Element";
 import type { Page } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import type { SceneVersion } from "../../domain/values/ChangeCursor";
 
 /** One element key a human wrote after the cursor, as the document holds it now. */
 export interface ElementTouch {
   pageId: string;
   /** current value; `isDeleted: true` when the human's last act was deleting it */
-  element: SceneElement;
+  element: Element;
   /** whether the key held a value at the cursor (false = created after it) */
   existedAtCursor: boolean;
 }
@@ -33,12 +33,12 @@ export interface SceneAccess {
   renamePage(id: string, name: string): boolean;
   /** Removes the page together with every element on it. */
   removePage(id: string): boolean;
-  get(pageId: string, id: string): SceneElement | undefined;
-  all(pageId: string): SceneElement[];
+  get(pageId: string, id: string): Element | undefined;
+  all(pageId: string): Element[];
   /** Finds an element on any page; element ids are unique per board. */
-  locate(id: string): { pageId: string; element: SceneElement } | undefined;
+  locate(id: string): { pageId: string; element: Element } | undefined;
   /** Writes the element if it wins the merge rule against the stored one. */
-  put(pageId: string, element: SceneElement): void;
+  put(pageId: string, element: Element): void;
   ensureFile(file: { id: string; mimeType: string; created: number }): void;
   /**
    * Element keys at least one non-agent client wrote after `since` (null = now: no touches).

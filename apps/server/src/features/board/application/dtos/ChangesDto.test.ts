@@ -1,30 +1,32 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { Element } from "../../domain/entities/Element";
 import type { ElementTouch } from "../ports/IBoardScenes";
 import { toPageChanges } from "./ChangesDto";
+import { toElement } from "./ExcalidrawElement";
 
-const el = (id: string, extra: Record<string, unknown> = {}): SceneElement => ({
-  id,
-  type: "rectangle",
-  version: 1,
-  versionNonce: 1,
-  x: 0,
-  y: 0,
-  width: 10,
-  height: 10,
-  index: id,
-  ...extra,
-});
+const el = (id: string, extra: Record<string, unknown> = {}): Element =>
+  toElement({
+    id,
+    type: "rectangle",
+    version: 1,
+    versionNonce: 1,
+    x: 0,
+    y: 0,
+    width: 10,
+    height: 10,
+    index: id,
+    ...extra,
+  });
 
-const sceneOf = (elements: SceneElement[], pageIds = ["p1"]) => ({
+const sceneOf = (elements: Element[], pageIds = ["p1"]) => ({
   pages: () => pageIds.map((id) => ({ id, name: `name ${id}` })),
   get: (pageId: string, id: string) =>
     pageId === "p1" ? elements.find((e) => e.id === id) : undefined,
 });
 
 const touch = (
-  element: SceneElement,
+  element: Element,
   existedAtCursor: boolean,
   pageId = "p1"
 ): ElementTouch => ({ pageId, element, existedAtCursor });

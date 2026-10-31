@@ -1,6 +1,6 @@
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 import { isLinear, polylineMidpoint } from "../rules/geometry";
 import {
   STYLE,
@@ -122,7 +122,13 @@ interface Size {
   width: number;
   height: number;
 }
-type Extras = Record<string, unknown>;
+type Extras = Partial<Omit<Element, "rest">>;
+interface Layout {
+  size: Size;
+  extras: Extras;
+  /** Excalidraw fields the domain sets once and never reads */
+  rest?: Record<string, unknown>;
+}
 
 export const measure = (text: string, fontSize: number): Size => {
   const lines = text.split("\n");
@@ -203,7 +209,6 @@ const linear = ({ width, height }: Size, ends: Extras = {}): Extras => ({
     [0, 0],
     [width, height],
   ],
-  lastCommittedPoint: null,
   startBinding: null,
   endBinding: null,
   ...ends,
@@ -215,7 +220,7 @@ const strokeSize = (shape: ArrowShape | LineShape): Size => ({
   height: shape.height ?? 0,
 });
 
-const layout = (shape: Shape): { size: Size; extras: Extras } => {
+const layout = (shape: Shape): Layout => {
   switch (shape.type) {
     case "rectangle":
     case "ellipse":
@@ -231,19 +236,24 @@ const layout = (shape: Shape): { size: Size; extras: Extras } => {
           verticalAlign: "top",
           containerId: null,
           lineHeight: LINE_HEIGHT,
-          autoResize: true,
         },
+        rest: { autoResize: true },
       };
     }
     case "arrow": {
       const size = strokeSize(shape);
-      return { size, extras: linear(size) };
+      return {
+        size,
+        extras: linear(size),
+        rest: { lastCommittedPoint: null },
+      };
     }
     case "line": {
       const size = strokeSize(shape);
       return {
         size,
         extras: linear(size, { startArrowhead: null, endArrowhead: null }),
+        rest: { lastCommittedPoint: null },
       };
     }
     case "frame": {
@@ -339,8 +349,8 @@ export const parseShape = (
 export const buildElement = (
   shape: Shape,
   identity: ElementIdentity
-): SceneElement => {
-  const { size, extras } = layout(shape);
+): Element => {
+  const { size, extras, rest } = layout(shape);
   const { own } = routeStyle(shape.type, pickStyle(shape));
   return {
     id: identity.id,
@@ -352,31 +362,41 @@ export const buildElement = (
     ...toStored(shape.type, { ...defaultsFor(shape.type), ...own }),
     groupIds: [],
     frameId: frameIdOf(shape) ?? null,
-    seed: identity.seed,
     version: 1,
     versionNonce: identity.versionNonce,
     isDeleted: false,
     boundElements: null,
     updated: identity.updated,
-    link: null,
     locked: false,
     ...extras,
+    rest: { seed: identity.seed, link: null, ...rest },
   };
 };
 
-export const fitLabel = (
-  label: SceneElement,
-  container: SceneElement
-): SceneElement => {
+/** The fields of `source` among `keys` that it has. */
+const definedFields = <K extends keyof Element>(
+  source: Element,
+  keys: readonly K[]
+) => {
+  const fields: Partial<Pick<Element, K>> = {};
+  for (const key of keys) {
+    if (source[key] !== undefined) {
+      fields[key] = source[key];
+    }
+  }
+  return fields;
+};
+
+export const fitLabel = (label: Element, container: Element): Element => {
   const onArrow = isLinear(container);
   const fontSize = fontSizeOf(label);
   const text = onArrow
     ? wrapText(
-        String(label.originalText ?? label.text ?? ""),
+        label.originalText ?? label.text ?? "",
         fontSize,
         arrowLabelMaxWidth(Number(container.width), fontSize)
       )
-    : String(label.text ?? "");
+    : (label.text ?? "");
   const size = measure(text, fontSize);
   const center = onArrow
     ? polylineMidpoint(container)
@@ -391,22 +411,17 @@ export const fitLabel = (
     ...(onArrow ? { originalText: label.originalText ?? label.text } : {}),
     x: center.x - size.width / 2,
     y: center.y - size.height / 2,
-    ...Object.fromEntries(
-      LABEL_FOLLOWS.filter((key) => key in container).map((key) => [
-        key,
-        container[key],
-      ])
-    ),
+    ...definedFields(container, LABEL_FOLLOWS),
   };
 };
 
 /** A text element bound inside `container`; the container must list it in `boundElements`. */
 export const buildLabel = (
-  container: SceneElement,
+  container: Element,
   text: string,
   style: Partial<Style>,
   identity: ElementIdentity
-): SceneElement =>
+): Element =>
   fitLabel(
     {
       ...buildElement(
@@ -425,7 +440,7 @@ export const buildLabel = (
     container
   );
 
-export const refitText = (element: SceneElement): SceneElement => ({
+export const refitText = (element: Element): Element => ({
   ...element,
-  ...measure(String(element.text ?? ""), fontSizeOf(element)),
+  ...measure(element.text ?? "", fontSizeOf(element)),
 });

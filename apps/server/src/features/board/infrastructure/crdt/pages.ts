@@ -1,10 +1,14 @@
 import { generateKeyBetween } from "fractional-indexing";
 import type * as Y from "yjs";
 
+import {
+  toElement,
+  toExcalidraw,
+} from "../../application/dtos/ExcalidrawElement";
+import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { SceneAccess } from "../../application/ports/IBoardScenes";
 import { MAIN_PAGE, elementKey } from "../../domain/entities/Page";
 import type { Page } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
 import { touchesSince } from "./changes";
 
@@ -17,7 +21,7 @@ export const ensurePages = (doc: Y.Doc, origin: unknown): boolean => {
   if (pages.length > 0) {
     return false;
   }
-  const elements = doc.getMap<SceneElement>("elements");
+  const elements = doc.getMap<ExcalidrawElement>("elements");
   doc.transact(() => {
     pages.push([MAIN_PAGE]);
     // snapshot first: setting keys while iterating the live map would revisit them
@@ -62,7 +66,7 @@ export const pruneTombstones = (
   return expired.length;
 };
 
-const orderKeyOf = (element: SceneElement | undefined) =>
+const orderKeyOf = (element: ExcalidrawElement | undefined) =>
   typeof element?.index === "string" ? element.index : undefined;
 
 /**
@@ -73,8 +77,8 @@ const orderKeyOf = (element: SceneElement | undefined) =>
  */
 const newOrderKey = (
   keys: string[],
-  container: SceneElement | undefined,
-  frame: SceneElement | undefined
+  container: ExcalidrawElement | undefined,
+  frame: ExcalidrawElement | undefined
 ) => {
   const containerKey = orderKeyOf(container);
   const frameKey = orderKeyOf(frame);
@@ -106,7 +110,7 @@ const newOrderKey = (
 
 export const sceneAccess = (doc: Y.Doc): SceneAccess => {
   const pages = doc.getArray<Page>("pages");
-  const elements = doc.getMap<SceneElement>("elements");
+  const elements = doc.getMap<ExcalidrawElement>("elements");
   const files = doc.getMap<unknown>("files");
   const pageKeys = (pageId: string) =>
     [...elements.entries()].flatMap(([key, element]) => {
@@ -142,17 +146,20 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
       }
       return true;
     },
-    get: (pageId, id) => elements.get(elementKey(pageId, id)),
+    get: (pageId, id) => {
+      const stored = elements.get(elementKey(pageId, id));
+      return stored && toElement(stored);
+    },
     all: (pageId) =>
       [...elements.entries()]
         .filter(([key]) => key.startsWith(`${pageId}:`))
-        .map(([, element]) => element),
+        .map(([, element]) => toElement(element)),
     locate: (id) => {
       const page = pages
         .toArray()
         .find((p) => elements.has(elementKey(p.id, id)));
-      const element = page && elements.get(elementKey(page.id, id));
-      return page && element && { pageId: page.id, element };
+      const stored = page && elements.get(elementKey(page.id, id));
+      return page && stored && { pageId: page.id, element: toElement(stored) };
     },
     ensureFile: (file) => {
       if (!files.has(file.id)) {
@@ -172,14 +179,14 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
           : undefined;
       // an update keeps the key it has, so editing never reorders
       const ordered =
-        current || orderKeyOf(element) !== undefined
+        current || element.index !== undefined
           ? element
           : {
               ...element,
               index: newOrderKey(pageKeys(pageId), container, frame),
             };
       if (shouldAcceptIncoming(current, ordered)) {
-        elements.set(key, ordered);
+        elements.set(key, toExcalidraw(ordered));
       }
     },
     changesSince: (since) => touchesSince(doc, since),

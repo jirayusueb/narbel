@@ -1,4 +1,4 @@
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 import {
   elementBounds,
   geometryBox,
@@ -55,7 +55,7 @@ const DASH: Record<string, (w: number) => string> = {
   dotted: (w) => `${w} ${w * 2.5}`,
 };
 
-const strokeAttrs = (e: SceneElement) => {
+const strokeAttrs = (e: Element) => {
   const width = Math.max(num(e.strokeWidth, 1), 0.5);
   const dash = DASH[String(e.strokeStyle)]?.(width);
   return (
@@ -66,14 +66,14 @@ const strokeAttrs = (e: SceneElement) => {
   );
 };
 
-const fillAttr = (e: SceneElement) => {
+const fillAttr = (e: Element) => {
   const color = str(e.backgroundColor, "transparent");
   return `fill="${color === "transparent" ? "none" : escapeXml(color)}"`;
 };
 
-const shapeStyle = (e: SceneElement) => `${fillAttr(e)} ${strokeAttrs(e)}`;
+const shapeStyle = (e: Element) => `${fillAttr(e)} ${strokeAttrs(e)}`;
 
-const cornerRadius = (e: SceneElement) => {
+const cornerRadius = (e: Element) => {
   if (!e.roundness) {
     return 0;
   }
@@ -101,7 +101,7 @@ const arrowhead = (
   kind: string,
   tip: Point,
   from: Point,
-  e: SceneElement
+  e: Element
 ): string => {
   const dx = tip[0] - from[0];
   const dy = tip[1] - from[1];
@@ -152,7 +152,7 @@ const arrowhead = (
   }
 };
 
-const linear = (e: SceneElement): string => {
+const linear = (e: Element): string => {
   const pts = pointsOf(e).map(([px, py]): Point => [
     num(e.x) + px,
     num(e.y) + py,
@@ -201,8 +201,8 @@ const ALIGN: Record<string, { anchor: string; share: number }> = {
 };
 const VERTICAL_SHARE: Record<string, number> = { middle: 0.5, bottom: 1 };
 
-const textNode = (e: SceneElement, area: TextArea) => {
-  const lines = String(e.text ?? "").split("\n");
+const textNode = (e: Element, area: TextArea) => {
+  const lines = (e.text ?? "").split("\n");
   const fontSize = num(e.fontSize, STYLE.fontSize.default);
   const lineHeight = fontSize * num(e.lineHeight, DEFAULT_LINE_HEIGHT);
   const align = ALIGN[String(e.textAlign)] ?? LEFT;
@@ -221,7 +221,7 @@ const textNode = (e: SceneElement, area: TextArea) => {
   return `<text font-family="${FONT_FAMILY}" font-size="${fontSize}" fill="${color}" text-anchor="${align.anchor}" dominant-baseline="central" xml:space="preserve">${tspans}</text>`;
 };
 
-const label = (e: SceneElement, container: SceneElement) => {
+const label = (e: Element, container: Element) => {
   const c = geometryBox(container);
   return textNode(e, {
     x: c.x + LABEL_PADDING,
@@ -231,7 +231,7 @@ const label = (e: SceneElement, container: SceneElement) => {
   });
 };
 
-const imageNode = (e: SceneElement, refs: Map<string, string>) => {
+const imageNode = (e: Element, refs: Map<string, string>) => {
   const b = geometryBox(e);
   const ref = typeof e.fileId === "string" ? refs.get(e.fileId) : undefined;
   if (!ref) {
@@ -240,7 +240,7 @@ const imageNode = (e: SceneElement, refs: Map<string, string>) => {
       `<path d="M${b.x} ${b.y}L${b.x + b.width} ${b.y + b.height}M${b.x + b.width} ${b.y}L${b.x} ${b.y + b.height}" stroke="#adb5bd" stroke-width="2"/>`
     );
   }
-  const [sx, sy] = Array.isArray(e.scale) ? (e.scale as number[]) : [1, 1];
+  const [sx, sy] = e.scale ?? [1, 1];
   const flip =
     sx === -1 || sy === -1
       ? ` translate(${b.x + b.width / 2} ${b.y + b.height / 2}) scale(${sx === -1 ? -1 : 1} ${sy === -1 ? -1 : 1}) translate(${-(b.x + b.width / 2)} ${-(b.y + b.height / 2)})`
@@ -249,7 +249,7 @@ const imageNode = (e: SceneElement, refs: Map<string, string>) => {
   return `<use href="#${ref}" transform="${flip} translate(${b.x} ${b.y}) scale(${b.width} ${b.height})"/>`;
 };
 
-const shapeNode = (e: SceneElement, refs: Map<string, string>) => {
+const shapeNode = (e: Element, refs: Map<string, string>) => {
   const b = geometryBox(e);
   switch (e.type) {
     case "rectangle": {
@@ -287,9 +287,9 @@ const shapeNode = (e: SceneElement, refs: Map<string, string>) => {
   }
 };
 
-const byZOrder = (a: SceneElement, b: SceneElement) => {
-  const ai = typeof a.index === "string" ? a.index : undefined;
-  const bi = typeof b.index === "string" ? b.index : undefined;
+const byZOrder = (a: Element, b: Element) => {
+  const ai = a.index;
+  const bi = b.index;
   if (ai === bi) {
     return a.id < b.id ? -1 : 1;
   }
@@ -299,15 +299,15 @@ const byZOrder = (a: SceneElement, b: SceneElement) => {
   return ai < bi ? -1 : 1;
 };
 
-const boxContainer = (e: SceneElement, byId: Map<string, SceneElement>) => {
+const boxContainer = (e: Element, byId: Map<string, Element>) => {
   const container =
     typeof e.containerId === "string" ? byId.get(e.containerId) : undefined;
   return container && !isLinear(container) ? container : undefined;
 };
 
 const element = (
-  e: SceneElement,
-  byId: Map<string, SceneElement>,
+  e: Element,
+  byId: Map<string, Element>,
   refs: Map<string, string>
 ) => {
   const container = boxContainer(e, byId);
@@ -338,7 +338,7 @@ const element = (
   return attrs === "" ? inner : `<g${attrs}>${inner}</g>`;
 };
 
-const drawnBounds = (e: SceneElement, byId: Map<string, SceneElement>) => {
+const drawnBounds = (e: Element, byId: Map<string, Element>) => {
   const container = boxContainer(e, byId);
   return container
     ? rotatedBounds(container, geometryBox(container))
@@ -349,7 +349,7 @@ const drawnBounds = (e: SceneElement, byId: Map<string, SceneElement>) => {
  * Spends the image pixel budget in draw order. An element that does not fit loses its fileId,
  * so it draws as the missing-image placeholder; each file that stays is referenced once.
  */
-const placeImages = (drawn: SceneElement[], images: Map<string, ImageData>) => {
+const placeImages = (drawn: Element[], images: Map<string, ImageData>) => {
   let left = MAX_RENDER_IMAGE_PIXELS;
   const refs = new Map<string, string>();
   const overBudget = new Set<string>();
@@ -387,7 +387,7 @@ const clampSize = (maxSize: number | undefined) =>
  * when the page has nothing to draw. Elements must carry every label's container.
  */
 export const buildSceneSvg = (
-  elements: SceneElement[],
+  elements: Element[],
   images: Map<string, ImageData>,
   maxSize?: number
 ): SceneSvg | null => {

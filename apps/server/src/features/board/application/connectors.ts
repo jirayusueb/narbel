@@ -1,5 +1,5 @@
 import type { IIdGenerator } from "../../../shared/application/interfaces/IIdGenerator";
-import type { SceneElement } from "../domain/entities/SceneElement";
+import type { Element } from "../domain/entities/Element";
 import {
   attachConnector,
   connectorCapable,
@@ -17,7 +17,7 @@ import {
   routeStyle,
   toStored,
 } from "../domain/shapes/ElementStyle";
-import type { Style } from "../domain/shapes/ElementStyle";
+import type { LabelStyle, Style } from "../domain/shapes/ElementStyle";
 import {
   LABEL_FOLLOWS,
   buildLabel,
@@ -41,15 +41,26 @@ const RESERVED: Record<string, true> = {
   frameId: true,
 };
 
-export const stripReserved = (patch: Record<string, unknown>) =>
-  Object.fromEntries(Object.entries(patch).filter(([key]) => !RESERVED[key]));
+/** The fields a caller may change on an element. */
+export type ElementPatch = Partial<Style> & {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  text?: string;
+  name?: string;
+  locked?: boolean;
+};
+
+export const stripReserved = (patch: Record<string, unknown>): ElementPatch =>
+  // the transport's patch schema (createMcpServer) has checked every value
+  Object.fromEntries(
+    Object.entries(patch).filter(([key]) => !RESERVED[key])
+  ) as ElementPatch;
 
 // Browsers keep an element unless the incoming copy has a higher version, so every
 // change to an element that already exists in the shared document must bump it.
-export const bumped = (
-  element: SceneElement,
-  ids: IIdGenerator
-): SceneElement => ({
+export const bumped = (element: Element, ids: IIdGenerator): Element => ({
   ...element,
   version: element.version + 1,
   versionNonce: ids.int(),
@@ -95,9 +106,9 @@ const resolveRefs = (
 });
 
 const rebindProblem = (
-  local: SceneElement,
+  local: Element,
   rebind: RebindRefs,
-  lookup: Map<string, SceneElement>
+  lookup: Map<string, Element>
 ): PatchOutcome | undefined => {
   const changed = [rebind.startElementId, rebind.endElementId].filter(
     (ref) => ref !== undefined
@@ -118,17 +129,16 @@ const rebindProblem = (
 
 /** The new connector plus every other element its new bindings change. */
 const rebound = (
-  next: SceneElement,
+  next: Element,
   refs: ConnectorRefs,
-  lookup: Map<string, SceneElement>,
+  lookup: Map<string, Element>,
   ids: IIdGenerator
-): SceneElement[] => {
+): Element[] => {
   const attached = attachConnector(next, refs, lookup);
   const forgotten = attached.unbinds
     .map((unbound) => lookup.get(unbound))
     .filter(
-      (target): target is SceneElement =>
-        target !== undefined && !target.isDeleted
+      (target): target is Element => target !== undefined && !target.isDeleted
     )
     .map((target) => forgetBound(target, next.id));
   const [connector, ...targets] = attached.writes;
@@ -147,16 +157,16 @@ export const newIdentity = (ids: IIdGenerator, updated = Date.now()) => ({
 
 interface LabelChange {
   text?: string;
-  style: Partial<Style>;
+  style: LabelStyle;
   refit: boolean;
 }
 
 const relabel = (
-  container: SceneElement,
+  container: Element,
   { text, style, refit }: LabelChange,
-  lookup: Map<string, SceneElement>,
+  lookup: Map<string, Element>,
   ids: IIdGenerator
-): { container: SceneElement; writes: SceneElement[] } => {
+): { container: Element; writes: Element[] } => {
   const labelId = labelIdOf(container);
   const found = labelId === undefined ? undefined : lookup.get(labelId);
   const label = found?.isDeleted ? undefined : found;
@@ -187,21 +197,21 @@ const relabel = (
   return { container, writes: [] };
 };
 
-const hasOtherThanLocked = (fields: Record<string, unknown>) =>
+const hasOtherThanLocked = (fields: ElementPatch) =>
   Object.keys(fields).some((key) => key !== "locked");
 
 const lockRefuses = (
-  local: SceneElement,
+  local: Element,
   wantsRebind: boolean,
-  fields: Record<string, unknown>
+  fields: ElementPatch
 ) => local.locked === true && (wantsRebind || hasOtherThanLocked(fields));
 
 const restyled = (
-  local: SceneElement,
-  text: unknown,
-  own: Record<string, unknown>,
+  local: Element,
+  text: string | undefined,
+  own: Omit<ElementPatch, "text">,
   ids: IIdGenerator
-): SceneElement => {
+): Element => {
   const isText = local.type === "text";
   const next = bumped(
     {
@@ -220,10 +230,10 @@ const restyled = (
 };
 
 const released = (
-  child: SceneElement,
-  lookup: Map<string, SceneElement>,
+  child: Element,
+  lookup: Map<string, Element>,
   moved: boolean
-): SceneElement => {
+): Element => {
   const frame =
     typeof child.frameId === "string" ? lookup.get(child.frameId) : undefined;
   const outside =
@@ -234,15 +244,15 @@ const released = (
   return outside ? { ...child, frameId: null } : child;
 };
 
-const isFree = (e: SceneElement) => {
+const isFree = (e: Element) => {
   const { startElementId, endElementId } = currentRefs(e);
   return startElementId === undefined && endElementId === undefined;
 };
 
 const childMoves = (
-  lookup: Map<string, SceneElement>,
-  before: SceneElement,
-  after: SceneElement
+  lookup: Map<string, Element>,
+  before: Element,
+  after: Element
 ) => {
   const dx = num(after.x) - num(before.x);
   const dy = num(after.y) - num(before.y);
@@ -268,10 +278,10 @@ export const patchElement = (
   scene: SceneAccess,
   ids: IIdGenerator,
   id: string,
-  fields: Record<string, unknown>,
+  fields: ElementPatch,
   rebind: RebindRefs = {},
   carried = false,
-  sharedLookup?: Map<string, SceneElement>
+  sharedLookup?: Map<string, Element>
 ): PatchOutcome => {
   const found = scene.locate(id);
   if (!found || found.element.isDeleted) {

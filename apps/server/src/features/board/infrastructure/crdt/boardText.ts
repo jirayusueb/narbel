@@ -1,10 +1,10 @@
 import type * as Y from "yjs";
 
+import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type {
   BoardText,
   TextChange,
 } from "../../application/ports/IBoardDocumentStore";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 
 /**
  * The searchable text of a document: live text elements, shape labels included (they are
@@ -12,7 +12,7 @@ import type { SceneElement } from "../../domain/entities/SceneElement";
  * contain colons, so the page is whatever precedes the element id.
  */
 export const extractBoardText = (doc: Y.Doc): BoardText[] =>
-  [...doc.getMap<SceneElement>("elements").entries()].flatMap(
+  [...doc.getMap<ExcalidrawElement>("elements").entries()].flatMap(
     ([key, element]) => {
       // originalText is the unwrapped text; text has line breaks inserted by wrapping
       const text = element.originalText ?? element.text;

@@ -1,4 +1,4 @@
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element, Roundness } from "../entities/Element";
 
 export const FILL_STYLES = [
   "hachure",
@@ -112,6 +112,10 @@ export type Style = {
   -readonly [K in keyof typeof STYLE]: ValueOf<(typeof STYLE)[K]>;
 };
 export type StyleKey = keyof Style;
+/** The fields a shape hands on to its label. */
+export type LabelStyle = Partial<
+  Pick<Style, "fontSize" | "fontFamily" | "textAlign">
+>;
 export const STYLE_KEYS = Object.keys(STYLE) as StyleKey[];
 
 const isStyleKey = (key: string): key is StyleKey => key in STYLE;
@@ -172,10 +176,10 @@ export const pickStyle = (source: object): Partial<Style> =>
     )
   );
 
-export const routeStyle = (
+export const routeStyle = <F extends Partial<Style>>(
   type: string,
-  fields: Record<string, unknown>
-): { own: Record<string, unknown>; label: Partial<Style> } => {
+  fields: F
+): { own: Partial<F>; label: LabelStyle } => {
   const own: Record<string, unknown> = {};
   const label: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
@@ -192,7 +196,8 @@ export const routeStyle = (
       own[key] = value;
     }
   }
-  return { own, label: label as Partial<Style> };
+  // own keeps a subset of `fields`; label only text fields
+  return { own: own as Partial<F>, label: label as LabelStyle };
 };
 
 const PROPORTIONAL_RADIUS = 2;
@@ -204,10 +209,10 @@ const ADAPTIVE_TYPES: Record<string, true> = {
   embeddable: true,
 };
 
-export const toStored = (
+export const toStored = <F extends { roundness?: boolean }>(
   type: string,
-  fields: Record<string, unknown>
-): Record<string, unknown> => {
+  fields: F
+): Omit<F, "roundness"> & { roundness?: Roundness | null } => {
   const { roundness, ...rest } = fields;
   if (roundness === undefined) {
     return rest;
@@ -221,8 +226,8 @@ export const toStored = (
 };
 
 export const styleDiff = (
-  element: SceneElement,
-  label?: SceneElement
+  element: Element,
+  label?: Element
 ): Partial<Style> => {
   const diff: Record<string, unknown> = {};
   const own = defaultsFor(element.type) as Record<string, unknown>;

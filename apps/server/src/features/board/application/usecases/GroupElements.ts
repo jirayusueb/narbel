@@ -3,7 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { Element } from "../../domain/entities/Element";
 import { labelIdOf } from "../../domain/rules/bindings";
 import {
   existingGroup,
@@ -18,7 +18,7 @@ import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 
 export interface Operands {
   pageId: string;
-  elements: SceneElement[];
+  elements: Element[];
 }
 
 export const resolveOperands = (
@@ -26,7 +26,7 @@ export const resolveOperands = (
   ids: string[]
 ): Result<Operands, AppError> => {
   const missing: string[] = [];
-  const byId = new Map<string, { pageId: string; element: SceneElement }>();
+  const byId = new Map<string, { pageId: string; element: Element }>();
   for (const id of ids) {
     const found = scene.locate(id);
     const host =
@@ -141,8 +141,7 @@ export class GroupElements {
         for (const groupId of groupIds) {
           if (
             !element.isDeleted &&
-            Array.isArray(element.groupIds) &&
-            element.groupIds.includes(groupId)
+            element.groupIds?.includes(groupId) === true
           ) {
             scene.put(
               pageId,

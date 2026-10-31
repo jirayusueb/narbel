@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { polylineMidpoint } from "../../domain/rules/geometry";
+import { toElement } from "../dtos/ExcalidrawElement";
+import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import { AddBoardElements } from "./AddBoardElements";
 import { ArrangeElements } from "./ArrangeElements";
 import { ids, setupAccess } from "./fakes";
@@ -17,7 +18,7 @@ const setup = async () => {
   const arrange = new ArrangeElements(s.guard, s.scenes, ids);
   const group = new GroupElements(s.guard, s.scenes, ids);
   const el = (id: string) =>
-    s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+    s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
   const labelOf = (id: string) => {
     const entry = (
       (el(id).boundElements as { id: string; type: string }[] | null) ?? []
@@ -80,8 +81,8 @@ describe("align_elements", () => {
     expect(t.el("a").y).toBe(5);
     expect(t.el("b").y).toBe(25);
     expect(Number(t.el("ab").version)).toBeGreaterThan(Number(before.version));
-    const mid = polylineMidpoint(t.el("ab"));
-    const label = t.labelOf("ab") as SceneElement;
+    const mid = polylineMidpoint(toElement(t.el("ab")));
+    const label = t.labelOf("ab") as ExcalidrawElement;
     expect(Number(label.x) + Number(label.width) / 2).toBeCloseTo(mid.x);
     expect(Number(label.y) + Number(label.height) / 2).toBeCloseTo(mid.y);
   });
@@ -211,7 +212,7 @@ describe("align_elements", () => {
 
   it("resolves a label id to its shape and names unknown ids", async () => {
     const t = await setup();
-    const labelId = (t.labelOf("b") as SceneElement).id;
+    const labelId = (t.labelOf("b") as ExcalidrawElement).id;
     const ok = await t.arrange.execute({
       actor: owner,
       boardId: "b1",
@@ -315,7 +316,7 @@ describe("align_elements and frames", () => {
       ids: ["c", "far"],
       how: { kind: "align", edge: "bottom" },
     });
-    const c = s.scenes.elements.get("page:main:c") as SceneElement;
+    const c = s.scenes.elements.get("page:main:c") as ExcalidrawElement;
     expect(c.y).toBe(2000);
     expect(c.frameId).toBeNull();
   });
@@ -392,7 +393,7 @@ describe("align_elements with a frame and its children", () => {
     };
     await arrange.execute(input);
     const el = (id: string) =>
-      s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+      s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
     expect(el("f").x).toBe(700);
     expect(el("c").x).toBe(750);
     const again = await arrange.execute(input);
@@ -433,7 +434,7 @@ describe("align_elements with a frame child pulled in by a group", () => {
       ids: grouped,
     });
     const el = (id: string) =>
-      s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+      s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
     const alignOn = (named: string[], edge: "left" | "right") =>
       new ArrangeElements(s.guard, s.scenes, ids).execute({
         actor: owner,

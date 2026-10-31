@@ -2,15 +2,20 @@ import { describe, expect, it } from "bun:test";
 
 import * as Y from "yjs";
 
+import { toElement } from "../../application/dtos/ExcalidrawElement";
+import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { Page } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
 import { fileIdsOf, loadState, readSnapshot, restoreScene } from "./history";
 import { MemoryBus } from "./MemoryBus";
 import { YjsBoardHub } from "./YjsBoardHub";
 
 const MAIN: Page = { id: "page:main", name: "Page 1" };
-const rect = (id: string, version = 1, extra: object = {}): SceneElement => ({
+const rect = (
+  id: string,
+  version = 1,
+  extra: object = {}
+): ExcalidrawElement => ({
   id,
   type: "rectangle",
   x: 0,
@@ -22,7 +27,7 @@ const rect = (id: string, version = 1, extra: object = {}): SceneElement => ({
 });
 
 const docWith = (
-  elements: Record<string, SceneElement>,
+  elements: Record<string, ExcalidrawElement>,
   pages: Page[] = [MAIN]
 ) => {
   const doc = new Y.Doc();
@@ -35,7 +40,7 @@ const docWith = (
 };
 
 const elementsOf = (doc: Y.Doc) =>
-  doc.getMap<SceneElement>("elements").toJSON();
+  doc.getMap<ExcalidrawElement>("elements").toJSON();
 
 /** `live` continues the history of the snapshot, like a board edited after a version was taken. */
 const fork = (doc: Y.Doc) => {
@@ -66,7 +71,7 @@ describe("restoreScene", () => {
       "page:main:gone": rect("gone"),
     });
     const old = Y.encodeStateAsUpdate(live);
-    const map = live.getMap<SceneElement>("elements");
+    const map = live.getMap<ExcalidrawElement>("elements");
     map.set("page:main:gone", rect("gone", 2, { isDeleted: true }));
     map.set("page:main:later", rect("later"));
     map.set("page:main:keep", rect("keep", 3, { x: 99 }));
@@ -182,7 +187,7 @@ describe("restoreScene", () => {
     const old = Y.encodeStateAsUpdate(live);
     live.getMap("elements").set("page:main:a", rect("a", 9, { x: 5 }));
     restore(live, old);
-    const restored = elementsOf(live)["page:main:a"] as SceneElement;
+    const restored = elementsOf(live)["page:main:a"] as ExcalidrawElement;
     expect(shouldAcceptIncoming(rect("a", 9), restored)).toBe(true);
   });
 });
@@ -248,7 +253,9 @@ describe("YjsBoardHub.restore", () => {
     const outcome = await hub.restore("b1", old, async (point) => {
       calls += 1;
       if (calls === 1) {
-        await hub.transact("b1", (s) => s.put("page:main", rect("typed")));
+        await hub.transact("b1", (s) =>
+          s.put("page:main", toElement(rect("typed")))
+        );
       } else {
         expect(Object.keys(elementsOf(loadState(point.state)))).toContain(
           "page:main:typed"
@@ -266,7 +273,9 @@ describe("YjsBoardHub.restore", () => {
     let n = 0;
     const outcome = await hub.restore("b1", old, async () => {
       n += 1;
-      await hub.transact("b1", (s) => s.put("page:main", rect(`t${n}`)));
+      await hub.transact("b1", (s) =>
+        s.put("page:main", toElement(rect(`t${n}`)))
+      );
     });
     expect(outcome).toEqual({ status: "busy" });
     expect(

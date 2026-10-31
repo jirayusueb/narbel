@@ -4,10 +4,11 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import type { ImageData } from "../../domain/rendering/sceneSvg";
 import type { BoardAccessGuard } from "../BoardAccess";
 import { MAX_EXPORT_BYTES, loadBoardImages } from "../boardImages";
+import { toExcalidraw } from "../dtos/ExcalidrawElement";
+import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import { byZOrder } from "../dtos/SceneDto";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardScenes } from "../ports/IBoardScenes";
@@ -16,7 +17,7 @@ export interface ExcalidrawFile {
   type: "excalidraw";
   version: 2;
   source: "narbel";
-  elements: SceneElement[];
+  elements: ExcalidrawElement[];
   appState: { viewBackgroundColor: string };
   files: Record<
     string,
@@ -71,7 +72,7 @@ export class ExportBoardScene {
       type: "excalidraw",
       version: 2,
       source: "narbel",
-      elements,
+      elements: elements.map(toExcalidraw),
       appState: { viewBackgroundColor: "#ffffff" },
       files: Object.fromEntries(
         [...images].map(([id, image]) => [

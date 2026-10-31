@@ -1,4 +1,4 @@
-import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { Element } from "../../domain/entities/Element";
 import { labelIdOf } from "../../domain/rules/bindings";
 import type { ElementTouch, SceneAccess } from "../ports/IBoardScenes";
 import type { ChangedComment } from "../ports/ICommentActivity";
@@ -37,11 +37,11 @@ type Kind = "added" | "updated" | "deleted";
 
 interface Entry {
   pageIndex: number;
-  element: SceneElement;
+  element: Element;
   kind: Kind;
 }
 
-const kindOf = (element: SceneElement, existed: boolean): Kind | undefined => {
+const kindOf = (element: Element, existed: boolean): Kind | undefined => {
   if (existed) {
     return element.isDeleted ? "deleted" : "updated";
   }
@@ -113,7 +113,7 @@ export const toPageChanges = (
       };
       result.push(dto);
     }
-    const labelOf = (e: SceneElement) => {
+    const labelOf = (e: Element) => {
       const labelId = labelIdOf(e);
       return labelId === undefined ? undefined : scene.get(page.id, labelId);
     };

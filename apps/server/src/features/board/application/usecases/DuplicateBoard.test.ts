@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { MAX_FILE_BYTES } from "../../domain/rules/UploadRules";
+import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
 import { DuplicateBoard } from "./DuplicateBoard";
@@ -19,7 +19,7 @@ const element = (id: string, extra: Record<string, unknown> = {}) =>
     versionNonce: 7,
     index: "a0",
     ...extra,
-  }) as SceneElement;
+  }) as ExcalidrawElement;
 
 const setup = () => {
   const base = setupAccess();
