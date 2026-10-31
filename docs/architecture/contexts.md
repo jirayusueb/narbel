@@ -1,12 +1,12 @@
 # Bounded contexts of narbel
 
-Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 5 are done. Each later step starts only after the owner confirms it.
+Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 6 are done. Each later step starts only after the owner confirms it.
 
-This document splits the server's `features/board` module into bounded contexts, defines how the contexts talk, and lists the current behavior that the split must keep. It also covers the matching frontend changes. Every "today" claim cites the code it comes from, so a reviewer can check it.
+This document splits the server's former `features/board` module into bounded contexts, defines how the contexts talk, and lists the current behavior that the split must keep. It also covers the matching frontend changes. Every "today" claim cites the code it comes from, so a reviewer can check it.
 
 ## Why split at all
 
-`apps/server/src/features/board` holds 38 use cases, 12 application ports, 4 transports (HTTP, WebSocket, MCP, file), and 5 jobs: drawing, sharing, discussion, search, and rendering. One word carries two meanings inside it. "Board" is a thing a person owns and shares, and "board" is also the document people draw on. The two meanings follow different rules: access changes never touch pages or elements, and element edits never touch access. That seam is where the first boundary goes.
+Before step 6, `apps/server/src/features/board` held 38 use cases, 12 application ports, 4 transports (HTTP, WebSocket, MCP, file), and 5 jobs: drawing, sharing, discussion, search, and rendering. One word carries two meanings inside it. "Board" is a thing a person owns and shares, and "board" is also the document people draw on. The two meanings follow different rules: access changes never touch pages or elements, and element edits never touch access. That seam is where the first boundary goes.
 
 The symptoms of the missing boundaries are in the code today:
 
@@ -20,12 +20,12 @@ The symptoms of the missing boundaries are in the code today:
 
 | Context | Kind | Purpose | Owns these tables |
 | --- | --- | --- | --- |
-| `drawing` | core | The content of a board: pages, elements, images, connectors, labels, layout, and z-order. Module `live` holds sync, presence, follow, and agent selection. Module `render` draws a page to PNG for agents. | `board_document`, `board_file` |
+| `drawing` | core | The content of a board: pages, elements, images, connectors, labels, layout, and z-order. Module `live` holds sync, presence, follow, and agent selection. Module `render` draws a page to PNG for agents. | `board_document`, `board_version`, `board_file`, `user_library` |
 | `boards` | supporting | A board as a thing a person owns and shares: create, rename, delete, visibility, password, members, invitations, share links, and unlock. | `board`, `board_access`, `board_share` |
 | `discussion` | supporting | Threads pinned to a page: replies, mentions, reactions, assignment, and resolution. | `comment`, `comment_reaction` |
 | `identity` | generic | Accounts, sessions, API keys, and MCP OAuth through Better Auth. Module `profile` holds usernames, display names, and avatars. | Better Auth tables, `profile` |
 | `notification` | generic | The in-app inbox, the unread count, and email delivery through the outbox. | `notification`, `outbox` |
-| `search` | supporting | A read model that answers "which boards I can read mention this text". | `board_text` and a new `search_comment` table |
+| `search` | supporting | A read model that answers "which boards I can read mention this text". | `board_text` (written by `drawing` until step 7) and a new `search_comment` table |
 
 MCP is not a context. It is a transport, like HTTP, that calls the application services of `drawing`, `discussion`, and `boards`. It has no rules of its own.
 
@@ -40,7 +40,7 @@ Each context gets one schema file, `packages/db/src/schema/<context>.ts`, and on
 
 ## Ubiquitous language
 
-The words of each context, with their meaning and the neighbour's word they must not be confused with, are in [glossary.md](glossary.md). Class, method, event, and route names come from it. A new word enters the glossary in the same pull request as the code that needs it.
+The words of each context, with their meaning and the neighbour's word they must not be confused with, are in [glossary.md](glossary.md) and, for a context with its own folder, in that folder's `CONTEXT.md` (`features/boards/CONTEXT.md`, `features/drawing/CONTEXT.md`). Class, method, event, and route names come from it. A new word enters the glossary in the same pull request as the code that needs it.
 
 ## Talking across contexts
 
@@ -103,10 +103,10 @@ Each event carries a `type` and a `version`. A payload change that removes or re
 | --- | --- | --- | --- | --- |
 | `BoardCreated` v1 | `boards` | boardId, ownerId, title | `search`: store the title. | `search` reads `board.title` live |
 | `BoardRenamed` v1 | `boards` | boardId, title | `search`: update the title. | same |
-| `BoardDeleted` v1 | `boards` | boardId, ownerId | `drawing`: close live peers, delete the document, files, and S3 prefix. `discussion`: delete threads. `notification`: delete notifications for the board. `search`: drop the board. | `PurgeBoard.ts` plus FK cascades |
+| `event.board-deleted` v1 | `boards` | boardId, ownerId | `drawing`: close live peers, delete the document, files, and S3 prefix. `discussion`: delete threads. `notification`: delete notifications for the board. `search`: drop the board. | done in step 6 for `drawing` and `notification`; threads and `board_text` still go by FK cascade (`search` in step 7) |
 | `MemberInvited` v1 | `boards` | boardId, boardTitle, email, inviteeId or null, inviterId, firstInvite | `notification`: if inviteeId is set and firstInvite, add `board.invited`. Enqueue email with dedupe key `invite:<boardId>:<email>`. | `InviteBoardMember.ts:50-70` |
-| `MemberRemoved` v1 | `boards` | boardId, email, personId or null | `discussion`: clear that person as assignee. `notification`: forget the invite email. `drawing.live`: re-check that person's open peers (decision 1). | `RemoveBoardMember.ts:31-41` |
-| `AccessChanged` v1 | `boards` | boardId | `drawing.live`: re-check every open peer of the board (decision 1). | nothing |
+| `event.member-removed` v1 | `boards` | boardId, email, personId or null | `discussion`: clear that person as assignee. `notification`: forget the invite email. `drawing.live`: re-check that person's open peers (decision 1). | done in step 6 |
+| `event.access-changed` v1 | `boards` | boardId | `drawing.live`: re-check every open peer of the board (decision 1). | done in step 6 |
 | `PersonDeleted` v1 | `identity` | personId | `notification`: delete the person's pending outbox rows (decision 4). | nothing |
 | `event.comment-assigned` v1 | `discussion` | boardId, threadId, commentId, actor, excerpt, recipient (id, email) | `notification`: add `comment.assigned`, enqueue email `assigned:<commentId>:<assigneeId>`. | done in step 5 |
 | `event.people-mentioned` v1 | `discussion` | boardId, threadId, commentId, actor, excerpt, recipients (id, email) | `notification`: one `comment.mentioned` and one email `mentioned:<commentId>:<personId>` per recipient. | done in step 5 |
@@ -139,7 +139,7 @@ graph LR
 
 Solid arrows are synchronous questions. Dotted arrows are events.
 
-`drawing` stores and sends elements in Excalidraw's shape, because the product edits Excalidraw boards and every client speaks that format. The domain does not take that shape as its model, though. One adapter, `application/dtos/ExcalidrawElement.ts`, parses each stored element into the domain `Element` (`domain/entities/Element.ts`) and writes it back: id, type, version stamps, position, size, z-order key, label link, connector ends, image file, frame, groups, lock, text, and the style fields the renderer draws. Every other Excalidraw field, and any typed field whose stored value has the wrong type, stays in an opaque `rest` that the domain carries but never reads, so writing an element back loses nothing. Rules such as connectors (`application/connectors.ts`, `domain/rules/bindings.ts`), labels, and layout read only the typed fields. A dependency rule keeps `@excalidraw/*` and `yjs` out of every `domain/` folder.
+`drawing` stores and sends elements in Excalidraw's shape, because the product edits Excalidraw boards and every client speaks that format. The domain does not take that shape as its model, though. One adapter, `features/drawing/application/dtos/ExcalidrawElement.ts`, parses each stored element into the domain `Element` (`features/drawing/domain/entities/Element.ts`) and writes it back: id, type, version stamps, position, size, z-order key, label link, connector ends, image file, frame, groups, lock, text, and the style fields the renderer draws. Every other Excalidraw field, and any typed field whose stored value has the wrong type, stays in an opaque `rest` that the domain carries but never reads, so writing an element back loses nothing. Rules such as connectors (`features/drawing/application/connectors.ts`, `domain/rules/bindings.ts`), labels, and layout read only the typed fields. A dependency rule keeps `@excalidraw/*` and `yjs` out of every `domain/` folder.
 
 ## Aggregates
 
@@ -147,7 +147,7 @@ Each aggregate is the smallest group of data that one invariant needs at the sam
 
 | Context | Aggregate | Holds | Invariants it enforces | Repository |
 | --- | --- | --- | --- | --- |
-| `drawing` | `Drawing` | One board's pages and elements. The Yjs document is its storage and its sync transport. | The last page cannot be deleted. Element ids are unique across pages. A label belongs to exactly one live shape. A connector end points at a live shape or at nothing. | `DrawingRepository` loads and saves through the live room. |
+| `drawing` | `Drawing` | One board's pages and elements. The Yjs document is its storage and its sync transport. | The last page cannot be deleted. Element ids are unique across pages. A label belongs to exactly one live shape. A connector end points at a live shape or at nothing. These rules live in `features/drawing/domain/entities/Drawing.ts`. | The live room (`YjsBoardHub`, behind `IBoardScenes`) loads and saves it. |
 | `boards` | `Board` | Owner, title, visibility, password hash, and the share link (at most one). | A password board has a password hash. A share link expiry is in the future when set. The owner cannot hold a grant on their own board. | `BoardRepository` |
 | `boards` | `Grant` | Board id, email, person id or nothing, role. | Role is `editor` or `viewer`. Claiming sets the person once and never changes it. | `GrantRepository` (unique board id and email, as the table has now) |
 | `discussion` | `Thread` | The root comment: page, position, author, body, assignee, resolution. | Only the author edits the body. Only a member is assigned. Resolving twice is a no-op. | `ThreadRepository` |
@@ -165,9 +165,9 @@ Value objects replace the raw strings that carry rules: `BoardId`, `PageId`, `El
 
 Deleting a board is two steps. `TrashBoard` sets `board.trashed_at`, saves the live room, sends every connected peer away on every instance, and hides the board from lists, search, notifications, MCP, files and previews. Everyone who could open it while it was live gets HTTP 410 (their local IndexedDB copy is kept), everyone else 404. `RestoreBoard` clears the column and changes nothing else. Only the owner can then run `PurgeBoard`, which refuses a live board. There is no automatic purge of old trash.
 
-Today `PurgeBoard` deletes, in one transaction and only while the board is still in Trash, the board's notifications and the board row, then closes the live room and deletes the S3 prefix. Foreign keys cascade the rest: grants, share link, comments, reactions, document, text, and files (`PurgeBoard.ts`, `packages/db/src/schema/board.ts`).
+Before step 6, `PurgeBoard` deleted, in one transaction and only while the board was still in Trash, the board's notifications and the board row, then closed the live room and deleted the S3 prefix.
 
-After the split, `boards` deletes the `Board` aggregate and writes `BoardDeleted` to the outbox in the same transaction. Each consumer deletes its own rows when the event reaches it. The S3 delete and the live-room close move into the `drawing` consumer, so they run after the board row is gone instead of before it. That fixes today's gap where an S3 delete succeeds and the transaction then fails. The cross-context foreign keys stay in the schema during the migration, so the database still deletes child rows at once and the consumers find nothing left. The keys can go later, when each consumer has a test that proves it deletes its rows.
+Since step 6, `boards` deletes the `Board` aggregate and writes `event.board-deleted` (version 1, boardId, ownerId) to the outbox in the same transaction (`features/boards/application/usecases/PurgeBoard.ts`). Each consumer handles it once, marked in `processed_event`: `drawing` (`DeleteDrawing`) deletes its document, versions and file rows, discards the live room on the instance that runs the consumer, and deletes the S3 prefix, inside its transaction so a failed delete leaves the event to be retried; `notification` (`DropBoardNotifications`) deletes the board's notifications. The S3 delete now runs after the board row is gone, which closes the gap where an S3 delete succeeded and the transaction then failed. `discussion` has no consumer: the cross-context foreign keys stay in the schema during the migration (`packages/db/src/schema/discussion.ts`, `drawing.ts`, `search.ts`), so the database still deletes grants, share link, comments, reactions, document, versions, text, and files at once, and the `drawing` consumer finds nothing left. The keys can go later, when each consumer has a test that proves it deletes its rows.
 
 ## Behavior the split must keep
 
@@ -186,7 +186,7 @@ The split changes structure, plus the behavior that decisions 1, 3, 4, 5, and 6 
 11. Email goes through the outbox with the same dedupe keys: `assigned:<commentId>:<personId>`, `mentioned:<commentId>:<personId>`, and `invite:<boardId>:<email>`. The same people get the same notifications. Only the timing changes from "inside the comment's transaction" to "after it commits" (decision 6).
 12. Only the author edits a comment. The author or the owner deletes it. Any reader can react (`EditComment.ts:44`, `DeleteComment.ts:33-38`, `SetCommentReaction.ts`).
 13. An assignee must be a member (`AddComment`, `AssignComment.ts`).
-14. Deleting a board deletes its notifications for every user (`DrizzleNotificationRepository.ts:62-64`). After the split this happens when `BoardDeleted` reaches `notification`.
+14. Deleting a board deletes its notifications for every user (`DrizzleNotificationRepository.ts`). Since step 6 this happens when `event.board-deleted` reaches `notification` (`DropBoardNotifications`).
 
 Item 10 is endorsed by decision 2. Item 9 changes by decision 1.
 
@@ -235,8 +235,8 @@ Each step is one pull request. The tests from [Behavior the split must keep](#be
 1. Done (2026-10-30). CI runs every redproof gate on push and pull request, `main` requires the `redproof` check, and the unlock and sign-in rate limits key on the client address that the trusted proxy appends (decision 5).
 2. Done (2026-10-30). This document and [glossary.md](glossary.md), one section per context.
 3. Dependency rules: a context imports another only through its `index.ts`. Only the owning context imports a schema file. No `@excalidraw/*` or `yjs` in `domain/`. No port interfaces in `infrastructure/`.
-4. Done (2026-10-31). The Drizzle profile and notification repositories live in their features; the schema-owner rules now allow `features/profile` (identity's profile module). The notification list re-checks access through `readableBoards` from `features/board`'s public API and shows an invitation under the board's current title (decision 3). Deleting a person runs a Better Auth `delete.before` hook that removes the avatar and drops the person's pending outbox emails (decision 4); it becomes the `PersonDeleted` event when identity publishes events.
+4. Done (2026-10-31). The Drizzle profile and notification repositories live in their features; the schema-owner rules now allow `features/profile` (identity's profile module). The notification list re-checks access through `readableBoards` from `features/board`'s public API (now `features/boards`) and shows an invitation under the board's current title (decision 3). Deleting a person runs a Better Auth `delete.before` hook that removes the avatar and drops the person's pending outbox emails (decision 4); it becomes the `PersonDeleted` event when identity publishes events.
 5. Done (2026-10-31). `features/discussion` owns comments, replies and reactions, with `schema/discussion.ts` and its owner rule. The `Thread` aggregate (`domain/entities/Thread.ts`) holds the rules that sat in use cases: an assignee must be a member, only the author edits, the author or owner deletes, replies are created only through `replyTo`, resolve and reopen are idempotent. Comment side effects are the four events above, consumed by `notification` once per event; a recipient deleted in between is skipped. Discussion reaches boards only through its own ports (`IBoardAccess`, `IBoardMembers`), and boards reaches discussion through `ICommentActivity` and `ICommentAssignees`. `Actor` and the request helpers moved to `shared/`. Reactions stay a value checked against the allow-list, with one row per person, comment and emoji.
-6. Split `boards` from `drawing`, with `AccessPolicy`, the `Board` and `Grant` aggregates, the `Drawing` aggregate, the typed `Element` view, and closing the WebSocket of a removed member (decision 1).
+6. Done (2026-10-31). `features/board` is gone. 6a: `AccessPolicy` (`features/boards/application/AccessPolicy.ts`) replaced `BoardAccessGuard`, the `Board` aggregate owns the access rules, and claiming an invitation is an explicit step inside `decide`. 6b: `RemoveBoardMember`, `UpdateBoardAccess` and a role change in `InviteBoardMember` publish `event.member-removed` and `event.access-changed`, which `drawing.live` turns into a recheck of every open peer on every instance (decision 1), and `discussion` and `notification` consume `event.member-removed`. 6c: the domain reads elements through the typed `Element` behind one Excalidraw adapter. 6d: the server splits into `features/boards` (lifecycle, access, members, share links, unlock, and search until step 7), `features/drawing` (pages, elements, images, versions, library, export, changes, the live rooms and presence, rendering, the file sweep and text backfill, and the `Drawing` rules in `domain/entities/Drawing.ts`), and `features/mcp`, a transport over the public `index.ts` of boards, drawing and discussion. Drawing reaches boards only through its ports `IBoardAccess` and `IBoardRecords` (`application/ports/IBoardAccess.ts`); boards reaches drawing only through `ILiveDrawings` (Trash still evicts at once with close code 4410) and `IDrawingCopier` (`DuplicateBoard` stays in boards and lets `CopyDrawing` copy the content); `bootstrap/app.ts` and `main.ts` wire them. Purging publishes `event.board-deleted` as described in [Deleting a board](#deleting-a-board). `schema/board.ts` split into `boards.ts`, `drawing.ts` and `search.ts` with one owner rule each and no database change; `DrizzleBoardAccessRepository` keeps its read of `user` by email until `PeopleDirectory` answers by email.
 7. Rebuild `search` on events and `readableBoardIds`.
 8. Frontend entities per context, and the reactuse replacements with their lint rule.

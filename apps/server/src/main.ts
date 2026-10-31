@@ -4,13 +4,16 @@ import Redis from "ioredis";
 
 import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
+import { boardRecordsIn, DrizzleBoardRepository } from "./features/boards";
+import { createDiscussionConsumer } from "./features/discussion";
 import {
   backfillBoardText,
+  createDrawingConsumer,
+  createDrawingRooms,
   createLiveConsumer,
   RedisBoardPresence,
   sweepBoardFiles,
-} from "./features/board";
-import { createDiscussionConsumer } from "./features/discussion";
+} from "./features/drawing";
 import { createNotificationConsumers } from "./features/notification";
 import { DrizzleProfileRepository } from "./features/profile";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
@@ -73,8 +76,14 @@ const notification = createNotificationConsumers({
   apiOrigin: ENV.BETTER_AUTH_URL,
 });
 const live = createLiveConsumer({ pubsub });
-
+const cache = new RedisCache(redis);
 const storage = new BunS3FileStorage(ENV);
+// one set of live rooms per instance: the HTTP and WebSocket use cases and the board-deleted consumer share it
+const rooms = createDrawingRooms({
+  db,
+  pubsub,
+  boardsIn: boardRecordsIn(cache),
+});
 const outbox = new OutboxWorker(
   new DrizzleOutboxStore(db),
   new ResendEmailSender(ENV),
@@ -97,6 +106,11 @@ const outbox = new OutboxWorker(
       live,
     ],
     "event.access-changed": [live],
+    // discussion has no consumer: the comment foreign keys still cascade with the board row
+    "event.board-deleted": [
+      createDrawingConsumer({ db, storage, rooms }),
+      notification.boardDeleted,
+    ],
   })
 );
 const app = createApp({
@@ -107,11 +121,12 @@ const app = createApp({
   webOrigin: ENV.WEB_ORIGIN,
   apiOrigin: ENV.BETTER_AUTH_URL,
   secret: ENV.BETTER_AUTH_SECRET,
-  cache: new RedisCache(redis),
+  cache,
   pubsub,
   redis,
   idempotency: new RedisIdempotencyStore(redis),
   wakeOutbox: () => outbox.wake(),
+  rooms,
 }).listen(Number(process.env.PORT ?? 3000), ({ url }) => {
   console.log(`Server is running on ${url}`);
 });
@@ -121,7 +136,12 @@ const GC_EVERY_MS = 60 * 60_000;
 const runGc = async () => {
   try {
     await jobLock.runExclusive("gc:board-files", 30 * 60_000, () =>
-      sweepBoardFiles({ db, storage, presence })
+      sweepBoardFiles({
+        db,
+        boards: new DrizzleBoardRepository(db),
+        storage,
+        presence,
+      })
     );
   } catch (error) {
     console.error("Board file GC failed", error);

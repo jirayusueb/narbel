@@ -3,5 +3,5 @@ export {
   createNotificationModule,
   type NotificationDeps,
 } from "./ioc";
-// board builds this for invitations until step 6 moves them to the MemberInvited event
+// boards builds this for invitations until they become the MemberInvited event
 export { DrizzleNotificationRepository } from "./infrastructure/repositories/DrizzleNotificationRepository";

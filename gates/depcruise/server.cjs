@@ -56,27 +56,40 @@ module.exports = {
     },
     {
       // step 3 of docs/architecture/contexts.md: only the owning context imports a schema file
-      name: "server-schema-board-owner",
+      name: "server-schema-boards-owner",
       comment:
-        "schema/board.ts belongs to features/board until the boards context exists",
+        "schema/boards.ts (board, board_access, board_share) belongs to features/boards",
       severity: "error",
-      from: {
-        path: `${S}/`,
-        pathNot: `${S}/features/board/`,
-      },
-      to: { path: "packages/db/src/schema/board\\.ts$" },
+      from: { path: `${S}/`, pathNot: `${S}/features/boards/` },
+      to: { path: "packages/db/src/schema/boards\\.ts$" },
+    },
+    {
+      name: "server-schema-drawing-owner",
+      comment:
+        "schema/drawing.ts (board_document, board_version, board_file, user_library) belongs to features/drawing",
+      severity: "error",
+      from: { path: `${S}/`, pathNot: `${S}/features/drawing/` },
+      to: { path: "packages/db/src/schema/drawing\\.ts$" },
+    },
+    {
+      name: "server-schema-search-owner",
+      comment:
+        "schema/search.ts (board_text) is written by features/drawing's document save and text backfill until step 7 gives search its own context",
+      severity: "error",
+      from: { path: `${S}/`, pathNot: `${S}/features/drawing/` },
+      to: { path: "packages/db/src/schema/search\\.ts$" },
     },
     {
       name: "server-schema-auth-owner",
       comment:
-        "schema/auth.ts belongs to features/auth and features/profile (identity's profile module); DrizzleBoardAccessRepository keeps one legacy read until step 6 replaces it with PeopleDirectory",
+        "schema/auth.ts belongs to features/auth and features/profile (identity's profile module); DrizzleBoardAccessRepository keeps its legacy read of user by email (member names, invite claims) until PeopleDirectory answers by email",
       severity: "error",
       from: {
         path: `${S}/`,
         pathNot: [
           `${S}/features/auth/`,
           `${S}/features/profile/`,
-          "features/board/infrastructure/repositories/DrizzleBoardAccessRepository\\.ts$",
+          "features/boards/infrastructure/repositories/DrizzleBoardAccessRepository\\.ts$",
         ],
       },
       to: { path: "packages/db/src/schema/auth\\.ts$" },

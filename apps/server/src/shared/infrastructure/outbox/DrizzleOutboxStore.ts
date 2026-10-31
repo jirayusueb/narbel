@@ -6,6 +6,7 @@ import type {
   ClaimedMessage,
   IOutboxStore,
 } from "../../application/interfaces/IOutboxStore";
+import { inSequence } from "../../kernel/inSequence";
 
 export class DrizzleOutboxStore implements IOutboxStore {
   constructor(private readonly db: Database) {}
@@ -25,16 +26,14 @@ export class DrizzleOutboxStore implements IOutboxStore {
         .orderBy(outbox.nextAttemptAt)
         .limit(limit)
         .for("update", { skipLocked: true });
-      await Promise.all(
-        due.map((row) =>
-          tx
-            .update(outbox)
-            .set({
-              attempts: row.attempts + 1,
-              nextAttemptAt: leaseUntil(row.attempts),
-            })
-            .where(eq(outbox.id, row.id))
-        )
+      await inSequence(due, (row) =>
+        tx
+          .update(outbox)
+          .set({
+            attempts: row.attempts + 1,
+            nextAttemptAt: leaseUntil(row.attempts),
+          })
+          .where(eq(outbox.id, row.id))
       );
       return due.map((row) => ({
         id: row.id,

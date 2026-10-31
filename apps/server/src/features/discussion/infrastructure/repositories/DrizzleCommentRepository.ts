@@ -206,27 +206,26 @@ export class DrizzleCommentRepository implements IBoardCommentRepository {
       return [];
     }
     const ids = rows.map((row) => row.id);
-    const [replyCounts, reactionRows] = await Promise.all([
-      this.db
-        .select({
-          parentId: comment.parentId,
-          value: sql<number>`count(*)::int`,
-        })
-        .from(comment)
-        .where(inArray(comment.parentId, ids))
-        .groupBy(comment.parentId),
-      this.db
-        .select({
-          commentId: commentReaction.commentId,
-          emoji: commentReaction.emoji,
-          count: sql<number>`count(*)::int`,
-          mine: sql<boolean>`coalesce(bool_or(${commentReaction.userId} = ${viewerId ?? null}), false)`,
-        })
-        .from(commentReaction)
-        .where(inArray(commentReaction.commentId, ids))
-        .groupBy(commentReaction.commentId, commentReaction.emoji)
-        .orderBy(sql`min(${commentReaction.createdAt})`),
-    ]);
+    // sequential: this repository also runs on a transaction's single connection
+    const replyCounts = await this.db
+      .select({
+        parentId: comment.parentId,
+        value: sql<number>`count(*)::int`,
+      })
+      .from(comment)
+      .where(inArray(comment.parentId, ids))
+      .groupBy(comment.parentId);
+    const reactionRows = await this.db
+      .select({
+        commentId: commentReaction.commentId,
+        emoji: commentReaction.emoji,
+        count: sql<number>`count(*)::int`,
+        mine: sql<boolean>`coalesce(bool_or(${commentReaction.userId} = ${viewerId ?? null}), false)`,
+      })
+      .from(commentReaction)
+      .where(inArray(commentReaction.commentId, ids))
+      .groupBy(commentReaction.commentId, commentReaction.emoji)
+      .orderBy(sql`min(${commentReaction.createdAt})`);
     const replies = new Map(replyCounts.map((r) => [r.parentId, r.value]));
     const reactions = new Map<string, ReactionSummary[]>();
     for (const { commentId, ...summary } of reactionRows) {

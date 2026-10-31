@@ -17,4 +17,10 @@ export type BoardsEvent =
       type: "event.access-changed";
       version: 1;
       boardId: string;
+    }
+  | {
+      type: "event.board-deleted";
+      version: 1;
+      boardId: string;
+      ownerId: string;
     };

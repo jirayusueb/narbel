@@ -25,7 +25,7 @@ export const proofs = defineProofs(gate, [
     rules.portsLocation,
     "detects a port interface declared in infrastructure",
     mutate.appendText(
-      "apps/server/src/features/board/infrastructure/repositories/CachedBoardDocumentStore.ts",
+      "apps/server/src/features/drawing/infrastructure/repositories/DrizzleDrawingRows.ts",
       "\nexport interface IProbe {}\n"
     )
   ),
