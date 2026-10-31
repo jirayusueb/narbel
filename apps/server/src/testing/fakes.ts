@@ -1,31 +1,34 @@
-import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
-import type {
-  INotificationRepository,
-  NotificationPayload,
-} from "../../../../shared/application/interfaces/INotifications";
-import type {
-  IOutbox,
-  OutboxEvent,
-  OutboxMessage,
-} from "../../../../shared/application/interfaces/IOutbox";
-import type {
-  IProfileReader,
-  Person,
-} from "../../../../shared/application/interfaces/IProfiles";
-import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import { Board } from "../../domain/entities/Board";
-import type { MemberRole, Visibility } from "../../domain/values/Access";
-import { BoardTitle } from "../../domain/values/BoardTitle";
-import { AccessPolicy } from "../AccessPolicy";
-import type { BoardTx } from "../ports/BoardTx";
+import { AccessPolicy } from "../features/boards/application/AccessPolicy";
+import type { BoardTx } from "../features/boards/application/ports/BoardTx";
 import type {
   IBoardAccessRepository,
   Member,
   ReadableBoard,
   Share,
-} from "../ports/IBoardAccessRepository";
-import type { IBoardRepository } from "../ports/IBoardRepository";
-import type { IUnlockTokens } from "../ports/IUnlockTokens";
+} from "../features/boards/application/ports/IBoardAccessRepository";
+import type { IBoardRepository } from "../features/boards/application/ports/IBoardRepository";
+import type { IUnlockTokens } from "../features/boards/application/ports/IUnlockTokens";
+import { Board } from "../features/boards/domain/entities/Board";
+import type {
+  MemberRole,
+  Visibility,
+} from "../features/boards/domain/values/Access";
+import { BoardTitle } from "../features/boards/domain/values/BoardTitle";
+import type { IIdGenerator } from "../shared/application/interfaces/IIdGenerator";
+import type {
+  INotificationRepository,
+  NotificationPayload,
+} from "../shared/application/interfaces/INotifications";
+import type {
+  IOutbox,
+  OutboxEvent,
+  OutboxMessage,
+} from "../shared/application/interfaces/IOutbox";
+import type {
+  IProfileReader,
+  Person,
+} from "../shared/application/interfaces/IProfiles";
+import type { IUnitOfWork } from "../shared/application/interfaces/IUnitOfWork";
 
 let counter = 0;
 export const ids: IIdGenerator = {
@@ -40,7 +43,7 @@ export const ids: IIdGenerator = {
   token: () => "t".repeat(43),
 };
 
-export class FakeBoards implements IBoardRepository {
+class FakeBoards implements IBoardRepository {
   readonly rows = new Map<string, Board>();
   findById = (id: string) => {
     const row = this.rows.get(id);
@@ -86,7 +89,7 @@ export class FakeBoards implements IBoardRepository {
   };
 }
 
-export class FakeGrants implements IBoardAccessRepository {
+class FakeGrants implements IBoardAccessRepository {
   readonly members: (Member & { boardId: string })[] = [];
   share: Share | null = null;
   constructor(private readonly boards = new FakeBoards()) {}
@@ -184,7 +187,7 @@ export class FakeGrants implements IBoardAccessRepository {
   };
 }
 
-export class FakeProfiles implements IProfileReader {
+class FakeProfiles implements IProfileReader {
   readonly people = new Map<string, Person>();
   add(id: string, username: string | null = null, name = id.toUpperCase()) {
     this.people.set(id, {
@@ -205,7 +208,7 @@ export class FakeProfiles implements IProfileReader {
     );
 }
 
-export class FakeNotifications implements INotificationRepository {
+class FakeNotifications implements INotificationRepository {
   readonly sent: { userId: string; payload: NotificationPayload }[] = [];
   add = (userId: string, payload: NotificationPayload) => {
     this.sent.push({ userId, payload });
@@ -224,7 +227,7 @@ export class FakeNotifications implements INotificationRepository {
     this.sent.filter((n) => n.userId === userId).map((n) => n.payload.kind);
 }
 
-export class FakeOutbox implements IOutbox {
+class FakeOutbox implements IOutbox {
   readonly messages: {
     message: OutboxMessage | OutboxEvent;
     key: string | null;
@@ -253,7 +256,7 @@ export class FakeOutbox implements IOutbox {
 }
 
 /** Runs the work directly on the fakes; there is nothing to roll back in memory. */
-export class FakeUow implements IUnitOfWork<BoardTx> {
+class FakeUow implements IUnitOfWork<BoardTx> {
   constructor(private readonly tx: BoardTx) {}
   run = <T>(work: (tx: BoardTx) => Promise<T>) => work(this.tx);
 }

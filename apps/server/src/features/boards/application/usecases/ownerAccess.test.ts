@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
+import { ids, setupAccess } from "../../../../testing";
 import type { IBoardFileRepository } from "../../../drawing/application/ports/IBoardFileRepository";
 import { AddBoardElements } from "../../../drawing/application/usecases/AddBoardElements";
 import { DeleteBoardElements } from "../../../drawing/application/usecases/DeleteBoardElements";
@@ -8,7 +9,6 @@ import { FakeScenes } from "../../../drawing/application/usecases/fakes";
 import { PresignBoardFileUpload } from "../../../drawing/application/usecases/PresignBoardFileUpload";
 import { UpdateBoardElement } from "../../../drawing/application/usecases/UpdateBoardElement";
 import { CreateBoard } from "./CreateBoard";
-import { ids, setupAccess } from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { ListBoards } from "./ListBoards";
 import { PurgeBoard } from "./PurgeBoard";

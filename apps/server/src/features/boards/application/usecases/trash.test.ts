@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
+import { protectedBoard, setupAccess } from "../../../../testing";
 import type { IBoardFileRepository } from "../../../drawing/application/ports/IBoardFileRepository";
 import type { IBoardPresence } from "../../../drawing/application/ports/IBoardPresence";
 import type {
@@ -11,7 +12,6 @@ import type {
 import { ConnectBoardSync } from "../../../drawing/application/usecases/ConnectBoardSync";
 import { FakeScenes } from "../../../drawing/application/usecases/fakes";
 import { GetBoardFile } from "../../../drawing/application/usecases/GetBoardFile";
-import { protectedBoard, setupAccess } from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { ListBoards } from "./ListBoards";
 import { ListTrash } from "./ListTrash";

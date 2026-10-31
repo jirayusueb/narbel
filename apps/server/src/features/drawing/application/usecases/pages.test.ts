@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { ids, setupAccess } from "../../../boards/application/usecases/fakes";
+import { ids, setupAccess } from "../../../../testing";
 import { AddPage } from "./AddPage";
 import { DeletePage } from "./DeletePage";
 import { FakeScenes } from "./fakes";

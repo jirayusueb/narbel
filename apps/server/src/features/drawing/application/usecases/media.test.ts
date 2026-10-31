@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
-import { ids, setupAccess } from "../../../boards/application/usecases/fakes";
+import { ids, setupAccess } from "../../../../testing";
 import { MAX_INLINE_IMAGE_BYTES } from "../../domain/rules/UploadRules";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import { AddBoardElements } from "./AddBoardElements";

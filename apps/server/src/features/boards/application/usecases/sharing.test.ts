@@ -1,16 +1,16 @@
 import { describe, expect, it } from "bun:test";
 
 import type { Actor } from "../../../../shared/kernel/types/Actor";
-import { HmacUnlockTokens } from "../../infrastructure/services/HmacUnlockTokens";
-import { AccessPolicy } from "../AccessPolicy";
-import type { Need } from "../AccessPolicy";
 import {
   fakeUnlock,
   ids,
   newBoard,
   protectedBoard,
   setupAccess,
-} from "./fakes";
+} from "../../../../testing";
+import { HmacUnlockTokens } from "../../infrastructure/services/HmacUnlockTokens";
+import { AccessPolicy } from "../AccessPolicy";
+import type { Need } from "../AccessPolicy";
 import { GetBoard } from "./GetBoard";
 import { InviteBoardMember } from "./InviteBoardMember";
 import { RemoveBoardMember } from "./RemoveBoardMember";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { setupAccess } from "../../../boards/application/usecases/fakes";
+import { setupAccess } from "../../../../testing";
 import type { IBoardPresence, Viewer } from "../ports/IBoardPresence";
 import type { IBoardSyncGateway, PeerAccess } from "../ports/IBoardSyncGateway";
 import { ConnectBoardSync, TOUCH_INTERVAL_MS } from "./ConnectBoardSync";
