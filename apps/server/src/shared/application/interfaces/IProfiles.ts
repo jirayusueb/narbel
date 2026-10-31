@@ -20,7 +20,12 @@ export interface IProfileReader {
   findByUsernames(usernames: string[]): Promise<Person[]>;
 }
 
-export interface IProfileRepository extends IProfileReader {
+/** Exact match on the stored (lowercase) email. */
+export interface IProfileEmails {
+  findByEmails(emails: string[]): Promise<Person[]>;
+}
+
+export interface IProfileRepository extends IProfileReader, IProfileEmails {
   findPerson(id: string): Promise<Person | null>;
   avatarKeyOf(userId: string): Promise<string | null>;
   isUsernameFree(username: string): Promise<boolean>;

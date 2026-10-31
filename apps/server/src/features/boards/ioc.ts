@@ -89,12 +89,20 @@ export interface BoardsDeps {
  * binds its grant reads to a caller's transaction.
  */
 export const createAccessPolicy = (
-  { db, cache, secret }: Pick<BoardsDeps, "db" | "cache" | "secret">,
+  {
+    db,
+    cache,
+    secret,
+    apiOrigin,
+  }: Pick<BoardsDeps, "db" | "cache" | "secret" | "apiOrigin">,
   grantsIn: DbExecutor = db
 ) =>
   new AccessPolicy(
     new CachedBoardRepository(new DrizzleBoardRepository(db), cache),
-    new DrizzleBoardAccessRepository(grantsIn),
+    new DrizzleBoardAccessRepository(
+      grantsIn,
+      new DrizzleProfileRepository(grantsIn, apiOrigin)
+    ),
     new HmacUnlockTokens(secret)
   );
 
@@ -121,7 +129,10 @@ export const createBoardsUseCases = ({
     new DrizzleBoardRepository(db),
     cache
   );
-  const grants = new DrizzleBoardAccessRepository(db);
+  const grants = new DrizzleBoardAccessRepository(
+    db,
+    new DrizzleProfileRepository(db, apiOrigin)
+  );
   const profiles = new DrizzleProfileRepository(db, apiOrigin);
   const ids = new UuidGenerator();
   const uow = new DrizzleUnitOfWork<BoardTx>(
@@ -134,7 +145,10 @@ export const createBoardsUseCases = ({
           new DrizzleBoardRepository(tx),
           transactionalCache(cache, afterCommit)
         ),
-        grants: new DrizzleBoardAccessRepository(tx),
+        grants: new DrizzleBoardAccessRepository(
+          tx,
+          new DrizzleProfileRepository(tx, apiOrigin)
+        ),
         outbox: new DrizzleOutbox(tx, ids),
         profiles: new DrizzleProfileRepository(tx, apiOrigin),
       };

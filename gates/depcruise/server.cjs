@@ -82,15 +82,11 @@ module.exports = {
     {
       name: "server-schema-auth-owner",
       comment:
-        "schema/auth.ts belongs to features/auth and features/profile (identity's profile module); DrizzleBoardAccessRepository keeps its legacy read of user by email (member names, invite claims) until PeopleDirectory answers by email",
+        "schema/auth.ts belongs to features/auth and features/profile (identity's profile module); everyone else asks identity through IProfileReader",
       severity: "error",
       from: {
         path: `${S}/`,
-        pathNot: [
-          `${S}/features/auth/`,
-          `${S}/features/profile/`,
-          "features/boards/infrastructure/repositories/DrizzleBoardAccessRepository\\.ts$",
-        ],
+        pathNot: [`${S}/features/auth/`, `${S}/features/profile/`],
       },
       to: { path: "packages/db/src/schema/auth\\.ts$" },
     },
