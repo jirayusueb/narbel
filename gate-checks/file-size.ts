@@ -7,6 +7,7 @@ const ROOTS = ["apps/server/src", "apps/web/src"];
 const VENDORED = new Set(["apps/web/src/shared/ui/stickers"]);
 const MAX_LINES = 750;
 const TEST_FILE = /\.(?:test|spec)\.tsx?$/u;
+const GENERATED_FILE = /\.gen\.tsx?$/u;
 const SOURCE_FILE = /\.tsx?$/u;
 
 const offenders: string[] = [];
@@ -18,7 +19,11 @@ const walk = (dir: string) => {
     const file = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       walk(file);
-    } else if (SOURCE_FILE.test(file) && !TEST_FILE.test(file)) {
+    } else if (
+      SOURCE_FILE.test(file) &&
+      !TEST_FILE.test(file) &&
+      !GENERATED_FILE.test(file)
+    ) {
       const lines = readFileSync(file, "utf-8").split("\n").length - 1;
       if (lines > MAX_LINES) {
         offenders.push(`${file}: ${lines} lines`);
