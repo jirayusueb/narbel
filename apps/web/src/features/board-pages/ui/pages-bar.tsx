@@ -23,6 +23,12 @@ import {
 } from "@narbel/ui/components/dropdown-menu";
 import { Input } from "@narbel/ui/components/input";
 import {
+  useEvent,
+  useEventListener,
+  useReducedMotion,
+  useResizeObserver,
+} from "@reactuses/core";
+import {
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -38,9 +44,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import type { Page } from "../model/use-pages";
-
-const scrollBehavior = () =>
-  matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 
 const RenamePageForm = ({
   page,
@@ -232,37 +235,30 @@ const useStripEdges = (strip: RefObject<HTMLElement | null>, pages: Page[]) => {
     atStart: true,
     atEnd: true,
   });
-  useEffect(() => {
+  const measure = useEvent(() => {
     const el = strip.current;
     if (!el) {
       return;
     }
-    const measure = () => {
-      const max = el.scrollWidth - el.clientWidth;
-      const next = {
-        overflow: max > 1,
-        atStart: el.scrollLeft <= 1,
-        atEnd: el.scrollLeft >= max - 1,
-      };
-      // Scroll fires every frame; only a flipped edge should re-render the tabs.
-      setEdges((prev) =>
-        prev.overflow === next.overflow &&
-        prev.atStart === next.atStart &&
-        prev.atEnd === next.atEnd
-          ? prev
-          : next
-      );
+    const max = el.scrollWidth - el.clientWidth;
+    const next = {
+      overflow: max > 1,
+      atStart: el.scrollLeft <= 1,
+      atEnd: el.scrollLeft >= max - 1,
     };
-    measure();
-    el.addEventListener("scroll", measure, { passive: true });
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => {
-      el.removeEventListener("scroll", measure);
-      observer.disconnect();
-    };
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- pages re-measures after a tab is added, renamed or removed
-  }, [strip, pages]);
+    // Scroll fires every frame; only a flipped edge should re-render the tabs.
+    setEdges((prev) =>
+      prev.overflow === next.overflow &&
+      prev.atStart === next.atStart &&
+      prev.atEnd === next.atEnd
+        ? prev
+        : next
+    );
+  });
+  useEventListener("scroll", measure, strip, { passive: true });
+  useResizeObserver(strip, measure);
+  // oxlint-disable-next-line react/exhaustive-effect-dependencies -- pages re-measures after a tab is added, renamed or removed
+  useEffect(() => measure(), [measure, pages]);
   return edges;
 };
 
@@ -283,11 +279,12 @@ export const PagesBar = ({
   const strip = useRef<HTMLDivElement>(null);
   const focusActive = useFocusActiveTab(nav, pageId, pages);
   const edges = useStripEdges(strip, pages);
+  const scrollBehavior = useReducedMotion() ? "auto" : "smooth";
   const nudge = (direction: 1 | -1) => {
     const el = strip.current;
     el?.scrollBy({
       left: direction * el.clientWidth * 0.8,
-      behavior: scrollBehavior(),
+      behavior: scrollBehavior,
     });
   };
 
@@ -299,10 +296,10 @@ export const PagesBar = ({
       ?.parentElement?.scrollIntoView({
         block: "nearest",
         inline: "nearest",
-        behavior: scrollBehavior(),
+        behavior: scrollBehavior,
       });
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- see above
-  }, [pageId, pages, edges.overflow]);
+  }, [pageId, pages, edges.overflow, scrollBehavior]);
 
   return (
     <nav

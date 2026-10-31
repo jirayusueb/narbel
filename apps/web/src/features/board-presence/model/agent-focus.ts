@@ -40,7 +40,11 @@ export const takeReveal = (
 };
 
 /** Fits `ids` in the viewport without zooming past 100%; no-op when none are on the current scene. */
-export const reveal = (api: ExcalidrawImperativeAPI, ids: string[]): void => {
+export const reveal = (
+  api: ExcalidrawImperativeAPI,
+  ids: string[],
+  animate: boolean
+): void => {
   const wanted = new Set(ids);
   const targets = api.getSceneElements().filter((el) => wanted.has(el.id));
   if (targets.length === 0) {
@@ -50,6 +54,6 @@ export const reveal = (api: ExcalidrawImperativeAPI, ids: string[]): void => {
     fitToViewport: true,
     viewportZoomFactor: 0.6,
     maxZoom: 1,
-    animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    animate,
   });
 };

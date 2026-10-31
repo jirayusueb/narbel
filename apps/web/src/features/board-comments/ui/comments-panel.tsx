@@ -1,16 +1,18 @@
 import { Button } from "@narbel/ui/components/button";
 import { Skeleton } from "@narbel/ui/components/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@narbel/ui/components/tabs";
+import { useIntersectionObserver } from "@reactuses/core";
 import { Layers, X } from "lucide-react";
-import { useState } from "react";
-
-import { useLoadMore } from "@/shared/lib";
+import { useRef, useState } from "react";
 
 import { useThreads } from "../api/comments";
 import type { Comment, ThreadStatus } from "../api/comments";
 import type { ThreadEnv } from "../model/types";
 import { useFocusSearch } from "../model/use-focus-search";
 import { ThreadCard } from "./thread-card";
+
+// Loads the next page once the sentinel comes within this distance of the list's bottom edge.
+const LOAD_MORE = { rootMargin: "160px" };
 
 const emptyHint = (
   status: ThreadStatus,
@@ -56,9 +58,16 @@ export const CommentsPanel = ({
     share: env.share,
   });
   const items = threads.data?.pages.flatMap((page) => page.items) ?? [];
-  const sentinel = useLoadMore(
-    () => threads.fetchNextPage(),
-    !!threads.hasNextPage && !threads.isFetchingNextPage
+  const sentinel = useRef<HTMLDivElement>(null);
+  // A null target drops the observer; a new one reports at once, so a sentinel still in view keeps loading.
+  useIntersectionObserver(
+    threads.hasNextPage && !threads.isFetchingNextPage ? sentinel : null,
+    ([entry]) => {
+      if (entry?.isIntersecting) {
+        threads.fetchNextPage();
+      }
+    },
+    LOAD_MORE
   );
   useFocusSearch({
     threads,

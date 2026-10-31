@@ -5,10 +5,9 @@ import {
   InputGroupInput,
 } from "@narbel/ui/components/input-group";
 import { Spinner } from "@narbel/ui/components/spinner";
+import { useDebounce } from "@reactuses/core";
 import { Link } from "@tanstack/react-router";
 import { MessageSquare, Search, Type, X } from "lucide-react";
-
-import { useDebounced } from "@/shared/lib";
 
 import { useSearchBoards } from "../api/use-search-boards";
 import type {
@@ -153,7 +152,7 @@ const Result = ({
 
 export const BoardSearchResults = ({ query }: { query: string }) => {
   const trimmed = query.trim();
-  const settled = useDebounced(trimmed, DEBOUNCE_MS);
+  const settled = useDebounce(trimmed, DEBOUNCE_MS);
   const ready = settled === trimmed;
   const { data, error, isFetching, refetch } = useSearchBoards(settled);
   const waiting = !ready || (isFetching && !data);
