@@ -40,11 +40,14 @@ export class PresignBoardFileUpload {
       return err(AppError.conflict("fileId already used with another type"));
     }
     // idempotent: a retry after a failed PUT gets a fresh URL for the same file
-    await this.files.save(input.boardId, {
+    const registered = await this.files.save(input.boardId, {
       id: input.fileId,
       mimeType: input.mimeType,
       size: input.size,
     });
+    if (!registered) {
+      return err(AppError.conflict("fileId is being cleaned up, retry"));
+    }
     return ok({
       fileId: input.fileId,
       uploadUrl: this.storage.presignUpload(

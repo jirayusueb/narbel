@@ -32,3 +32,5 @@ export const deriveCollabStatus = ({
 export const WS_POLICY_VIOLATION = 1008;
 // Reason paired with that code for refusals; "malformed message" also closes with 1008 and is not a denial.
 export const WS_FORBIDDEN_REASON = "forbidden";
+// Close code the server sends every peer when the board is moved to Trash (SYNC_CLOSE_TRASHED).
+export const WS_TRASHED_CODE = 4410;

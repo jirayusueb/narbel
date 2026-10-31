@@ -37,6 +37,12 @@ export class ConnectBoardSync {
       input.peer,
       granted.value.access.canWrite
     );
+    // a Trash that landed between the check above and the join must not leave this peer connected
+    const again = await this.guard.require(input.boardId, input.actor, "read");
+    if (again.isErr()) {
+      session.close();
+      return err(again.error);
+    }
     return ok(this.track(input.boardId, input.actor, session));
   }
 

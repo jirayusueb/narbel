@@ -152,18 +152,21 @@ export class AddBoardImage {
     if (refused) {
       return err(FAILURES[refused]());
     }
-    if (!(await this.files.findById(input.boardId, fileId))) {
-      await this.storage.put(
-        boardFileKey(input.boardId, fileId),
-        input.bytes,
-        header.mimeType
-      );
-      await this.files.save(input.boardId, {
-        id: fileId,
-        mimeType: header.mimeType,
-        size: input.bytes.length,
-      });
+    // Reserve the row first: a file the cleanup job is deleting refuses here, before any byte is written.
+    // The bytes are content-addressed, so rewriting them is idempotent and heals a row whose upload failed.
+    const registered = await this.files.save(input.boardId, {
+      id: fileId,
+      mimeType: header.mimeType,
+      size: input.bytes.length,
+    });
+    if (!registered) {
+      return err(AppError.conflict("Image is being cleaned up, retry"));
     }
+    await this.storage.put(
+      boardFileKey(input.boardId, fileId),
+      input.bytes,
+      header.mimeType
+    );
     const size = imageSize(header.size, input);
     const now = Date.now();
     const outcome = await this.scenes.transact(

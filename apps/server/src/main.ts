@@ -4,7 +4,11 @@ import Redis from "ioredis";
 
 import { createApp } from "./bootstrap/app";
 import { ENV } from "./env.server";
-import { backfillBoardText } from "./features/board";
+import {
+  backfillBoardText,
+  RedisBoardPresence,
+  sweepBoardFiles,
+} from "./features/board";
 import { DrizzleProfileRepository } from "./features/profile";
 import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
 import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
@@ -36,10 +40,9 @@ const redis = new Redis(ENV.REDIS_URL, {
 redis.on("error", (error) => {
   console.error("Redis error", error);
 });
-await new RedisJobLock(redis).runExclusive(
-  "boot:backfill-board-text",
-  60_000,
-  () => backfillBoardText(db)
+const jobLock = new RedisJobLock(redis);
+await jobLock.runExclusive("boot:backfill-board-text", 60_000, () =>
+  backfillBoardText(db)
 );
 // decision 4: identity deletes the avatar and drops the person's undelivered emails before
 // the user row goes; step 5 replaces this callback with a PersonDeleted outbox event
@@ -61,11 +64,12 @@ const auth = createAuth(
 );
 const pubsub = new RedisPubSub(redis);
 
+const storage = new BunS3FileStorage(ENV);
 const app = createApp({
   auth,
   db,
   corsOrigin: ENV.CORS_ORIGIN,
-  storage: new BunS3FileStorage(ENV),
+  storage,
   webOrigin: ENV.WEB_ORIGIN,
   apiOrigin: ENV.BETTER_AUTH_URL,
   secret: ENV.BETTER_AUTH_SECRET,
@@ -76,6 +80,21 @@ const app = createApp({
 }).listen(Number(process.env.PORT ?? 3000), ({ url }) => {
   console.log(`Server is running on ${url}`);
 });
+
+const presence = new RedisBoardPresence(redis);
+const GC_EVERY_MS = 60 * 60_000;
+const runGc = async () => {
+  try {
+    await jobLock.runExclusive("gc:board-files", 30 * 60_000, () =>
+      sweepBoardFiles({ db, storage, presence })
+    );
+  } catch (error) {
+    console.error("Board file GC failed", error);
+  }
+};
+const gc = setInterval(() => {
+  void runGc();
+}, GC_EVERY_MS);
 
 const outbox = new OutboxWorker(
   new DrizzleOutboxStore(db),
@@ -90,6 +109,7 @@ const outbox = new OutboxWorker(
 outbox.start();
 
 const shutdown = async () => {
+  clearInterval(gc);
   await outbox.stop();
   await app.stop();
   await pubsub.close();

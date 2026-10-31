@@ -10,6 +10,8 @@ export interface Board {
   canWrite: boolean;
   visibility: Visibility;
   shared: boolean;
+  /** set only for boards listed in Trash */
+  trashedAt: string | null;
 }
 
 export interface BoardMember {

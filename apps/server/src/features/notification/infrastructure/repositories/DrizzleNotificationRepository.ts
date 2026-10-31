@@ -35,7 +35,6 @@ const runNow: AfterCommit = async (hook) => {
     console.error("Notification hook failed", error);
   }
 };
-
 const unread = (userId: string) =>
   and(eq(notification.userId, userId), isNull(notification.readAt));
 
@@ -119,17 +118,12 @@ export class DrizzleNotificationRepository implements INotificationRepository {
     if (readableBoardIds.length === 0) {
       return 0;
     }
-    const readable = onReadableBoards(readableBoardIds);
     if (ids?.length !== 0) {
       await this.db
         .update(notification)
         .set({ readAt: new Date() })
         .where(
-          and(
-            unread(userId),
-            readable,
-            ids ? inArray(notification.id, ids) : undefined
-          )
+          and(unread(userId), ids ? inArray(notification.id, ids) : undefined)
         );
     }
     return await this.countUnread(userId, readableBoardIds);

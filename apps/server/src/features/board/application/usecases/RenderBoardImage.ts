@@ -1,3 +1,4 @@
+import type { ICache } from "../../../../shared/application/interfaces/ICache";
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
@@ -26,13 +27,22 @@ export interface BoardImage {
   omittedFiles: string[];
 }
 
+const CACHE_TTL_SECONDS = 600;
+
+type CachedBoardImage = Omit<BoardImage, "image"> & {
+  image:
+    | (Omit<NonNullable<BoardImage["image"]>, "png"> & { png: string })
+    | null;
+};
+
 export class RenderBoardImage {
   constructor(
     private readonly guard: BoardAccessGuard,
     private readonly scenes: IBoardScenes,
     private readonly files: IBoardFileRepository,
     private readonly storage: IFileStorage,
-    private readonly rasterizer: IBoardRasterizer
+    private readonly rasterizer: IBoardRasterizer,
+    private readonly cache: ICache
   ) {}
 
   async execute(input: {
@@ -49,6 +59,41 @@ export class RenderBoardImage {
     if (granted.isErr()) {
       return err(granted.error);
     }
+    // keyed by the board's last save, never by a caller-supplied version, so ?v= cannot force re-renders
+    const key = `board-image:${input.boardId}:${granted.value.board.updatedAt.getTime()}:${input.pageId ?? ""}:${input.maxSize ?? ""}`;
+    const hit = await this.cache.get<CachedBoardImage>(key);
+    if (hit) {
+      return ok({
+        ...hit,
+        image: hit.image && {
+          ...hit.image,
+          png: Buffer.from(hit.image.png, "base64"),
+        },
+      });
+    }
+    const rendered = await this.render(input);
+    if (rendered.isOk()) {
+      const { image } = rendered.value;
+      await this.cache.set(
+        key,
+        {
+          ...rendered.value,
+          image: image && {
+            ...image,
+            png: Buffer.from(image.png).toString("base64"),
+          },
+        } satisfies CachedBoardImage,
+        CACHE_TTL_SECONDS
+      );
+    }
+    return rendered;
+  }
+
+  private async render(input: {
+    boardId: string;
+    pageId?: string;
+    maxSize?: number;
+  }): Promise<Result<BoardImage, AppError>> {
     const page = await this.scenes.transact(input.boardId, (s) => {
       const found = resolvePage(s.pages(), input.pageId);
       return found && { ...found, elements: s.all(found.id) };
@@ -65,7 +110,8 @@ export class RenderBoardImage {
           ? [e.fileId]
           : []
       ),
-      MAX_RENDER_BYTES
+      MAX_RENDER_BYTES,
+      true
     );
     const scene = buildSceneSvg(page.elements, images, input.maxSize);
     const image = scene && {
@@ -78,7 +124,7 @@ export class RenderBoardImage {
       pageId: page.id,
       pageName: page.name,
       image,
-      omittedFiles: omitted,
+      omittedFiles: [...omitted, ...(scene?.overBudgetFiles ?? [])],
     });
   }
 }

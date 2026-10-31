@@ -3,6 +3,7 @@ import {
   Footer,
   MainMenu,
   useDevice,
+  useHandleLibrary,
 } from "@excalidraw/excalidraw";
 
 import "@excalidraw/excalidraw/index.css";
@@ -10,7 +11,7 @@ import "./excalidraw-theme.css";
 import { Button } from "@narbel/ui/components/button";
 import { useBoolean, useMediaQuery } from "@reactuses/core";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Pencil, Share2, Users } from "lucide-react";
+import { ArrowLeft, History, Pencil, Share2, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -29,6 +30,8 @@ import {
   CommentsPanelToggle,
   useCommentsWorkspace,
 } from "@/features/board-comments";
+import { openVersionHistoryDialog } from "@/features/board-history";
+import { libraryAdapter } from "@/features/board-library";
 import { useBoardMedia } from "@/features/board-media";
 import {
   PagesBar,
@@ -45,11 +48,13 @@ import {
   PresenceBar,
   usePresence,
 } from "@/features/board-presence";
+import { usePendingImport } from "@/features/import-board";
 import { NotificationsBell } from "@/features/notifications";
 import { openRenameBoardDialog } from "@/features/rename-board";
 import { openShareBoardDialog } from "@/features/share-board";
 import { UserMenu } from "@/features/user-menu";
 import { safeRedirect } from "@/shared/lib";
+import { installLatinShortcuts } from "@/shared/lib/latin-shortcuts";
 
 import { isPhoneSize } from "../model/chrome-fit";
 import { PHONE_QUERY } from "../model/phone-query";
@@ -112,11 +117,13 @@ const BoardMainMenu = ({
   board,
   canWrite,
   isOwner,
+  shareToken,
   preferences,
 }: {
   board: Board;
   canWrite: boolean;
   isOwner: boolean;
+  shareToken?: string;
   preferences: ComponentProps<typeof PreferencesMenuItems>;
 }) => {
   const navigate = useNavigate();
@@ -145,6 +152,18 @@ const BoardMainMenu = ({
           </MainMenu.Item>
         </>
       ) : null}
+      <MainMenu.Item
+        icon={<History />}
+        onSelect={() =>
+          openVersionHistoryDialog({
+            boardId: board.id,
+            canWrite,
+            shareToken,
+          })
+        }
+      >
+        Version history
+      </MainMenu.Item>
       <MainMenu.Separator />
       <PreferencesMenuItems {...preferences} />
       <MainMenu.Separator />
@@ -245,6 +264,18 @@ export const BoardEditor = ({
     shareToken,
     pageId,
   });
+  // Guests keep Excalidraw's in-memory library; only an account owns a persisted one.
+  useHandleLibrary({
+    excalidrawAPI: signedIn ? api : null,
+    adapter: libraryAdapter,
+  });
+  usePendingImport({
+    boardId: board.id,
+    pageId,
+    api,
+    doc,
+    ready: status === "live" && writable,
+  });
   const pages = usePages({
     doc,
     synced: status === "live",
@@ -294,6 +325,11 @@ export const BoardEditor = ({
     observer.observe(el);
     return () => observer.disconnect();
   }, [api]);
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    return el ? installLatinShortcuts(el) : undefined;
+  }, []);
 
   const presenceProps = {
     peers: presence.peers,
@@ -397,6 +433,7 @@ export const BoardEditor = ({
     >
       <Excalidraw
         theme={resolvedTheme === "dark" ? "dark" : "light"}
+        name={board.title}
         viewModeEnabled={!writable}
         excalidrawAPI={bindApi}
         UIOptions={{ canvasActions: { toggleTheme: true } }}
@@ -428,6 +465,7 @@ export const BoardEditor = ({
           board={board}
           canWrite={writable}
           isOwner={isOwner}
+          shareToken={shareToken}
           preferences={{
             prefs: preferences.prefs,
             onChange: preferences.handleChange,

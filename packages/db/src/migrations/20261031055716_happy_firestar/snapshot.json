@@ -1,0 +1,618 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "90bc6c18-e8e6-4b6d-ab1a-c5f84c4a3b96",
+  "prevIds": ["d10ae67c-5850-4b40-a87c-4885b9814f89"],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "board_version"],
+      "writes": [
+        "s|tbl|public.board_version",
+        "n|tbl|public.board_version",
+        "e|tbl|public.board_version",
+        "n|rel|public.board_version",
+        "n|type|public.board_version",
+        "n|rel|public.board_version_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": ["table", "public", "user_library"],
+      "writes": [
+        "s|tbl|public.user_library",
+        "n|tbl|public.user_library",
+        "e|tbl|public.user_library",
+        "n|rel|public.user_library",
+        "n|type|public.user_library",
+        "n|rel|public.user_library_pkey"
+      ],
+      "reads": ["n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "board", "trashed_at"],
+      "writes": [
+        "s|col|public.board.trashed_at",
+        "n|col|public.board.trashed_at",
+        "e|col|public.board.trashed_at"
+      ],
+      "reads": ["n|tbl|public.board", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "board_file", "touched_at"],
+      "writes": [
+        "s|col|public.board_file.touched_at",
+        "n|col|public.board_file.touched_at",
+        "e|col|public.board_file.touched_at"
+      ],
+      "reads": ["n|tbl|public.board_file", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "board_file", "orphan_since"],
+      "writes": [
+        "s|col|public.board_file.orphan_since",
+        "n|col|public.board_file.orphan_since",
+        "e|col|public.board_file.orphan_since"
+      ],
+      "reads": ["n|tbl|public.board_file", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "board_file", "state"],
+      "writes": [
+        "s|col|public.board_file.state",
+        "n|col|public.board_file.state",
+        "e|col|public.board_file.state"
+      ],
+      "reads": ["n|tbl|public.board_file", "n|sch|public"]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": ["column", "public", "board_file", "claimed_at"],
+      "writes": [
+        "s|col|public.board_file.claimed_at",
+        "n|col|public.board_file.claimed_at",
+        "e|col|public.board_file.claimed_at"
+      ],
+      "reads": ["n|tbl|public.board_file", "n|sch|public"]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": ["index", "public", "board", "board_trashed_idx"],
+      "writes": [
+        "s|idx|public.board_trashed_idx",
+        "n|idx|public.board_trashed_idx",
+        "e|idx|public.board_trashed_idx",
+        "n|rel|public.board_trashed_idx"
+      ],
+      "reads": [
+        "n|tbl|public.board",
+        "n|sch|public",
+        "n|col|public.board.owner_id",
+        "n|col|public.board.trashed_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": ["index", "public", "board_file", "board_file_gc_idx"],
+      "writes": [
+        "s|idx|public.board_file_gc_idx",
+        "n|idx|public.board_file_gc_idx",
+        "e|idx|public.board_file_gc_idx",
+        "n|rel|public.board_file_gc_idx"
+      ],
+      "reads": [
+        "n|tbl|public.board_file",
+        "n|sch|public",
+        "n|col|public.board_file.state",
+        "n|col|public.board_file.orphan_since"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "board_version",
+        "board_version_board_idx"
+      ],
+      "writes": [
+        "s|idx|public.board_version_board_idx",
+        "n|idx|public.board_version_board_idx",
+        "e|idx|public.board_version_board_idx",
+        "n|rel|public.board_version_board_idx"
+      ],
+      "reads": [
+        "n|tbl|public.board_version",
+        "n|sch|public",
+        "n|col|public.board_version.board_id",
+        "n|col|public.board_version.created_at"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "board_version"],
+      "writes": [
+        "s|fk|public.board_version.board_version_board_id_board_id_fkey",
+        "n|fk|public.board_version.board_version_board_id_board_id_fkey",
+        "e|fk|public.board_version.board_version_board_id_board_id_fkey",
+        "n|con|public.board_version.board_version_board_id_board_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.board_version",
+        "n|sch|public",
+        "n|tbl|public.board",
+        "n|sch|public",
+        "n|col|public.board_version.board_id",
+        "n|col|public.board.id",
+        "e|uniqueness|public.board.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "board_version"],
+      "writes": [
+        "s|fk|public.board_version.board_version_created_by_id_user_id_fkey",
+        "n|fk|public.board_version.board_version_created_by_id_user_id_fkey",
+        "e|fk|public.board_version.board_version_created_by_id_user_id_fkey",
+        "n|con|public.board_version.board_version_created_by_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.board_version",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.board_version.created_by_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": ["table", "public", "user_library"],
+      "writes": [
+        "s|fk|public.user_library.user_library_user_id_user_id_fkey",
+        "n|fk|public.user_library.user_library_user_id_user_id_fkey",
+        "e|fk|public.user_library.user_library_user_id_user_id_fkey",
+        "n|con|public.user_library.user_library_user_id_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.user_library",
+        "n|sch|public",
+        "n|tbl|public.user",
+        "n|sch|public",
+        "n|col|public.user_library.user_id",
+        "n|col|public.user.id",
+        "e|uniqueness|public.user.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "board_version",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "user_library",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board",
+        "name": "trashed_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_file",
+        "name": "touched_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_file",
+        "name": "orphan_since",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_file",
+        "name": "state",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'live'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_file",
+        "name": "claimed_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "board_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "kind",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "state",
+        "type": "bytea",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "file_ids",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 1,
+        "default": "'{}'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "created_by_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "created_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_library",
+        "name": "user_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_library",
+        "name": "library_items",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_library",
+        "name": "updated_at",
+        "type": "timestamp",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board",
+        "name": "board_trashed_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "owner_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "trashed_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_file",
+        "name": "board_file_gc_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "state",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "orphan_since",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "board_version_board_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "board_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "board_version_board_id_board_id_fkey",
+        "nameExplicit": false,
+        "columns": ["board_id"],
+        "schemaTo": "public",
+        "tableTo": "board",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "board_version_created_by_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["created_by_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_library",
+        "name": "user_library_user_id_user_id_fkey",
+        "nameExplicit": false,
+        "columns": ["user_id"],
+        "schemaTo": "public",
+        "tableTo": "user",
+        "columnsTo": ["id"],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "board_version",
+        "name": "board_version_pkey",
+        "columns": ["id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_library",
+        "name": "user_library_pkey",
+        "columns": ["user_id"],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

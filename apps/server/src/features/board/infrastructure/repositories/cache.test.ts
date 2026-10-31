@@ -44,22 +44,44 @@ class CountingBoards implements IBoardRepository {
   readonly rows = new Map<string, Board>();
   findById = (id: string) => {
     this.reads += 1;
+    const row = this.rows.get(id);
+    return Promise.resolve(row && !row.trashedAt ? row : null);
+  };
+  findIncludingTrashed = (id: string) => {
+    this.reads += 1;
     return Promise.resolve(this.rows.get(id) ?? null);
   };
   listByOwner = (ownerId: string) => {
     this.reads += 1;
     return Promise.resolve(
-      [...this.rows.values()].filter((b) => b.ownerId === ownerId)
+      [...this.rows.values()].filter(
+        (b) => b.ownerId === ownerId && !b.trashedAt
+      )
     );
   };
+  listTrashedByOwner = () => Promise.resolve([]);
   listSharedWith = () => Promise.resolve([]);
   save = (b: Board) => {
     this.rows.set(b.id, b);
     return Promise.resolve();
   };
-  delete = (id: string) => {
-    this.rows.delete(id);
-    return Promise.resolve();
+  setTrashed = (id: string, at: Date | null) => {
+    const row = this.rows.get(id);
+    if (!row) {
+      return Promise.resolve(false);
+    }
+    this.rows.set(
+      id,
+      Board.restore({ ...row, title: row.title.value, trashedAt: at })
+    );
+    return Promise.resolve(true);
+  };
+  deleteTrashed = (id: string) => {
+    const removable = Boolean(this.rows.get(id)?.trashedAt);
+    if (removable) {
+      this.rows.delete(id);
+    }
+    return Promise.resolve(removable);
   };
 }
 
@@ -136,17 +158,20 @@ describe("CachedBoardRepository", () => {
     expect(await repo.listByOwner("owner")).toHaveLength(2);
   });
 
-  it("invalidates board and list on delete, and on a document save", async () => {
-    const { inner, repo, cache, redis } = setup();
+  it("invalidates board and list on purge, and on a document save", async () => {
+    const { repo } = setup();
     await repo.findById("b1");
     await repo.listByOwner("owner");
-    await repo.delete("b1");
+    expect(await repo.deleteTrashed("b1")).toBe(false);
+    expect(await repo.findById("b1")).not.toBeNull();
+    await repo.setTrashed("b1", new Date());
+    expect(await repo.deleteTrashed("b1")).toBe(true);
     expect(await repo.findById("b1")).toBeNull();
     expect(await repo.listByOwner("owner")).toHaveLength(0);
 
-    inner.rows.set("b1", board());
-    await repo.findById("b1");
-    await repo.listByOwner("owner");
+    const { repo: activeRepo, cache, redis } = setup();
+    await activeRepo.findById("b1");
+    await activeRepo.listByOwner("owner");
     expect(redis.data.has("board:b1")).toBe(true);
     expect(redis.data.has("boards:user:owner")).toBe(true);
     const store = new CachedBoardDocumentStore(
@@ -159,6 +184,45 @@ describe("CachedBoardRepository", () => {
     await store.save("b1", new Uint8Array());
     expect(redis.data.has("board:b1")).toBe(false);
     expect(redis.data.has("boards:user:owner")).toBe(false);
+  });
+
+  it("hides a trashed board from findById at once and shows it again after restore", async () => {
+    const { repo } = setup();
+    await repo.findById("b1");
+    await repo.listByOwner("owner");
+    await repo.setTrashed("b1", new Date());
+    expect(await repo.findById("b1")).toBeNull();
+    expect((await repo.findIncludingTrashed("b1"))?.trashedAt).not.toBeNull();
+    expect(await repo.listByOwner("owner")).toHaveLength(0);
+    expect(await repo.listTrashedByOwner("owner")).toHaveLength(0);
+    await repo.setTrashed("b1", null);
+    expect(await repo.findById("b1")).not.toBeNull();
+    expect(await repo.listByOwner("owner")).toHaveLength(1);
+  });
+
+  it("drops a stale fill that read the board before it was trashed", async () => {
+    const { inner, repo, redis } = setup();
+    const read = inner.findIncludingTrashed;
+    const { promise: gate, resolve: release } = Promise.withResolvers<number>();
+    const { promise: stalled, resolve: reached } =
+      Promise.withResolvers<number>();
+    let slow = true;
+    inner.findIncludingTrashed = async (id) => {
+      const row = await read(id);
+      if (slow) {
+        slow = false;
+        reached(0);
+        await gate;
+      }
+      return row;
+    };
+    const fill = repo.findById("b1");
+    await stalled;
+    await repo.setTrashed("b1", new Date());
+    release(0);
+    await fill;
+    expect(redis.data.has("board:b1")).toBe(false);
+    expect(await repo.findById("b1")).toBeNull();
   });
 });
 

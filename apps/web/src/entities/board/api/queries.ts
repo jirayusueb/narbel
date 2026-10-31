@@ -11,6 +11,7 @@ export const boardKeys = {
     ["boards", id, share ?? null] as const,
   access: (id: string) => ["boards", id, "access"] as const,
   search: (q: string) => ["boards", "search", q] as const,
+  trash: ["boards", "trash"] as const,
   members: (id: string) => ["boards", id, "members"] as const,
 };
 
@@ -75,15 +76,38 @@ export const useRenameBoard = () => {
   });
 };
 
-export const useDeleteBoard = () => {
+const useTrashTransition = (run: (id: string) => Promise<unknown>) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      unwrap(await api.api.boards({ id }).delete());
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+    mutationFn: run,
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: boardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      ]),
   });
 };
+
+export const useTrashBoard = () =>
+  useTrashTransition(async (id) =>
+    unwrap(await api.api.boards({ id }).delete())
+  );
+
+export const useRestoreBoard = () =>
+  useTrashTransition(async (id) =>
+    unwrap(await api.api.boards({ id }).restore.post())
+  );
+
+export const usePurgeBoard = () =>
+  useTrashTransition(async (id) =>
+    unwrap(await api.api.boards.trash({ id }).delete())
+  );
+
+export const useTrashedBoards = () =>
+  useQuery({
+    queryKey: boardKeys.trash,
+    queryFn: async () => unwrap(await api.api.boards.trash.get()),
+  });
 
 export const useBoardAccess = (id: string, enabled: boolean) =>
   useQuery({

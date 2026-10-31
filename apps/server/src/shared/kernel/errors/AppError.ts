@@ -4,6 +4,7 @@ export type AppErrorCode =
   | "Forbidden"
   | "NotFound"
   | "Conflict"
+  | "Gone"
   | "IdempotencyKeyReused"
   | "PayloadTooLarge"
   | "UnsupportedMediaType"
@@ -32,6 +33,10 @@ export class AppError {
   static conflict(message: string) {
     return new AppError("Conflict", message);
   }
+  /** The resource exists but was deliberately taken out of service (a board in Trash). */
+  static gone(message: string) {
+    return new AppError("Gone", message);
+  }
   static payloadTooLarge(message: string, details?: Record<string, unknown>) {
     return new AppError("PayloadTooLarge", message, details);
   }
@@ -55,6 +60,7 @@ export const STATUS_BY_CODE: Record<AppErrorCode, number> = {
   Forbidden: 403,
   NotFound: 404,
   Conflict: 409,
+  Gone: 410,
   IdempotencyKeyReused: 422,
   PayloadTooLarge: 413,
   UnsupportedMediaType: 415,

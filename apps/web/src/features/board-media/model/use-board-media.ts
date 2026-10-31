@@ -8,12 +8,10 @@ import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type * as Y from "yjs";
 
-import { api as http, unwrap } from "@/shared/api";
-import { SERVER_URL } from "@/shared/config";
+import { downloadAsDataUrl, uploadBoardFile } from "@/entities/board";
 import { isOnPage } from "@/shared/lib/page-keys";
 
 import { fileIdsOnPage } from "./page-files";
-import { prepareImage } from "./prepare-image";
 
 interface FileMeta {
   id: string;
@@ -22,66 +20,6 @@ interface FileMeta {
 }
 
 const LOCAL_ORIGIN = Symbol("local-file");
-const BASE64_CHUNK = 0x80_00;
-
-const blobToDataUrl = async (blob: Blob) => {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += BASE64_CHUNK) {
-    binary += String.fromCodePoint(...bytes.subarray(i, i + BASE64_CHUNK));
-  }
-  return `data:${blob.type};base64,${btoa(binary)}`;
-};
-
-const downloadAsDataUrl = async (
-  boardId: string,
-  fileId: string,
-  shareToken?: string
-) => {
-  const query = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
-  const res = await fetch(
-    `${SERVER_URL}/api/boards/${boardId}/files/${fileId}${query}`,
-    { credentials: "include" }
-  );
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-  return blobToDataUrl(await res.blob());
-};
-
-const upload = async (
-  boardId: string,
-  file: BinaryFileData,
-  shareToken?: string
-) => {
-  const source = await fetch(file.dataURL);
-  const blob = await source.blob();
-  const prepared = await prepareImage({
-    blob,
-    mimeType: file.mimeType,
-  });
-  const { uploadUrl } = unwrap(
-    await http.api.boards({ id: boardId }).files.presign.post(
-      {
-        fileId: file.id,
-        mimeType: prepared.mimeType,
-        size: prepared.blob.size,
-      },
-      { query: { share: shareToken } }
-    )
-  );
-  // The URL is signed for this exact content type and length; S3 gets the bytes directly, no cookies.
-  const res = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "content-type": prepared.mimeType },
-    body: prepared.blob,
-  });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-  return prepared.mimeType;
-};
-
 export const useBoardMedia = ({
   boardId,
   doc,
@@ -162,7 +100,7 @@ export const useBoardMedia = ({
       const files = doc.getMap<FileMeta>("files");
       const syncFile = async (file: BinaryFileData) => {
         try {
-          const mimeType = await upload(boardId, file, shareToken);
+          const mimeType = await uploadBoardFile(boardId, file, shareToken);
           doc.transact(() => {
             files.set(file.id, {
               id: file.id,

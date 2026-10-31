@@ -16,6 +16,8 @@ export const DEFAULT_MAX_SIZE = 1600;
 export const MIN_MAX_SIZE = 256;
 export const MAX_MAX_SIZE = 4096;
 const MAX_PIXELS = 8_000_000;
+/** Σ decoded pixels of placed image elements: resvg decodes per element, so copies of one file add up */
+export const MAX_RENDER_IMAGE_PIXELS = 64_000_000;
 const PADDING = 40;
 const LABEL_PADDING = 5;
 const ARROW_LABEL_PADDING = 4;
@@ -26,6 +28,8 @@ const ARROWHEAD_BASE = 14;
 export interface ImageData {
   mimeType: string;
   base64: string;
+  /** decoded size from the file header; the element's area stands in when unknown */
+  pixels?: number;
 }
 
 export interface SceneSvg {
@@ -35,6 +39,8 @@ export interface SceneSvg {
   height: number;
   /** content bounds in board coordinates, without padding */
   bounds: Bounds;
+  /** files with an element drawn as a placeholder because the image pixel budget ran out */
+  overBudgetFiles: string[];
 }
 
 const str = (value: unknown, fallback: string) =>
@@ -225,10 +231,10 @@ const label = (e: SceneElement, container: SceneElement) => {
   });
 };
 
-const imageNode = (e: SceneElement, images: Map<string, ImageData>) => {
+const imageNode = (e: SceneElement, refs: Map<string, string>) => {
   const b = geometryBox(e);
-  const data = typeof e.fileId === "string" ? images.get(e.fileId) : undefined;
-  if (!data) {
+  const ref = typeof e.fileId === "string" ? refs.get(e.fileId) : undefined;
+  if (!ref) {
     return (
       `<rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" fill="#f1f3f5" stroke="#adb5bd" stroke-width="2" stroke-dasharray="8 6"/>` +
       `<path d="M${b.x} ${b.y}L${b.x + b.width} ${b.y + b.height}M${b.x + b.width} ${b.y}L${b.x} ${b.y + b.height}" stroke="#adb5bd" stroke-width="2"/>`
@@ -237,12 +243,13 @@ const imageNode = (e: SceneElement, images: Map<string, ImageData>) => {
   const [sx, sy] = Array.isArray(e.scale) ? (e.scale as number[]) : [1, 1];
   const flip =
     sx === -1 || sy === -1
-      ? ` transform="translate(${b.x + b.width / 2} ${b.y + b.height / 2}) scale(${sx === -1 ? -1 : 1} ${sy === -1 ? -1 : 1}) translate(${-(b.x + b.width / 2)} ${-(b.y + b.height / 2)})"`
+      ? ` translate(${b.x + b.width / 2} ${b.y + b.height / 2}) scale(${sx === -1 ? -1 : 1} ${sy === -1 ? -1 : 1}) translate(${-(b.x + b.width / 2)} ${-(b.y + b.height / 2)})`
       : "";
-  return `<image x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" preserveAspectRatio="none"${flip} href="data:${escapeXml(data.mimeType)};base64,${data.base64}"/>`;
+  // the shared <image> in <defs> is 1x1, so the element's box is a translate + scale
+  return `<use href="#${ref}" transform="${flip} translate(${b.x} ${b.y}) scale(${b.width} ${b.height})"/>`;
 };
 
-const shapeNode = (e: SceneElement, images: Map<string, ImageData>) => {
+const shapeNode = (e: SceneElement, refs: Map<string, string>) => {
   const b = geometryBox(e);
   switch (e.type) {
     case "rectangle": {
@@ -272,7 +279,7 @@ const shapeNode = (e: SceneElement, images: Map<string, ImageData>) => {
       return linear(e);
     }
     case "image": {
-      return imageNode(e, images);
+      return imageNode(e, refs);
     }
     default: {
       return "";
@@ -301,12 +308,12 @@ const boxContainer = (e: SceneElement, byId: Map<string, SceneElement>) => {
 const element = (
   e: SceneElement,
   byId: Map<string, SceneElement>,
-  images: Map<string, ImageData>
+  refs: Map<string, string>
 ) => {
   const container = boxContainer(e, byId);
   let inner: string;
   if (e.type !== "text") {
-    inner = shapeNode(e, images);
+    inner = shapeNode(e, refs);
   } else if (container) {
     inner = label(e, container);
   } else {
@@ -338,6 +345,37 @@ const drawnBounds = (e: SceneElement, byId: Map<string, SceneElement>) => {
     : elementBounds(e);
 };
 
+/**
+ * Spends the image pixel budget in draw order. An element that does not fit loses its fileId,
+ * so it draws as the missing-image placeholder; each file that stays is referenced once.
+ */
+const placeImages = (drawn: SceneElement[], images: Map<string, ImageData>) => {
+  let left = MAX_RENDER_IMAGE_PIXELS;
+  const refs = new Map<string, string>();
+  const overBudget = new Set<string>();
+  const elements = drawn.map((e) => {
+    const data =
+      e.type === "image" && typeof e.fileId === "string"
+        ? images.get(e.fileId)
+        : undefined;
+    if (!data) {
+      return e;
+    }
+    const b = geometryBox(e);
+    const cost = data.pixels ?? b.width * b.height;
+    if (cost > left) {
+      overBudget.add(String(e.fileId));
+      return { ...e, fileId: undefined };
+    }
+    left -= cost;
+    if (!refs.has(String(e.fileId))) {
+      refs.set(String(e.fileId), `f${refs.size}`);
+    }
+    return e;
+  });
+  return { elements, refs, overBudget: [...overBudget] };
+};
+
 const clampSize = (maxSize: number | undefined) =>
   Math.min(
     Math.max(Math.round(maxSize ?? DEFAULT_MAX_SIZE), MIN_MAX_SIZE),
@@ -360,7 +398,11 @@ export const buildSceneSvg = (
     (e) =>
       e.type !== "text" || !e.containerId || byId.has(String(e.containerId))
   );
-  const nodes = drawn.map((e) => ({ e, node: element(e, byId, images) }));
+  const placed = placeImages(drawn, images);
+  const nodes = placed.elements.map((e) => ({
+    e,
+    node: element(e, byId, placed.refs),
+  }));
   const visible = nodes.filter((n) => n.node !== "");
   if (visible.length === 0) {
     return null;
@@ -375,10 +417,25 @@ export const buildSceneSvg = (
   const scale = Math.min(target / longSide, budget / Math.min(viewW, viewH));
   const width = Math.max(1, Math.round(viewW * scale));
   const height = Math.max(1, Math.round(viewH * scale));
+  const defs =
+    placed.refs.size === 0
+      ? ""
+      : `<defs>${[...placed.refs]
+          .map(([fileId, ref]) => {
+            const data = images.get(fileId) as ImageData;
+            return `<image id="${ref}" width="1" height="1" preserveAspectRatio="none" href="data:${escapeXml(data.mimeType)};base64,${data.base64}"/>`;
+          })
+          .join("")}</defs>`;
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${round(bounds.x - PADDING)} ${round(bounds.y - PADDING)} ${round(viewW)} ${round(viewH)}">` +
-    `<rect x="${round(bounds.x - PADDING)}" y="${round(bounds.y - PADDING)}" width="${round(viewW)}" height="${round(viewH)}" fill="${BACKGROUND}"/>${visible
+    `<rect x="${round(bounds.x - PADDING)}" y="${round(bounds.y - PADDING)}" width="${round(viewW)}" height="${round(viewH)}" fill="${BACKGROUND}"/>${defs}${visible
       .map((n) => n.node)
       .join("")}</svg>`;
-  return { svg, width, height, bounds };
+  return {
+    svg,
+    width,
+    height,
+    bounds,
+    overBudgetFiles: placed.overBudget,
+  };
 };

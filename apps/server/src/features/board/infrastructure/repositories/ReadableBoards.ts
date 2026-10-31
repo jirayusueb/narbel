@@ -11,7 +11,8 @@ export const readableBoards = async (
     FROM board b
     LEFT JOIN board_access a ON a.board_id = b.id
       AND (a.user_id = ${person.id} OR a.email = ${person.email.toLowerCase()})
-    WHERE b.owner_id = ${person.id} OR a.id IS NOT NULL
+    WHERE (b.owner_id = ${person.id} OR a.id IS NOT NULL)
+      AND b.trashed_at IS NULL
   `);
   return new Map(rows.map((row) => [row.id, row.title]));
 };
