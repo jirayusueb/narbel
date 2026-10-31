@@ -17,10 +17,10 @@ import { Board } from "../../domain/entities/Board";
 import type { Page } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
-import type { MemberRole } from "../../domain/values/Access";
+import type { MemberRole, Visibility } from "../../domain/values/Access";
 import { BoardTitle } from "../../domain/values/BoardTitle";
 import type { SceneVersion } from "../../domain/values/ChangeCursor";
-import { BoardAccessGuard } from "../BoardAccess";
+import { AccessPolicy } from "../AccessPolicy";
 import type { BoardTx } from "../ports/BoardTx";
 import type {
   IBoardAccessRepository,
@@ -98,16 +98,48 @@ export class FakeBoards implements IBoardRepository {
 export class FakeGrants implements IBoardAccessRepository {
   readonly members: (Member & { boardId: string })[] = [];
   share: Share | null = null;
-  findMemberRole = (
+  constructor(private readonly boards = new FakeBoards()) {}
+  findGrant = (
     boardId: string,
     who: { userId: string; email: string | undefined }
-  ) =>
+  ) => {
+    const m = this.members.find(
+      (row) =>
+        row.boardId === boardId &&
+        (row.userId === who.userId || row.email === who.email)
+    );
+    return Promise.resolve(
+      m
+        ? { grantId: `${boardId}:${m.email}`, userId: m.userId, role: m.role }
+        : null
+    );
+  };
+  claim = (grantId: string, userId: string) => {
+    const m = this.members.find(
+      (row) => `${row.boardId}:${row.email}` === grantId
+    );
+    if (m && m.userId === null) {
+      m.userId = userId;
+    }
+    return Promise.resolve();
+  };
+  readableBoardTitles = (person: { id: string; email: string }) =>
     Promise.resolve(
-      this.members.find(
-        (m) =>
-          m.boardId === boardId &&
-          (m.userId === who.userId || m.email === who.email)
-      )?.role ?? null
+      new Map(
+        [...this.boards.rows.values()]
+          .filter(
+            (b) =>
+              !b.trashedAt &&
+              (b.ownerId === person.id ||
+                this.members.some(
+                  (m) =>
+                    m.boardId === b.id &&
+                    (m.userId === person.id ||
+                      m.email === person.email.toLowerCase())
+                ))
+          )
+          .map((b): [string, string] => [b.id, b.title.value])
+      )
     );
   listMembers = (boardId: string) =>
     Promise.resolve(this.members.filter((m) => m.boardId === boardId));
@@ -322,16 +354,28 @@ export class FakeAssignees implements ICommentAssignees {
 export const newBoard = (id = "b1", owner = "owner") =>
   Board.create(id, owner, BoardTitle.restore("Mine"), new Date());
 
+export const protectedBoard = (
+  visibility: Visibility,
+  passwordHash: string | null,
+  board = newBoard()
+) => {
+  const result = board.protect(visibility, passwordHash, new Date());
+  if (result.isErr()) {
+    throw new Error(result.error.message);
+  }
+  return result.value;
+};
+
 export const setupAccess = () => {
   const boards = new FakeBoards();
-  const grants = new FakeGrants();
+  const grants = new FakeGrants(boards);
   const scenes = new FakeScenes();
   const comments = new FakeAssignees();
   const profiles = new FakeProfiles();
   const notifications = new FakeNotifications();
   const outbox = new FakeOutbox();
   boards.rows.set("b1", newBoard());
-  const guard = new BoardAccessGuard(boards, grants, fakeUnlock);
+  const policy = new AccessPolicy(boards, grants, fakeUnlock);
   const uow = new FakeUow({
     boards,
     grants,
@@ -349,6 +393,6 @@ export const setupAccess = () => {
     notifications,
     outbox,
     uow,
-    guard,
+    policy,
   };
 };

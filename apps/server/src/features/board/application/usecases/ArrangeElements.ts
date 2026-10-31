@@ -8,7 +8,7 @@ import type { Arrangement } from "../../domain/rules/arrange";
 import { connectorCapable } from "../../domain/rules/bindings";
 import { num } from "../../domain/rules/geometry";
 import { withGroupMates } from "../../domain/rules/groups";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { pageLookup, patchElement } from "../connectors";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 import { resolveOperands } from "./GroupElements";
@@ -20,7 +20,7 @@ export interface ArrangeResult {
 
 export class ArrangeElements {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly ids: IIdGenerator
   ) {}
@@ -31,7 +31,7 @@ export class ArrangeElements {
     ids: string[];
     how: Arrangement;
   }): Promise<Result<ArrangeResult, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "write"

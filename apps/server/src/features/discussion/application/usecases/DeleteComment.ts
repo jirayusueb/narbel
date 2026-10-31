@@ -8,7 +8,7 @@ import type { IBoardCommentRepository } from "../ports/ICommentRepository";
 
 export class DeleteComment {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly comments: IBoardCommentRepository
   ) {}
 
@@ -17,7 +17,7 @@ export class DeleteComment {
     boardId: string;
     commentId: string;
   }): Promise<Result<undefined, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "read"

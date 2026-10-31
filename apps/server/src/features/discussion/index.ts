@@ -1,4 +1,4 @@
-// board wires these with its access guard and mounts the controller until step 6's AccessPolicy
+// board wires these with its AccessPolicy and mounts the controller
 export { AddComment } from "./application/usecases/AddComment";
 export { AssignComment } from "./application/usecases/AssignComment";
 export { DeleteComment } from "./application/usecases/DeleteComment";

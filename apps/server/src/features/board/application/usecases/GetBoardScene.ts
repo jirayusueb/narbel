@@ -5,14 +5,14 @@ import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import { elementBounds, overlaps } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { toSceneDtos } from "../dtos/SceneDto";
 import type { SceneDto } from "../dtos/SceneDto";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
 export class GetBoardScene {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes
   ) {}
 
@@ -24,7 +24,7 @@ export class GetBoardScene {
     types?: string[];
     limit?: number;
   }): Promise<Result<SceneDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

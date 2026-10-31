@@ -9,11 +9,11 @@ export interface ReachedBoard {
 }
 
 /**
- * The boards context's answer to "may this caller read or write this board". Discussion holds
- * no access rules of its own; step 6 replaces the guard behind it with AccessPolicy.
+ * The boards context's AccessPolicy, seen from discussion: "may this caller read or write this board".
+ * Discussion holds no access rules of its own.
  */
 export interface IBoardAccess {
-  require(
+  decide(
     boardId: string,
     actor: Actor,
     need: "read" | "write"
@@ -22,5 +22,5 @@ export interface IBoardAccess {
 
 /** Who belongs to a board right now: its owner and every person holding a grant. */
 export interface IBoardMembers {
-  idsOf(board: { id: string; ownerId: string }): Promise<Set<string>>;
+  memberIds(board: { id: string; ownerId: string }): Promise<Set<string>>;
 }

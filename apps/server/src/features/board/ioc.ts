@@ -27,8 +27,7 @@ import {
 import type { DiscussionTx } from "../discussion";
 import { DrizzleNotificationRepository } from "../notification";
 import { DrizzleProfileRepository } from "../profile";
-import { BoardAccessGuard } from "./application/BoardAccess";
-import { memberIdsOf } from "./application/BoardPeople";
+import { AccessPolicy } from "./application/AccessPolicy";
 import type { BoardTx } from "./application/ports/BoardTx";
 import { AddBoardElements } from "./application/usecases/AddBoardElements";
 import { AddBoardImage } from "./application/usecases/AddBoardImage";
@@ -120,6 +119,18 @@ export interface BoardDeps {
   wakeOutbox: () => void;
 }
 
+/** The policy other contexts ask, built from the same stores the board module reads. */
+export const createAccessPolicy = ({
+  db,
+  cache,
+  secret,
+}: Pick<BoardDeps, "db" | "cache" | "secret">) =>
+  new AccessPolicy(
+    new CachedBoardRepository(new DrizzleBoardRepository(db), cache),
+    new DrizzleBoardAccessRepository(db),
+    new HmacUnlockTokens(secret)
+  );
+
 const createUseCases = ({
   db,
   storage,
@@ -164,6 +175,7 @@ const createUseCases = ({
       profiles: new DrizzleProfileRepository(tx, apiOrigin),
     })
   );
+  const unlockTokens = new HmacUnlockTokens(secret);
   // comment use cases commit with their own aggregate set: the comment, its outbox events, member and profile reads
   const discussionUow = new DrizzleUnitOfWork<DiscussionTx>(
     db,
@@ -171,18 +183,18 @@ const createUseCases = ({
       afterCommit(wakeOutbox);
       return {
         comments: new DrizzleCommentRepository(tx),
-        members: {
-          idsOf: (board) =>
-            memberIdsOf(board, new DrizzleBoardAccessRepository(tx)),
-        },
+        members: new AccessPolicy(
+          boards,
+          new DrizzleBoardAccessRepository(tx),
+          unlockTokens
+        ),
         outbox: new DrizzleOutbox(tx, ids),
         profiles: new DrizzleProfileRepository(tx, apiOrigin),
       };
     }
   );
   const hasher = new ScryptPasswordHasher();
-  const unlockTokens = new HmacUnlockTokens(secret);
-  const guard = new BoardAccessGuard(boards, grants, unlockTokens);
+  const policy = new AccessPolicy(boards, grants, unlockTokens);
   const presence = new RedisBoardPresence(redis);
   const library = new DrizzleLibraryRepository(db);
   return {
@@ -192,74 +204,81 @@ const createUseCases = ({
     listBoards: new ListBoards(boards),
     listSharedBoards: new ListSharedBoards(boards),
     searchBoards: new SearchBoards(new DrizzleBoardSearch(db)),
-    getBoard: new GetBoard(guard),
-    renameBoard: new RenameBoard(guard, boards),
-    trashBoard: new TrashBoard(guard, boards, hub),
-    restoreBoard: new RestoreBoard(guard, boards),
+    getBoard: new GetBoard(policy),
+    renameBoard: new RenameBoard(policy, boards),
+    trashBoard: new TrashBoard(policy, boards, hub),
+    restoreBoard: new RestoreBoard(policy, boards),
     listTrash: new ListTrash(boards),
-    purgeBoard: new PurgeBoard(guard, uow, hub, storage),
-    duplicateBoard: new DuplicateBoard(guard, boards, hub, files, storage, ids),
-    presignBoardFileUpload: new PresignBoardFileUpload(guard, files, storage),
-    getBoardFile: new GetBoardFile(guard, files, storage),
-    getBoardScene: new GetBoardScene(guard, hub),
-    listBoardVersions: new ListBoardVersions(guard, versions),
-    getBoardVersion: new GetBoardVersion(guard, versions, hub),
-    restoreBoardVersion: new RestoreBoardVersion(guard, versions, hub),
+    purgeBoard: new PurgeBoard(policy, uow, hub, storage),
+    duplicateBoard: new DuplicateBoard(
+      policy,
+      boards,
+      hub,
+      files,
+      storage,
+      ids
+    ),
+    presignBoardFileUpload: new PresignBoardFileUpload(policy, files, storage),
+    getBoardFile: new GetBoardFile(policy, files, storage),
+    getBoardScene: new GetBoardScene(policy, hub),
+    listBoardVersions: new ListBoardVersions(policy, versions),
+    getBoardVersion: new GetBoardVersion(policy, versions, hub),
+    restoreBoardVersion: new RestoreBoardVersion(policy, versions, hub),
     renderBoardImage: new RenderBoardImage(
-      guard,
+      policy,
       hub,
       files,
       storage,
       new ResvgRasterizer(),
       cache
     ),
-    addBoardElements: new AddBoardElements(guard, hub, ids),
-    addBoardImage: new AddBoardImage(guard, hub, files, storage, ids),
-    exportBoardScene: new ExportBoardScene(guard, hub, files, storage),
-    updateBoardElement: new UpdateBoardElement(guard, hub, ids),
-    deleteBoardElements: new DeleteBoardElements(guard, hub, ids),
-    groupElements: new GroupElements(guard, hub, ids),
-    arrangeElements: new ArrangeElements(guard, hub, ids),
-    listPages: new ListPages(guard, hub),
-    addPage: new AddPage(guard, hub, ids),
-    renamePage: new RenamePage(guard, hub),
-    deletePage: new DeletePage(guard, hub),
+    addBoardElements: new AddBoardElements(policy, hub, ids),
+    addBoardImage: new AddBoardImage(policy, hub, files, storage, ids),
+    exportBoardScene: new ExportBoardScene(policy, hub, files, storage),
+    updateBoardElement: new UpdateBoardElement(policy, hub, ids),
+    deleteBoardElements: new DeleteBoardElements(policy, hub, ids),
+    groupElements: new GroupElements(policy, hub, ids),
+    arrangeElements: new ArrangeElements(policy, hub, ids),
+    listPages: new ListPages(policy, hub),
+    addPage: new AddPage(policy, hub, ids),
+    renamePage: new RenamePage(policy, hub),
+    deletePage: new DeletePage(policy, hub),
     getBoardChanges: new GetBoardChanges(
-      guard,
+      policy,
       hub,
       new CommentActivityFeed(comments, profiles)
     ),
-    getSelection: new GetSelection(guard, hub),
-    selectElements: new SelectElements(guard, hub),
-    editSelection: new EditSelection(guard, hub, ids),
-    connectBoardSync: new ConnectBoardSync(guard, hub, presence),
-    listBoardViewers: new ListBoardViewers(guard, presence),
-    getBoardAccess: new GetBoardAccess(guard, grants, webOrigin),
+    getSelection: new GetSelection(policy, hub),
+    selectElements: new SelectElements(policy, hub),
+    editSelection: new EditSelection(policy, hub, ids),
+    connectBoardSync: new ConnectBoardSync(policy, hub, presence),
+    listBoardViewers: new ListBoardViewers(policy, presence),
+    getBoardAccess: new GetBoardAccess(policy, grants, webOrigin),
     updateBoardAccess: new UpdateBoardAccess(
-      guard,
+      policy,
       uow,
       hasher,
       ids,
       webOrigin
     ),
-    removeBoardMember: new RemoveBoardMember(guard, uow),
-    inviteBoardMember: new InviteBoardMember(guard, uow),
-    listBoardMembers: new ListBoardMembers(guard, grants, profiles),
+    removeBoardMember: new RemoveBoardMember(policy, uow),
+    inviteBoardMember: new InviteBoardMember(policy, uow),
+    listBoardMembers: new ListBoardMembers(policy, grants, profiles),
     unlockBoard: new UnlockBoard(
       boards,
       hasher,
       unlockTokens,
       new RedisAttemptLimiter(redis)
     ),
-    listComments: new ListComments(guard, comments, profiles),
-    listReplies: new ListReplies(guard, comments, profiles),
-    addComment: new AddComment(guard, discussionUow, ids),
-    replyToComment: new ReplyToComment(guard, discussionUow, ids),
-    editComment: new EditComment(guard, discussionUow),
-    resolveComment: new ResolveComment(guard, discussionUow),
-    assignComment: new AssignComment(guard, discussionUow),
-    setCommentReaction: new SetCommentReaction(guard, comments, profiles),
-    deleteComment: new DeleteComment(guard, comments),
+    listComments: new ListComments(policy, comments, profiles),
+    listReplies: new ListReplies(policy, comments, profiles),
+    addComment: new AddComment(policy, discussionUow, ids),
+    replyToComment: new ReplyToComment(policy, discussionUow, ids),
+    editComment: new EditComment(policy, discussionUow),
+    resolveComment: new ResolveComment(policy, discussionUow),
+    assignComment: new AssignComment(policy, discussionUow),
+    setCommentReaction: new SetCommentReaction(policy, comments, profiles),
+    deleteComment: new DeleteComment(policy, comments),
   };
 };
 

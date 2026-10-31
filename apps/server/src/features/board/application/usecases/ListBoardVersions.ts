@@ -2,14 +2,14 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { toVersionDto } from "../dtos/VersionDto";
 import type { VersionDto } from "../dtos/VersionDto";
 import type { IBoardVersions } from "../ports/IBoardVersions";
 
 export class ListBoardVersions {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly versions: IBoardVersions
   ) {}
 
@@ -17,7 +17,7 @@ export class ListBoardVersions {
     actor: Actor;
     boardId: string;
   }): Promise<Result<VersionDto[], AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

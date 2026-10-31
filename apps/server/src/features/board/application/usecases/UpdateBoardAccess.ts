@@ -1,13 +1,14 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/IIdGenerator";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import { AppError } from "../../../../shared/kernel/errors/AppError";
+import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Board } from "../../domain/entities/Board";
 import type { MemberRole, Visibility } from "../../domain/values/Access";
 import { validatePassword } from "../../domain/values/Password";
-import type { BoardAccessGuard } from "../BoardAccess";
+import { parseShareExpiry } from "../../domain/values/ShareLink";
+import type { AccessPolicy } from "../AccessPolicy";
 import { toAccessDto } from "../dtos/AccessDto";
 import type { BoardAccessDto } from "../dtos/AccessDto";
 import type { BoardTx } from "../ports/BoardTx";
@@ -24,16 +25,9 @@ export interface AccessPatch {
   shareExpiresAt?: string | null;
 }
 
-const parseExpiry = (raw: string, now: Date): Result<Date, AppError> => {
-  const date = new Date(raw);
-  return Number.isNaN(date.getTime()) || date <= now
-    ? err(AppError.validation("shareExpiresAt must be a future date"))
-    : ok(date);
-};
-
 export class UpdateBoardAccess {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly uow: IUnitOfWork<BoardTx>,
     private readonly hasher: IPasswordHasher,
     private readonly ids: IIdGenerator,
@@ -45,7 +39,7 @@ export class UpdateBoardAccess {
     boardId: string;
     patch: AccessPatch;
   }): Promise<Result<BoardAccessDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "owner"
@@ -91,10 +85,9 @@ export class UpdateBoardAccess {
       passwordHash = null;
     }
     const visibility = patch.visibility ?? board.visibility;
-    if (visibility === "password" && passwordHash === null) {
-      return err(
-        AppError.validation("Set a password before locking the board")
-      );
+    const updated = board.protect(visibility, passwordHash, now);
+    if (updated.isErr()) {
+      return updated;
     }
     if (
       visibility === board.visibility &&
@@ -102,9 +95,8 @@ export class UpdateBoardAccess {
     ) {
       return ok(board);
     }
-    const updated = board.withProtection(visibility, passwordHash, now);
-    await tx.boards.save(updated);
-    return ok(updated);
+    await tx.boards.save(updated.value);
+    return updated;
   }
 
   private async applyShare(
@@ -129,7 +121,7 @@ export class UpdateBoardAccess {
     }
     let expiresAt = existing?.expiresAt ?? null;
     if (typeof patch.shareExpiresAt === "string") {
-      const parsed = parseExpiry(patch.shareExpiresAt, now);
+      const parsed = parseShareExpiry(patch.shareExpiresAt, now);
       if (parsed.isErr()) {
         return err(parsed.error);
       }

@@ -6,7 +6,7 @@ import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
 import type { SceneElement } from "../../domain/entities/SceneElement";
 import type { ImageData } from "../../domain/rendering/sceneSvg";
-import type { BoardAccessGuard } from "../BoardAccess";
+import type { AccessPolicy } from "../AccessPolicy";
 import { MAX_EXPORT_BYTES, loadBoardImages } from "../boardImages";
 import { byZOrder } from "../dtos/SceneDto";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
@@ -27,7 +27,7 @@ export interface ExcalidrawFile {
 
 export class ExportBoardScene {
   constructor(
-    private readonly guard: BoardAccessGuard,
+    private readonly policy: AccessPolicy,
     private readonly scenes: IBoardScenes,
     private readonly files: IBoardFileRepository,
     private readonly storage: IFileStorage
@@ -39,7 +39,7 @@ export class ExportBoardScene {
     pageId?: string;
     includeFiles?: boolean;
   }): Promise<Result<ExcalidrawFile, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.policy.decide(
       input.boardId,
       input.actor,
       "read"

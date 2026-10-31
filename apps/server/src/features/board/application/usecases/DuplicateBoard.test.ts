@@ -121,7 +121,7 @@ const setup = () => {
       failCopyWrite = true;
     },
     duplicate: new DuplicateBoard(
-      base.guard,
+      base.policy,
       base.boards,
       scenes,
       files,

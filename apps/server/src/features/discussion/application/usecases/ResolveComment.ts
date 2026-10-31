@@ -14,7 +14,7 @@ import type { IBoardAccess } from "../ports/IBoardAccess";
 /** Resolves or reopens the thread `commentId` belongs to. Repeating either is a no-op. */
 export class ResolveComment {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly uow: IUnitOfWork<DiscussionTx>
   ) {}
 
@@ -24,7 +24,7 @@ export class ResolveComment {
     commentId: string;
     resolve: boolean;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "write"
@@ -56,7 +56,7 @@ export class ResolveComment {
         if (input.resolve) {
           await new DiscussionEvents(tx, actor.value, next).resolved(
             next,
-            await tx.members.idsOf(board)
+            await tx.members.memberIds(board)
           );
         }
       }

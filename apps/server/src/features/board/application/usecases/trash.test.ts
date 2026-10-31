@@ -9,7 +9,7 @@ import type {
   SyncSession,
 } from "../ports/IBoardSyncGateway";
 import { ConnectBoardSync } from "./ConnectBoardSync";
-import { setupAccess } from "./fakes";
+import { protectedBoard, setupAccess } from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { GetBoardFile } from "./GetBoardFile";
 import { ListBoards } from "./ListBoards";
@@ -52,7 +52,7 @@ const setup = () => {
     list: () => Promise.resolve([]),
     countStrict: () => Promise.resolve(0),
   };
-  const { boards, guard, scenes, uow } = base;
+  const { boards, policy, scenes, uow } = base;
   return {
     ...base,
     deleted,
@@ -60,9 +60,9 @@ const setup = () => {
     storage,
     gateway,
     presence,
-    trash: new TrashBoard(guard, boards, scenes),
-    restore: new RestoreBoard(guard, boards),
-    purge: new PurgeBoard(guard, uow, scenes, storage),
+    trash: new TrashBoard(policy, boards, scenes),
+    restore: new RestoreBoard(policy, boards),
+    purge: new PurgeBoard(policy, uow, scenes, storage),
   };
 };
 
@@ -71,11 +71,11 @@ const code = (result: { isErr(): boolean; error?: { code: string } }) =>
 
 describe("trash: who sees a trashed board", () => {
   it("tells former members and the owner it is gone (410) and strangers it does not exist (404)", async () => {
-    const { guard, trash } = setup();
+    const { policy, trash } = setup();
     expect((await trash.execute({ actor: owner, boardId: "b1" })).isOk()).toBe(
       true
     );
-    const get = new GetBoard(guard);
+    const get = new GetBoard(policy);
     expect(code(await get.execute({ actor: owner, boardId: "b1" }))).toBe(
       "Gone"
     );
@@ -91,7 +91,7 @@ describe("trash: who sees a trashed board", () => {
   });
 
   it("applies to write and owner needs and to share links alike", async () => {
-    const { guard, grants, trash } = setup();
+    const { policy, grants, trash } = setup();
     grants.share = {
       boardId: "b1",
       token: "t".repeat(43),
@@ -100,10 +100,10 @@ describe("trash: who sees a trashed board", () => {
       expiresAt: null,
     };
     await trash.execute({ actor: owner, boardId: "b1" });
-    expect(code(await guard.require("b1", member, "write"))).toBe("Gone");
-    expect(code(await guard.require("b1", owner, "owner"))).toBe("Gone");
+    expect(code(await policy.decide("b1", member, "write"))).toBe("Gone");
+    expect(code(await policy.decide("b1", owner, "owner"))).toBe("Gone");
     expect(
-      code(await guard.require("b1", { shareToken: "t".repeat(43) }, "read"))
+      code(await policy.decide("b1", { shareToken: "t".repeat(43) }, "read"))
     ).toBe("Gone");
   });
 
@@ -120,17 +120,17 @@ describe("trash: who sees a trashed board", () => {
   });
 
   it("refuses file reads and new sync connections", async () => {
-    const { guard, trash, gateway, presence, connects, storage } = setup();
+    const { policy, trash, gateway, presence, connects, storage } = setup();
     await trash.execute({ actor: owner, boardId: "b1" });
     const files: IBoardFileRepository = {
       findById: () => Promise.resolve(null),
       save: () => Promise.resolve(true),
     };
-    const read = new GetBoardFile(guard, files, storage);
+    const read = new GetBoardFile(policy, files, storage);
     expect(
       code(await read.execute({ actor: member, boardId: "b1", fileId: "f" }))
     ).toBe("Gone");
-    const connect = new ConnectBoardSync(guard, gateway, presence);
+    const connect = new ConnectBoardSync(policy, gateway, presence);
     const peer = { send: () => {}, close: () => {} };
     expect(
       code(await connect.execute({ actor: member, boardId: "b1", peer }))
@@ -142,7 +142,7 @@ describe("trash: who sees a trashed board", () => {
   });
 
   it("closes a session that joined while the board was being trashed", async () => {
-    const { guard, trash, presence, boards } = setup();
+    const { policy, trash, presence, boards } = setup();
     let closed = 0;
     const racing: IBoardSyncGateway = {
       connect: async () => {
@@ -155,7 +155,7 @@ describe("trash: who sees a trashed board", () => {
         } satisfies SyncSession;
       },
     };
-    const connect = new ConnectBoardSync(guard, racing, presence);
+    const connect = new ConnectBoardSync(policy, racing, presence);
     const peer = { send: () => {}, close: () => {} };
     expect(
       code(await connect.execute({ actor: member, boardId: "b1", peer }))
@@ -165,18 +165,14 @@ describe("trash: who sees a trashed board", () => {
   });
 
   it("does not offer a password prompt for a trashed password board", async () => {
-    const { boards, guard, trash } = setup();
-    const board = boards.rows.get("b1");
-    if (!board) {
-      throw new Error("expected board");
-    }
-    boards.rows.set("b1", board.withProtection("password", "hash", new Date()));
+    const { boards, policy, trash } = setup();
+    boards.rows.set("b1", protectedBoard("password", "hash"));
     await trash.execute({ actor: owner, boardId: "b1" });
     expect(
-      code(await guard.require("b1", { unlockProof: "bad" }, "read"))
+      code(await policy.decide("b1", { unlockProof: "bad" }, "read"))
     ).toBe("NotFound");
     expect(
-      code(await guard.require("b1", { unlockProof: "ok:b1" }, "read"))
+      code(await policy.decide("b1", { unlockProof: "ok:b1" }, "read"))
     ).toBe("Gone");
   });
 });
@@ -204,7 +200,7 @@ describe("trash: transitions", () => {
   });
 
   it("restores access for members and link visitors, idempotently, without touching the scene", async () => {
-    const { boards, guard, trash, restore, scenes } = setup();
+    const { boards, policy, trash, restore, scenes } = setup();
     await trash.execute({ actor: owner, boardId: "b1" });
     expect(
       (await restore.execute({ actor: owner, boardId: "b1" })).isOk()
@@ -213,8 +209,8 @@ describe("trash: transitions", () => {
       (await restore.execute({ actor: owner, boardId: "b1" })).isOk()
     ).toBe(true);
     expect(boards.rows.get("b1")?.trashedAt).toBeNull();
-    expect(code(await guard.require("b1", member, "write"))).toBe("ok");
-    expect(code(await guard.require("b1", owner, "owner"))).toBe("ok");
+    expect(code(await policy.decide("b1", member, "write"))).toBe("ok");
+    expect(code(await policy.decide("b1", owner, "owner"))).toBe("ok");
     expect(scenes.discarded).toEqual([]);
     const listed = await new ListBoards(boards).execute({ userId: "owner" });
     expect(listed.isOk() && listed.value.map((b) => b.id)).toEqual(["b1"]);
@@ -280,12 +276,12 @@ describe("trash: transitions", () => {
   });
 
   it("does not purge a board restored in the meantime", async () => {
-    const { boards, trash, restore, scenes, deleted, uow, guard, storage } =
+    const { boards, trash, restore, scenes, deleted, uow, policy, storage } =
       setup();
     await trash.execute({ actor: owner, boardId: "b1" });
     // the owner restores between the purge's check and its delete
     const racing = new PurgeBoard(
-      guard,
+      policy,
       {
         run: async (work) => {
           await restore.execute({ actor: owner, boardId: "b1" });

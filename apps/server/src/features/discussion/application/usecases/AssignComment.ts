@@ -13,7 +13,7 @@ import type { IBoardAccess } from "../ports/IBoardAccess";
 
 export class AssignComment {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly uow: IUnitOfWork<DiscussionTx>
   ) {}
 
@@ -23,7 +23,7 @@ export class AssignComment {
     commentId: string;
     assigneeId: string | null;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "write"
@@ -44,7 +44,7 @@ export class AssignComment {
       const assigned = assign(
         comment,
         input.assigneeId,
-        await tx.members.idsOf(board)
+        await tx.members.memberIds(board)
       );
       if (assigned.isErr()) {
         return err(assigned.error);

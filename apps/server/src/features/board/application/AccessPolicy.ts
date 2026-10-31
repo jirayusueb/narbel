@@ -3,8 +3,8 @@ import type { Actor } from "../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../shared/kernel/types/Result";
 import type { Result } from "../../../shared/kernel/types/Result";
 import type { Board } from "../domain/entities/Board";
-import { resolveAccess, shareRoleFor } from "../domain/rules/resolveAccess";
-import type { Access } from "../domain/values/Access";
+import type { Access, MemberRole } from "../domain/values/Access";
+import { shareRoleFor } from "../domain/values/ShareLink";
 import type { IBoardAccessRepository } from "./ports/IBoardAccessRepository";
 import type { IBoardRepository } from "./ports/IBoardRepository";
 import type { IUnlockTokens } from "./ports/IUnlockTokens";
@@ -16,7 +16,8 @@ export interface GrantedBoard {
   access: Access;
 }
 
-export class BoardAccessGuard {
+/** The boards context's answer to "who may do what on this board", for every caller and every context. */
+export class AccessPolicy {
   constructor(
     private readonly boards: IBoardRepository,
     private readonly grants: IBoardAccessRepository,
@@ -24,7 +25,7 @@ export class BoardAccessGuard {
     private readonly now: () => Date = () => new Date()
   ) {}
 
-  async require(
+  async decide(
     boardId: string,
     actor: Actor,
     need: Need
@@ -33,7 +34,21 @@ export class BoardAccessGuard {
     if (!board) {
       return err(AppError.notFound("Board"));
     }
-    const access = await this.resolve(board, actor);
+    const access = board.accessFor({
+      userId: actor.userId,
+      grantRole: await this.grantRole(board, actor),
+      shareRole: actor.shareToken
+        ? shareRoleFor(
+            await this.grants.findShare(board.id),
+            actor.shareToken,
+            this.now()
+          )
+        : null,
+      unlocked:
+        board.passwordHash !== null &&
+        actor.unlockProof !== undefined &&
+        this.unlock.verify(board.id, board.passwordHash, actor.unlockProof),
+    });
     if (board.trashedAt) {
       // only someone who could have opened the board while it was live learns it is in Trash
       return err(
@@ -62,7 +77,7 @@ export class BoardAccessGuard {
   }
 
   /** Owner-only entry for the Trash actions: the board may be live or in Trash; everyone else sees nothing. */
-  async requireOwnedAnyState(
+  async decideOwnedAnyState(
     boardId: string,
     actor: Actor
   ): Promise<Result<Board, AppError>> {
@@ -72,28 +87,38 @@ export class BoardAccessGuard {
       : err(AppError.notFound("Board"));
   }
 
-  private async resolve(board: Board, actor: Actor): Promise<Access | null> {
-    const isOwner = board.isOwnedBy(actor.userId);
-    const memberRole =
-      !isOwner && actor.userId
-        ? await this.grants.findMemberRole(board.id, {
-            userId: actor.userId,
-            email: actor.email,
-          })
-        : null;
-    const share = actor.shareToken
-      ? await this.grants.findShare(board.id)
-      : null;
-    return resolveAccess({
-      isOwner,
-      memberRole,
-      shareRole: shareRoleFor(share, actor.shareToken, this.now()),
-      visibility: board.visibility,
-      unlocked:
-        board.passwordHash !== null &&
-        actor.unlockProof !== undefined &&
-        this.unlock.verify(board.id, board.passwordHash, actor.unlockProof),
-      signedIn: actor.userId !== undefined,
+  /** The live boards a person can read now, with their current titles. */
+  readableBoardTitles(person: {
+    id: string;
+    email: string;
+  }): Promise<Map<string, string>> {
+    return this.grants.readableBoardTitles(person);
+  }
+
+  /** The owner plus everyone holding a grant: who may be assigned or mentioned. */
+  async memberIds(board: {
+    id: string;
+    ownerId: string;
+  }): Promise<Set<string>> {
+    const roles = await this.grants.listMemberRoles(board.id);
+    return new Set([board.ownerId, ...roles.map((m) => m.userId)]);
+  }
+
+  /** A signed-in caller's grant role; their first access through an invited email claims the invitation. */
+  private async grantRole(
+    board: Board,
+    actor: Actor
+  ): Promise<MemberRole | null> {
+    if (board.isOwnedBy(actor.userId) || !actor.userId) {
+      return null;
+    }
+    const grant = await this.grants.findGrant(board.id, {
+      userId: actor.userId,
+      email: actor.email,
     });
+    if (grant?.userId === null) {
+      await this.grants.claim(grant.grantId, actor.userId);
+    }
+    return grant?.role ?? null;
   }
 }

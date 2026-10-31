@@ -14,7 +14,7 @@ import type { IBoardAccess } from "../ports/IBoardAccess";
 
 export class EditComment {
   constructor(
-    private readonly guard: IBoardAccess,
+    private readonly access: IBoardAccess,
     private readonly uow: IUnitOfWork<DiscussionTx>
   ) {}
 
@@ -24,7 +24,7 @@ export class EditComment {
     commentId: string;
     body: string;
   }): Promise<Result<CommentDto, AppError>> {
-    const granted = await this.guard.require(
+    const granted = await this.access.decide(
       input.boardId,
       input.actor,
       "read"
@@ -52,7 +52,7 @@ export class EditComment {
       });
       // people already named before the edit are not told again
       await new DiscussionEvents(tx, actor.value, edited.value).mentions(
-        await tx.members.idsOf(board),
+        await tx.members.memberIds(board),
         extractMentions(comment.body)
       );
       return await presentOne(
