@@ -1,4 +1,7 @@
-import type { DiscussionEvent } from "../../../shared/application/events/DiscussionEvent";
+import type {
+  CommentChangeEvent,
+  DiscussionEvent,
+} from "../../../shared/application/events/DiscussionEvent";
 import type { Person } from "../../../shared/application/interfaces/IProfiles";
 import { threadIdOf } from "../domain/entities/Comment";
 import type { Comment } from "../domain/entities/Comment";
@@ -9,6 +12,35 @@ const audience = (root: Comment) =>
   new Set(
     [root.authorId, root.assigneeId].filter((id): id is string => id !== null)
   );
+
+/** What a comment says now, for contexts that mirror comment text (search). */
+export const commentChanged = (
+  type: "event.comment-posted" | "event.comment-edited",
+  comment: Comment,
+  at: Date
+): CommentChangeEvent => ({
+  type,
+  version: 1,
+  boardId: comment.boardId,
+  pageId: comment.pageId,
+  commentId: comment.id,
+  body: comment.body,
+  at: at.toISOString(),
+});
+
+/** Comments one delete removed from one page of one board, for the same mirrors. */
+export const commentsDeleted = (
+  where: Pick<Comment, "boardId" | "pageId">,
+  commentIds: string[],
+  at: Date
+): CommentChangeEvent => ({
+  type: "event.comment-deleted",
+  version: 1,
+  boardId: where.boardId,
+  pageId: where.pageId,
+  commentIds,
+  at: at.toISOString(),
+});
 
 /**
  * What a comment change tells other contexts, written into the caller's transaction

@@ -7,7 +7,7 @@ import type { Result } from "../../../../shared/kernel/types/Result";
 import { editBody } from "../../domain/entities/Thread";
 import { extractMentions } from "../../domain/rules/mentions";
 import { presentOne } from "../CommentPresenter";
-import { DiscussionEvents } from "../DiscussionEvents";
+import { commentChanged, DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
 import type { DiscussionTx } from "../ports/DiscussionTx";
 import type { IBoardAccess } from "../ports/IBoardAccess";
@@ -42,7 +42,8 @@ export class EditComment {
       if (!comment) {
         return err(AppError.notFound("Comment"));
       }
-      const edited = editBody(comment, actor.value.id, input.body, new Date());
+      const now = new Date();
+      const edited = editBody(comment, actor.value.id, input.body, now);
       if (edited.isErr()) {
         return err(edited.error);
       }
@@ -50,6 +51,9 @@ export class EditComment {
         body: edited.value.body,
         editedAt: edited.value.editedAt,
       });
+      await tx.outbox.publish(
+        commentChanged("event.comment-edited", edited.value, now)
+      );
       // people already named before the edit are not told again
       await new DiscussionEvents(tx, actor.value, edited.value).mentions(
         await tx.members.memberIds(board),

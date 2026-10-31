@@ -1,6 +1,6 @@
 # Bounded contexts of narbel
 
-Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 6 are done. Each later step starts only after the owner confirms it.
+Status: accepted by the owner on 2026-10-30, with every decision as recommended. Migration steps 1 to 7 are done. Each later step starts only after the owner confirms it.
 
 This document splits the server's former `features/board` module into bounded contexts, defines how the contexts talk, and lists the current behavior that the split must keep. It also covers the matching frontend changes. Every "today" claim cites the code it comes from, so a reviewer can check it.
 
@@ -25,9 +25,9 @@ The symptoms of the missing boundaries are in the code today:
 | `discussion` | supporting | Threads pinned to a page: replies, mentions, reactions, assignment, and resolution. | `comment`, `comment_reaction` |
 | `identity` | generic | Accounts, sessions, API keys, and MCP OAuth through Better Auth. Module `profile` holds usernames, display names, and avatars. | Better Auth tables, `profile` |
 | `notification` | generic | The in-app inbox, the unread count, and email delivery through the outbox. | `notification`, `outbox` |
-| `search` | supporting | A read model that answers "which boards I can read mention this text". | `board_text` (written by `drawing` until step 7) and a new `search_comment` table |
+| `search` | supporting | A read model that answers "which boards I can read mention this text". | `board_text`, `board_text_version`, and `search_comment` |
 
-MCP is not a context. It is a transport, like HTTP, that calls the application services of `drawing`, `discussion`, and `boards`. It has no rules of its own.
+MCP is not a context. It is a transport, like HTTP, that calls the application services of `drawing`, `discussion`, `boards`, and `search`. It has no rules of its own.
 
 Each context gets one schema file, `packages/db/src/schema/<context>.ts`, and only that context's infrastructure may import it. Another context refers to a row only by its id.
 
@@ -40,7 +40,7 @@ Each context gets one schema file, `packages/db/src/schema/<context>.ts`, and on
 
 ## Ubiquitous language
 
-The words of each context, with their meaning and the neighbour's word they must not be confused with, are in [glossary.md](glossary.md) and, for a context with its own folder, in that folder's `CONTEXT.md` (`features/boards/CONTEXT.md`, `features/drawing/CONTEXT.md`). Class, method, event, and route names come from it. A new word enters the glossary in the same pull request as the code that needs it.
+The words of each context, with their meaning and the neighbour's word they must not be confused with, are in [glossary.md](glossary.md) and, for a context with its own folder, in that folder's `CONTEXT.md` (`features/boards/CONTEXT.md`, `features/drawing/CONTEXT.md`, `features/discussion/CONTEXT.md`, `features/search/CONTEXT.md`). Class, method, event, and route names come from it. A new word enters the glossary in the same pull request as the code that needs it.
 
 ## Talking across contexts
 
@@ -71,12 +71,15 @@ interface AccessPolicy {
     actor: Actor,
     need: Need
   ): Promise<Result<Access, AccessDenied>>;
-  readableBoardIds(personId: PersonId, email: Email): Promise<BoardId[]>;
+  readableBoards(person: {
+    id: PersonId;
+    email: Email;
+  }): Promise<ReadableBoard[]>;
   people(boardId: BoardId): Promise<{ owner: PersonId; members: Grant[] }>;
 }
 ```
 
-`decide` replaces `BoardAccessGuard.require` (`application/BoardAccess.ts`) for all 33 callers. `readableBoardIds` replaces the `readable` CTE in `DrizzleBoardSearch.ts` and the joins in `listSharedWith`. `people` replaces `memberIdsOf` in `BoardPeople.ts:9-17`, which discussion uses for assignees and mentions.
+`decide` replaces `BoardAccessGuard.require` (`application/BoardAccess.ts`) for all 33 callers. `readableBoards` answers, for each live board the person owns or holds a grant on, its id, title, the person's role, visibility, and creation and last-edit times. It replaced the `readable` CTE in `DrizzleBoardSearch.ts` in step 7; `notification` reads only ids and titles from it, `search` the whole row. `people` replaces `memberIdsOf` in `BoardPeople.ts:9-17`, which discussion uses for assignees and mentions.
 
 The decision rules move unchanged from `domain/rules/resolveAccess.ts` into the `Board` aggregate. The list in [Behavior the split must keep](#behavior-the-split-must-keep) is the acceptance test for `decide`.
 
@@ -101,9 +104,7 @@ Each event carries a `type` and a `version`. A payload change that removes or re
 
 | Event | Producer | Payload | Consumers and what they do | Today |
 | --- | --- | --- | --- | --- |
-| `BoardCreated` v1 | `boards` | boardId, ownerId, title | `search`: store the title. | `search` reads `board.title` live |
-| `BoardRenamed` v1 | `boards` | boardId, title | `search`: update the title. | same |
-| `event.board-deleted` v1 | `boards` | boardId, ownerId | `drawing`: close live peers, delete the document, files, and S3 prefix. `discussion`: delete threads. `notification`: delete notifications for the board. `search`: drop the board. | done in step 6 for `drawing` and `notification`; threads and `board_text` still go by FK cascade (`search` in step 7) |
+| `event.board-deleted` v1 | `boards` | boardId, ownerId | `drawing`: close live peers, delete the document, files, and S3 prefix. `discussion`: delete threads. `notification`: delete notifications for the board. | done in step 6 for `drawing` and `notification`; threads and the `search` rows still go by FK cascade |
 | `MemberInvited` v1 | `boards` | boardId, boardTitle, email, inviteeId or null, inviterId, firstInvite | `notification`: if inviteeId is set and firstInvite, add `board.invited`. Enqueue email with dedupe key `invite:<boardId>:<email>`. | `InviteBoardMember.ts:50-70` |
 | `event.member-removed` v1 | `boards` | boardId, email, personId or null | `discussion`: clear that person as assignee. `notification`: forget the invite email. `drawing.live`: re-check that person's open peers (decision 1). | done in step 6 |
 | `event.access-changed` v1 | `boards` | boardId | `drawing.live`: re-check every open peer of the board (decision 1). | done in step 6 |
@@ -112,8 +113,11 @@ Each event carries a `type` and a `version`. A payload change that removes or re
 | `event.people-mentioned` v1 | `discussion` | boardId, threadId, commentId, actor, excerpt, recipients (id, email) | `notification`: one `comment.mentioned` and one email `mentioned:<commentId>:<personId>` per recipient. | done in step 5 |
 | `event.thread-replied` v1 | `discussion` | boardId, threadId, commentId, actor, excerpt, recipientIds | `notification`: add `comment.reply` per recipient. | done in step 5 |
 | `event.thread-resolved` v1 | `discussion` | boardId, threadId, commentId, actor, recipientIds | `notification`: add `comment.resolved` per recipient. | done in step 5 |
-| `CommentPosted`, `CommentEdited`, `CommentDeleted` v1 | `discussion` | boardId, commentId, body or nothing | `search`: maintain `search_comment`. | `search` reads `comment.body` live |
-| `DrawingTextChanged` v1 | `drawing` | boardId, upserts, removals | `search`: write `board_text` rows. | `DrizzleBoardDocumentStore.save`, same transaction |
+| `event.comment-posted`, `event.comment-edited` v1 | `discussion` | boardId, pageId, commentId, body, at | `search`: write the body into `search_comment` unless a change at a later `at` or a delete is already there. | done in step 7 |
+| `event.comment-deleted` v1 | `discussion` | boardId, pageId, commentIds (the comment and, for a thread root, its replies), at | `search`: turn the rows into tombstones, which no later post or edit revives. | done in step 7, also published for a deleted person's comments (decision 4) |
+| `event.drawing-text-changed` v1 | `drawing` | boardId, savedAt, texts (the full set: pageId, elementId, text) | `search`: make `board_text` equal the set unless a later `savedAt` was applied (`board_text_version`). | done in step 7 |
+
+`BoardCreated` and `BoardRenamed` were planned so that `search` could keep its own copy of titles. Step 7 dropped them: `AccessPolicy.readableBoards` already returns the current title with every search, synchronously, so a copy would only add lag.
 
 Discussion decides who hears about a thread: author, assignee, and mentioned people, filtered to current members. That rule moves with the events as `recipientIds`. Notification only renders and delivers.
 
@@ -126,11 +130,10 @@ graph LR
 	identity -->|PeopleDirectory| notification
 	boards -->|AccessPolicy| drawing
 	boards -->|AccessPolicy| discussion
-	boards -->|AccessPolicy| search
+	boards -->|AccessPolicy.readableBoards| search
 	boards -.->|BoardDeleted, MemberInvited, MemberRemoved, BoardRenamed| notification
 	boards -.->|BoardDeleted| drawing
 	boards -.->|BoardDeleted, MemberRemoved| discussion
-	boards -.->|BoardCreated, BoardRenamed, BoardDeleted| search
 	drawing -.->|DrawingTextChanged| search
 	discussion -.->|CommentAssigned, PeopleMentioned, ThreadReplied, ThreadResolved| notification
 	discussion -.->|CommentPosted, CommentEdited, CommentDeleted| search
@@ -167,7 +170,7 @@ Deleting a board is two steps. `TrashBoard` sets `board.trashed_at`, saves the l
 
 Before step 6, `PurgeBoard` deleted, in one transaction and only while the board was still in Trash, the board's notifications and the board row, then closed the live room and deleted the S3 prefix.
 
-Since step 6, `boards` deletes the `Board` aggregate and writes `event.board-deleted` (version 1, boardId, ownerId) to the outbox in the same transaction (`features/boards/application/usecases/PurgeBoard.ts`). Each consumer handles it once, marked in `processed_event`: `drawing` (`DeleteDrawing`) deletes its document, versions and file rows, discards the live room on the instance that runs the consumer, and deletes the S3 prefix, inside its transaction so a failed delete leaves the event to be retried; `notification` (`DropBoardNotifications`) deletes the board's notifications. The S3 delete now runs after the board row is gone, which closes the gap where an S3 delete succeeded and the transaction then failed. `discussion` has no consumer: the cross-context foreign keys stay in the schema during the migration (`packages/db/src/schema/discussion.ts`, `drawing.ts`, `search.ts`), so the database still deletes grants, share link, comments, reactions, document, versions, text, and files at once, and the `drawing` consumer finds nothing left. The keys can go later, when each consumer has a test that proves it deletes its rows.
+Since step 6, `boards` deletes the `Board` aggregate and writes `event.board-deleted` (version 1, boardId, ownerId) to the outbox in the same transaction (`features/boards/application/usecases/PurgeBoard.ts`). Each consumer handles it once, marked in `processed_event`: `drawing` (`DeleteDrawing`) deletes its document, versions and file rows, discards the live room on the instance that runs the consumer, and deletes the S3 prefix, inside its transaction so a failed delete leaves the event to be retried; `notification` (`DropBoardNotifications`) deletes the board's notifications. The S3 delete now runs after the board row is gone, which closes the gap where an S3 delete succeeded and the transaction then failed. `discussion` and `search` have no consumer: the cross-context foreign keys stay in the schema during the migration (`packages/db/src/schema/discussion.ts`, `drawing.ts`, `search.ts`), so the database still deletes grants, share link, comments, reactions, document, versions, text, search comments, and files at once, and the `drawing` consumer finds nothing left. A text or comment event that reaches `search` after the purge fails its foreign key, and the consumer takes that as done. The keys can go later, when each consumer has a test that proves it deletes its rows.
 
 ## Behavior the split must keep
 
@@ -238,5 +241,5 @@ Each step is one pull request. The tests from [Behavior the split must keep](#be
 4. Done (2026-10-31). The Drizzle profile and notification repositories live in their features; the schema-owner rules now allow `features/profile` (identity's profile module). The notification list re-checks access through `readableBoards` from `features/board`'s public API (now `features/boards`) and shows an invitation under the board's current title (decision 3). Deleting a person runs a Better Auth `delete.before` hook that removes the avatar and drops the person's pending outbox emails (decision 4); it becomes the `PersonDeleted` event when identity publishes events.
 5. Done (2026-10-31). `features/discussion` owns comments, replies and reactions, with `schema/discussion.ts` and its owner rule. The `Thread` aggregate (`domain/entities/Thread.ts`) holds the rules that sat in use cases: an assignee must be a member, only the author edits, the author or owner deletes, replies are created only through `replyTo`, resolve and reopen are idempotent. Comment side effects are the four events above, consumed by `notification` once per event; a recipient deleted in between is skipped. Discussion reaches boards only through its own ports (`IBoardAccess`, `IBoardMembers`), and boards reaches discussion through `ICommentActivity` and `ICommentAssignees`. `Actor` and the request helpers moved to `shared/`. Reactions stay a value checked against the allow-list, with one row per person, comment and emoji.
 6. Done (2026-10-31). `features/board` is gone. 6a: `AccessPolicy` (`features/boards/application/AccessPolicy.ts`) replaced `BoardAccessGuard`, the `Board` aggregate owns the access rules, and claiming an invitation is an explicit step inside `decide`. 6b: `RemoveBoardMember`, `UpdateBoardAccess` and a role change in `InviteBoardMember` publish `event.member-removed` and `event.access-changed`, which `drawing.live` turns into a recheck of every open peer on every instance (decision 1), and `discussion` and `notification` consume `event.member-removed`. 6c: the domain reads elements through the typed `Element` behind one Excalidraw adapter. 6d: the server splits into `features/boards` (lifecycle, access, members, share links, unlock, and search until step 7), `features/drawing` (pages, elements, images, versions, library, export, changes, the live rooms and presence, rendering, the file sweep and text backfill, and the `Drawing` rules in `domain/entities/Drawing.ts`), and `features/mcp`, a transport over the public `index.ts` of boards, drawing and discussion. Drawing reaches boards only through its ports `IBoardAccess` and `IBoardRecords` (`application/ports/IBoardAccess.ts`); boards reaches drawing only through `ILiveDrawings` (Trash still evicts at once with close code 4410) and `IDrawingCopier` (`DuplicateBoard` stays in boards and lets `CopyDrawing` copy the content); `bootstrap/app.ts` and `main.ts` wire them. Purging publishes `event.board-deleted` as described in [Deleting a board](#deleting-a-board). `schema/board.ts` split into `boards.ts`, `drawing.ts` and `search.ts` with one owner rule each and no database change; `DrizzleBoardAccessRepository` keeps its read of `user` by email until `PeopleDirectory` answers by email.
-7. Rebuild `search` on events and `readableBoardIds`.
+7. Done (2026-10-31). `features/search` owns search: `SearchBoards`, the `GET /api/boards/search` route (same path and response), and the MCP tool `search_boards` through its public `index.ts`. It reads only its own tables (`schema/search.ts`, owner rule `features/search`) plus `AccessPolicy.readableBoards` through its port `IReadableBoards`: titles match in memory with the same rule as the old `ILIKE` (any case, wildcards literal), and text and comment matches are restricted to the readable ids in one query, so ranking stays title matches first, then the newest, 20 boards and 3 matches each. `drawing` no longer writes `board_text`: a save whose text changed publishes `event.drawing-text-changed` with the full set in its transaction, and the startup backfill publishes one per board whose `text_indexed` is false. `discussion` publishes `event.comment-posted`, `event.comment-edited` and `event.comment-deleted` in the transaction of the change; `DeleteComment` now runs in a unit of work, and a deleted person's comments go with their delete events before the user row (decision 4). Search's two consumers (`IndexDrawingText`, `IndexComment`, marked under `search` in `processed_event`) apply a change only over an older one: `board_text_version` holds the last applied save time per board, and `search_comment` keeps `changed_at` and a null body as a tombstone. Existing comments were copied into `search_comment` by the migration, which sits outside the context rules. The `search` and `discussion` words moved from the glossary into their `CONTEXT.md`.
 8. Frontend entities per context, and the reactuse replacements with their lint rule.

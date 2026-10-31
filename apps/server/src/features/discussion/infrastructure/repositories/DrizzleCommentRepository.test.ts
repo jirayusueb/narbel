@@ -96,4 +96,19 @@ describe.skipIf(!reachable)("comment activity (postgres)", () => {
     });
     expect(first?.activityAt).toEqual(t(20));
   });
+
+  it("deletes a thread with its replies, naming what went", async () => {
+    await db
+      .insert(comment)
+      .values([
+        row("root", "b3", { authorId: "u2" }),
+        row("root-reply", "b3", { authorId: "u1", parentId: "root" }),
+        row("kept", "b3", { authorId: "u3" }),
+      ]);
+    expect((await repo.delete("b3", "root")).toSorted()).toEqual([
+      "root",
+      "root-reply",
+    ]);
+    expect(await repo.findById("b3", "kept")).not.toBeNull();
+  });
 });

@@ -63,7 +63,8 @@ export interface IBoardCommentRepository {
       >
     >
   ): Promise<void>;
-  delete(boardId: string, id: string): Promise<void>;
+  /** Deletes the comment and, for a thread root, its replies; returns every deleted id. */
+  delete(boardId: string, id: string): Promise<string[]>;
   addReaction(commentId: string, userId: string, emoji: string): Promise<void>;
   removeReaction(
     commentId: string,

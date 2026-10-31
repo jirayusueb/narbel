@@ -78,7 +78,7 @@ export const createCommentUseCases = ({
   return {
     addComment: new AddComment(access, uow, ids),
     assignComment: new AssignComment(access, uow),
-    deleteComment: new DeleteComment(access, comments),
+    deleteComment: new DeleteComment(access, uow),
     editComment: new EditComment(access, uow),
     listComments: new ListComments(access, comments, profiles),
     listReplies: new ListReplies(access, comments, profiles),

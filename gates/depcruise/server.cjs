@@ -74,9 +74,9 @@ module.exports = {
     {
       name: "server-schema-search-owner",
       comment:
-        "schema/search.ts (board_text) is written by features/drawing's document save and text backfill until step 7 gives search its own context",
+        "schema/search.ts (board_text, board_text_version, search_comment) belongs to features/search; drawing and discussion only publish events",
       severity: "error",
-      from: { path: `${S}/`, pathNot: `${S}/features/drawing/` },
+      from: { path: `${S}/`, pathNot: `${S}/features/search/` },
       to: { path: "packages/db/src/schema/search\\.ts$" },
     },
     {

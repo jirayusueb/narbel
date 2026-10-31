@@ -102,18 +102,35 @@ describe("comment use cases", () => {
     s.profiles.add("ed", "ed_");
     s.profiles.add("vi", "vivi");
     const comments = new FakeComments();
+    // events published while no unit of work runs would escape the change's transaction
+    let open = false;
+    const outside: string[] = [];
+    const { publish } = s.outbox;
+    s.outbox.publish = (event) => {
+      if (!open) {
+        outside.push(event.type);
+      }
+      return publish(event);
+    };
     const uow: IUnitOfWork<DiscussionTx> = {
-      run: (work) =>
-        work({
-          comments,
-          outbox: s.outbox,
-          profiles: s.profiles,
-          members: s.policy,
-        }),
+      run: async (work) => {
+        open = true;
+        try {
+          return await work({
+            comments,
+            outbox: s.outbox,
+            profiles: s.profiles,
+            members: s.policy,
+          });
+        } finally {
+          open = false;
+        }
+      },
     };
     return {
       ...s,
       comments,
+      outside,
       add: new AddComment(s.policy, uow, ids),
       reply: new ReplyToComment(s.policy, uow, ids),
       edit: new EditComment(s.policy, uow),
@@ -122,7 +139,7 @@ describe("comment use cases", () => {
       react: new SetCommentReaction(s.policy, comments, s.profiles),
       list: new ListComments(s.policy, comments, s.profiles),
       replies: new ListReplies(s.policy, comments, s.profiles),
-      del: new DeleteComment(s.policy, comments),
+      del: new DeleteComment(s.policy, uow),
     };
   };
   const put = {
@@ -138,6 +155,16 @@ describe("comment use cases", () => {
     (result.isOk() && result.value?.id) || "";
 
   const asEvent = <T>(message: unknown): T => message as T;
+  const MIRRORED = new Set([
+    "event.comment-posted",
+    "event.comment-edited",
+    "event.comment-deleted",
+  ]);
+  /** the events that tell people something; the comment text events for search are checked apart */
+  const told = (outbox: { messages: { message: { type: string } }[] }) =>
+    outbox.messages
+      .map((m) => m.message)
+      .filter((event) => !MIRRORED.has(event.type));
 
   it("lets writers comment, lists per page, and refuses viewers and anonymous callers", async () => {
     const { add, list } = setup();
@@ -178,7 +205,7 @@ describe("comment use cases", () => {
       actor: owner,
     });
     expect(created.isOk()).toBe(true);
-    const events = outbox.messages.map((m) => m.message);
+    const events = told(outbox);
     expect(events.map((e) => e.type)).toEqual([
       "event.comment-assigned",
       "event.people-mentioned",
@@ -229,7 +256,7 @@ describe("comment use cases", () => {
       pageId: "page:main",
     });
     expect(third.isOk() && third.value.parentId).toBe(root);
-    const events = outbox.messages.map((m) => m.message);
+    const events = told(outbox);
     expect(events.map((e) => e.type)).toEqual([
       "event.thread-replied",
       "event.people-mentioned",
@@ -268,7 +295,7 @@ describe("comment use cases", () => {
       commentId: root,
       resolve: true,
     });
-    expect(outbox.messages).toHaveLength(0);
+    expect(told(outbox)).toHaveLength(0);
   });
 
   it("assigning from a stale read keeps a concurrent edit", async () => {
@@ -323,7 +350,7 @@ describe("comment use cases", () => {
     expect(again.isOk() && again.value.resolvedAt).toBe(
       first.isOk() ? first.value.resolvedAt : ""
     );
-    const events = outbox.messages.map((m) => m.message);
+    const events = told(outbox);
     expect(events.map((e) => e.type)).toEqual([
       "event.comment-assigned",
       "event.thread-resolved",
@@ -338,7 +365,7 @@ describe("comment use cases", () => {
     const viewer = await step(true, { userId: "vi" });
     expect(viewer.isErr() && viewer.error.code).toBe("Forbidden");
     await step(true);
-    expect(outbox.messages.map((m) => m.message.type)).toEqual([
+    expect(told(outbox).map((e) => e.type)).toEqual([
       "event.comment-assigned",
       "event.thread-resolved",
       "event.thread-resolved",
@@ -374,7 +401,7 @@ describe("comment use cases", () => {
     const assigned = await to("vi");
     expect(assigned.isOk() && assigned.value.assignee?.id).toBe("vi");
     await to("vi");
-    expect(outbox.messages).toHaveLength(1);
+    expect(told(outbox)).toHaveLength(1);
     const none = await to(null);
     expect(none.isOk() && none.value.assignee).toBeNull();
     const edited = await edit.execute({
@@ -384,7 +411,7 @@ describe("comment use cases", () => {
       body: "changed @vivi",
     });
     expect(edited.isOk() && edited.value.editedAt).not.toBeNull();
-    expect(outbox.messages.map((m) => m.message.type)).toEqual([
+    expect(told(outbox).map((e) => e.type)).toEqual([
       "event.comment-assigned",
       "event.people-mentioned",
     ]);
@@ -394,7 +421,7 @@ describe("comment use cases", () => {
       commentId: root,
       body: "changed @vivi and @olive",
     });
-    const later = outbox.messages.at(-1)?.message as {
+    const later = told(outbox).at(-1) as {
       type: string;
       recipients: { id: string }[];
     };
@@ -483,5 +510,49 @@ describe("comment use cases", () => {
       (await del.execute({ actor: owner, boardId: "b1", commentId })).isOk()
     ).toBe(true);
     expect(comments.rows.size).toBe(0);
+  });
+
+  it("tells search what each comment says inside the change's transaction; a deleted thread names its replies", async () => {
+    const { add, reply, edit, del, outbox, outside } = setup();
+    const root = idOf(await add.execute({ ...put, actor: ed }));
+    const answer = idOf(
+      await reply.execute({
+        actor: owner,
+        boardId: "b1",
+        commentId: root,
+        body: "first",
+      })
+    );
+    await edit.execute({
+      actor: ed,
+      boardId: "b1",
+      commentId: root,
+      body: "changed",
+    });
+    await del.execute({ actor: owner, boardId: "b1", commentId: root });
+    const mirrored = outbox.messages
+      .map((m) => m.message)
+      .filter((event) => MIRRORED.has(event.type));
+    expect(mirrored).toMatchObject([
+      {
+        type: "event.comment-posted",
+        version: 1,
+        boardId: "b1",
+        pageId: "page:main",
+        commentId: root,
+        body: "hello",
+      },
+      { type: "event.comment-posted", commentId: answer, body: "first" },
+      { type: "event.comment-edited", commentId: root, body: "changed" },
+      {
+        type: "event.comment-deleted",
+        boardId: "b1",
+        pageId: "page:main",
+        commentIds: [root, answer],
+      },
+    ]);
+    const times = mirrored.map((e) => asEvent<{ at: string }>(e).at);
+    expect(times.every((at) => !Number.isNaN(Date.parse(at)))).toBe(true);
+    expect(outside).toEqual([]);
   });
 });

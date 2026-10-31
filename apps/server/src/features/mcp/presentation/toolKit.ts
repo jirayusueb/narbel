@@ -7,9 +7,13 @@ import type { Result } from "../../../shared/kernel/types/Result";
 import type { BoardsUseCases } from "../../boards";
 import type { CommentUseCases } from "../../discussion";
 import type { DrawingUseCases } from "../../drawing";
+import type { SearchUseCases } from "../../search";
 
-/** MCP is a transport: its tools drive the use cases of boards, drawing and discussion. */
-export type McpUseCases = BoardsUseCases & DrawingUseCases & CommentUseCases;
+/** MCP is a transport: its tools drive the use cases of boards, drawing, discussion and search. */
+export type McpUseCases = BoardsUseCases &
+  DrawingUseCases &
+  CommentUseCases &
+  SearchUseCases;
 
 export type ToolRegistrar = (
   server: McpServer,

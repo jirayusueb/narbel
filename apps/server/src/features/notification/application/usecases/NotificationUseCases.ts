@@ -42,10 +42,8 @@ export class NotificationUseCases {
       return err(AppError.validation("Invalid cursor"));
     }
     // decision 3: access is re-checked at list time, so a removed member stops seeing the board
-    const titles = await this.readable.readableBoardTitles({
-      id: userId,
-      email,
-    });
+    const readable = await this.readable.readableBoards({ id: userId, email });
+    const titles = new Map(readable.map((board) => [board.id, board.title]));
     const page = await this.notifications.list(
       userId,
       {
@@ -65,14 +63,13 @@ export class NotificationUseCases {
     email: string,
     ids?: string[]
   ): Promise<Result<{ unreadCount: number }, AppError>> {
-    const titles = await this.readable.readableBoardTitles({
-      id: userId,
-      email,
-    });
+    const readable = await this.readable.readableBoards({ id: userId, email });
     return ok({
-      unreadCount: await this.notifications.markRead(userId, ids, [
-        ...titles.keys(),
-      ]),
+      unreadCount: await this.notifications.markRead(
+        userId,
+        ids,
+        readable.map((board) => board.id)
+      ),
     });
   }
 

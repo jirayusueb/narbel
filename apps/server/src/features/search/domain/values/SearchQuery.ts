@@ -20,6 +20,11 @@ export class SearchQuery {
     return `%${escapeWith(this.value, /[\\%_]/gu)}%`;
   }
 
+  /** The in-memory twin of `ILIKE likePattern()`: a case-insensitive substring, wildcards literal. */
+  matches(text: string): boolean {
+    return text.toLowerCase().includes(this.value.toLowerCase());
+  }
+
   /** The text around the first match, whitespace collapsed; the text's head when nothing matches. */
   snippet(text: string): string {
     const flat = text.replaceAll(/\s+/gu, " ").trim();
