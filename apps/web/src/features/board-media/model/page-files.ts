@@ -1,7 +1,7 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type * as Y from "yjs";
 
-import { isOnPage } from "@/shared/lib/page-keys";
+import { isOnPage } from "@/entities/drawing";
 
 export const fileIdsOnPage = (
   elements: Y.Map<ExcalidrawElement>,

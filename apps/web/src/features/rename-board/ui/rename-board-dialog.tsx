@@ -14,8 +14,9 @@ import { overlay } from "overlay-kit";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useRenameBoard } from "@/entities/board";
 import type { Board } from "@/entities/board";
+
+import { useRenameBoard } from "../api/use-rename-board";
 
 interface DialogControl {
   isOpen: boolean;

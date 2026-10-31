@@ -18,17 +18,15 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
-import type { UserRef } from "@/entities/user";
+import { boardCacheName, deleteBoardCache, isOnPage } from "@/entities/drawing";
+import type { UserRef } from "@/entities/person";
 import { api as serverApi } from "@/shared/api";
 import { SYNC_URL } from "@/shared/config";
 import {
-  boardCacheName,
   colorFromName,
   CURSOR_SYNC_MS,
   ELEMENT_SYNC_MS,
   createThrottleLatest,
-  deleteBoardCache,
-  isOnPage,
 } from "@/shared/lib";
 import type { ThrottleLatest } from "@/shared/lib";
 

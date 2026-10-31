@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 
-import { UserAvatar } from "@/entities/user";
+import { UserAvatar } from "@/entities/person";
 
 import type { Peer } from "../model/use-presence";
 

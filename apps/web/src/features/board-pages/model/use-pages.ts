@@ -2,7 +2,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { useCallback, useEffect, useState } from "react";
 import type * as Y from "yjs";
 
-import { elementKey, isOnPage } from "@/shared/lib";
+import { elementKey, isOnPage } from "@/entities/drawing";
 
 export interface Page {
   id: string;

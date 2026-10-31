@@ -7,7 +7,7 @@ import { Bold, Code, Heading2, Italic, Link2, List } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { UserAvatar } from "@/entities/user";
+import { UserAvatar } from "@/entities/person";
 
 import { fromMarkdown, toMarkdown } from "../model/markdown";
 import {

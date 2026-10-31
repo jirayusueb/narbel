@@ -1,7 +1,7 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type * as Y from "yjs";
 
-import { elementKey } from "@/shared/lib/page-keys";
+import { elementKey } from "@/entities/drawing";
 
 import { shouldTakeIncoming } from "./merge";
 

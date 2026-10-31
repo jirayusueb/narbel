@@ -14,15 +14,16 @@ import { useState } from "react";
 import type { ComponentProps } from "react";
 import { toast } from "sonner";
 
+import { useBoardAccess } from "@/entities/board";
+import type { Board, BoardAccess, Visibility } from "@/entities/board";
+import { UserAvatar } from "@/entities/person";
+import { useCopy } from "@/shared/lib";
+
 import {
-  useBoardAccess,
   useInviteMember,
   usePatchAccess,
   useRemoveMember,
-} from "@/entities/board";
-import type { Board, BoardAccess, Visibility } from "@/entities/board";
-import { UserAvatar } from "@/entities/user";
-import { useCopy } from "@/shared/lib";
+} from "../api/access";
 
 const selectClass =
   "h-10 rounded-md border border-input bg-card px-3 text-sm outline-hidden focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40";

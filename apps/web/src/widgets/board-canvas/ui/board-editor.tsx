@@ -18,9 +18,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 
 import type { Board } from "@/entities/board";
+import { useMe } from "@/entities/person";
+import type { UserRef } from "@/entities/person";
 import { useSession } from "@/entities/session";
-import { useMe } from "@/entities/user";
-import type { UserRef } from "@/entities/user";
 import { useBoardCollab } from "@/features/board-collab";
 import type { CollabStatus } from "@/features/board-collab";
 import {

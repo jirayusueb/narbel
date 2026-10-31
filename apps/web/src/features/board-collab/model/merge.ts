@@ -1,6 +1,6 @@
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
-import { elementIdOf, isOnPage } from "@/shared/lib/page-keys";
+import { elementIdOf, isOnPage } from "@/entities/drawing";
 
 type Versioned = Pick<ExcalidrawElement, "version" | "versionNonce">;
 

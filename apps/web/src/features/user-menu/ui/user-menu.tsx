@@ -13,9 +13,10 @@ import { LogOut, Monitor, Moon, Sun, UserRound } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 
+import { deleteAllBoardCaches } from "@/entities/drawing";
+import { UserAvatar, useMe } from "@/entities/person";
 import { useSession } from "@/entities/session";
-import { UserAvatar, useMe } from "@/entities/user";
-import { authClient, deleteAllBoardCaches } from "@/shared/lib";
+import { authClient } from "@/shared/lib";
 
 const THEMES = [
   { id: "system", label: "System", Icon: Monitor },

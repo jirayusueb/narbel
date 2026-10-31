@@ -33,15 +33,3 @@ export interface BoardAccess {
   } | null;
   members: BoardMember[];
 }
-
-export interface BoardSearchMatch {
-  kind: "title" | "text" | "comment";
-  snippet: string;
-  pageId?: string;
-  commentId?: string;
-}
-
-export interface BoardSearchResult {
-  board: Board;
-  matches: BoardSearchMatch[];
-}

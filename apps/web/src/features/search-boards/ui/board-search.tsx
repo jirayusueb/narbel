@@ -8,10 +8,13 @@ import { Spinner } from "@narbel/ui/components/spinner";
 import { Link } from "@tanstack/react-router";
 import { MessageSquare, Search, Type, X } from "lucide-react";
 
-import { useSearchBoards } from "@/entities/board";
-import type { BoardSearchMatch, BoardSearchResult } from "@/entities/board";
 import { useDebounced } from "@/shared/lib";
 
+import { useSearchBoards } from "../api/use-search-boards";
+import type {
+  BoardSearchMatch,
+  BoardSearchResult,
+} from "../api/use-search-boards";
 import { highlight } from "../model/highlight";
 
 const MIN_LENGTH = 2;

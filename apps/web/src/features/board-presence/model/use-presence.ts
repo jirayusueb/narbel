@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 
-import type { UserRef } from "@/entities/user";
+import type { UserRef } from "@/entities/person";
 import { CURSOR_SYNC_MS, createThrottleLatest } from "@/shared/lib";
 
 import { reveal, takeReveal } from "./agent-focus";

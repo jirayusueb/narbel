@@ -9,7 +9,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import type { FormEvent } from "react";
 
-import { UserAvatar, useMe } from "@/entities/user";
+import { UserAvatar, useMe } from "@/entities/person";
 import { useDebounced } from "@/shared/lib";
 
 import { useClaimUsername, useUsernameAvailable } from "../api/username";

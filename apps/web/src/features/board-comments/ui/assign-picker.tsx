@@ -5,7 +5,7 @@ import { UserRoundPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { UserAvatar, handle } from "@/entities/user";
+import { UserAvatar, handle } from "@/entities/person";
 
 import type { Comment } from "../api/comments";
 import type { ThreadEnv } from "../model/types";
