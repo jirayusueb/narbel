@@ -1,10 +1,11 @@
 import * as Y from "yjs";
 
+import { toElement } from "../../application/dtos/ExcalidrawElement";
+import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type {
   ElementTouch,
   SceneChanges,
 } from "../../application/ports/IBoardScenes";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import type { SceneVersion } from "../../domain/values/ChangeCursor";
 
 /** Records this doc's clientID as an agent writer. Call inside a transaction that changed the doc; idempotent. */
@@ -56,7 +57,7 @@ export const touchesSince = (
     }
   }
   const agents = doc.getMap<true>("agents");
-  const elements = doc.getMap<SceneElement>("elements");
+  const elements = doc.getMap<ExcalidrawElement>("elements");
   const isAfter = (id: Y.ID) => id.clock >= (given?.get(id.client) ?? 0);
   const touches: ElementTouch[] = [];
   const live = new Set<number>();
@@ -73,7 +74,7 @@ export const touchesSince = (
     if (human && element) {
       touches.push({
         pageId: key.slice(0, key.length - element.id.length - 1),
-        element,
+        element: toElement(element),
         existedAtCursor,
       });
     }

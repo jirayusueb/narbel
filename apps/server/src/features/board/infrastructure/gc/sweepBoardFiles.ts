@@ -9,8 +9,8 @@ import {
 import * as Y from "yjs";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
+import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { IBoardPresence } from "../../application/ports/IBoardPresence";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { boardFileKey } from "../../domain/values/FileKey";
 
 const MINUTE = 60_000;
@@ -94,7 +94,7 @@ const snapshotOf = async (
   const doc = new Y.Doc();
   try {
     Y.applyUpdate(doc, row.state);
-    for (const element of doc.getMap<SceneElement>("elements").values()) {
+    for (const element of doc.getMap<ExcalidrawElement>("elements").values()) {
       if (!element.isDeleted && typeof element.fileId === "string") {
         referenced.add(element.fileId);
       }

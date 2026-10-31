@@ -1,4 +1,4 @@
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 
 // Excalidraw renders an arrow between its `points`; a binding additionally snaps it to the
 // target's edge and moves it when the target moves. We approximate the snap with the target's
@@ -26,7 +26,7 @@ interface Box {
 const isMissing = (value: unknown): value is undefined | null =>
   value === undefined || value === null;
 
-const boxOf = (element: SceneElement): Box => ({
+const boxOf = (element: Element): Box => ({
   x: Number(element.x),
   y: Number(element.y),
   width: Number(element.width),
@@ -62,7 +62,7 @@ const rounded = (value: number) => Math.round(value * 100) / 100;
 
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
-const isConnector = (element: SceneElement) =>
+const isConnector = (element: Element) =>
   Boolean(CONNECTOR_TYPES[element.type]);
 
 const binding = (elementId: string) => ({
@@ -72,13 +72,11 @@ const binding = (elementId: string) => ({
 });
 
 const withBoundElements = (
-  target: SceneElement,
+  target: Element,
   connectorId: string,
   connectorType: string
-): SceneElement => {
-  const existing = Array.isArray(target.boundElements)
-    ? (target.boundElements as { id: string; type: string }[])
-    : [];
+): Element => {
+  const existing = target.boundElements ?? [];
   if (existing.some((entry) => entry.id === connectorId)) {
     return target;
   }
@@ -89,30 +87,24 @@ const withBoundElements = (
 };
 
 /** Drops a connector or label from a target's `boundElements`. */
-export const forgetBound = (
-  target: SceneElement,
-  boundId: string
-): SceneElement => ({
+export const forgetBound = (target: Element, boundId: string): Element => ({
   ...target,
-  boundElements: Array.isArray(target.boundElements)
-    ? (target.boundElements as { id: string }[]).filter(
-        (entry) => entry.id !== boundId
-      )
-    : null,
+  boundElements:
+    target.boundElements?.filter((entry) => entry.id !== boundId) ?? null,
 });
 
 // a binding to a deleted element would be dangling, so the end stays free instead
 const resolveTarget = (
   id: string | undefined,
-  targets: Map<string, SceneElement>
+  targets: Map<string, Element>
 ) => {
   const target = isMissing(id) ? undefined : targets.get(id);
   return target?.isDeleted ? undefined : target;
 };
 
 /** The connector's current free ends: its origin and the tip of its last point. */
-const freeEnds = (connector: SceneElement) => {
-  const points = (connector.points as number[][] | undefined) ?? [
+const freeEnds = (connector: Element) => {
+  const points = connector.points ?? [
     [0, 0],
     [Number(connector.width), Number(connector.height)],
   ];
@@ -125,9 +117,9 @@ const freeEnds = (connector: SceneElement) => {
 };
 
 const routeBetween = (
-  connector: SceneElement,
-  start: SceneElement | undefined,
-  end: SceneElement | undefined
+  connector: Element,
+  start: Element | undefined,
+  end: Element | undefined
 ) => {
   const { origin, tip } = freeEnds(connector);
   const startPoint = start
@@ -152,12 +144,9 @@ const routeBetween = (
 };
 
 /** Targets the connector was bound to before that it no longer binds. */
-const droppedTargets = (
-  connector: SceneElement,
-  keep: (string | undefined)[]
-) =>
+const droppedTargets = (connector: Element, keep: (string | undefined)[]) =>
   [connector.startBinding, connector.endBinding]
-    .map((value) => (value as { elementId?: string } | null)?.elementId)
+    .map((value) => value?.elementId)
     .filter((id): id is string => id !== undefined && !keep.includes(id));
 
 /**
@@ -167,20 +156,20 @@ const droppedTargets = (
  * `targets` must already contain every referenced element.
  */
 export const attachConnector = (
-  connector: SceneElement,
+  connector: Element,
   refs: ConnectorRefs,
-  targets: Map<string, SceneElement>
-): { writes: SceneElement[]; unbinds: string[] } => {
+  targets: Map<string, Element>
+): { writes: Element[]; unbinds: string[] } => {
   const start = resolveTarget(refs.startElementId, targets);
   const end = resolveTarget(refs.endElementId, targets);
-  const bound: SceneElement = {
+  const bound: Element = {
     ...connector,
     ...routeBetween(connector, start, end),
     startBinding: start ? binding(start.id) : null,
     endBinding: end ? binding(end.id) : null,
   };
   const attached = [start, end]
-    .filter((target): target is SceneElement => target !== undefined)
+    .filter((target): target is Element => target !== undefined)
     .map((target) => withBoundElements(target, bound.id, bound.type));
   return {
     writes: [bound, ...attached],
@@ -190,45 +179,34 @@ export const attachConnector = (
 
 export const connectorCapable = isConnector;
 
-const boundIdOf = (value: unknown) =>
-  (value as { elementId?: string } | null)?.elementId;
-
 /** The start/end refs a connector is currently bound to. */
-export const currentRefs = (connector: SceneElement): ConnectorRefs => ({
-  startElementId: boundIdOf(connector.startBinding),
-  endElementId: boundIdOf(connector.endBinding),
+export const currentRefs = (connector: Element): ConnectorRefs => ({
+  startElementId: connector.startBinding?.elementId,
+  endElementId: connector.endBinding?.elementId,
 });
 
-const boundEntries = (element: SceneElement) =>
-  Array.isArray(element.boundElements)
-    ? (element.boundElements as { id: string; type: string }[])
-    : [];
-
 /** Id of the text bound inside a shape, if it has one. */
-export const labelIdOf = (container: SceneElement): string | undefined =>
-  boundEntries(container).find((entry) => entry.type === "text")?.id;
+export const labelIdOf = (container: Element): string | undefined =>
+  container.boundElements?.find((entry) => entry.type === "text")?.id;
 
 /** The container listing `labelId` as its only bound text. */
-export const withLabel = (
-  container: SceneElement,
-  labelId: string
-): SceneElement => ({
+export const withLabel = (container: Element, labelId: string): Element => ({
   ...container,
   boundElements: [
-    ...boundEntries(container).filter((entry) => entry.type !== "text"),
+    ...(container.boundElements ?? []).filter((entry) => entry.type !== "text"),
     { id: labelId, type: "text" },
   ],
 });
 
 /** Connectors attached to `target`, re-routed to its current geometry. */
 export const rerouteAround = (
-  target: SceneElement,
-  lookup: Map<string, SceneElement>
-): SceneElement[] =>
-  boundEntries(target)
+  target: Element,
+  lookup: Map<string, Element>
+): Element[] =>
+  (target.boundElements ?? [])
     .map((entry) => lookup.get(entry.id))
     .filter(
-      (connector): connector is SceneElement =>
+      (connector): connector is Element =>
         connector !== undefined &&
         !connector.isDeleted &&
         isConnector(connector)
@@ -243,14 +221,14 @@ export const rerouteAround = (
     });
 
 export const detachDeleted = (
-  deleted: SceneElement,
-  lookup: Map<string, SceneElement>
-): SceneElement[] => {
+  deleted: Element,
+  lookup: Map<string, Element>
+): Element[] => {
   const live = (id: string | undefined) => {
     const element = id === undefined ? undefined : lookup.get(id);
     return element?.isDeleted ? undefined : element;
   };
-  const isChild = (e: SceneElement) =>
+  const isChild = (e: Element) =>
     deleted.type === "frame" && !e.isDeleted && e.frameId === deleted.id;
   const released = [...lookup.values()].filter(isChild);
   if (isConnector(deleted)) {
@@ -259,7 +237,7 @@ export const detachDeleted = (
     return [
       ...[startElementId, endElementId]
         .map(live)
-        .filter((t): t is SceneElement => t !== undefined)
+        .filter((t): t is Element => t !== undefined)
         .map((target) => forgetBound(target, deleted.id)),
       ...(label ? [{ ...label, isDeleted: true }] : []),
     ];
@@ -268,20 +246,20 @@ export const detachDeleted = (
     const container = live(deleted.containerId);
     return container ? [forgetBound(container, deleted.id)] : [];
   }
-  const unbound = boundEntries(deleted)
+  const unbound = (deleted.boundElements ?? [])
     .map((entry) => live(entry.id))
-    .filter((bound): bound is SceneElement => bound !== undefined)
-    .flatMap((bound): SceneElement[] => {
+    .filter((bound): bound is Element => bound !== undefined)
+    .flatMap((bound): Element[] => {
       if (isConnector(bound)) {
         return [
           {
             ...bound,
             startBinding:
-              boundIdOf(bound.startBinding) === deleted.id
+              bound.startBinding?.elementId === deleted.id
                 ? null
                 : bound.startBinding,
             endBinding:
-              boundIdOf(bound.endBinding) === deleted.id
+              bound.endBinding?.elementId === deleted.id
                 ? null
                 : bound.endBinding,
           },

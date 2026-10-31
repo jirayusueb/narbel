@@ -1,5 +1,5 @@
 import type { Page } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 
 export interface VersionFile {
   id: string;
@@ -9,7 +9,7 @@ export interface VersionFile {
 
 /** A historical scene, read from a saved state; never touches the live document. */
 export interface VersionScene {
-  pages: (Page & { elements: SceneElement[] })[];
+  pages: (Page & { elements: ExcalidrawElement[] })[];
   /** metadata of the images the visible elements use */
   files: VersionFile[];
 }

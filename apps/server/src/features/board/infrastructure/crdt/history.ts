@@ -1,19 +1,23 @@
 import { equalityDeep } from "lib0/function";
 import * as Y from "yjs";
 
+import {
+  toElement,
+  toExcalidraw,
+} from "../../application/dtos/ExcalidrawElement";
+import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import { byZOrder } from "../../application/dtos/SceneDto";
 import type {
   VersionFile,
   VersionScene,
 } from "../../application/ports/IBoardHistory";
 import type { Page } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { ensurePages } from "./pages";
 
 /** Every image fileId any element (deleted ones included) references. */
 export const fileIdsOf = (doc: Y.Doc): string[] => {
   const ids = new Set<string>();
-  for (const element of doc.getMap<SceneElement>("elements").values()) {
+  for (const element of doc.getMap<ExcalidrawElement>("elements").values()) {
     if (typeof element.fileId === "string") {
       ids.add(element.fileId);
     }
@@ -32,7 +36,7 @@ export const loadState = (state: Uint8Array) => {
 export const readSnapshot = (state: Uint8Array): VersionScene => {
   const doc = loadState(state);
   try {
-    const elements = [...doc.getMap<SceneElement>("elements").entries()];
+    const elements = [...doc.getMap<ExcalidrawElement>("elements").entries()];
     const files = doc.getMap<VersionFile>("files").toJSON();
     const used = new Set<string>();
     const pages = doc
@@ -44,8 +48,9 @@ export const readSnapshot = (state: Uint8Array): VersionScene => {
             ([key, element]) =>
               key.startsWith(`${page.id}:`) && !element.isDeleted
           )
-          .map(([, element]) => element)
-          .toSorted(byZOrder);
+          .map(([, element]) => toElement(element))
+          .toSorted(byZOrder)
+          .map(toExcalidraw);
         for (const element of onPage) {
           if (typeof element.fileId === "string") {
             used.add(element.fileId);
@@ -63,10 +68,10 @@ export const readSnapshot = (state: Uint8Array): VersionScene => {
 };
 
 const STAMPS = new Set(["version", "versionNonce", "updated"]);
-const withoutStamps = (element: SceneElement) =>
+const withoutStamps = (element: ExcalidrawElement) =>
   Object.fromEntries(Object.entries(element).filter(([k]) => !STAMPS.has(k)));
 
-const sameContent = (a: SceneElement, b: SceneElement) =>
+const sameContent = (a: ExcalidrawElement, b: ExcalidrawElement) =>
   equalityDeep(withoutStamps(a), withoutStamps(b));
 
 const pageOf = (key: string, ids: Iterable<string>) => {
@@ -97,10 +102,10 @@ export const restoreScene = (
   versionId: string
 ): boolean => {
   const pages = live.getArray<Page>("pages");
-  const elements = live.getMap<SceneElement>("elements");
+  const elements = live.getMap<ExcalidrawElement>("elements");
   const files = live.getMap<VersionFile>("files");
   const wantedPages = target.getArray<Page>("pages").toArray();
-  const wanted = target.getMap<SceneElement>("elements").toJSON();
+  const wanted = target.getMap<ExcalidrawElement>("elements").toJSON();
   const wantedFiles = target.getMap<VersionFile>("files").toJSON();
   const wantedIds = new Set(wantedPages.map((p) => p.id));
   const droppedIds = pages

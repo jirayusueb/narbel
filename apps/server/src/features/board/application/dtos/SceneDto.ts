@@ -1,4 +1,4 @@
-import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { Element } from "../../domain/entities/Element";
 import { labelIdOf } from "../../domain/rules/bindings";
 import { styleDiff } from "../../domain/shapes/ElementStyle";
 import type { Style } from "../../domain/shapes/ElementStyle";
@@ -28,15 +28,9 @@ export interface SceneDto {
   elements: SceneElementDto[];
 }
 
-const boundId = (binding: unknown) =>
-  (binding as { elementId?: string } | null)?.elementId ?? null;
-
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
-const liveLabel = (
-  e: SceneElement,
-  get: (id: string) => SceneElement | undefined
-) => {
+const liveLabel = (e: Element, get: (id: string) => Element | undefined) => {
   const labelId = labelIdOf(e);
   const label = labelId === undefined ? undefined : get(labelId);
   return label && !label.isDeleted ? label : undefined;
@@ -46,8 +40,8 @@ export const roundCoord = <T>(value: T): T =>
   (typeof value === "number" ? Math.round(value * 100) / 100 + 0 : value) as T;
 
 export const toSceneElementDto = (
-  e: SceneElement,
-  get: (id: string) => SceneElement | undefined
+  e: Element,
+  get: (id: string) => Element | undefined
 ): SceneElementDto => {
   const label = liveLabel(e, get);
   const content = e.type === "text" ? e : label;
@@ -62,13 +56,11 @@ export const toSceneElementDto = (
     ...styleDiff(e, label),
     ...(CONNECTOR_TYPES[e.type]
       ? {
-          startElementId: boundId(e.startBinding),
-          endElementId: boundId(e.endBinding),
+          startElementId: e.startBinding?.elementId ?? null,
+          endElementId: e.endBinding?.elementId ?? null,
         }
       : {}),
-    ...(Array.isArray(e.groupIds) && e.groupIds.length > 0
-      ? { groupIds: e.groupIds as string[] }
-      : {}),
+    ...(e.groupIds && e.groupIds.length > 0 ? { groupIds: e.groupIds } : {}),
     ...(typeof e.frameId === "string" ? { frameId: e.frameId } : {}),
     ...(e.type === "frame" && typeof e.name === "string" && e.name !== ""
       ? { name: e.name }
@@ -78,9 +70,9 @@ export const toSceneElementDto = (
 };
 
 /** Excalidraw's z-order: ascending fractional `index`, ties by id, unindexed last. */
-export const byZOrder = (a: SceneElement, b: SceneElement) => {
-  const ai = typeof a.index === "string" ? a.index : undefined;
-  const bi = typeof b.index === "string" ? b.index : undefined;
+export const byZOrder = (a: Element, b: Element) => {
+  const ai = a.index;
+  const bi = b.index;
   if (ai === bi) {
     return a.id < b.id ? -1 : 1;
   }
@@ -90,11 +82,11 @@ export const byZOrder = (a: SceneElement, b: SceneElement) => {
   return ai < bi ? -1 : 1;
 };
 
-const isLabelOfLive = (byId: Map<string, SceneElement>) => (e: SceneElement) =>
+const isLabelOfLive = (byId: Map<string, Element>) => (e: Element) =>
   typeof e.containerId === "string" &&
   byId.get(e.containerId)?.isDeleted === false;
 
-const visible = (elements: SceneElement[]) => {
+const visible = (elements: Element[]) => {
   const byId = new Map(elements.map((e) => [e.id, e]));
   const isLabel = isLabelOfLive(byId);
   const live = elements.filter((e) => !(e.isDeleted || isLabel(e)));
@@ -103,8 +95,8 @@ const visible = (elements: SceneElement[]) => {
 };
 
 export const toSceneDtos = (
-  elements: SceneElement[],
-  keep: (e: SceneElement) => boolean = () => true
+  elements: Element[],
+  keep: (e: Element) => boolean = () => true
 ): SceneElementDto[] => {
   const { byId, live } = visible(elements);
   const get = (id: string) => byId.get(id);

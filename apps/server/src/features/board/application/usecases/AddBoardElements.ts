@@ -3,8 +3,8 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
+import type { Element } from "../../domain/entities/Element";
 import { resolvePage } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import {
   attachConnector,
   connectorCapable,
@@ -104,17 +104,17 @@ interface Built {
   shape: Shape;
   /** the agent gave startElementId/endElementId to a shape that cannot connect */
   strayEnds: boolean;
-  element: SceneElement;
+  element: Element;
 }
 
 const isPlaced = (shape: Shape) =>
   shape.x !== undefined && shape.y !== undefined;
 
-const live = (e: SceneElement) => !e.isDeleted;
+const live = (e: Element) => !e.isDeleted;
 
 const arrange = (
   batch: Built[],
-  existing: SceneElement[],
+  existing: Element[],
   direction: LayoutDirection = "down"
 ): Built[] => {
   const loose = batch.filter(
@@ -227,7 +227,7 @@ const referencedPageId = (batch: Built[], scene: SceneAccess) =>
 
 const referenceProblem = (
   batch: Built[],
-  known: Map<string, SceneElement>
+  known: Map<string, Element>
 ): Exclude<AddOutcome, "ok"> | undefined => {
   for (const { shape, strayEnds } of batch) {
     if (strayEnds) {
@@ -263,7 +263,7 @@ const referenceProblem = (
 
 const attachAll = (
   placed: Built[],
-  known: Map<string, SceneElement>,
+  known: Map<string, Element>,
   touched: Set<string>
 ) => {
   for (const { shape, element } of placed) {
@@ -281,7 +281,7 @@ const attachAll = (
 
 const labelAll = (
   placed: Built[],
-  known: Map<string, SceneElement>,
+  known: Map<string, Element>,
   ids: IIdGenerator,
   now: number
 ): string[] => {
@@ -307,7 +307,7 @@ const labelAll = (
 
 const fitFrames = (
   batch: Built[],
-  known: Map<string, SceneElement>,
+  known: Map<string, Element>,
   touched: Set<string>
 ) => {
   const fitted = batch.filter(
@@ -338,7 +338,7 @@ const fitFrames = (
 };
 
 /** A placed child outside its sized frame would be clipped away in the browser, so it stays unframed. */
-const unframeStrays = (placed: Built[], known: Map<string, SceneElement>) => {
+const unframeStrays = (placed: Built[], known: Map<string, Element>) => {
   const unsized = new Set(
     placed
       .filter(({ shape }) => shape.type === "frame" && !isPlaced(shape))

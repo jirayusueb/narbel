@@ -13,6 +13,7 @@ const dto = (geometry: Record<string, number>) =>
       y: 0,
       width: 0,
       height: 0,
+      rest: {},
       ...geometry,
     },
     () => {}
@@ -43,6 +44,7 @@ describe("toSceneElementDto style", () => {
     y: 0,
     width: 10,
     height: 10,
+    rest: {},
   };
 
   it("lists non-default style, grouping, frame and lock state", () => {

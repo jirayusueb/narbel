@@ -5,9 +5,9 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { Board } from "../../domain/entities/Board";
+import type { Element } from "../../domain/entities/Element";
 import { MAIN_PAGE } from "../../domain/entities/Page";
 import type { Page } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { MAX_FILE_BYTES } from "../../domain/rules/UploadRules";
 import { BoardTitle, TITLE_MAX_LENGTH } from "../../domain/values/BoardTitle";
 import { boardFileKey, boardFilePrefix } from "../../domain/values/FileKey";
@@ -95,7 +95,7 @@ export class DuplicateBoard {
         s
           .all(p.id)
           .filter((e) => !e.isDeleted)
-          .map((e): [string, SceneElement] => [p.id, e])
+          .map((e): [string, Element] => [p.id, e])
       );
       return { pages, elements };
     });

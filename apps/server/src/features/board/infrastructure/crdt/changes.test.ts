@@ -83,6 +83,7 @@ const agentPut = (hub: YjsBoardHub, id: string, x = 0) =>
       versionNonce: 1,
       x,
       y: 0,
+      rest: {},
     })
   );
 

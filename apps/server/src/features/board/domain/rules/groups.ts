@@ -1,31 +1,22 @@
-import type { SceneElement } from "../entities/SceneElement";
-
-export const groupIdsOf = (element: SceneElement): string[] =>
-  Array.isArray(element.groupIds) ? (element.groupIds as string[]) : [];
+import type { Element } from "../entities/Element";
 
 /** Excalidraw lists a group chain innermost first, so the outermost group is last. */
-export const outermostGroup = (element: SceneElement): string | undefined =>
-  groupIdsOf(element).at(-1);
+export const outermostGroup = (element: Element): string | undefined =>
+  element.groupIds?.at(-1);
 
-export const withGroup = (
-  element: SceneElement,
-  groupId: string
-): SceneElement => ({
+export const withGroup = (element: Element, groupId: string): Element => ({
   ...element,
-  groupIds: [...groupIdsOf(element), groupId],
+  groupIds: [...(element.groupIds ?? []), groupId],
 });
 
-export const withoutGroup = (
-  element: SceneElement,
-  groupId: string
-): SceneElement => ({
+export const withoutGroup = (element: Element, groupId: string): Element => ({
   ...element,
-  groupIds: groupIdsOf(element).filter((g) => g !== groupId),
+  groupIds: (element.groupIds ?? []).filter((g) => g !== groupId),
 });
 
 export const existingGroup = (
-  members: SceneElement[],
-  page: SceneElement[]
+  members: Element[],
+  page: Element[]
 ): string | undefined => {
   const [first] = members;
   const shared = first && outermostGroup(first);
@@ -36,7 +27,7 @@ export const existingGroup = (
     (e) =>
       !e.isDeleted &&
       typeof e.containerId !== "string" &&
-      groupIdsOf(e).includes(shared)
+      e.groupIds?.includes(shared) === true
   );
   const wanted = new Set(members.map((m) => m.id));
   return holders.length === wanted.size &&
@@ -45,22 +36,22 @@ export const existingGroup = (
     : undefined;
 };
 
-export const outermostGroups = (elements: SceneElement[]): string[] => [
+export const outermostGroups = (elements: Element[]): string[] => [
   ...new Set(elements.flatMap((e) => outermostGroup(e) ?? [])),
 ];
 
 /** `members` plus every live holder of their outermost groups; a label follows its container. */
 export const withGroupMates = (
-  members: SceneElement[],
-  page: SceneElement[]
-): SceneElement[] => {
+  members: Element[],
+  page: Element[]
+): Element[] => {
   const outer = new Set(outermostGroups(members));
   const ids = new Set(members.map((m) => m.id));
   const mates = page.filter(
     (e) =>
       !(e.isDeleted || ids.has(e.id)) &&
       typeof e.containerId !== "string" &&
-      groupIdsOf(e).some((g) => outer.has(g))
+      e.groupIds?.some((g) => outer.has(g)) === true
   );
   return [...members, ...mates];
 };

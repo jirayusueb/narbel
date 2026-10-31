@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 import {
   existingGroup,
   outermostGroup,
@@ -9,12 +9,13 @@ import {
   withoutGroup,
 } from "./groups";
 
-const el = (id: string, groupIds: string[] = [], extra = {}): SceneElement => ({
+const el = (id: string, groupIds: string[] = [], extra = {}): Element => ({
   id,
   type: "rectangle",
   version: 1,
   versionNonce: 1,
   groupIds,
+  rest: {},
   ...extra,
 });
 
@@ -32,11 +33,11 @@ describe("groups", () => {
       el("c", ["g"]),
       el("t", ["g"], { containerId: "a" }),
     ];
+    expect(existingGroup([page[0], page[1], page[2]] as Element[], page)).toBe(
+      "g"
+    );
     expect(
-      existingGroup([page[0], page[1], page[2]] as SceneElement[], page)
-    ).toBe("g");
-    expect(
-      existingGroup([page[0], page[1]] as SceneElement[], page)
+      existingGroup([page[0], page[1]] as Element[], page)
     ).toBeUndefined();
     expect(existingGroup([el("a", ["g"]), el("x")], page)).toBeUndefined();
   });

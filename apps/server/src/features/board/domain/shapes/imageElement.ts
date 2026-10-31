@@ -1,4 +1,4 @@
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 import { buildElement } from "./ShapeRegistry";
 import type { ElementIdentity } from "./ShapeRegistry";
 
@@ -35,8 +35,8 @@ export const imageSize = (
 export const buildImage = (
   input: Size & { x: number; y: number; fileId: string; frameId?: string },
   identity: ElementIdentity
-): SceneElement => ({
-  ...buildElement(
+): Element => {
+  const base = buildElement(
     {
       type: "rectangle",
       x: input.x,
@@ -45,10 +45,13 @@ export const buildImage = (
       height: input.height,
     },
     identity
-  ),
-  type: "image",
-  fileId: input.fileId,
-  status: "saved",
-  scale: [1, 1],
-  frameId: input.frameId ?? null,
-});
+  );
+  return {
+    ...base,
+    type: "image",
+    fileId: input.fileId,
+    scale: [1, 1],
+    frameId: input.frameId ?? null,
+    rest: { ...base.rest, status: "saved" },
+  };
+};

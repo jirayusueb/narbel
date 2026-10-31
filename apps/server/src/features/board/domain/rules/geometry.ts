@@ -1,4 +1,4 @@
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 
 export interface Bounds {
   x: number;
@@ -12,25 +12,25 @@ export type Point = [number, number];
 export const num = (value: unknown, fallback = 0) =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
-export const pointsOf = (e: SceneElement): Point[] =>
-  Array.isArray(e.points) && e.points.length > 0
-    ? (e.points as Point[]).map(([px, py]) => [num(px), num(py)])
+export const pointsOf = (e: Element): Point[] =>
+  e.points && e.points.length > 0
+    ? e.points.map(([px, py]) => [num(px), num(py)])
     : [
         [0, 0],
         [num(e.width), num(e.height)],
       ];
 
-export const isLinear = (e: SceneElement) =>
+export const isLinear = (e: Element) =>
   e.type === "line" || e.type === "arrow" || e.type === "freedraw";
 
-const box = (e: SceneElement): Bounds => ({
+const box = (e: Element): Bounds => ({
   x: num(e.x),
   y: num(e.y),
   width: num(e.width),
   height: num(e.height),
 });
 
-export const geometryBox = (e: SceneElement): Bounds => {
+export const geometryBox = (e: Element): Bounds => {
   if (!isLinear(e)) {
     return box(e);
   }
@@ -47,7 +47,7 @@ export const geometryBox = (e: SceneElement): Bounds => {
   };
 };
 
-export const rotatedBounds = (e: SceneElement, b: Bounds): Bounds => {
+export const rotatedBounds = (e: Element, b: Bounds): Bounds => {
   const angle = num(e.angle);
   if (angle === 0) {
     return b;
@@ -77,7 +77,7 @@ export const rotatedBounds = (e: SceneElement, b: Bounds): Bounds => {
   };
 };
 
-export const elementBounds = (e: SceneElement): Bounds =>
+export const elementBounds = (e: Element): Bounds =>
   rotatedBounds(e, geometryBox(e));
 
 export const union = (boxes: Bounds[]): Bounds => {
@@ -101,7 +101,7 @@ export const overlaps = (a: Bounds, b: Bounds) =>
  * Where a connector's label sits, in board coordinates (Excalidraw's rule): the middle
  * point of an odd point count, the midpoint of the middle segment of an even one.
  */
-export const polylineMidpoint = (e: SceneElement): { x: number; y: number } => {
+export const polylineMidpoint = (e: Element): { x: number; y: number } => {
   const pts = pointsOf(e);
   const mid = Math.floor(pts.length / 2);
   const [bx, by] = pts[mid] as Point;

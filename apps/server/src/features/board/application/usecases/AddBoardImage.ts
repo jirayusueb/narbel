@@ -4,8 +4,8 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
+import type { Element } from "../../domain/entities/Element";
 import { resolvePage } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { elementBounds, overlaps, union } from "../../domain/rules/geometry";
 import { readImageHeader } from "../../domain/rules/imageHeader";
 import {
@@ -43,7 +43,7 @@ const FAILURES: Record<Refusal, () => AppError> = {
     AppError.validation("frameId must reference a frame on the page"),
 };
 
-const insideFrame = (frame: SceneElement, live: SceneElement[]) => {
+const insideFrame = (frame: Element, live: Element[]) => {
   const right = live
     .filter((e) => e.frameId === frame.id)
     .map((e) => elementBounds(e))

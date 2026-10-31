@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SceneElement } from "../entities/SceneElement";
+import type { Element } from "../entities/Element";
 import {
   buildElement,
   buildLabel,
@@ -33,14 +33,13 @@ describe("buildElement", () => {
         groupIds: [],
         frameId: null,
         roundness: null,
-        seed: 7,
         version: 1,
         versionNonce: 9,
         isDeleted: false,
         boundElements: null,
         updated: 1000,
-        link: null,
         locked: false,
+        rest: { seed: 7, link: null },
       }
     );
   });
@@ -78,7 +77,7 @@ describe("buildElement", () => {
       fontFamily: 5,
       lineHeight: 1.25,
       containerId: null,
-      autoResize: true,
+      rest: { autoResize: true },
       width: 72,
       height: 50,
     });
@@ -127,12 +126,12 @@ describe("fitLabel", () => {
     ({
       ...buildElement({ type: "arrow", x: 10, y: 20 }, identity),
       points,
-    }) as SceneElement;
-  const centerOf = (label: SceneElement) => ({
+    }) as Element;
+  const centerOf = (label: Element) => ({
     x: Number(label.x) + Number(label.width) / 2,
     y: Number(label.y) + Number(label.height) / 2,
   });
-  const labelOn = (container: SceneElement) =>
+  const labelOn = (container: Element) =>
     centerOf(buildLabel(container, "x", {}, { ...identity, id: "t" }));
 
   it("centers on the midpoint of a 2-point arrow", () => {
@@ -208,7 +207,7 @@ describe("arrow label wrapping", () => {
         { type: "arrow", x: 0, y: 0, width, height: 0 },
         identity
       ),
-    }) as SceneElement;
+    }) as Element;
 
   it("wraps at word boundaries within max(0.7 x width, 11 x fontSize) and keeps originalText", () => {
     expect(long).toHaveLength(62);

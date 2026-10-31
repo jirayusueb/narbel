@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { SceneElement } from "../../domain/entities/SceneElement";
+import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import { AddBoardElements } from "./AddBoardElements";
 import { DeleteBoardElements } from "./DeleteBoardElements";
 import { ids, setupAccess } from "./fakes";
@@ -16,7 +16,7 @@ const setup = () => {
   const remove = new DeleteBoardElements(s.policy, s.scenes, ids);
   const read = new GetBoardScene(s.policy, s.scenes);
   const el = (id: string) =>
-    s.scenes.elements.get(`page:main:${id}`) as SceneElement;
+    s.scenes.elements.get(`page:main:${id}`) as ExcalidrawElement;
   const labelOf = (id: string) => {
     const entry = (
       (el(id).boundElements as { id: string; type: string }[] | null) ?? []
@@ -27,7 +27,7 @@ const setup = () => {
     const result = await read.execute({ actor: owner, boardId: "b1" });
     return result.isOk() ? result.value.elements : [];
   };
-  const center = (e: SceneElement) => ({
+  const center = (e: ExcalidrawElement) => ({
     x: Number(e.x) + Number(e.width) / 2,
     y: Number(e.y) + Number(e.height) / 2,
   });
@@ -48,7 +48,7 @@ describe("shape labels", () => {
       text: "Sign in",
       containerId: "a",
     });
-    expect(t.center(label as SceneElement)).toEqual(t.center(t.el("a")));
+    expect(t.center(label as ExcalidrawElement)).toEqual(t.center(t.el("a")));
     expect(await t.scene()).toEqual([
       {
         id: "a",
@@ -75,7 +75,7 @@ describe("shape labels", () => {
       id: "a",
       patch: { x: 500, y: 200, text: "Moved" },
     });
-    const label = t.labelOf("a") as SceneElement;
+    const label = t.labelOf("a") as ExcalidrawElement;
     expect(label.text).toBe("Moved");
     expect(t.center(label)).toEqual(t.center(t.el("a")));
     expect(t.el("a").text).toBeUndefined();
@@ -113,7 +113,7 @@ describe("shape labels", () => {
       boardId: "b1",
       shapes: [{ id: "a", type: "rectangle", x: 0, y: 0, text: "Gone" }],
     });
-    const label = t.labelOf("a") as SceneElement;
+    const label = t.labelOf("a") as ExcalidrawElement;
     await t.remove.execute({ actor: owner, boardId: "b1", ids: ["a"] });
     expect(t.el(label.id).isDeleted).toBe(true);
     expect(await t.scene()).toEqual([]);
@@ -187,7 +187,7 @@ describe("shape labels", () => {
     });
     const arrow = t.el("ab");
     const [, tip] = arrow.points as number[][];
-    expect(t.center(t.labelOf("ab") as SceneElement)).toEqual({
+    expect(t.center(t.labelOf("ab") as ExcalidrawElement)).toEqual({
       x: Number(arrow.x) + (tip?.[0] ?? 0) / 2,
       y: Number(arrow.y) + (tip?.[1] ?? 0) / 2,
     });
@@ -222,7 +222,7 @@ describe("frames", () => {
         Number(frame.y) + Number(frame.height)
       );
     }
-    expect((t.labelOf("a") as SceneElement).frameId).toBe("f");
+    expect((t.labelOf("a") as ExcalidrawElement).frameId).toBe("f");
     expect([...t.scenes.elements.keys()][0]).toBe("page:main:f");
     const rows = await t.scene();
     expect(rows.find((e) => e.id === "a")).toMatchObject({ frameId: "f" });
@@ -287,7 +287,7 @@ describe("automatic layout", () => {
       ],
     });
     const [a, b, c, d] = [t.el("a"), t.el("b"), t.el("c"), t.el("d")];
-    const bottom = (e: SceneElement) => Number(e.y) + Number(e.height);
+    const bottom = (e: ExcalidrawElement) => Number(e.y) + Number(e.height);
     expect(Number(b.y)).toBeGreaterThan(bottom(a));
     expect(Number(c.y)).toBeGreaterThan(bottom(b));
     expect(c.y).toBe(d.y);
@@ -296,7 +296,7 @@ describe("automatic layout", () => {
       expect(Number(e.x)).toBeGreaterThan(400);
       expect(Number(e.y)).toBeGreaterThanOrEqual(50);
     }
-    expect(t.center(t.labelOf("b") as SceneElement)).toEqual(t.center(b));
+    expect(t.center(t.labelOf("b") as ExcalidrawElement)).toEqual(t.center(b));
   });
 
   it("leaves room for an arrow's label between auto-placed shapes", async () => {
@@ -344,7 +344,7 @@ describe("automatic layout", () => {
         },
       ],
     });
-    const before = t.labelOf("ab") as SceneElement;
+    const before = t.labelOf("ab") as ExcalidrawElement;
     expect(String(before.text).split("\n").length).toBeGreaterThan(2);
     expect(before.originalText).toBe(text);
     await t.update.execute({
@@ -353,7 +353,7 @@ describe("automatic layout", () => {
       id: "b",
       patch: { x: 2000 },
     });
-    const after = t.labelOf("ab") as SceneElement;
+    const after = t.labelOf("ab") as ExcalidrawElement;
     expect(String(after.text).split("\n").length).toBeLessThan(
       String(before.text).split("\n").length
     );
@@ -379,7 +379,7 @@ describe("automatic layout", () => {
         },
       ],
     });
-    expect(String((t.labelOf("ab") as SceneElement).text)).toContain("\n");
+    expect(String((t.labelOf("ab") as ExcalidrawElement).text)).toContain("\n");
     const shown = (await t.scene()).find((e) => e.id === "ab")?.text;
     expect(shown).toBe(text);
     await t.update.execute({
@@ -388,7 +388,7 @@ describe("automatic layout", () => {
       id: "ab",
       patch: { text: shown as string },
     });
-    expect((t.labelOf("ab") as SceneElement).originalText).toBe(text);
+    expect((t.labelOf("ab") as ExcalidrawElement).originalText).toBe(text);
   });
 
   it("leaves room for a labelled arrow that skips a rank", async () => {
@@ -411,7 +411,7 @@ describe("automatic layout", () => {
         },
       ],
     });
-    const label = t.labelOf("ac") as SceneElement;
+    const label = t.labelOf("ac") as ExcalidrawElement;
     const gap = (upper: string, lower: string) =>
       Number(t.el(lower).y) -
       (Number(t.el(upper).y) + Number(t.el(upper).height));

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import * as Y from "yjs";
 
+import { toElement } from "../../application/dtos/ExcalidrawElement";
 import {
   TOMBSTONE_TTL_MS,
   ensurePages,
@@ -115,7 +116,9 @@ describe("ensurePages", () => {
     const second = new Y.Doc();
     Y.applyUpdate(second, Y.encodeStateAsUpdate(first));
     expect(ensurePages(second, "test")).toBe(false);
-    expect(sceneAccess(second).get("page:main", "a")).toEqual(el("a"));
+    expect(sceneAccess(second).get("page:main", "a")).toEqual(
+      toElement(el("a"))
+    );
   });
 });
 
@@ -125,8 +128,8 @@ describe("sceneAccess", () => {
     ensurePages(doc, "t");
     const scene = sceneAccess(doc);
     scene.addPage({ id: "page:two", name: "Two" });
-    scene.put("page:main", el("a"));
-    scene.put("page:two", el("b"));
+    scene.put("page:main", toElement(el("a")));
+    scene.put("page:two", toElement(el("b")));
     expect(scene.all("page:main").map((e) => e.id)).toEqual(["a"]);
     expect(scene.locate("b")?.pageId).toBe("page:two");
     expect(scene.renamePage("page:two", "Deux")).toBe(true);
@@ -140,14 +143,13 @@ describe("sceneAccess", () => {
     ensurePages(doc, "t");
     const scene = sceneAccess(doc);
     // an element a browser already ordered keeps its key
-    scene.put("page:main", { ...el("drawn"), index: "a5" });
-    scene.put("page:main", el("box"));
-    scene.put("page:main", el("next"));
-    scene.put("page:main", {
-      ...el("label"),
-      type: "text",
-      containerId: "box",
-    });
+    scene.put("page:main", toElement({ ...el("drawn"), index: "a5" }));
+    scene.put("page:main", toElement(el("box")));
+    scene.put("page:main", toElement(el("next")));
+    scene.put(
+      "page:main",
+      toElement({ ...el("label"), type: "text", containerId: "box" })
+    );
     const key = (id: string) => String(scene.get("page:main", id)?.index);
     expect(key("drawn")).toBe("a5");
     expect(key("box") > key("drawn")).toBe(true);
@@ -155,7 +157,10 @@ describe("sceneAccess", () => {
     expect(key("label") > key("box") && key("label") < key("next")).toBe(true);
 
     const before = key("box");
-    scene.put("page:main", { ...el("box"), version: 2, index: before });
+    scene.put(
+      "page:main",
+      toElement({ ...el("box"), version: 2, index: before })
+    );
     expect(key("box")).toBe(before);
   });
 
@@ -163,17 +168,20 @@ describe("sceneAccess", () => {
     const doc = new Y.Doc();
     ensurePages(doc, "t");
     const scene = sceneAccess(doc);
-    scene.put("page:main", { ...el("under"), index: "a1" });
-    scene.put("page:main", { ...el("frame"), type: "frame" });
-    scene.put("page:main", el("top"));
-    scene.put("page:main", { ...el("one"), frameId: "frame" });
-    scene.put("page:main", { ...el("two"), frameId: "frame" });
-    scene.put("page:main", {
-      ...el("label"),
-      type: "text",
-      containerId: "one",
-      frameId: "frame",
-    });
+    scene.put("page:main", toElement({ ...el("under"), index: "a1" }));
+    scene.put("page:main", toElement({ ...el("frame"), type: "frame" }));
+    scene.put("page:main", toElement(el("top")));
+    scene.put("page:main", toElement({ ...el("one"), frameId: "frame" }));
+    scene.put("page:main", toElement({ ...el("two"), frameId: "frame" }));
+    scene.put(
+      "page:main",
+      toElement({
+        ...el("label"),
+        type: "text",
+        containerId: "one",
+        frameId: "frame",
+      })
+    );
     const order = scene
       .all("page:main")
       .sort((a, b) => (String(a.index) < String(b.index) ? -1 : 1))

@@ -15,12 +15,13 @@ import type {
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { Board } from "../../domain/entities/Board";
 import type { Page } from "../../domain/entities/Page";
-import type { SceneElement } from "../../domain/entities/SceneElement";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
 import type { MemberRole, Visibility } from "../../domain/values/Access";
 import { BoardTitle } from "../../domain/values/BoardTitle";
 import type { SceneVersion } from "../../domain/values/ChangeCursor";
 import { AccessPolicy } from "../AccessPolicy";
+import { toElement, toExcalidraw } from "../dtos/ExcalidrawElement";
+import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import type { BoardTx } from "../ports/BoardTx";
 import type {
   IBoardAccessRepository,
@@ -260,7 +261,8 @@ export class FakeUow implements IUnitOfWork<BoardTx> {
 
 export class FakeScenes implements IBoardScenes {
   readonly pageList: Page[] = [{ id: "page:main", name: "Page 1" }];
-  readonly elements = new Map<string, SceneElement>();
+  /** elements as the shared document stores them */
+  readonly elements = new Map<string, ExcalidrawElement>();
   readonly files = new Map<
     string,
     { id: string; mimeType: string; created: number }
@@ -289,16 +291,19 @@ export class FakeScenes implements IBoardScenes {
       this.pageList.splice(index, 1);
       return index !== -1;
     },
-    get: (pageId, id) => this.elements.get(`${pageId}:${id}`),
+    get: (pageId, id) => {
+      const stored = this.elements.get(`${pageId}:${id}`);
+      return stored && toElement(stored);
+    },
     all: (pageId) =>
       [...this.elements.entries()]
         .filter(([key]) => key.startsWith(`${pageId}:`))
-        .map(([, el]) => el),
+        .map(([, el]) => toElement(el)),
     locate: (id) => {
       for (const page of this.pageList) {
-        const element = this.elements.get(`${page.id}:${id}`);
-        if (element) {
-          return { pageId: page.id, element };
+        const stored = this.elements.get(`${page.id}:${id}`);
+        if (stored) {
+          return { pageId: page.id, element: toElement(stored) };
         }
       }
       return;
@@ -312,7 +317,7 @@ export class FakeScenes implements IBoardScenes {
     put: (pageId, el) => {
       const key = `${pageId}:${el.id}`;
       if (shouldAcceptIncoming(this.elements.get(key), el)) {
-        this.elements.set(key, el);
+        this.elements.set(key, toExcalidraw(el));
       }
     },
     changesSince: () => ({ touches: this.touches, version: this.version }),

@@ -299,6 +299,7 @@ describe("YjsBoardHub persistence", () => {
     versionNonce: version,
     type: "text",
     text: value,
+    rest: {},
   });
 
   it("writes text rows only when the text changed, and only the difference", async () => {
@@ -320,6 +321,7 @@ describe("YjsBoardHub persistence", () => {
         versionNonce: 1,
         type: "rectangle",
         x: 1,
+        rest: {},
       });
     });
     await sleep(60);
