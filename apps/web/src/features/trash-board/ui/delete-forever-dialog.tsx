@@ -10,10 +10,12 @@ import {
 import { overlay } from "overlay-kit";
 import { toast } from "sonner";
 
-import { useDeleteBoard } from "@/entities/board";
+import { usePurgeBoard } from "@/entities/board";
 import type { Board } from "@/entities/board";
+import { useSession } from "@/entities/session";
+import { deleteBoardCache } from "@/shared/lib";
 
-const DeleteBoardDialog = ({
+const DeleteForeverDialog = ({
   board,
   isOpen,
   close,
@@ -24,7 +26,9 @@ const DeleteBoardDialog = ({
   close: () => void;
   unmount: () => void;
 }) => {
-  const remove = useDeleteBoard();
+  const purge = usePurgeBoard();
+  const { data: session } = useSession();
+  const userId = session?.user.id;
 
   return (
     <AlertDialog
@@ -38,10 +42,11 @@ const DeleteBoardDialog = ({
     >
       <AlertDialogHeader>
         <AlertDialogTitle className="font-display text-feature font-normal">
-          Delete “{board.title}”?
+          Delete “{board.title}” forever?
         </AlertDialogTitle>
         <AlertDialogDescription>
-          The board and its uploaded images are removed permanently.
+          The board, its pages, comments and uploaded images are removed
+          permanently. This cannot be undone.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -50,21 +55,26 @@ const DeleteBoardDialog = ({
         <AlertDialogAction
           slot={null}
           variant="destructive"
-          isDisabled={remove.isPending}
+          isDisabled={purge.isPending}
           onPress={() =>
-            remove.mutate(board.id, {
-              onSuccess: close,
+            purge.mutate(board.id, {
+              onSuccess: () => {
+                if (userId) {
+                  deleteBoardCache(userId, board.id);
+                }
+                close();
+              },
               onError: (error) => toast.error(error.message),
             })
           }
         >
-          Delete
+          Delete forever
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialog>
   );
 };
 
-export const openDeleteBoardDialog = (board: Board) => {
-  overlay.open((control) => <DeleteBoardDialog board={board} {...control} />);
+export const openDeleteForeverDialog = (board: Board) => {
+  overlay.open((control) => <DeleteForeverDialog board={board} {...control} />);
 };

@@ -103,7 +103,7 @@ Each event carries a `type` and a `version`. A payload change that removes or re
 | --- | --- | --- | --- | --- |
 | `BoardCreated` v1 | `boards` | boardId, ownerId, title | `search`: store the title. | `search` reads `board.title` live |
 | `BoardRenamed` v1 | `boards` | boardId, title | `search`: update the title. | same |
-| `BoardDeleted` v1 | `boards` | boardId, ownerId | `drawing`: close live peers, delete the document, files, and S3 prefix. `discussion`: delete threads. `notification`: delete notifications for the board. `search`: drop the board. | `DeleteBoard.ts:20-40` plus FK cascades |
+| `BoardDeleted` v1 | `boards` | boardId, ownerId | `drawing`: close live peers, delete the document, files, and S3 prefix. `discussion`: delete threads. `notification`: delete notifications for the board. `search`: drop the board. | `PurgeBoard.ts` plus FK cascades |
 | `MemberInvited` v1 | `boards` | boardId, boardTitle, email, inviteeId or null, inviterId, firstInvite | `notification`: if inviteeId is set and firstInvite, add `board.invited`. Enqueue email with dedupe key `invite:<boardId>:<email>`. | `InviteBoardMember.ts:50-70` |
 | `MemberRemoved` v1 | `boards` | boardId, email, personId or null | `discussion`: clear that person as assignee. `notification`: forget the invite email. `drawing.live`: re-check that person's open peers (decision 1). | `RemoveBoardMember.ts:31-41` |
 | `AccessChanged` v1 | `boards` | boardId | `drawing.live`: re-check every open peer of the board (decision 1). | nothing |
@@ -163,7 +163,9 @@ Value objects replace the raw strings that carry rules: `BoardId`, `PageId`, `El
 
 ## Deleting a board
 
-Today `DeleteBoard` closes live peers, deletes the S3 prefix, and then, in one transaction, deletes the board's notifications and the board row. Foreign keys cascade the rest: grants, share link, comments, reactions, document, text, and files (`DeleteBoard.ts:20-40`, `packages/db/src/schema/board.ts`).
+Deleting a board is two steps. `TrashBoard` sets `board.trashed_at`, saves the live room, sends every connected peer away on every instance, and hides the board from lists, search, notifications, MCP, files and previews. Everyone who could open it while it was live gets HTTP 410 (their local IndexedDB copy is kept), everyone else 404. `RestoreBoard` clears the column and changes nothing else. Only the owner can then run `PurgeBoard`, which refuses a live board. There is no automatic purge of old trash.
+
+Today `PurgeBoard` deletes, in one transaction and only while the board is still in Trash, the board's notifications and the board row, then closes the live room and deletes the S3 prefix. Foreign keys cascade the rest: grants, share link, comments, reactions, document, text, and files (`PurgeBoard.ts`, `packages/db/src/schema/board.ts`).
 
 After the split, `boards` deletes the `Board` aggregate and writes `BoardDeleted` to the outbox in the same transaction. Each consumer deletes its own rows when the event reaches it. The S3 delete and the live-room close move into the `drawing` consumer, so they run after the board row is gone instead of before it. That fixes today's gap where an S3 delete succeeds and the transaction then fails. The cross-context foreign keys stay in the schema during the migration, so the database still deletes child rows at once and the consumers find nothing left. The keys can go later, when each consumer has a test that proves it deletes its rows.
 

@@ -36,9 +36,12 @@ export const board = pgTable(
     passwordHash: text("password_hash"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    // null while the board is live; set when its owner moved it to Trash
+    trashedAt: timestamp("trashed_at"),
   },
   (table) => [
     index("board_ownerId_idx").on(table.ownerId),
+    index("board_trashed_idx").on(table.ownerId, table.trashedAt),
     index("board_title_trgm_idx").using("gin", table.title.op("gin_trgm_ops")),
   ]
 );

@@ -22,7 +22,6 @@ import { ArrangeElements } from "./application/usecases/ArrangeElements";
 import { AssignComment } from "./application/usecases/AssignComment";
 import { ConnectBoardSync } from "./application/usecases/ConnectBoardSync";
 import { CreateBoard } from "./application/usecases/CreateBoard";
-import { DeleteBoard } from "./application/usecases/DeleteBoard";
 import { DeleteBoardElements } from "./application/usecases/DeleteBoardElements";
 import { DeleteComment } from "./application/usecases/DeleteComment";
 import { DeletePage } from "./application/usecases/DeletePage";
@@ -43,13 +42,16 @@ import { ListComments } from "./application/usecases/ListComments";
 import { ListPages } from "./application/usecases/ListPages";
 import { ListReplies } from "./application/usecases/ListReplies";
 import { ListSharedBoards } from "./application/usecases/ListSharedBoards";
+import { ListTrash } from "./application/usecases/ListTrash";
 import { PresignBoardFileUpload } from "./application/usecases/PresignBoardFileUpload";
+import { PurgeBoard } from "./application/usecases/PurgeBoard";
 import { RemoveBoardMember } from "./application/usecases/RemoveBoardMember";
 import { RenameBoard } from "./application/usecases/RenameBoard";
 import { RenamePage } from "./application/usecases/RenamePage";
 import { RenderBoardImage } from "./application/usecases/RenderBoardImage";
 import { ReplyToComment } from "./application/usecases/ReplyToComment";
 import { ResolveComment } from "./application/usecases/ResolveComment";
+import { RestoreBoard } from "./application/usecases/RestoreBoard";
 import { SaveLibrary } from "./application/usecases/SaveLibrary";
 import { SearchBoards } from "./application/usecases/SearchBoards";
 import {
@@ -58,6 +60,7 @@ import {
   SelectElements,
 } from "./application/usecases/Selection";
 import { SetCommentReaction } from "./application/usecases/SetCommentReaction";
+import { TrashBoard } from "./application/usecases/TrashBoard";
 import { UnlockBoard } from "./application/usecases/UnlockBoard";
 import { UpdateBoardAccess } from "./application/usecases/UpdateBoardAccess";
 import { UpdateBoardElement } from "./application/usecases/UpdateBoardElement";
@@ -160,7 +163,10 @@ const createUseCases = ({
     searchBoards: new SearchBoards(new DrizzleBoardSearch(db)),
     getBoard: new GetBoard(guard),
     renameBoard: new RenameBoard(guard, boards),
-    deleteBoard: new DeleteBoard(guard, uow, hub, storage),
+    trashBoard: new TrashBoard(guard, boards, hub),
+    restoreBoard: new RestoreBoard(guard, boards),
+    listTrash: new ListTrash(boards),
+    purgeBoard: new PurgeBoard(guard, uow, hub, storage),
     presignBoardFileUpload: new PresignBoardFileUpload(guard, files, storage),
     getBoardFile: new GetBoardFile(guard, files, storage),
     getBoardScene: new GetBoardScene(guard, hub),

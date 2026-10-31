@@ -4,6 +4,7 @@ import { websocket } from "elysia/websocket";
 import { STATUS_BY_CODE } from "../../../../shared/kernel/errors/AppError";
 import { errorBody } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
+import { SYNC_CLOSE_TRASHED } from "../../application/ports/IBoardSyncGateway";
 import type { SyncSession } from "../../application/ports/IBoardSyncGateway";
 import type { BoardUseCases } from "../../ioc";
 import { actorFrom, shareQuery } from "../http/actor";
@@ -46,7 +47,7 @@ export const createBoardSyncController = (
         if (board.isErr()) {
           const { code, message, details } = board.error;
           return status(
-            STATUS_BY_CODE[code] as 403 | 404,
+            STATUS_BY_CODE[code] as 403 | 404 | 410,
             errorBody(code, message, details)
           );
         }
@@ -63,11 +64,16 @@ export const createBoardSyncController = (
               send: (data) => {
                 ws.send(data, data.byteLength >= COMPRESS_MIN_BYTES);
               },
-              close: () => ws.close(),
+              close: (code, reason) =>
+                code === undefined ? ws.close() : ws.close(code, reason),
             },
           });
           if (result.isErr()) {
-            ws.close(WS_POLICY_VIOLATION, "forbidden");
+            if (result.error.code === "Gone") {
+              ws.close(SYNC_CLOSE_TRASHED.code, SYNC_CLOSE_TRASHED.reason);
+            } else {
+              ws.close(WS_POLICY_VIOLATION, "forbidden");
+            }
             return;
           }
           return result.value;

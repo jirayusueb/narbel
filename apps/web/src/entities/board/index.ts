@@ -5,13 +5,16 @@ export {
   useBoardMembers,
   useBoards,
   useCreateBoard,
-  useDeleteBoard,
   useInviteMember,
   usePatchAccess,
+  usePurgeBoard,
   useRemoveMember,
   useRenameBoard,
+  useRestoreBoard,
   useSearchBoards,
   useSharedBoards,
+  useTrashBoard,
+  useTrashedBoards,
   useUnlockBoard,
 } from "./api/queries";
 export type {

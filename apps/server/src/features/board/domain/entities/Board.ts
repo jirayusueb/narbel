@@ -9,7 +9,9 @@ export class Board {
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
     public readonly visibility: Visibility,
-    public readonly passwordHash: string | null
+    public readonly passwordHash: string | null,
+    /** null while live; the moment its owner moved it to Trash */
+    public readonly trashedAt: Date | null
   ) {}
 
   static create(
@@ -18,7 +20,7 @@ export class Board {
     title: BoardTitle,
     now: Date
   ): Board {
-    return new Board(id, ownerId, title, now, now, "private", null);
+    return new Board(id, ownerId, title, now, now, "private", null, null);
   }
 
   static restore(row: {
@@ -29,6 +31,7 @@ export class Board {
     updatedAt: Date;
     visibility: Visibility;
     passwordHash: string | null;
+    trashedAt: Date | null;
   }): Board {
     return new Board(
       row.id,
@@ -37,7 +40,8 @@ export class Board {
       row.createdAt,
       row.updatedAt,
       row.visibility,
-      row.passwordHash
+      row.passwordHash,
+      row.trashedAt
     );
   }
 
@@ -49,7 +53,8 @@ export class Board {
       this.createdAt,
       now,
       this.visibility,
-      this.passwordHash
+      this.passwordHash,
+      this.trashedAt
     );
   }
 
@@ -65,7 +70,8 @@ export class Board {
       this.createdAt,
       now,
       visibility,
-      passwordHash
+      passwordHash,
+      this.trashedAt
     );
   }
 

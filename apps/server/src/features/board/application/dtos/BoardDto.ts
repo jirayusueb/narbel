@@ -12,6 +12,8 @@ export interface BoardDto {
   canWrite: boolean;
   /** true when the caller does not own the board */
   shared: boolean;
+  /** set only while the board sits in Trash */
+  trashedAt: string | null;
 }
 
 export const toBoardDto = (board: Board, role: Role): BoardDto => ({
@@ -23,4 +25,5 @@ export const toBoardDto = (board: Board, role: Role): BoardDto => ({
   role,
   canWrite: role !== "viewer",
   shared: role !== "owner",
+  trashedAt: board.trashedAt?.toISOString() ?? null,
 });

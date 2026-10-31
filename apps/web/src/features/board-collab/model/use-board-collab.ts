@@ -30,6 +30,7 @@ import {
   deriveCollabStatus,
   WS_FORBIDDEN_REASON,
   WS_POLICY_VIOLATION,
+  WS_TRASHED_CODE,
 } from "./collab-status";
 import type { CollabStatus } from "./collab-status";
 import { byZOrder, incomingFor } from "./merge";
@@ -142,14 +143,20 @@ export const useBoardCollab = ({
         })
       );
     };
-    const denyAccess = () => {
+    // `keepCache` is for a board moved to Trash: the owner may restore it, and this device may hold edits
+    // the server never saw, so those edits are saved into the local copy instead of dropped.
+    const denyAccess = ({ keepCache = false } = {}) => {
       if (disposed) {
         return;
       }
       noAccess = true;
-      throttle.cancel();
+      if (keepCache) {
+        throttle.flush();
+      } else {
+        throttle.cancel();
+      }
       provider.disconnect();
-      if (cache) {
+      if (cache && !keepCache) {
         deleteBoardCache(userId, boardId);
       }
       refreshStatus();
@@ -175,6 +182,8 @@ export const useBoardCollab = ({
       probed = true;
       if (res.status === 403 || res.status === 404) {
         denyAccess();
+      } else if (res.status === 410) {
+        denyAccess({ keepCache: true });
       }
     };
     // y-websocket bumps its failure counter right after emitting connection-close.
@@ -187,6 +196,10 @@ export const useBoardCollab = ({
         event.reason === WS_FORBIDDEN_REASON
       ) {
         denyAccess();
+        return;
+      }
+      if (event?.code === WS_TRASHED_CODE) {
+        denyAccess({ keepCache: true });
         return;
       }
       queueMicrotask(refreshStatus);

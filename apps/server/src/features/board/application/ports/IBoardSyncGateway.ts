@@ -1,7 +1,10 @@
+/** Close code and reason a peer receives when its board was moved to Trash; the web client keys off the code. */
+export const SYNC_CLOSE_TRASHED = { code: 4410, reason: "board-trashed" };
+
 export interface SyncPeer {
   send(message: Uint8Array): void;
-  /** Forcibly disconnects the peer, e.g. when its board is deleted. */
-  close(): void;
+  /** Forcibly disconnects the peer, e.g. when its board is deleted or trashed. */
+  close(code?: number, reason?: string): void;
 }
 
 export interface SyncSession {

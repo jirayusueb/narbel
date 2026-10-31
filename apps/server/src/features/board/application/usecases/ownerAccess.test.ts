@@ -4,12 +4,12 @@ import type { IFileStorage } from "../../../../shared/application/interfaces/IFi
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import { AddBoardElements } from "./AddBoardElements";
 import { CreateBoard } from "./CreateBoard";
-import { DeleteBoard } from "./DeleteBoard";
 import { DeleteBoardElements } from "./DeleteBoardElements";
 import { ids, setupAccess } from "./fakes";
 import { GetBoard } from "./GetBoard";
 import { ListBoards } from "./ListBoards";
 import { PresignBoardFileUpload } from "./PresignBoardFileUpload";
+import { PurgeBoard } from "./PurgeBoard";
 import { RenameBoard } from "./RenameBoard";
 import { UpdateBoardElement } from "./UpdateBoardElement";
 
@@ -92,7 +92,7 @@ describe("owner access", () => {
       )
     ).toBe("NotFound");
     expect(
-      code(await new DeleteBoard(guard, uow, scenes, storage).execute(intruder))
+      code(await new PurgeBoard(guard, uow, scenes, storage).execute(intruder))
     ).toBe("NotFound");
     expect(
       code(
@@ -134,12 +134,16 @@ describe("owner access", () => {
     expect(renamed.isOk() && renamed.value.title).toBe("New");
   });
 
-  it("deletes the board together with its live document and stored files", async () => {
+  it("purges only a trashed board, with its live document and stored files", async () => {
     const { boards, guard, scenes, storage, deleted, uow } = setup();
-    const result = await new DeleteBoard(guard, uow, scenes, storage).execute({
-      actor: owner,
-      boardId: "b1",
-    });
+    const purge = new PurgeBoard(guard, uow, scenes, storage);
+    const live = await purge.execute({ actor: owner, boardId: "b1" });
+    expect(code(live)).toBe("Conflict");
+    expect(boards.rows.has("b1")).toBe(true);
+    expect(deleted).toEqual([]);
+
+    await boards.setTrashed("b1", new Date());
+    const result = await purge.execute({ actor: owner, boardId: "b1" });
     expect(result.isOk()).toBe(true);
     expect(boards.rows.has("b1")).toBe(false);
     expect(scenes.discarded).toEqual(["b1"]);

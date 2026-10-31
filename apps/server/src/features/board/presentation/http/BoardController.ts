@@ -97,7 +97,36 @@ export const createBoardController = (
       async ({ user, request, params: { id }, set }) => {
         set.status = 204;
         return asWire(
-          await uc.deleteBoard.execute({
+          await uc.trashBoard.execute({
+            actor: actorFrom(request, user, id),
+            boardId: id,
+          })
+        );
+      }
+    )
+    .get("/trash", { auth: true }, async ({ user }) =>
+      asWire(await uc.listTrash.execute({ userId: user.id }))
+    )
+    .post(
+      "/:id/restore",
+      { auth: true, params },
+      async ({ user, request, params: { id }, set }) => {
+        set.status = 204;
+        return asWire(
+          await uc.restoreBoard.execute({
+            actor: actorFrom(request, user, id),
+            boardId: id,
+          })
+        );
+      }
+    )
+    .delete(
+      "/trash/:id",
+      { auth: true, params },
+      async ({ user, request, params: { id }, set }) => {
+        set.status = 204;
+        return asWire(
+          await uc.purgeBoard.execute({
             actor: actorFrom(request, user, id),
             boardId: id,
           })

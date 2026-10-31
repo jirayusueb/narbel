@@ -38,6 +38,8 @@ export const BoardPage = ({
   const gone =
     error instanceof ApiError && (error.status === 403 || error.status === 404);
   const userId = session?.user.id;
+  // Trash is not a refusal: the local copy stays, so edits not yet synced survive a restore.
+  const trashed = error instanceof ApiError && error.status === 410;
   // The cached copy is no longer the user's to read once the server refuses it.
   useEffect(() => {
     if (gone && userId) {
@@ -47,6 +49,19 @@ export const BoardPage = ({
 
   if (isPending) {
     return <BoardSkeleton />;
+  }
+
+  if (trashed) {
+    return (
+      <WithHeader>
+        <NotFound
+          title="This board is in the trash"
+          description="Its owner moved it to the trash. Edits made on this device are kept and sync again if it is restored."
+          to="/dashboard"
+          action="Back to boards"
+        />
+      </WithHeader>
+    );
   }
 
   if (board && !gone) {

@@ -14,6 +14,7 @@ import type {
   AgentSelection,
   SceneAccess,
 } from "../../application/ports/IBoardScenes";
+import { SYNC_CLOSE_TRASHED } from "../../application/ports/IBoardSyncGateway";
 import type {
   IBoardSyncGateway,
   SyncPeer,
@@ -28,6 +29,8 @@ import type { RoomTiming } from "./RoomTimers";
 
 const MESSAGE_SYNC = 0;
 const MESSAGE_AWARENESS = 1;
+// the board went to Trash: every instance saves, disconnects its peers and unloads the room
+const MESSAGE_EVICT = 2;
 const SERVER_ORIGIN = Symbol("server");
 // updates that arrived from another instance: shown to local peers, never re-published
 const BUS_ORIGIN = Symbol("bus");
@@ -177,6 +180,42 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
     for (const peer of peers) {
       peer.close();
     }
+  }
+
+  async evict(boardId: string): Promise<void> {
+    // other instances hear it on the room channel; the echo to this one is a no-op by then
+    await this.attempt(`Board ${boardId} could not publish its eviction`, () =>
+      this.bus.publish(channel(boardId), Uint8Array.of(MESSAGE_EVICT))
+    );
+    await this.evictLocal(boardId);
+  }
+
+  private async evictLocal(boardId: string): Promise<void> {
+    const pending = this.rooms.get(boardId);
+    const room = await pending?.catch(() => null);
+    if (!room || this.rooms.get(boardId) !== pending) {
+      // an eviction already under way owns the save; wait for it so callers can trust the stored state
+      await this.flushing.get(boardId);
+      return;
+    }
+    this.rooms.delete(boardId);
+    this.flush(room);
+    const done = room.saving;
+    this.flushing.set(boardId, done);
+    room.timers.stop();
+    const peers = [...room.peers.keys()];
+    room.peers.clear();
+    for (const peer of peers) {
+      peer.close(SYNC_CLOSE_TRASHED.code, SYNC_CLOSE_TRASHED.reason);
+    }
+    await done;
+    if (this.flushing.get(boardId) === done) {
+      this.flushing.delete(boardId);
+    }
+    if (room.dirty) {
+      console.error(`Board ${boardId} evicted with unsaved changes`);
+    }
+    this.destroy(room);
   }
 
   /** Every use of a room goes through here, which restarts its idle grace period. */
@@ -351,6 +390,8 @@ export class YjsBoardHub implements IBoardScenes, IBoardSyncGateway {
           decoding.readVarUint8Array(decoder),
           BUS_ORIGIN
         );
+      } else if (type === MESSAGE_EVICT) {
+        void this.evictLocal(room.boardId);
       } else if (type === MESSAGE_SYNC) {
         const isStep1 =
           decoding.readVarUint(decoding.createDecoder(message.subarray(1))) ===
