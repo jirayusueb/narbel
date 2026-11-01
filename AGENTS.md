@@ -112,9 +112,9 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 
 ## Server code style
 
-- Anything in `apps/server` that carries application logic (use cases, repositories, services, policies, outbox consumers) is a class that receives its dependencies through the constructor.
-- Domain entities, rules and validators are an interface plus plain functions over that data. A value object wrapping a single primitive (`BoardTitle`, `SearchQuery`, `ChangeCursor`) stays a class with a private constructor and a static `parse` or `create`.
-- Modules of pure helper functions that infrastructure shares (`boardVersions.ts`, `pruneOutbox.ts`, `routeEvents.ts`) stay as functions.
+- The server is class-based first. Application-layer carriers (use cases, repositories, services, policies, outbox consumers) take their dependencies through the constructor.
+- Domain entities and value objects are classes with a private constructor and static factories (`create`, `restore`, `parse`). Domain rules are classes with static methods, one per module.
+- Only framework glue, the shared infrastructure helper modules (`boardVersions.ts`, `pruneOutbox.ts`, `routeEvents.ts`) and throwaway scripts are plain functions.
 
 ## When Oxlint + Oxfmt Can't Help
 
