@@ -1,4 +1,3 @@
-import { CaptureUpdateAction } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useEffect } from "react";
 import type * as Y from "yjs";
@@ -41,7 +40,9 @@ export const usePendingImport = ({
     api.addFiles(scene.files);
     api.updateScene({
       elements: scene.elements,
-      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+      // a literal, not CaptureUpdateAction: this module rides the import-board barrel into SSR
+      // routes, and any value import of Excalidraw loads code that reads `window`
+      captureUpdate: "IMMEDIATELY",
     });
     api.scrollToContent(scene.elements, { fitToContent: true });
   }, [ready, api, doc, boardId, pageId]);
