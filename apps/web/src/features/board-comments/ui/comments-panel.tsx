@@ -14,13 +14,16 @@ import { ThreadCard } from "./thread-card";
 // Loads the next page once the sentinel comes within this distance of the list's bottom edge.
 const LOAD_MORE = { rootMargin: "160px" };
 
+const KEYBOARD_HINT =
+  "Press C, then click the canvas or press Enter to start one.";
+
 const emptyHint = (
   status: ThreadStatus,
   canWrite: boolean,
   allPages: boolean
 ) => {
   if (status === "open" && canWrite) {
-    return "Press C, then click the canvas or press Enter to start one.";
+    return KEYBOARD_HINT;
   }
   return allPages ? "No threads on any page." : "No threads on this page.";
 };
@@ -30,7 +33,17 @@ const Empty = ({ status, hint }: { status: ThreadStatus; hint: string }) => (
     <p className="text-foreground font-medium">
       {status === "open" ? "No open threads" : "Nothing resolved yet"}
     </p>
-    <p>{hint}</p>
+    {hint === KEYBOARD_HINT ? (
+      // Touch screens have no C key; they reach comment mode through its button.
+      <p>
+        <span className="pointer-coarse:hidden">{hint}</span>
+        <span className="hidden pointer-coarse:inline">
+          Turn on comment mode, then tap the canvas where it goes.
+        </span>
+      </p>
+    ) : (
+      <p>{hint}</p>
+    )}
   </div>
 );
 

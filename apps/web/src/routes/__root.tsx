@@ -18,16 +18,6 @@ export const Route = createRootRoute({
       // Fallback for pages without their own title; every route sets one in its head().
       { title: "narbel" },
       { name: "description", content: DESCRIPTION },
-      {
-        name: "theme-color",
-        content: "#f0f0eb",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        name: "theme-color",
-        content: "#161616",
-        media: "(prefers-color-scheme: dark)",
-      },
       { property: "og:type", content: "website" },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },

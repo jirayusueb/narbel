@@ -14,6 +14,7 @@ import type { ThreadEnv } from "../model/types";
 import { AssignPicker } from "./assign-picker";
 import { CommentBody, CommentComposer } from "./comment-editor";
 import { ReactionBar } from "./reaction-bar";
+import { TOUCH_ICON, TOUCH_ROW } from "./touch";
 
 const onError = (error: Error) => toast.error(error.message);
 
@@ -95,7 +96,7 @@ const CommentRow = ({
                   variant="ghost"
                   size="icon-xs"
                   aria-label="Edit comment"
-                  className="size-6"
+                  className={`size-6 ${TOUCH_ICON}`}
                   onPress={() => setEditing(true)}
                 >
                   <Pencil />
@@ -107,7 +108,11 @@ const CommentRow = ({
                   size="icon-xs"
                   aria-label={confirming ? "Confirm delete" : "Delete comment"}
                   isPending={remove.isPending}
-                  className={confirming ? "h-6 w-auto px-2" : "size-6"}
+                  className={
+                    confirming
+                      ? `h-6 w-auto px-2 ${TOUCH_ROW}`
+                      : `size-6 ${TOUCH_ICON}`
+                  }
                   onBlur={() => setConfirming(false)}
                   onPress={(e) => {
                     if (!confirming) {
@@ -256,11 +261,12 @@ export const ThreadCard = ({
           <button
             type="button"
             aria-expanded
+            aria-controls={`thread-${thread.id}`}
             aria-label={
               pageName ? `${pageName}, collapse thread` : "Collapse thread"
             }
             onClick={onToggle}
-            className="text-muted-foreground hover:text-foreground focus-visible:outline-ring -mt-1.5 -mr-1.5 -mb-1.5 flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-1 self-end rounded-sm px-1.5 text-xs focus-visible:outline-2 focus-visible:outline-solid"
+            className={`text-muted-foreground hover:text-foreground focus-visible:outline-ring -mt-1.5 -mr-1.5 -mb-1.5 flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-1 self-end rounded-sm px-1.5 text-xs focus-visible:outline-2 focus-visible:outline-solid ${TOUCH_ICON}`}
           >
             {pageName ? <span>{pageName}</span> : null}
             <ChevronDown className="size-3.5 rotate-180" />
@@ -306,6 +312,7 @@ export const ThreadCard = ({
           <button
             type="button"
             aria-expanded={false}
+            aria-controls={`thread-${thread.id}`}
             onClick={onToggle}
             className="focus-visible:outline-ring flex cursor-pointer items-center gap-2 rounded-sm text-left focus-visible:outline-2 focus-visible:outline-solid"
           >

@@ -9,6 +9,7 @@ import { useSession } from "@/entities/session";
 import type { Comment } from "../api/comments";
 import { REACTIONS } from "../model/types";
 import type { ThreadEnv } from "../model/types";
+import { TOUCH_ICON, TOUCH_ROW } from "./touch";
 
 export const ReactionBar = ({
   comment,
@@ -38,7 +39,7 @@ export const ReactionBar = ({
           aria-label={`${emoji} ${count}${mine ? ", you reacted" : ""}`}
           isPending={react.isPending}
           isDisabled={!signedIn}
-          className="bg-muted aria-pressed:bg-citrus aria-pressed:text-citrus-foreground h-6 gap-1 rounded-full px-2 tabular-nums"
+          className={`bg-muted aria-pressed:bg-citrus aria-pressed:text-citrus-foreground h-6 gap-1 rounded-full px-2 tabular-nums ${TOUCH_ROW}`}
           onPress={() => toggle(emoji, mine)}
         >
           <span aria-hidden="true">{emoji}</span>
@@ -51,7 +52,7 @@ export const ReactionBar = ({
             variant="ghost"
             size="icon-xs"
             aria-label="Add reaction"
-            className="size-6 rounded-full"
+            className={`size-6 rounded-full ${TOUCH_ICON}`}
           >
             <SmilePlus />
           </Button>

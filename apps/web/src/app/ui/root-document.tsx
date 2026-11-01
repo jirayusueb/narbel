@@ -12,6 +12,7 @@ import { ViewTransition } from "react";
 import { Header } from "@/widgets/header";
 
 import { Providers } from "../providers/providers";
+import { THEME_COLOR } from "../providers/theme-color";
 
 export const RootDocument = () => {
   // The board is a full-viewport canvas with its own chrome; every other page scrolls the document.
@@ -29,6 +30,17 @@ export const RootDocument = () => {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* Here, not in the route head(): the router keeps one meta per name, which dropped the light one. */}
+        <meta
+          name="theme-color"
+          content={THEME_COLOR.light}
+          media="(prefers-color-scheme: light)"
+        />
+        <meta
+          name="theme-color"
+          content={THEME_COLOR.dark}
+          media="(prefers-color-scheme: dark)"
+        />
       </head>
       <body className={onBoard ? "overscroll-none" : undefined}>
         <Providers>

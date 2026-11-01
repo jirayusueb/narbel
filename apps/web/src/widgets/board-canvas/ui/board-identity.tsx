@@ -132,12 +132,12 @@ export const BoardIdentity = ({
               type="button"
               title="Rename board"
               onClick={() => openRenameBoardDialog(board)}
-              className="font-display hover:bg-accent focus-visible:outline-ring block max-w-full cursor-text truncate rounded-sm px-1.5 py-0.5 text-[17px] tracking-[-0.02em] transition-colors focus-visible:outline-2 focus-visible:outline-solid"
+              className="font-display hover:bg-accent focus-visible:outline-ring text-chrome block max-w-full cursor-text truncate rounded-sm px-1.5 py-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-solid"
             >
               {board.title}
             </button>
           ) : (
-            <span className="font-display block truncate px-1.5 text-[17px] tracking-[-0.02em]">
+            <span className="font-display text-chrome block truncate px-1.5">
               {board.title}
             </span>
           )}

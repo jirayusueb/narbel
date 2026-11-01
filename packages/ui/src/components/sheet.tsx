@@ -45,7 +45,7 @@ function Sheet({
       }
       panelClassName={cn(
         panelBase,
-        "fixed top-2.5 bottom-2.5 w-[min(420px,calc(100vw-20px))] rounded-[20px]",
+        "fixed top-2.5 bottom-2.5 w-[min(420px,calc(100vw-20px))] rounded-xl",
         side === "right" ? "right-2.5" : "left-2.5",
         className
       )}
@@ -83,7 +83,7 @@ function Drawer({
       }
       panelClassName={cn(
         panelBase,
-        "fixed inset-x-2 bottom-2 max-h-[85svh] rounded-[25px]",
+        "fixed inset-x-2 bottom-2 max-h-[85svh] rounded-2xl",
         className
       )}
       panelProps={{
