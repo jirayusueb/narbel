@@ -2,11 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
-import {
-  FakeNotifications,
-  protectedBoard,
-  setupAccess,
-} from "../../../../testing";
+import { protectedBoard, setupAccess } from "../../../../testing";
 import type { IBoardFileRepository } from "../../../drawing/application/ports/IBoardFileRepository";
 import type { IBoardPresence } from "../../../drawing/application/ports/IBoardPresence";
 import type {
@@ -31,7 +27,6 @@ const setup = () => {
   const base = {
     ...setupAccess(),
     scenes: new FakeScenes(),
-    notifications: new FakeNotifications(),
   };
   base.grants.members.push({
     boardId: "b1",
@@ -257,9 +252,8 @@ describe("trash: transitions", () => {
     expect(deleted).toEqual([]);
   });
 
-  it("purges only from Trash: the row goes and board-deleted commits with it; drawing and notification clean up when it arrives", async () => {
-    const { boards, trash, purge, scenes, deleted, notifications, outbox } =
-      setup();
+  it("purges only from Trash: the row goes and board-deleted commits with it; the consumers clean up when it arrives", async () => {
+    const { boards, trash, purge, scenes, deleted, outbox } = setup();
     expect(code(await purge.execute({ actor: owner, boardId: "b1" }))).toBe(
       "Conflict"
     );
@@ -267,12 +261,6 @@ describe("trash: transitions", () => {
     expect(outbox.events()).toEqual([]);
 
     await trash.execute({ actor: owner, boardId: "b1" });
-    await notifications.add("ed", {
-      kind: "board.invited",
-      boardId: "b1",
-      boardTitle: "Mine",
-      actor: { userId: "owner", username: null, name: "Olive" },
-    });
     expect((await purge.execute({ actor: owner, boardId: "b1" })).isOk()).toBe(
       true
     );
@@ -288,7 +276,6 @@ describe("trash: transitions", () => {
     // the consumers do the rest, after the commit
     expect(scenes.discarded).toEqual([]);
     expect(deleted).toEqual([]);
-    expect(notifications.sent).toHaveLength(1);
     expect(code(await purge.execute({ actor: owner, boardId: "b1" }))).toBe(
       "NotFound"
     );
