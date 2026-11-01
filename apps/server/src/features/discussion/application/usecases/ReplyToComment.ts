@@ -5,7 +5,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { isThread, replyTo } from "../../domain/entities/Thread";
+import { Thread } from "../../domain/entities/Comment";
 import { presentOne } from "../CommentPresenter";
 import { commentChanged, DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
@@ -44,11 +44,11 @@ export class ReplyToComment {
       const root = target?.parentId
         ? await tx.comments.findById(board.id, target.parentId)
         : target;
-      if (!(root && isThread(root))) {
+      const thread = root && Thread.of(root);
+      if (!(root && thread)) {
         return err(AppError.notFound("Comment"));
       }
-      const reply = replyTo(
-        root,
+      const reply = thread.reply(
         { id: this.ids.generate(), body: input.body, authorId: actor.value.id },
         new Date()
       );

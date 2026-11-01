@@ -3,7 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { boardFileKey } from "../../domain/values/FileKey";
+import { FileKey } from "../../domain/values/FileKey";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 
@@ -36,9 +36,7 @@ export class GetBoardFile {
     if (!file) {
       return err(AppError.notFound("File"));
     }
-    const stream = this.storage.stream(
-      boardFileKey(input.boardId, input.fileId)
-    );
+    const stream = this.storage.stream(FileKey.of(input.boardId, input.fileId));
     return ok({ mimeType: file.mimeType, stream });
   }
 }

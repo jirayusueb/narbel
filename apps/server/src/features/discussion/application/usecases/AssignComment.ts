@@ -4,7 +4,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { assign, isThread } from "../../domain/entities/Thread";
+import { Thread } from "../../domain/entities/Comment";
 import { presentOne } from "../CommentPresenter";
 import { DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
@@ -38,11 +38,11 @@ export class AssignComment {
         return err(actor.error);
       }
       const comment = await tx.comments.findById(board.id, input.commentId);
-      if (!(comment && isThread(comment))) {
+      const thread = comment && Thread.of(comment);
+      if (!(comment && thread)) {
         return err(AppError.notFound("Comment"));
       }
-      const assigned = assign(
-        comment,
+      const assigned = thread.assign(
         input.assigneeId,
         await tx.members.memberIds(board)
       );

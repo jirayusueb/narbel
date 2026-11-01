@@ -7,9 +7,8 @@ import {
 } from "../../application/dtos/ExcalidrawElement";
 import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { SceneAccess } from "../../application/ports/IBoardScenes";
-import { MAIN_PAGE, elementKey } from "../../domain/entities/Page";
-import type { Page } from "../../domain/entities/Page";
-import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
+import { MAIN_PAGE, Page } from "../../domain/entities/Page";
+import { MergeElement } from "../../domain/rules/mergeElement";
 import { touchesSince } from "./changes";
 
 /**
@@ -23,11 +22,11 @@ export const ensurePages = (doc: Y.Doc, origin: unknown): boolean => {
   }
   const elements = doc.getMap<ExcalidrawElement>("elements");
   doc.transact(() => {
-    pages.push([MAIN_PAGE]);
+    pages.push([{ id: MAIN_PAGE.id, name: MAIN_PAGE.name }]);
     // snapshot first: setting keys while iterating the live map would revisit them
     for (const [key, element] of Object.entries(elements.toJSON())) {
       elements.delete(key);
-      elements.set(elementKey(MAIN_PAGE.id, key), element);
+      elements.set(Page.keyOf(MAIN_PAGE.id, key), element);
     }
   }, origin);
   return true;
@@ -119,9 +118,10 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
     });
   const indexOf = (id: string) => pages.toArray().findIndex((p) => p.id === id);
   return {
-    pages: () => pages.toArray(),
+    pages: () => pages.toArray().map((p) => Page.create(p.id, p.name)),
+    // the document stores plain JSON, so a Page is copied out
     addPage: (page) => {
-      pages.push([page]);
+      pages.push([{ id: page.id, name: page.name }]);
     },
     renamePage: (id, name) => {
       const index = indexOf(id);
@@ -147,7 +147,7 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
       return true;
     },
     get: (pageId, id) => {
-      const stored = elements.get(elementKey(pageId, id));
+      const stored = elements.get(Page.keyOf(pageId, id));
       return stored && toElement(stored);
     },
     all: (pageId) =>
@@ -157,8 +157,8 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
     locate: (id) => {
       const page = pages
         .toArray()
-        .find((p) => elements.has(elementKey(p.id, id)));
-      const stored = page && elements.get(elementKey(page.id, id));
+        .find((p) => elements.has(Page.keyOf(p.id, id)));
+      const stored = page && elements.get(Page.keyOf(page.id, id));
       return page && stored && { pageId: page.id, element: toElement(stored) };
     },
     ensureFile: (file) => {
@@ -167,15 +167,15 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
       }
     },
     put: (pageId, element) => {
-      const key = elementKey(pageId, element.id);
+      const key = Page.keyOf(pageId, element.id);
       const current = elements.get(key);
       const container =
         typeof element.containerId === "string"
-          ? elements.get(elementKey(pageId, element.containerId))
+          ? elements.get(Page.keyOf(pageId, element.containerId))
           : undefined;
       const frame =
         typeof element.frameId === "string"
-          ? elements.get(elementKey(pageId, element.frameId))
+          ? elements.get(Page.keyOf(pageId, element.frameId))
           : undefined;
       // an update keeps the key it has, so editing never reorders
       const ordered =
@@ -185,7 +185,7 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
               ...element,
               index: newOrderKey(pageKeys(pageId), container, frame),
             };
-      if (shouldAcceptIncoming(current, ordered)) {
+      if (MergeElement.shouldAcceptIncoming(current, ordered)) {
         elements.set(key, toExcalidraw(ordered));
       }
     },

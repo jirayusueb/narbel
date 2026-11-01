@@ -1,14 +1,16 @@
 import { describe, expect, it } from "bun:test";
 
 import type { Element } from "../entities/Element";
-import {
+import { ShapeRegistry } from "./ShapeRegistry";
+
+const {
   buildElement,
   buildLabel,
   fitLabel,
   LABEL_FOLLOWS,
   measure,
   SHAPE_TYPES,
-} from "./ShapeRegistry";
+} = ShapeRegistry;
 
 const identity = { id: "e1", seed: 7, versionNonce: 9, updated: 1000 };
 

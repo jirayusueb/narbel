@@ -1,8 +1,9 @@
 import type { IFileStorage } from "../../../shared/application/interfaces/IFileStorage";
 import type { ImageData } from "../domain/rendering/sceneSvg";
-import { NEEDS_MORE, parseImageHeader } from "../domain/rules/imageHeader";
-import { MAX_IMAGE_PIXELS } from "../domain/rules/UploadRules";
-import { boardFileKey } from "../domain/values/FileKey";
+import { ImageHeaderReader } from "../domain/rules/imageHeader";
+import type { ImageHeader } from "../domain/rules/imageHeader";
+import { UploadRules } from "../domain/rules/UploadRules";
+import { FileKey } from "../domain/values/FileKey";
 import type { IBoardFileRepository } from "./ports/IBoardFileRepository";
 
 export const MAX_RENDER_BYTES = 32 * 1024 * 1024;
@@ -15,24 +16,27 @@ const MAX_HEADER_BYTES = 1024 * 1024;
 const readHeader = async (storage: IFileStorage, key: string) => {
   const chunks: Uint8Array[] = [];
   let length = 0;
-  let header: ReturnType<typeof parseImageHeader> = null;
+  let header: ImageHeader | typeof ImageHeaderReader.NEEDS_MORE | null = null;
   // breaking out of for-await cancels the stream, so a large object is not downloaded
   for await (const chunk of storage.stream(key)) {
     chunks.push(chunk);
     length += chunk.length;
     if (length >= HEADER_BYTES) {
-      header = parseImageHeader(
+      header = ImageHeaderReader.parseImageHeader(
         Buffer.concat(chunks).subarray(0, MAX_HEADER_BYTES)
       );
-      if (header !== NEEDS_MORE || length >= MAX_HEADER_BYTES) {
+      if (
+        header !== ImageHeaderReader.NEEDS_MORE ||
+        length >= MAX_HEADER_BYTES
+      ) {
         break;
       }
     }
   }
   if (length < HEADER_BYTES) {
-    header = parseImageHeader(Buffer.concat(chunks));
+    header = ImageHeaderReader.parseImageHeader(Buffer.concat(chunks));
   }
-  return header === NEEDS_MORE ? null : header;
+  return header === ImageHeaderReader.NEEDS_MORE ? null : header;
 };
 
 // Uploads through the presigned PUT are never inspected, so the declared pixel count is checked here before any decode.
@@ -41,7 +45,8 @@ const declaredPixels = async (storage: IFileStorage, key: string) => {
   const header = await readHeader(storage, key);
   const size = header?.size;
   const pixels = size ? size.width * size.height : undefined;
-  return header === null || (pixels !== undefined && pixels > MAX_IMAGE_PIXELS)
+  return header === null ||
+    (pixels !== undefined && pixels > UploadRules.MAX_IMAGE_PIXELS)
     ? null
     : { pixels };
 };
@@ -61,7 +66,7 @@ export const loadBoardImages = async (
   const found = await Promise.all(
     unique.map(async (fileId) => {
       const file = await files.findById(boardId, fileId);
-      const key = boardFileKey(boardId, fileId);
+      const key = FileKey.of(boardId, fileId);
       // The presigned PUT does not bind the declared size, so budget on what storage holds.
       if (!file || (skipSvg && file.mimeType === SVG)) {
         return null;

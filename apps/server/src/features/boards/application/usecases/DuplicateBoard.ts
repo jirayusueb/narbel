@@ -3,7 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { createBoard } from "../../domain/entities/Board";
+import { Board } from "../../domain/entities/Board";
 import { BoardTitle, TITLE_MAX_LENGTH } from "../../domain/values/BoardTitle";
 import type { AccessPolicy } from "../AccessPolicy";
 import { toBoardDto } from "../dtos/BoardDto";
@@ -45,7 +45,7 @@ export class DuplicateBoard {
     if (title.isErr()) {
       return err(title.error);
     }
-    const board = createBoard(
+    const board = Board.create(
       this.ids.generate(),
       userId,
       title.value,

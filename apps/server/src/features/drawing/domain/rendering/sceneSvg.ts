@@ -1,15 +1,7 @@
 import type { Element } from "../entities/Element";
-import {
-  elementBounds,
-  geometryBox,
-  isLinear,
-  num,
-  pointsOf,
-  rotatedBounds,
-  union,
-} from "../rules/geometry";
+import { Geometry } from "../rules/geometry";
 import type { Bounds, Point } from "../rules/geometry";
-import { STYLE } from "../shapes/ElementStyle";
+import { ElementStyle } from "../shapes/ElementStyle";
 
 export const FONT_FAMILY = "Sarabun";
 export const DEFAULT_MAX_SIZE = 1600;
@@ -47,7 +39,7 @@ const str = (value: unknown, fallback: string) =>
   typeof value === "string" && value !== "" ? value : fallback;
 const round = (n: number) => Math.round(n * 100) / 100;
 
-export const escapeXml = (value: string) =>
+const escapeXml = (value: string) =>
   value.replaceAll(/[<>&"']/gu, (c) => `&#${c.codePointAt(0)};`);
 
 const DASH: Record<string, (w: number) => string> = {
@@ -56,10 +48,10 @@ const DASH: Record<string, (w: number) => string> = {
 };
 
 const strokeAttrs = (e: Element) => {
-  const width = Math.max(num(e.strokeWidth, 1), 0.5);
+  const width = Math.max(Geometry.num(e.strokeWidth, 1), 0.5);
   const dash = DASH[String(e.strokeStyle)]?.(width);
   return (
-    `stroke="${escapeXml(str(e.strokeColor, STYLE.strokeColor.default))}" stroke-width="${width}"` +
+    `stroke="${escapeXml(str(e.strokeColor, ElementStyle.STYLE.strokeColor.default))}" stroke-width="${width}"` +
     ` stroke-linecap="round" stroke-linejoin="round"${
       dash ? ` stroke-dasharray="${dash}"` : ""
     }`
@@ -77,7 +69,7 @@ const cornerRadius = (e: Element) => {
   if (!e.roundness) {
     return 0;
   }
-  const side = Math.min(num(e.width), num(e.height));
+  const side = Math.min(Geometry.num(e.width), Geometry.num(e.height));
   return Math.min(side * 0.25, 32);
 };
 
@@ -108,11 +100,13 @@ const arrowhead = (
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
-  const size = ARROWHEAD_BASE + num(e.strokeWidth, 2) * 2;
+  const size = ARROWHEAD_BASE + Geometry.num(e.strokeWidth, 2) * 2;
   const back: Point = [tip[0] - ux * size, tip[1] - uy * size];
   const left: Point = [back[0] - uy * size * 0.45, back[1] + ux * size * 0.45];
   const right: Point = [back[0] + uy * size * 0.45, back[1] - ux * size * 0.45];
-  const color = escapeXml(str(e.strokeColor, STYLE.strokeColor.default));
+  const color = escapeXml(
+    str(e.strokeColor, ElementStyle.STYLE.strokeColor.default)
+  );
   const stroke = strokeAttrs({ ...e, strokeStyle: "solid" });
   const poly = (pts: Point[], fill: string) =>
     `<polygon points="${pts.map((p) => p.join(",")).join(" ")}" fill="${fill}" ${stroke}/>`;
@@ -153,9 +147,9 @@ const arrowhead = (
 };
 
 const linear = (e: Element): string => {
-  const pts = pointsOf(e).map(([px, py]): Point => [
-    num(e.x) + px,
-    num(e.y) + py,
+  const pts = Geometry.pointsOf(e).map(([px, py]): Point => [
+    Geometry.num(e.x) + px,
+    Geometry.num(e.y) + py,
   ]);
   if (e.type === "freedraw") {
     return `<path d="${path(pts, false)}" fill="none" ${strokeAttrs(e)}/>`;
@@ -168,7 +162,7 @@ const linear = (e: Element): string => {
   const heads = [
     [
       e.endArrowhead === undefined
-        ? STYLE.endArrowhead.default
+        ? ElementStyle.STYLE.endArrowhead.default
         : e.endArrowhead,
       pts.at(-1),
       pts.at(-2),
@@ -203,15 +197,20 @@ const VERTICAL_SHARE: Record<string, number> = { middle: 0.5, bottom: 1 };
 
 const textNode = (e: Element, area: TextArea) => {
   const lines = (e.text ?? "").split("\n");
-  const fontSize = num(e.fontSize, STYLE.fontSize.default);
-  const lineHeight = fontSize * num(e.lineHeight, DEFAULT_LINE_HEIGHT);
+  const fontSize = Geometry.num(
+    e.fontSize,
+    ElementStyle.STYLE.fontSize.default
+  );
+  const lineHeight = fontSize * Geometry.num(e.lineHeight, DEFAULT_LINE_HEIGHT);
   const align = ALIGN[String(e.textAlign)] ?? LEFT;
   const x = area.x + area.width * align.share;
   const total = lines.length * lineHeight;
   const top =
     area.y +
     (area.height - total) * (VERTICAL_SHARE[String(e.verticalAlign)] ?? 0);
-  const color = escapeXml(str(e.strokeColor, STYLE.strokeColor.default));
+  const color = escapeXml(
+    str(e.strokeColor, ElementStyle.STYLE.strokeColor.default)
+  );
   const tspans = lines
     .map(
       (line, i) =>
@@ -222,7 +221,7 @@ const textNode = (e: Element, area: TextArea) => {
 };
 
 const label = (e: Element, container: Element) => {
-  const c = geometryBox(container);
+  const c = Geometry.geometryBox(container);
   return textNode(e, {
     x: c.x + LABEL_PADDING,
     y: c.y + LABEL_PADDING,
@@ -232,7 +231,7 @@ const label = (e: Element, container: Element) => {
 };
 
 const imageNode = (e: Element, refs: Map<string, string>) => {
-  const b = geometryBox(e);
+  const b = Geometry.geometryBox(e);
   const ref = typeof e.fileId === "string" ? refs.get(e.fileId) : undefined;
   if (!ref) {
     return (
@@ -250,7 +249,7 @@ const imageNode = (e: Element, refs: Map<string, string>) => {
 };
 
 const shapeNode = (e: Element, refs: Map<string, string>) => {
-  const b = geometryBox(e);
+  const b = Geometry.geometryBox(e);
   switch (e.type) {
     case "rectangle": {
       const r = cornerRadius(e);
@@ -302,7 +301,7 @@ const byZOrder = (a: Element, b: Element) => {
 const boxContainer = (e: Element, byId: Map<string, Element>) => {
   const container =
     typeof e.containerId === "string" ? byId.get(e.containerId) : undefined;
-  return container && !isLinear(container) ? container : undefined;
+  return container && !Geometry.isLinear(container) ? container : undefined;
 };
 
 const element = (
@@ -317,19 +316,19 @@ const element = (
   } else if (container) {
     inner = label(e, container);
   } else {
-    const own = geometryBox(e);
+    const own = Geometry.geometryBox(e);
     const host = byId.get(String(e.containerId));
     inner =
-      (host && isLinear(host)
+      (host && Geometry.isLinear(host)
         ? `<rect x="${round(own.x - ARROW_LABEL_PADDING)}" y="${round(own.y - ARROW_LABEL_PADDING)}" width="${round(own.width + ARROW_LABEL_PADDING * 2)}" height="${round(own.height + ARROW_LABEL_PADDING * 2)}" fill="${BACKGROUND}"/>`
         : "") + textNode(e, own);
   }
   if (inner === "") {
     return "";
   }
-  const b = geometryBox(container ?? e);
-  const angle = num(container ? container.angle : e.angle);
-  const opacity = num(e.opacity, 100) / 100;
+  const b = Geometry.geometryBox(container ?? e);
+  const angle = Geometry.num(container ? container.angle : e.angle);
+  const opacity = Geometry.num(e.opacity, 100) / 100;
   const attrs =
     (angle === 0
       ? ""
@@ -341,8 +340,8 @@ const element = (
 const drawnBounds = (e: Element, byId: Map<string, Element>) => {
   const container = boxContainer(e, byId);
   return container
-    ? rotatedBounds(container, geometryBox(container))
-    : elementBounds(e);
+    ? Geometry.rotatedBounds(container, Geometry.geometryBox(container))
+    : Geometry.elementBounds(e);
 };
 
 /**
@@ -361,7 +360,7 @@ const placeImages = (drawn: Element[], images: Map<string, ImageData>) => {
     if (!data) {
       return e;
     }
-    const b = geometryBox(e);
+    const b = Geometry.geometryBox(e);
     const cost = data.pixels ?? b.width * b.height;
     if (cost > left) {
       overBudget.add(String(e.fileId));
@@ -382,60 +381,66 @@ const clampSize = (maxSize: number | undefined) =>
     MAX_MAX_SIZE
   );
 
-/**
- * Draws one page as a standalone SVG sized so its long side is `maxSize` pixels, or null
- * when the page has nothing to draw. Elements must carry every label's container.
- */
-export const buildSceneSvg = (
-  elements: Element[],
-  images: Map<string, ImageData>,
-  maxSize?: number
-): SceneSvg | null => {
-  const live = elements.filter((e) => !e.isDeleted);
-  live.sort(byZOrder);
-  const byId = new Map(live.map((e) => [e.id, e]));
-  const drawn = live.filter(
-    (e) =>
-      e.type !== "text" || !e.containerId || byId.has(String(e.containerId))
-  );
-  const placed = placeImages(drawn, images);
-  const nodes = placed.elements.map((e) => ({
-    e,
-    node: element(e, byId, placed.refs),
-  }));
-  const visible = nodes.filter((n) => n.node !== "");
-  if (visible.length === 0) {
-    return null;
+export class SceneSvgBuilder {
+  private constructor() {
+    // static rules only
   }
-  const bounds = union(visible.map(({ e }) => drawnBounds(e, byId)));
-  const viewW = bounds.width + PADDING * 2;
-  const viewH = bounds.height + PADDING * 2;
-  const target = clampSize(maxSize);
-  const longSide = Math.max(viewW, viewH);
-  const budget =
-    Math.sqrt(MAX_PIXELS / (viewW * viewH)) * Math.min(viewW, viewH);
-  const scale = Math.min(target / longSide, budget / Math.min(viewW, viewH));
-  const width = Math.max(1, Math.round(viewW * scale));
-  const height = Math.max(1, Math.round(viewH * scale));
-  const defs =
-    placed.refs.size === 0
-      ? ""
-      : `<defs>${[...placed.refs]
-          .map(([fileId, ref]) => {
-            const data = images.get(fileId) as ImageData;
-            return `<image id="${ref}" width="1" height="1" preserveAspectRatio="none" href="data:${escapeXml(data.mimeType)};base64,${data.base64}"/>`;
-          })
-          .join("")}</defs>`;
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${round(bounds.x - PADDING)} ${round(bounds.y - PADDING)} ${round(viewW)} ${round(viewH)}">` +
-    `<rect x="${round(bounds.x - PADDING)}" y="${round(bounds.y - PADDING)}" width="${round(viewW)}" height="${round(viewH)}" fill="${BACKGROUND}"/>${defs}${visible
-      .map((n) => n.node)
-      .join("")}</svg>`;
-  return {
-    svg,
-    width,
-    height,
-    bounds,
-    overBudgetFiles: placed.overBudget,
-  };
-};
+
+  /**
+   * Draws one page as a standalone SVG sized so its long side is `maxSize` pixels, or null
+   * when the page has nothing to draw. Elements must carry every label's container.
+   */
+  static buildSceneSvg(
+    elements: Element[],
+    images: Map<string, ImageData>,
+    maxSize?: number
+  ): SceneSvg | null {
+    const live = elements.filter((e) => !e.isDeleted);
+    live.sort(byZOrder);
+    const byId = new Map(live.map((e) => [e.id, e]));
+    const drawn = live.filter(
+      (e) =>
+        e.type !== "text" || !e.containerId || byId.has(String(e.containerId))
+    );
+    const placed = placeImages(drawn, images);
+    const nodes = placed.elements.map((e) => ({
+      e,
+      node: element(e, byId, placed.refs),
+    }));
+    const visible = nodes.filter((n) => n.node !== "");
+    if (visible.length === 0) {
+      return null;
+    }
+    const bounds = Geometry.union(visible.map(({ e }) => drawnBounds(e, byId)));
+    const viewW = bounds.width + PADDING * 2;
+    const viewH = bounds.height + PADDING * 2;
+    const target = clampSize(maxSize);
+    const longSide = Math.max(viewW, viewH);
+    const budget =
+      Math.sqrt(MAX_PIXELS / (viewW * viewH)) * Math.min(viewW, viewH);
+    const scale = Math.min(target / longSide, budget / Math.min(viewW, viewH));
+    const width = Math.max(1, Math.round(viewW * scale));
+    const height = Math.max(1, Math.round(viewH * scale));
+    const defs =
+      placed.refs.size === 0
+        ? ""
+        : `<defs>${[...placed.refs]
+            .map(([fileId, ref]) => {
+              const data = images.get(fileId) as ImageData;
+              return `<image id="${ref}" width="1" height="1" preserveAspectRatio="none" href="data:${escapeXml(data.mimeType)};base64,${data.base64}"/>`;
+            })
+            .join("")}</defs>`;
+    const svg =
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${round(bounds.x - PADDING)} ${round(bounds.y - PADDING)} ${round(viewW)} ${round(viewH)}">` +
+      `<rect x="${round(bounds.x - PADDING)}" y="${round(bounds.y - PADDING)}" width="${round(viewW)}" height="${round(viewH)}" fill="${BACKGROUND}"/>${defs}${visible
+        .map((n) => n.node)
+        .join("")}</svg>`;
+    return {
+      svg,
+      width,
+      height,
+      bounds,
+      overBudgetFiles: placed.overBudget,
+    };
+  }
+}

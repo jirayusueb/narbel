@@ -1,31 +1,6 @@
 import { GAP as BINDING_GAP } from "./bindings";
-import { union } from "./geometry";
+import { Geometry } from "./geometry";
 import type { Bounds } from "./geometry";
-
-export const FRAME_PADDING = 40;
-
-export const CLEARANCE = 120;
-
-export const besideContent = (
-  fixed: Bounds[],
-  clearance: number
-): { left: number; top: number } =>
-  fixed.length === 0
-    ? { left: 0, top: 0 }
-    : {
-        left: Math.max(...fixed.map((b) => b.x + b.width)) + clearance,
-        top: Math.min(...fixed.map((b) => b.y)),
-      };
-
-export const wrapFrame = (children: Bounds[]): Bounds => {
-  const inner = union(children);
-  return {
-    x: inner.x - FRAME_PADDING,
-    y: inner.y - FRAME_PADDING,
-    width: inner.width + 2 * FRAME_PADDING,
-    height: inner.height + 2 * FRAME_PADDING,
-  };
-};
 
 export type LayoutDirection = "down" | "right";
 
@@ -116,52 +91,85 @@ const layers = (nodes: LayoutNode[], edges: LayoutEdge[]) => {
   return ranks;
 };
 
-/**
- * Top-left position of every node in a layered (flowchart) layout starting at 0,0:
- * edges point down or right, each rank is centered on the widest one.
- */
-export const layered = (
-  nodes: LayoutNode[],
-  edges: LayoutEdge[],
-  direction: LayoutDirection
-): Map<string, { x: number; y: number }> => {
-  const down = direction === "down";
-  const along = (n: LayoutNode) => (down ? n.height : n.width);
-  const across = (n: LayoutNode) => (down ? n.width : n.height);
-  const span = (layer: LayoutNode[]) =>
-    layer.reduce((sum, n) => sum + across(n), 0) +
-    NODE_GAP * (layer.length - 1);
-  const ranks = layers(nodes, edges);
-  const rankOf = new Map(
-    ranks.flatMap((layer, index) => layer.map((n) => [n.id, index] as const))
-  );
-  const gaps = ranks.map(() => RANK_GAP);
-  for (const { from, to, label } of edges) {
-    const at = rankOf.get(from);
-    const end = rankOf.get(to);
-    if (label && at !== undefined && end !== undefined) {
-      const need =
-        (down ? label.height : label.width) + 2 * (LABEL_MARGIN + BINDING_GAP);
-      for (let rank = at; rank < end; rank += 1) {
-        gaps[rank] = Math.max(gaps[rank] ?? RANK_GAP, need);
+export class Layout {
+  static readonly FRAME_PADDING = 40;
+
+  static readonly CLEARANCE = 120;
+
+  private constructor() {
+    // static rules only
+  }
+
+  static besideContent(
+    fixed: Bounds[],
+    clearance: number
+  ): { left: number; top: number } {
+    return fixed.length === 0
+      ? { left: 0, top: 0 }
+      : {
+          left: Math.max(...fixed.map((b) => b.x + b.width)) + clearance,
+          top: Math.min(...fixed.map((b) => b.y)),
+        };
+  }
+
+  static wrapFrame(children: Bounds[]): Bounds {
+    const inner = Geometry.union(children);
+    return {
+      x: inner.x - Layout.FRAME_PADDING,
+      y: inner.y - Layout.FRAME_PADDING,
+      width: inner.width + 2 * Layout.FRAME_PADDING,
+      height: inner.height + 2 * Layout.FRAME_PADDING,
+    };
+  }
+
+  /**
+   * Top-left position of every node in a layered (flowchart) layout starting at 0,0:
+   * edges point down or right, each rank is centered on the widest one.
+   */
+  static layered(
+    nodes: LayoutNode[],
+    edges: LayoutEdge[],
+    direction: LayoutDirection
+  ): Map<string, { x: number; y: number }> {
+    const down = direction === "down";
+    const along = (n: LayoutNode) => (down ? n.height : n.width);
+    const across = (n: LayoutNode) => (down ? n.width : n.height);
+    const span = (layer: LayoutNode[]) =>
+      layer.reduce((sum, n) => sum + across(n), 0) +
+      NODE_GAP * (layer.length - 1);
+    const ranks = layers(nodes, edges);
+    const rankOf = new Map(
+      ranks.flatMap((layer, index) => layer.map((n) => [n.id, index] as const))
+    );
+    const gaps = ranks.map(() => RANK_GAP);
+    for (const { from, to, label } of edges) {
+      const at = rankOf.get(from);
+      const end = rankOf.get(to);
+      if (label && at !== undefined && end !== undefined) {
+        const need =
+          (down ? label.height : label.width) +
+          2 * (LABEL_MARGIN + BINDING_GAP);
+        for (let rank = at; rank < end; rank += 1) {
+          gaps[rank] = Math.max(gaps[rank] ?? RANK_GAP, need);
+        }
       }
     }
-  }
-  const widest = Math.max(...ranks.map(span));
-  const positions = new Map<string, { x: number; y: number }>();
-  let main = 0;
-  for (const [index, layer] of ranks.entries()) {
-    const thickness = Math.max(...layer.map(along));
-    let cross = (widest - span(layer)) / 2;
-    for (const node of layer) {
-      const offset = main + (thickness - along(node)) / 2;
-      positions.set(
-        node.id,
-        down ? { x: cross, y: offset } : { x: offset, y: cross }
-      );
-      cross += across(node) + NODE_GAP;
+    const widest = Math.max(...ranks.map(span));
+    const positions = new Map<string, { x: number; y: number }>();
+    let main = 0;
+    for (const [index, layer] of ranks.entries()) {
+      const thickness = Math.max(...layer.map(along));
+      let cross = (widest - span(layer)) / 2;
+      for (const node of layer) {
+        const offset = main + (thickness - along(node)) / 2;
+        positions.set(
+          node.id,
+          down ? { x: cross, y: offset } : { x: offset, y: cross }
+        );
+        cross += across(node) + NODE_GAP;
+      }
+      main += thickness + (gaps[index] ?? RANK_GAP);
     }
-    main += thickness + (gaps[index] ?? RANK_GAP);
+    return positions;
   }
-  return positions;
-};
+}

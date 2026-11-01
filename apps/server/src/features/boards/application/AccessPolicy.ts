@@ -2,10 +2,8 @@ import { AppError } from "../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../shared/kernel/types/Result";
 import type { Result } from "../../../shared/kernel/types/Result";
-import { boardAccessFor, isBoardOwnedBy } from "../domain/entities/Board";
 import type { Board } from "../domain/entities/Board";
 import type { Access, MemberRole } from "../domain/values/Access";
-import { shareRoleFor } from "../domain/values/ShareLink";
 import type {
   IBoardAccessRepository,
   ReadableBoard,
@@ -38,16 +36,14 @@ export class AccessPolicy {
     if (!board) {
       return err(AppError.notFound("Board"));
     }
-    const access = boardAccessFor(board, {
+    const grantRole = await this.grantRole(board, actor);
+    const share = actor.shareToken
+      ? await this.grants.findShare(board.id)
+      : null;
+    const access = board.accessFor({
       userId: actor.userId,
-      grantRole: await this.grantRole(board, actor),
-      shareRole: actor.shareToken
-        ? shareRoleFor(
-            await this.grants.findShare(board.id),
-            actor.shareToken,
-            this.now()
-          )
-        : null,
+      grantRole,
+      shareRole: share?.roleFor(actor.shareToken, this.now()) ?? null,
       unlocked:
         board.passwordHash !== null &&
         actor.unlockProof !== undefined &&
@@ -86,7 +82,7 @@ export class AccessPolicy {
     actor: Actor
   ): Promise<Result<Board, AppError>> {
     const board = await this.boards.findIncludingTrashed(boardId);
-    return board && isBoardOwnedBy(board, actor.userId)
+    return board?.isOwnedBy(actor.userId)
       ? ok(board)
       : err(AppError.notFound("Board"));
   }
@@ -113,7 +109,7 @@ export class AccessPolicy {
     board: Board,
     actor: Actor
   ): Promise<MemberRole | null> {
-    if (isBoardOwnedBy(board, actor.userId) || !actor.userId) {
+    if (board.isOwnedBy(actor.userId) || !actor.userId) {
       return null;
     }
     const grant = await this.grants.findGrant(board.id, {

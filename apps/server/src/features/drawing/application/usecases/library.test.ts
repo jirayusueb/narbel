@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { MAX_LIBRARY_ITEMS } from "../../domain/rules/LibraryRules";
+import { LibraryRules } from "../../domain/rules/LibraryRules";
 import type { ILibraryRepository } from "../ports/ILibraryRepository";
 import { GetLibrary } from "./GetLibrary";
 import { SaveLibrary } from "./SaveLibrary";
@@ -71,8 +71,9 @@ describe("library", () => {
 
   it("rejects more than the item cap", async () => {
     const { save } = setup();
-    const libraryItems = Array.from({ length: MAX_LIBRARY_ITEMS + 1 }, (_, i) =>
-      item(`i${i}`)
+    const libraryItems = Array.from(
+      { length: LibraryRules.MAX_LIBRARY_ITEMS + 1 },
+      (_, i) => item(`i${i}`)
     );
     const res = await save.execute({ userId: "a", libraryItems });
     expect(res.isErr() && res.error.code).toBe("PayloadTooLarge");

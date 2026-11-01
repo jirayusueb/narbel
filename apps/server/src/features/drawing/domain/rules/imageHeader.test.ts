@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
-import { readImageHeader } from "./imageHeader";
+import { ImageHeaderReader } from "./imageHeader";
+
+const { readImageHeader } = ImageHeaderReader;
 
 const bytes = (...parts: (number[] | string)[]) =>
   Uint8Array.from(

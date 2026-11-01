@@ -1,7 +1,7 @@
 import type { Element } from "../entities/Element";
-import { elementBounds, union } from "./geometry";
+import { Geometry } from "./geometry";
 import type { Bounds } from "./geometry";
-import { outermostGroup } from "./groups";
+import { Groups } from "./groups";
 
 export type Edge = "left" | "center" | "right" | "top" | "middle" | "bottom";
 export type Axis = "horizontal" | "vertical";
@@ -33,7 +33,7 @@ const ALIGN: Record<Edge, (sel: Bounds, b: Bounds) => [number, number]> = {
 };
 
 const align = (items: ArrangeItem[], edge: Edge): Move[] => {
-  const sel = union(items.map((i) => i.bounds));
+  const sel = Geometry.union(items.map((i) => i.bounds));
   return items.map(({ id, bounds }) => {
     const [dx, dy] = ALIGN[edge](sel, bounds);
     return { id, dx, dy };
@@ -87,41 +87,48 @@ const distribute = (items: ArrangeItem[], axis: Axis): Move[] => {
   });
 };
 
-export const arrangeMoves = (
-  items: ArrangeItem[],
-  how: Arrangement
-): Move[] => {
-  if (items.length < 2) {
-    return [];
-  }
-  const moves =
-    how.kind === "align" ? align(items, how.edge) : distribute(items, how.axis);
-  return moves.filter(
-    (m) => Math.abs(m.dx) > EPSILON || Math.abs(m.dy) > EPSILON
-  );
-};
-
 export interface Unit {
   key: string;
   members: Element[];
 }
 
-/** Like Excalidraw, a group is one unit under its outermost group id; an ungrouped element is its own. */
-export const unitsOf = (elements: Element[]): Unit[] => {
-  const units = new Map<string, Unit>();
-  for (const e of elements) {
-    const key = outermostGroup(e) ?? e.id;
-    const unit = units.get(key);
-    if (unit) {
-      unit.members.push(e);
-    } else {
-      units.set(key, { key, members: [e] });
-    }
+export class Arrange {
+  private constructor() {
+    // static rules only
   }
-  return [...units.values()];
-};
 
-export const unitItem = (unit: Unit): ArrangeItem => ({
-  id: unit.key,
-  bounds: union(unit.members.map(elementBounds)),
-});
+  static arrangeMoves(items: ArrangeItem[], how: Arrangement): Move[] {
+    if (items.length < 2) {
+      return [];
+    }
+    const moves =
+      how.kind === "align"
+        ? align(items, how.edge)
+        : distribute(items, how.axis);
+    return moves.filter(
+      (m) => Math.abs(m.dx) > EPSILON || Math.abs(m.dy) > EPSILON
+    );
+  }
+
+  /** Like Excalidraw, a group is one unit under its outermost group id; an ungrouped element is its own. */
+  static unitsOf(elements: Element[]): Unit[] {
+    const units = new Map<string, Unit>();
+    for (const e of elements) {
+      const key = Groups.outermostGroup(e) ?? e.id;
+      const unit = units.get(key);
+      if (unit) {
+        unit.members.push(e);
+      } else {
+        units.set(key, { key, members: [e] });
+      }
+    }
+    return [...units.values()];
+  }
+
+  static unitItem(unit: Unit): ArrangeItem {
+    return {
+      id: unit.key,
+      bounds: Geometry.union(unit.members.map(Geometry.elementBounds)),
+    };
+  }
+}

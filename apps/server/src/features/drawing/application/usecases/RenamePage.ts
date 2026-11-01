@@ -2,7 +2,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import type { Page } from "../../domain/entities/Page";
+import { Page } from "../../domain/entities/Page";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 import { validPageName } from "./AddPage";
@@ -35,7 +35,7 @@ export class RenamePage {
       s.renamePage(input.pageId, name.value)
     );
     return found
-      ? ok({ id: input.pageId, name: name.value })
+      ? ok(Page.create(input.pageId, name.value))
       : err(AppError.notFound("Page"));
   }
 }

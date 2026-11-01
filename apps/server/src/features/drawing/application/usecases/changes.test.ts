@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 
 import { FakeComments, newBoard, setupAccess } from "../../../../testing";
 import { CommentActivityFeed } from "../../../discussion/application/CommentActivityFeed";
-import type { Comment } from "../../../discussion/domain/entities/Comment";
+import { Comment } from "../../../discussion/domain/entities/Comment";
+import type { CommentFields } from "../../../discussion/domain/entities/Comment";
 import { FakeScenes } from "./fakes";
 import { GetBoardChanges, MAX_COMMENT_CHANGES } from "./GetBoardChanges";
 import { SelectElements } from "./Selection";
@@ -11,22 +12,23 @@ const actor = { userId: "owner" };
 const start = new Date("2026-01-01T00:00:00.000Z");
 const at = (seconds: number) => new Date(start.getTime() + seconds * 1000);
 
-const comment = (id: string, patch: Partial<Comment> = {}): Comment => ({
-  id,
-  boardId: "b1",
-  pageId: "page:main",
-  x: 1.23456,
-  y: 2,
-  body: `body ${id}`,
-  authorId: "owner",
-  createdAt: at(1),
-  editedAt: null,
-  resolvedAt: null,
-  resolvedById: null,
-  assigneeId: null,
-  parentId: null,
-  ...patch,
-});
+const comment = (id: string, patch: Partial<CommentFields> = {}): Comment =>
+  Comment.restore({
+    id,
+    boardId: "b1",
+    pageId: "page:main",
+    x: 1.23456,
+    y: 2,
+    body: `body ${id}`,
+    authorId: "owner",
+    createdAt: at(1),
+    editedAt: null,
+    resolvedAt: null,
+    resolvedById: null,
+    assigneeId: null,
+    parentId: null,
+    ...patch,
+  });
 
 const setup = () => {
   const access = { ...setupAccess(), scenes: new FakeScenes() };

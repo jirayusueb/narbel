@@ -2,7 +2,7 @@ import type { BoardsEvent } from "../../../../shared/application/events/BoardsEv
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import type { IProcessedEvents } from "../../../../shared/application/interfaces/IProcessedEvents";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import { boardFilePrefix } from "../../domain/values/FileKey";
+import { FileKey } from "../../domain/values/FileKey";
 import type { IDrawingRows } from "../ports/IBoardDocumentStore";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
@@ -32,7 +32,7 @@ export class DeleteDrawing {
       await tx.drawings.deleteAll(event.boardId);
       await this.scenes.discard(event.boardId);
       // inside the transaction: a failed delete leaves the event unmarked, so the worker retries it
-      await this.storage.deletePrefix(boardFilePrefix(event.boardId));
+      await this.storage.deletePrefix(FileKey.prefix(event.boardId));
     });
   }
 }

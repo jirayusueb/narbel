@@ -5,14 +5,8 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { parseUsername } from "../../../../shared/kernel/values/Username";
-import {
-  MAX_AVATAR_BYTES,
-  avatarKey,
-  avatarMimeOfKey,
-  mimeOfStoredKey,
-  validateAvatarUpload,
-} from "../../domain/values/Avatar";
-import { parseDisplayName } from "../../domain/values/DisplayName";
+import { Avatar, MAX_AVATAR_BYTES } from "../../domain/values/Avatar";
+import { DisplayName } from "../../domain/values/DisplayName";
 import { toMeDto } from "../MeDto";
 import type { MeDto } from "../MeDto";
 
@@ -35,11 +29,11 @@ export class ProfileUseCases {
   }
 
   async rename(userId: string, rawName: string) {
-    const name = parseDisplayName(rawName);
+    const name = DisplayName.parse(rawName);
     if (name.isErr()) {
       return err<MeDto, AppError>(name.error);
     }
-    await this.profiles.setName(userId, name.value);
+    await this.profiles.setName(userId, name.value.value);
     return await this.me(userId);
   }
 
@@ -74,11 +68,11 @@ export class ProfileUseCases {
     userId: string,
     input: { mimeType: string; size: number }
   ): Result<{ uploadUrl: string; key: string }, AppError> {
-    const valid = validateAvatarUpload(input);
-    if (valid.isErr()) {
-      return err(valid.error);
+    const avatar = Avatar.parse(input);
+    if (avatar.isErr()) {
+      return err(avatar.error);
     }
-    const key = avatarKey(userId, this.ids.generate(), input.mimeType);
+    const key = avatar.value.keyFor(userId, this.ids.generate());
     return ok({
       key,
       uploadUrl: this.storage.presignUpload(
@@ -90,7 +84,7 @@ export class ProfileUseCases {
   }
 
   async confirmAvatar(userId: string, key: string) {
-    const mime = avatarMimeOfKey(userId, key);
+    const mime = Avatar.mimeOfKey(userId, key);
     if (!mime) {
       return err<MeDto, AppError>(AppError.validation("Invalid avatar key"));
     }
@@ -125,7 +119,10 @@ export class ProfileUseCases {
   > {
     const key = await this.profiles.avatarKeyOf(userId);
     return key
-      ? ok({ stream: this.storage.stream(key), mimeType: mimeOfStoredKey(key) })
+      ? ok({
+          stream: this.storage.stream(key),
+          mimeType: Avatar.mimeOfStoredKey(key),
+        })
       : err(AppError.notFound("Avatar"));
   }
 

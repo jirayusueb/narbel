@@ -12,6 +12,7 @@ import type {
 import { ConnectBoardSync } from "../../../drawing/application/usecases/ConnectBoardSync";
 import { FakeScenes } from "../../../drawing/application/usecases/fakes";
 import { GetBoardFile } from "../../../drawing/application/usecases/GetBoardFile";
+import { ShareLink } from "../../domain/values/ShareLink";
 import { GetBoard } from "./GetBoard";
 import { ListBoards } from "./ListBoards";
 import { ListTrash } from "./ListTrash";
@@ -96,13 +97,13 @@ describe("trash: who sees a trashed board", () => {
 
   it("applies to write and owner needs and to share links alike", async () => {
     const { policy, grants, trash } = setup();
-    grants.share = {
+    grants.share = ShareLink.create({
       boardId: "b1",
       token: "t".repeat(43),
       role: "viewer",
       createdAt: new Date(),
       expiresAt: null,
-    };
+    });
     await trash.execute({ actor: owner, boardId: "b1" });
     expect(code(await policy.decide("b1", member, "write"))).toBe("Gone");
     expect(code(await policy.decide("b1", owner, "owner"))).toBe("Gone");

@@ -1,7 +1,7 @@
+import { Element } from "../../domain/entities/Element";
 import type {
   Binding,
   BoundElement,
-  Element,
   Roundness,
 } from "../../domain/entities/Element";
 
@@ -102,7 +102,7 @@ export const toElement = (stored: ExcalidrawElement): Element => {
     }
   }
   // every typed key passed its field's guard
-  return { ...typed, rest } as Element;
+  return Element.restore(typed as Typed, rest);
 };
 
 /** The stored form; a typed field wins over a `rest` entry of the same name. */

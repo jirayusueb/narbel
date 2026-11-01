@@ -4,7 +4,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { isThread, reopen, resolve } from "../../domain/entities/Thread";
+import { Thread } from "../../domain/entities/Comment";
 import { presentOne } from "../CommentPresenter";
 import { DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
@@ -42,12 +42,13 @@ export class ResolveComment {
       const root = target?.parentId
         ? await tx.comments.findById(board.id, target.parentId)
         : target;
-      if (!(root && isThread(root))) {
+      const thread = root && Thread.of(root);
+      if (!(root && thread)) {
         return err(AppError.notFound("Comment"));
       }
       const next = input.resolve
-        ? resolve(root, actor.value.id, new Date())
-        : reopen(root);
+        ? thread.resolve(actor.value.id, new Date())
+        : thread.reopen();
       if (next.resolvedAt?.getTime() !== root.resolvedAt?.getTime()) {
         await tx.comments.update(board.id, root.id, {
           resolvedAt: next.resolvedAt,

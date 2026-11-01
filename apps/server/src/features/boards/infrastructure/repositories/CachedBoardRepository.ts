@@ -1,7 +1,6 @@
 import type { ICache } from "../../../../shared/application/interfaces/ICache";
 import type { IBoardRepository } from "../../application/ports/IBoardRepository";
-import { restoreBoard } from "../../domain/entities/Board";
-import type { Board } from "../../domain/entities/Board";
+import { Board } from "../../domain/entities/Board";
 import type { Visibility } from "../../domain/values/Access";
 
 const TTL_SECONDS = 60;
@@ -35,7 +34,7 @@ const toRow = (board: Board): BoardRow => ({
 });
 
 const fromRow = (row: BoardRow) =>
-  restoreBoard({
+  Board.restore({
     ...row,
     createdAt: new Date(row.createdAt),
     updatedAt: new Date(row.updatedAt),

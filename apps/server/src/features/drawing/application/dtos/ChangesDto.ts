@@ -1,4 +1,4 @@
-import { labelIdOf } from "../../domain/entities/Drawing";
+import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
 import type { ElementTouch, SceneAccess } from "../ports/IBoardScenes";
 import type { ChangedComment } from "../ports/ICommentActivity";
@@ -114,7 +114,7 @@ export const toPageChanges = (
       result.push(dto);
     }
     const labelOf = (e: Element) => {
-      const labelId = labelIdOf(e);
+      const labelId = Drawing.labelIdOf(e);
       return labelId === undefined ? undefined : scene.get(page.id, labelId);
     };
     if (kind === "deleted") {

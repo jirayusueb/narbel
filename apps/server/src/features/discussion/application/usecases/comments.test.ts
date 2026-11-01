@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { FakeComments, ids, setupAccess } from "../../../../testing";
-import { newComment } from "../../domain/entities/Comment";
-import { excerptOf, extractMentions } from "../../domain/rules/mentions";
-import { parseReaction } from "../../domain/values/Reaction";
+import { Comment } from "../../domain/entities/Comment";
+import { Mentions } from "../../domain/rules/mentions";
+import { Reaction } from "../../domain/values/Reaction";
 import type { DiscussionTx } from "../ports/DiscussionTx";
 import { AddComment } from "./AddComment";
 import { AssignComment } from "./AssignComment";
@@ -26,13 +26,13 @@ const base = {
 
 describe("comment validation", () => {
   it("trims and accepts 1 to 2000 characters", () => {
-    const ok = newComment(
+    const ok = Comment.new(
       { ...base, pageId: "p", x: 1, y: 2, body: "  hi  " },
       new Date()
     );
     expect(ok.isOk() && ok.value.body).toBe("hi");
     expect(
-      newComment(
+      Comment.new(
         { ...base, pageId: "p", x: 1, y: 2, body: "a".repeat(2000) },
         new Date()
       ).isOk()
@@ -41,7 +41,7 @@ describe("comment validation", () => {
 
   it("rejects empty, oversized, non-finite and pageless comments", () => {
     const bad = (patch: object) =>
-      newComment(
+      Comment.new(
         { ...base, pageId: "p", x: 1, y: 2, body: "ok", ...patch },
         new Date()
       ).isErr();
@@ -56,13 +56,15 @@ describe("comment validation", () => {
 describe("mentions and reactions", () => {
   it("finds distinct lowercase @usernames and ignores emails and short names", () => {
     expect(
-      extractMentions("hi @Bob and @bob, mail a@bob.io, @al, (@carol_9)!")
+      Mentions.extractMentions(
+        "hi @Bob and @bob, mail a@bob.io, @al, (@carol_9)!"
+      )
     ).toEqual(["bob", "carol_9"]);
   });
 
   it("turns markdown into plain-text excerpts and keeps @mentions and snake_case", () => {
     expect(
-      excerptOf(
+      Mentions.excerptOf(
         "## Plan\n- check the **API** and `cache`\n> see [the doc](https://x.y) @ada_l, ~~old~~ my_var"
       )
     ).toBe("Plan check the API and cache see the doc @ada_l, old my_var");
@@ -70,11 +72,11 @@ describe("mentions and reactions", () => {
 
   it("accepts the eight emoji with or without the variation selector", () => {
     for (const emoji of ["👍", "❤️", "❤", "😂", "🎉", "😮", "😢", "👀", "🚀"]) {
-      expect(parseReaction(emoji).isOk()).toBe(true);
+      expect(Reaction.parse(emoji).isOk()).toBe(true);
     }
-    expect(parseReaction("💩").isErr()).toBe(true);
-    const heart = parseReaction("❤");
-    expect(heart.isOk() && heart.value).toBe("❤️");
+    expect(Reaction.parse("💩").isErr()).toBe(true);
+    const heart = Reaction.parse("❤");
+    expect(heart.isOk() && heart.value.value).toBe("❤️");
   });
 });
 
@@ -465,10 +467,10 @@ describe("comment use cases", () => {
       await add.execute({ ...put, body: `c${i}`, actor: ed });
     }
     for (const [i, comment] of [...comments.rows.values()].entries()) {
-      comments.rows.set(comment.id, {
-        ...comment,
-        createdAt: new Date(1000 + i),
-      });
+      comments.rows.set(
+        comment.id,
+        Comment.restore({ ...comment, createdAt: new Date(1000 + i) })
+      );
     }
     const first = await list.execute({ actor: ed, boardId: "b1", limit: 2 });
     expect(first.isOk() && first.value.items.map((c) => c.body)).toEqual([

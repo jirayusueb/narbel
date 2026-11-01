@@ -9,11 +9,6 @@ export interface Member {
   role: MemberRole;
 }
 
-export interface Share extends ShareLink {
-  boardId: string;
-  createdAt: Date;
-}
-
 /** A live board a person can read now, with their role on it. */
 export interface ReadableBoard {
   id: string;
@@ -59,7 +54,7 @@ export interface IBoardAccessRepository {
     key: string
   ): Promise<{ userId: string | null; email: string } | null>;
   findUserIdByEmail(email: string): Promise<string | null>;
-  findShare(boardId: string): Promise<Share | null>;
-  saveShare(share: Share): Promise<void>;
+  findShare(boardId: string): Promise<ShareLink | null>;
+  saveShare(share: ShareLink): Promise<void>;
   deleteShare(boardId: string): Promise<void>;
 }

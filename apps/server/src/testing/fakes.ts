@@ -4,21 +4,16 @@ import type {
   IBoardAccessRepository,
   Member,
   ReadableBoard,
-  Share,
 } from "../features/boards/application/ports/IBoardAccessRepository";
 import type { IBoardRepository } from "../features/boards/application/ports/IBoardRepository";
 import type { IUnlockTokens } from "../features/boards/application/ports/IUnlockTokens";
-import {
-  createBoard,
-  protectBoard,
-  restoreBoard,
-} from "../features/boards/domain/entities/Board";
-import type { Board } from "../features/boards/domain/entities/Board";
+import { Board } from "../features/boards/domain/entities/Board";
 import type {
   MemberRole,
   Visibility,
 } from "../features/boards/domain/values/Access";
 import { BoardTitle } from "../features/boards/domain/values/BoardTitle";
+import type { ShareLink } from "../features/boards/domain/values/ShareLink";
 import type { IIdGenerator } from "../shared/application/interfaces/IIdGenerator";
 import type {
   INotificationRepository,
@@ -81,7 +76,7 @@ class FakeBoards implements IBoardRepository {
     }
     this.rows.set(
       id,
-      restoreBoard({ ...row, title: row.title.value, trashedAt: at })
+      Board.restore({ ...row, title: row.title.value, trashedAt: at })
     );
     return Promise.resolve(true);
   };
@@ -96,7 +91,7 @@ class FakeBoards implements IBoardRepository {
 
 class FakeGrants implements IBoardAccessRepository {
   readonly members: (Member & { boardId: string })[] = [];
-  share: Share | null = null;
+  share: ShareLink | null = null;
   constructor(private readonly boards = new FakeBoards()) {}
   findGrant = (
     boardId: string,
@@ -182,7 +177,7 @@ class FakeGrants implements IBoardAccessRepository {
   findUserIdByEmail: (email: string) => Promise<string | null> = () =>
     Promise.resolve(null);
   findShare = () => Promise.resolve(this.share);
-  saveShare = (share: Share) => {
+  saveShare = (share: ShareLink) => {
     this.share = share;
     return Promise.resolve();
   };
@@ -274,14 +269,14 @@ export const fakeUnlock: IUnlockTokens = {
 };
 
 export const newBoard = (id = "b1", owner = "owner") =>
-  createBoard(id, owner, BoardTitle.restore("Mine"), new Date());
+  Board.create(id, owner, BoardTitle.restore("Mine"), new Date());
 
 export const protectedBoard = (
   visibility: Visibility,
   passwordHash: string | null,
   board = newBoard()
 ) => {
-  const result = protectBoard(board, visibility, passwordHash, new Date());
+  const result = board.protect(visibility, passwordHash, new Date());
   if (result.isErr()) {
     throw new Error(result.error.message);
   }

@@ -1,5 +1,5 @@
-import type { Page } from "../../domain/entities/Page";
-import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
+import { Page } from "../../domain/entities/Page";
+import { MergeElement } from "../../domain/rules/mergeElement";
 import type { SceneVersion } from "../../domain/values/ChangeCursor";
 import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import { toElement, toExcalidraw } from "../dtos/ExcalidrawElement";
@@ -12,7 +12,7 @@ import type {
 
 /** The live document in memory, with the hub's merge rule. */
 export class FakeScenes implements IBoardScenes {
-  readonly pageList: Page[] = [{ id: "page:main", name: "Page 1" }];
+  readonly pageList: Page[] = [Page.create("page:main", "Page 1")];
   /** elements as the shared document stores them */
   readonly elements = new Map<string, ExcalidrawElement>();
   readonly files = new Map<
@@ -32,11 +32,11 @@ export class FakeScenes implements IBoardScenes {
       this.pageList.push(page);
     },
     renamePage: (id, name) => {
-      const page = this.pageList.find((p) => p.id === id);
-      if (page) {
-        page.name = name;
+      const index = this.pageList.findIndex((p) => p.id === id);
+      if (index !== -1) {
+        this.pageList[index] = Page.create(id, name);
       }
-      return Boolean(page);
+      return index !== -1;
     },
     removePage: (id) => {
       const index = this.pageList.findIndex((p) => p.id === id);
@@ -68,7 +68,7 @@ export class FakeScenes implements IBoardScenes {
     // same merge rule as the live hub, so a write without a version bump is dropped here too
     put: (pageId, el) => {
       const key = `${pageId}:${el.id}`;
-      if (shouldAcceptIncoming(this.elements.get(key), el)) {
+      if (MergeElement.shouldAcceptIncoming(this.elements.get(key), el)) {
         this.elements.set(key, toExcalidraw(el));
       }
     },

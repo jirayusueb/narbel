@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { layered } from "./layout";
+import { Layout } from "./layout";
 
 const nodes = [
   { id: "a", width: 100, height: 60 },
@@ -11,7 +11,7 @@ describe("layered rank gap", () => {
   it("keeps 80 without a label and grows for a long label in both directions", () => {
     const label = { width: 300, height: 100 };
     const gap = (direction: "down" | "right", withLabel: boolean) => {
-      const at = layered(
+      const at = Layout.layered(
         nodes,
         [{ from: "a", to: "b", label: withLabel ? label : undefined }],
         direction
@@ -28,7 +28,7 @@ describe("layered rank gap", () => {
   });
 
   it("never shrinks below 80 for a short label", () => {
-    const at = layered(
+    const at = Layout.layered(
       nodes,
       [{ from: "a", to: "b", label: { width: 10, height: 10 } }],
       "right"
@@ -44,7 +44,7 @@ describe("layered skipped ranks", () => {
       { id: "b", width: 100, height: 60 },
       { id: "c", width: 100, height: 60 },
     ];
-    const at = layered(
+    const at = Layout.layered(
       chain,
       [
         { from: "a", to: "b" },

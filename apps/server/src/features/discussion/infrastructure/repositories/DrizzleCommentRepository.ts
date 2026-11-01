@@ -22,11 +22,9 @@ import type {
   ReactionSummary,
   ThreadQuery,
 } from "../../application/ports/ICommentRepository";
-import type { Comment } from "../../domain/entities/Comment";
+import { Comment } from "../../domain/entities/Comment";
 
 type Row = typeof comment.$inferSelect;
-
-const toComment = (row: Row): Comment => row;
 
 const before = (cursor: Cursor | null) =>
   cursor
@@ -62,7 +60,7 @@ export class DrizzleCommentRepository implements ICommentRepository {
       .from(comment)
       .where(and(eq(comment.boardId, boardId), eq(comment.id, id)))
       .limit(1);
-    return row ? toComment(row) : null;
+    return row ? Comment.restore(row) : null;
   }
 
   async view(boardId: string, id: string, viewerId?: string) {
@@ -240,7 +238,7 @@ export class DrizzleCommentRepository implements ICommentRepository {
       reactions.set(commentId, [...(reactions.get(commentId) ?? []), summary]);
     }
     return rows.map((row) => ({
-      comment: toComment(row),
+      comment: Comment.restore(row),
       replyCount: replies.get(row.id) ?? 0,
       reactions: reactions.get(row.id) ?? [],
     }));

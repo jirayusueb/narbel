@@ -7,7 +7,7 @@ import {
   DEFAULT_MAX_SIZE,
   MAX_MAX_SIZE,
   MIN_MAX_SIZE,
-  SHAPE_TYPES,
+  ShapeRegistry,
 } from "../../drawing";
 import { registerCollabTools } from "./collabTools";
 import { MCP_INSTRUCTIONS } from "./instructions";
@@ -40,7 +40,7 @@ const ELEMENT_TYPES = [
 ] as const;
 
 const shape = z.object({
-  type: z.enum(SHAPE_TYPES),
+  type: z.enum(ShapeRegistry.SHAPE_TYPES),
   x: z
     .number()
     .optional()

@@ -8,6 +8,7 @@ import {
   protectedBoard,
   setupAccess,
 } from "../../../../testing";
+import { ShareLink } from "../../domain/values/ShareLink";
 import { HmacUnlockTokens } from "../../infrastructure/services/HmacUnlockTokens";
 import { AccessPolicy } from "../AccessPolicy";
 import type { Need } from "../AccessPolicy";
@@ -99,13 +100,13 @@ describe("access matrix", () => {
 
   it("share token grants its role, and expired or wrong tokens grant nothing", async () => {
     const { policy, grants } = setupAccess();
-    grants.share = {
+    grants.share = ShareLink.create({
       boardId: "b1",
       token: TOKEN,
       role: "editor",
       createdAt: past,
       expiresAt: future,
-    };
+    });
     expect(await outcome(policy, { userId: "u1", shareToken: TOKEN })).toBe(
       "editor:true"
     );
@@ -116,21 +117,21 @@ describe("access matrix", () => {
     expect(await outcome(policy, { shareToken: "x".repeat(43) })).toBe(
       "NotFound"
     );
-    grants.share = {
+    grants.share = ShareLink.create({
       boardId: "b1",
       token: TOKEN,
       role: "editor",
       createdAt: past,
       expiresAt: past,
-    };
+    });
     expect(await outcome(policy, { shareToken: TOKEN })).toBe("NotFound");
-    grants.share = {
+    grants.share = ShareLink.create({
       boardId: "b1",
       token: TOKEN,
       role: "viewer",
       createdAt: past,
       expiresAt: null,
-    };
+    });
     expect(await outcome(policy, { shareToken: TOKEN })).toBe("viewer:false");
   });
 

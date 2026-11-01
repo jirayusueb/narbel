@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { MAX_INLINE_IMAGE_BYTES } from "../../drawing";
+import { UploadRules } from "../../drawing";
 import { boardId, elementId, pageId, reply } from "./toolKit";
 import type { ToolRegistrar } from "./toolKit";
 
-const MAX_BASE64_LENGTH = Math.ceil(MAX_INLINE_IMAGE_BYTES / 3) * 4;
+const MAX_BASE64_LENGTH = Math.ceil(UploadRules.MAX_INLINE_IMAGE_BYTES / 3) * 4;
 const DATA_URL = /^data:[^,]*;base64,/u;
 const BASE64 =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
@@ -17,7 +17,7 @@ const imageData = z
     if (base64.length > MAX_BASE64_LENGTH || !BASE64.test(base64)) {
       ctx.addIssue({
         code: "custom",
-        message: `must be base64 (or a base64 data: URL) of at most ${MAX_INLINE_IMAGE_BYTES} bytes`,
+        message: `must be base64 (or a base64 data: URL) of at most ${UploadRules.MAX_INLINE_IMAGE_BYTES} bytes`,
       });
       return z.NEVER;
     }

@@ -1,6 +1,7 @@
 import type { Board } from "../../domain/entities/Board";
 import type { MemberRole, Visibility } from "../../domain/values/Access";
-import type { Member, Share } from "../ports/IBoardAccessRepository";
+import type { ShareLink } from "../../domain/values/ShareLink";
+import type { Member } from "../ports/IBoardAccessRepository";
 
 export interface BoardAccessDto {
   visibility: Visibility;
@@ -16,7 +17,7 @@ export interface BoardAccessDto {
 
 export const toAccessDto = (
   board: Board,
-  share: Share | null,
+  share: ShareLink | null,
   members: Member[],
   webOrigin: string
 ): BoardAccessDto => ({

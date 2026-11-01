@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { arrangeMoves } from "./arrange";
+import { Arrange } from "./arrange";
 import type { ArrangeItem, Edge } from "./arrange";
 
 const items: ArrangeItem[] = [
@@ -36,21 +36,21 @@ describe("align", () => {
   ];
   for (const [edge, measure, target] of cases) {
     it(`${edge} puts every element on ${target}, and a rerun moves nothing`, () => {
-      const moves = arrangeMoves(items, { kind: "align", edge });
+      const moves = Arrange.arrangeMoves(items, { kind: "align", edge });
       const after = apply(items, moves);
       expect(after.map((i) => measure(i.bounds))).toEqual([
         target,
         target,
         target,
       ]);
-      expect(arrangeMoves(after, { kind: "align", edge })).toEqual([]);
+      expect(Arrange.arrangeMoves(after, { kind: "align", edge })).toEqual([]);
     });
   }
 });
 
 describe("distribute", () => {
   it("keeps the outer elements and equalises the gaps", () => {
-    const moves = arrangeMoves(items, {
+    const moves = Arrange.arrangeMoves(items, {
       kind: "distribute",
       axis: "horizontal",
     });
@@ -60,7 +60,7 @@ describe("distribute", () => {
     expect(c?.x).toBe(400);
     expect((b?.x ?? 0) - 100).toBe(400 - ((b?.x ?? 0) + 50));
     expect(
-      arrangeMoves(apply(items, moves), {
+      Arrange.arrangeMoves(apply(items, moves), {
         kind: "distribute",
         axis: "horizontal",
       })
@@ -68,7 +68,10 @@ describe("distribute", () => {
   });
 
   it("works vertically, spacing the centres of items that overlap", () => {
-    const moves = arrangeMoves(items, { kind: "distribute", axis: "vertical" });
+    const moves = Arrange.arrangeMoves(items, {
+      kind: "distribute",
+      axis: "vertical",
+    });
     const centres = apply(items, moves)
       .map((i) => i.bounds.y + i.bounds.height / 2)
       .toSorted((p, q) => p - q);
@@ -85,8 +88,8 @@ describe("distribute with overlapping elements", () => {
   const how = { kind: "distribute", axis: "horizontal" } as const;
 
   it("spaces the centres evenly and keeps the outer elements", () => {
-    const moves = arrangeMoves(overlapping, how);
+    const moves = Arrange.arrangeMoves(overlapping, how);
     expect(moves).toEqual([{ id: "b", dx: 45, dy: 0 }]);
-    expect(arrangeMoves(apply(overlapping, moves), how)).toEqual([]);
+    expect(Arrange.arrangeMoves(apply(overlapping, moves), how)).toEqual([]);
   });
 });

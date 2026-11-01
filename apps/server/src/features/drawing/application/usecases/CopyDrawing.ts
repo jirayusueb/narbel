@@ -3,10 +3,9 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Element } from "../../domain/entities/Element";
-import { MAIN_PAGE } from "../../domain/entities/Page";
-import type { Page } from "../../domain/entities/Page";
-import { MAX_FILE_BYTES } from "../../domain/rules/UploadRules";
-import { boardFileKey, boardFilePrefix } from "../../domain/values/FileKey";
+import { MAIN_PAGE, Page } from "../../domain/entities/Page";
+import { UploadRules } from "../../domain/rules/UploadRules";
+import { FileKey } from "../../domain/values/FileKey";
 import type { CopyTarget } from "../ports/IBoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import type { IBoardScenes } from "../ports/IBoardScenes";
@@ -60,7 +59,7 @@ export class CopyDrawing {
   ): Promise<Result<undefined, AppError>> {
     // one transaction, so a concurrent editor cannot tear the snapshot
     const snapshot = await this.scenes.transact(sourceId, (s) => {
-      const pages = s.pages().map((p): Page => ({ ...p }));
+      const pages = s.pages().map((p) => Page.create(p.id, p.name));
       const elements = pages.flatMap((p) =>
         s
           .all(p.id)
@@ -117,7 +116,7 @@ export class CopyDrawing {
     } catch (error) {
       // only the new board's own id and prefix are touched, never the source
       await this.scenes.discard(targetId);
-      await this.storage.deletePrefix(boardFilePrefix(targetId));
+      await this.storage.deletePrefix(FileKey.prefix(targetId));
       await target.remove(targetId);
       throw error;
     }
@@ -130,13 +129,13 @@ export class CopyDrawing {
   ): Promise<Result<{ mimeType: string; size: number }, AppError>> {
     const row = await this.files.findById(sourceId, fileId);
     const stored =
-      row && (await this.storage.stat(boardFileKey(sourceId, fileId)));
+      row && (await this.storage.stat(FileKey.of(sourceId, fileId)));
     if (!row || !stored || stored.size < 1) {
       return err(
         AppError.conflict(`Image ${fileId} is missing from the board's storage`)
       );
     }
-    if (stored.size > MAX_FILE_BYTES) {
+    if (stored.size > UploadRules.MAX_FILE_BYTES) {
       return err(
         AppError.payloadTooLarge(`Image ${fileId} is too large to copy`, {
           fileId,
@@ -153,9 +152,9 @@ export class CopyDrawing {
     mimeType: string
   ) {
     const bytes = await new Response(
-      this.storage.stream(boardFileKey(sourceId, fileId))
+      this.storage.stream(FileKey.of(sourceId, fileId))
     ).bytes();
-    await this.storage.put(boardFileKey(targetId, fileId), bytes, mimeType);
+    await this.storage.put(FileKey.of(targetId, fileId), bytes, mimeType);
     await this.files.save(targetId, {
       id: fileId,
       mimeType,

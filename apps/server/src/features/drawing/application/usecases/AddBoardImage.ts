@@ -4,24 +4,15 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { isElementIdTaken } from "../../domain/entities/Drawing";
+import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
-import { resolvePage } from "../../domain/entities/Page";
-import { elementBounds, overlaps, union } from "../../domain/rules/geometry";
-import { readImageHeader } from "../../domain/rules/imageHeader";
-import {
-  CLEARANCE,
-  FRAME_PADDING,
-  besideContent,
-  wrapFrame,
-} from "../../domain/rules/layout";
-import {
-  MAX_IMAGE_PIXELS,
-  MAX_INLINE_IMAGE_BYTES,
-  validateUpload,
-} from "../../domain/rules/UploadRules";
-import { buildImage, imageSize } from "../../domain/shapes/imageElement";
-import { boardFileKey } from "../../domain/values/FileKey";
+import { Page } from "../../domain/entities/Page";
+import { Geometry } from "../../domain/rules/geometry";
+import { ImageHeaderReader } from "../../domain/rules/imageHeader";
+import { Layout } from "../../domain/rules/layout";
+import { UploadRules } from "../../domain/rules/UploadRules";
+import { ImageElement } from "../../domain/shapes/imageElement";
+import { FileKey } from "../../domain/values/FileKey";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
@@ -47,13 +38,13 @@ const FAILURES: Record<Refusal, () => AppError> = {
 const insideFrame = (frame: Element, live: Element[]) => {
   const right = live
     .filter((e) => e.frameId === frame.id)
-    .map((e) => elementBounds(e))
+    .map((e) => Geometry.elementBounds(e))
     .map((b) => b.x + b.width);
   return {
     x:
       (right.length === 0 ? Number(frame.x) : Math.max(...right)) +
-      FRAME_PADDING,
-    y: Number(frame.y) + FRAME_PADDING,
+      Layout.FRAME_PADDING,
+    y: Number(frame.y) + Layout.FRAME_PADDING,
   };
 };
 
@@ -70,12 +61,12 @@ export class AddBoardImage {
     scene: SceneAccess,
     input: { pageId?: string; id?: string; frameId?: string }
   ) {
-    const page = resolvePage(scene.pages(), input.pageId);
+    const page = Page.resolve(scene.pages(), input.pageId);
     if (!page) {
       return "no-page";
     }
     const id = input.id ?? this.ids.generate();
-    if (isElementIdTaken(id, (key) => scene.locate(key))) {
+    if (Drawing.isElementIdTaken(id, (key) => scene.locate(key))) {
       return "id-taken";
     }
     const frame =
@@ -111,14 +102,14 @@ export class AddBoardImage {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    if (input.bytes.length > MAX_INLINE_IMAGE_BYTES) {
+    if (input.bytes.length > UploadRules.MAX_INLINE_IMAGE_BYTES) {
       return err(
         AppError.payloadTooLarge("Inline image exceeds 700 KiB", {
-          maxBytes: MAX_INLINE_IMAGE_BYTES,
+          maxBytes: UploadRules.MAX_INLINE_IMAGE_BYTES,
         })
       );
     }
-    const header = readImageHeader(input.bytes);
+    const header = ImageHeaderReader.readImageHeader(input.bytes);
     if (!header) {
       return err(
         AppError.unsupportedMediaType("Not a PNG, JPEG, GIF, WebP or SVG image")
@@ -127,18 +118,18 @@ export class AddBoardImage {
     // a few KiB can declare a huge raster; renders decode it in full
     if (
       header.size &&
-      header.size.width * header.size.height > MAX_IMAGE_PIXELS
+      header.size.width * header.size.height > UploadRules.MAX_IMAGE_PIXELS
     ) {
       return err(
         AppError.validation(
-          `Image declares ${header.size.width}x${header.size.height} pixels; the limit is ${MAX_IMAGE_PIXELS}`
+          `Image declares ${header.size.width}x${header.size.height} pixels; the limit is ${UploadRules.MAX_IMAGE_PIXELS}`
         )
       );
     }
     const fileId = new Bun.CryptoHasher("sha1")
       .update(input.bytes)
       .digest("hex");
-    const valid = validateUpload({
+    const valid = UploadRules.validateUpload({
       fileId,
       mimeType: header.mimeType,
       size: input.bytes.length,
@@ -164,11 +155,11 @@ export class AddBoardImage {
       return err(AppError.conflict("Image is being cleaned up, retry"));
     }
     await this.storage.put(
-      boardFileKey(input.boardId, fileId),
+      FileKey.of(input.boardId, fileId),
       input.bytes,
       header.mimeType
     );
-    const size = imageSize(header.size, input);
+    const size = ImageElement.imageSize(header.size, input);
     const now = Date.now();
     const outcome = await this.scenes.transact(
       input.boardId,
@@ -179,7 +170,10 @@ export class AddBoardImage {
         }
         const { page, id, frame } = resolved;
         const live = scene.all(page.id).filter((e) => !e.isDeleted);
-        const beside = besideContent(live.map(elementBounds), CLEARANCE);
+        const beside = Layout.besideContent(
+          live.map(Geometry.elementBounds),
+          Layout.CLEARANCE
+        );
         const spot = frame
           ? insideFrame(frame, live)
           : { x: beside.left, y: beside.top };
@@ -189,7 +183,11 @@ export class AddBoardImage {
         const grows = autoPlaced && frame?.locked !== true;
         const inFrame =
           frame !== undefined &&
-          (grows || overlaps({ ...size, x, y }, elementBounds(frame)));
+          (grows ||
+            Geometry.overlaps(
+              { ...size, x, y },
+              Geometry.elementBounds(frame)
+            ));
         scene.ensureFile({
           id: fileId,
           mimeType: header.mimeType,
@@ -197,15 +195,15 @@ export class AddBoardImage {
         });
         scene.put(
           page.id,
-          buildImage(
+          ImageElement.buildImage(
             { ...size, x, y, fileId, frameId: inFrame ? frame?.id : undefined },
             { ...newIdentity(this.ids, now), id }
           )
         );
         if (frame && grows) {
-          const fitted = union([
-            elementBounds(frame),
-            wrapFrame([{ ...size, x, y }]),
+          const fitted = Geometry.union([
+            Geometry.elementBounds(frame),
+            Layout.wrapFrame([{ ...size, x, y }]),
           ]);
           scene.put(page.id, bumped({ ...frame, ...fitted }, this.ids));
         }

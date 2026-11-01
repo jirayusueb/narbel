@@ -4,7 +4,7 @@ import type {
   ReactionSummary,
   ThreadQuery,
 } from "../features/discussion/application/ports/ICommentRepository";
-import type { Comment } from "../features/discussion/domain/entities/Comment";
+import { Comment } from "../features/discussion/domain/entities/Comment";
 import type { Cursor } from "../shared/kernel/types/Cursor";
 
 const activityAt = (c: Comment) =>
@@ -113,7 +113,7 @@ export class FakeComments implements ICommentRepository {
   ) => {
     const row = this.rows.get(id);
     if (row?.boardId === boardId) {
-      this.rows.set(id, { ...row, ...patch });
+      this.rows.set(id, Comment.restore({ ...row, ...patch }));
     }
     return Promise.resolve();
   };
@@ -154,7 +154,7 @@ export class FakeComments implements ICommentRepository {
   clearAssignee = (boardId: string, userId: string) => {
     for (const [id, c] of this.rows) {
       if (c.boardId === boardId && c.assigneeId === userId) {
-        this.rows.set(id, { ...c, assigneeId: null });
+        this.rows.set(id, Comment.restore({ ...c, assigneeId: null }));
       }
     }
     return Promise.resolve();

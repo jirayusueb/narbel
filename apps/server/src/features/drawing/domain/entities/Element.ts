@@ -18,54 +18,73 @@ export interface Roundness {
 /**
  * One drawing element: the fields the rules read or write, typed. Every other field of the
  * stored element rides along in `rest`, which the domain carries but never reads.
+ * Fields are `declare`d so an absent field stays absent, as it is in the stored element.
  */
-export interface Element extends Versioned {
-  id: string;
-  type: string;
-  updated?: number;
-  isDeleted?: boolean;
+export class Element implements Versioned {
+  declare id: string;
+  declare type: string;
+  declare version: number;
+  declare versionNonce: number;
+  declare updated?: number;
+  declare isDeleted?: boolean;
   /** fractional z-order key */
-  index?: string;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  angle?: number;
-  groupIds?: string[];
-  frameId?: string | null;
-  locked?: boolean;
+  declare index?: string;
+  declare x?: number;
+  declare y?: number;
+  declare width?: number;
+  declare height?: number;
+  declare angle?: number;
+  declare groupIds?: string[];
+  declare frameId?: string | null;
+  declare locked?: boolean;
   /** a label's shape */
-  containerId?: string | null;
+  declare containerId?: string | null;
   /** a shape's label and attached connectors */
-  boundElements?: BoundElement[] | null;
+  declare boundElements?: BoundElement[] | null;
   /** connector and freedraw points, relative to x/y */
-  points?: number[][];
-  startBinding?: Binding | null;
-  endBinding?: Binding | null;
-  startArrowhead?: string | null;
-  endArrowhead?: string | null;
+  declare points?: number[][];
+  declare startBinding?: Binding | null;
+  declare endBinding?: Binding | null;
+  declare startArrowhead?: string | null;
+  declare endArrowhead?: string | null;
   /** closed line */
-  polygon?: boolean;
-  fileId?: string | null;
+  declare polygon?: boolean;
+  declare fileId?: string | null;
   /** image flip */
-  scale?: number[];
-  text?: string;
+  declare scale?: number[];
+  declare text?: string;
   /** text before wrapping */
-  originalText?: string;
-  fontSize?: number;
-  fontFamily?: number;
-  lineHeight?: number;
-  textAlign?: string;
-  verticalAlign?: string;
+  declare originalText?: string;
+  declare fontSize?: number;
+  declare fontFamily?: number;
+  declare lineHeight?: number;
+  declare textAlign?: string;
+  declare verticalAlign?: string;
   /** frame title */
-  name?: string | null;
-  strokeColor?: string;
-  backgroundColor?: string;
-  fillStyle?: string;
-  strokeWidth?: number;
-  strokeStyle?: string;
-  roughness?: number;
-  roundness?: Roundness | null;
-  opacity?: number;
-  rest: Record<string, unknown>;
+  declare name?: string | null;
+  declare strokeColor?: string;
+  declare backgroundColor?: string;
+  declare fillStyle?: string;
+  declare strokeWidth?: number;
+  declare strokeStyle?: string;
+  declare roughness?: number;
+  declare roundness?: Roundness | null;
+  declare opacity?: number;
+  declare rest: Record<string, unknown>;
+
+  private constructor(
+    typed: Omit<Element, "rest">,
+    rest: Record<string, unknown>
+  ) {
+    Object.assign(this, typed);
+    this.rest = rest;
+  }
+
+  /** `typed` holds only keys that passed their field's guard; see `toElement`. */
+  static restore(
+    typed: Omit<Element, "rest">,
+    rest: Record<string, unknown>
+  ): Element {
+    return new Element(typed, rest);
+  }
 }
