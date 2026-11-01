@@ -3,6 +3,7 @@ export { colorFromName } from "./identity";
 export { timeAgo } from "./time-ago";
 export { useCopy } from "./use-copy";
 export { useDraftKey } from "./use-draft-key";
+export { useDocumentTitle } from "./use-document-title";
 export { safeRedirect } from "./safe-redirect";
 export {
   CURSOR_SYNC_MS,

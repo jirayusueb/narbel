@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@narbel/ui/lib/utils";
 import {
   LabelContext,
   Label as LabelPrimitive,
@@ -10,7 +10,7 @@ function Label({ className, htmlFor, slot, ...props }: LabelProps) {
     <LabelPrimitive
       data-slot="label"
       className={cn(
-        "text-foreground flex items-center gap-2 text-[13px] leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-data-disabled:opacity-50",
+        "text-foreground text-dense flex items-center gap-2 leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-data-disabled:opacity-50",
         className
       )}
       {...props}

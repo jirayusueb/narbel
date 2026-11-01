@@ -22,7 +22,7 @@ const TrashedBoardRow = ({ board }: { board: Board }) => {
           {board.title}
         </h3>
         {board.trashedAt ? (
-          <p className="text-subtle-foreground text-[13px]">
+          <p className="text-subtle-foreground text-dense">
             Moved to trash{" "}
             <time dateTime={board.trashedAt}>
               {formatter.format(new Date(board.trashedAt))}

@@ -15,7 +15,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: TITLE },
+      // Fallback for pages without their own title; every route sets one in its head().
+      { title: "narbel" },
       { name: "description", content: DESCRIPTION },
       {
         name: "theme-color",

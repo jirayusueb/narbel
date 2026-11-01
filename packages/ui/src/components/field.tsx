@@ -2,8 +2,8 @@
 
 import { Label } from "@narbel/ui/components/label";
 import { Separator } from "@narbel/ui/components/separator";
+import { cn } from "@narbel/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
 import { useMemo } from "react";
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
@@ -29,7 +29,7 @@ function FieldLegend({
       data-slot="field-legend"
       data-variant={variant}
       className={cn(
-        "mb-2.5 font-medium data-[variant=label]:text-[13px] data-[variant=legend]:text-sm",
+        "data-[variant=label]:text-dense mb-2.5 font-medium data-[variant=legend]:text-sm",
         className
       )}
       {...props}
@@ -119,7 +119,7 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="field-label"
       className={cn(
-        "text-foreground flex w-fit items-center gap-2 text-[13px] font-medium group-data-[disabled=true]/field:opacity-50",
+        "text-foreground text-dense flex w-fit items-center gap-2 font-medium group-data-[disabled=true]/field:opacity-50",
         className
       )}
       {...props}
@@ -132,7 +132,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="field-description"
       className={cn(
-        "text-muted-foreground text-left text-[13px] leading-normal font-normal group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
+        "text-muted-foreground text-dense text-left leading-normal font-normal group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
         "last:mt-0 nth-last-2:-mt-1",
         "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
         className
@@ -154,7 +154,7 @@ function FieldSeparator({
       data-slot="field-separator"
       data-content={!!children}
       className={cn(
-        "relative -my-2 h-5 text-[13px] group-data-[variant=outline]/field-group:-mb-2",
+        "text-dense relative -my-2 h-5 group-data-[variant=outline]/field-group:-mb-2",
         className
       )}
       {...props}
@@ -215,7 +215,7 @@ function FieldError({
     <div
       role="alert"
       data-slot="field-error"
-      className={cn("text-destructive text-[13px] font-normal", className)}
+      className={cn("text-destructive text-dense font-normal", className)}
       {...props}
     >
       {content}

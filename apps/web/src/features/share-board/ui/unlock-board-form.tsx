@@ -69,7 +69,7 @@ export const UnlockBoardForm = ({ boardId }: { boardId: string }) => {
           <p
             id="unlock-error"
             role="alert"
-            className="text-destructive min-h-0 text-left text-[13px] empty:hidden"
+            className="text-destructive text-dense min-h-0 text-left empty:hidden"
           >
             {error}
           </p>

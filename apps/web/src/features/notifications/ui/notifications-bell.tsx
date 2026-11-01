@@ -152,12 +152,12 @@ export const NotificationsBell = () => {
                       }}
                     />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[13px] leading-snug">
+                      <span className="text-dense leading-snug">
                         <span className="font-medium">{item.actor.name}</span>{" "}
                         {verb}
                       </span>
                       {detail ? (
-                        <span className="text-muted-foreground line-clamp-2 text-[13px]">
+                        <span className="text-muted-foreground text-dense line-clamp-2">
                           {detail}
                         </span>
                       ) : null}

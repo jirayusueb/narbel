@@ -19,7 +19,8 @@ const STATUS_LABEL: Record<CollabStatus, string> = {
 const STATUS_DOT: Record<CollabStatus, string> = {
   connecting: "bg-subtle-foreground animate-pulse motion-reduce:animate-none",
   syncing: "bg-subtle-foreground animate-pulse motion-reduce:animate-none",
-  live: "bg-citrus ring-3 ring-citrus/35",
+  // Citrus barely shows on a white sheet (1.1:1); the ink ring keeps the dot visible on both themes.
+  live: "bg-citrus outline outline-foreground ring-3 ring-citrus/35",
   offline: "bg-destructive",
   "no-access": "bg-destructive",
 };

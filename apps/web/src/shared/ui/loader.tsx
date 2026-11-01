@@ -49,7 +49,7 @@ export const Loader = ({
     )}
   >
     <LoaderMark className="text-foreground" />
-    <output className="text-shimmer text-[13px] font-medium tracking-[-0.01em]">
+    <output className="text-shimmer text-dense font-medium tracking-[-0.01em]">
       {label}
     </output>
   </div>

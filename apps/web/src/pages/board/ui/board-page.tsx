@@ -6,7 +6,7 @@ import { deleteBoardCache } from "@/entities/drawing";
 import { useSession } from "@/entities/session";
 import { UnlockBoardForm } from "@/features/share-board";
 import { ApiError } from "@/shared/api";
-import { safeRedirect } from "@/shared/lib";
+import { safeRedirect, useDocumentTitle } from "@/shared/lib";
 import { NotFound } from "@/shared/ui";
 import { BoardCanvas, BoardSkeleton } from "@/widgets/board-canvas";
 import { Header } from "@/widgets/header";
@@ -47,6 +47,17 @@ export const BoardPage = ({
       deleteBoardCache(userId, boardId);
     }
   }, [gone, userId, boardId]);
+  const locked = error instanceof ApiError && error.status === 403;
+  // While loading, a previous board's name must not linger; the not-found states name themselves.
+  let documentTitle: string | undefined;
+  if (isPending) {
+    documentTitle = "Board";
+  } else if (board && !gone && !trashed) {
+    documentTitle = board.title;
+  } else if (locked) {
+    documentTitle = "Unlock board";
+  }
+  useDocumentTitle(documentTitle);
 
   if (isPending) {
     return <BoardSkeleton />;
@@ -57,6 +68,7 @@ export const BoardPage = ({
       <WithHeader>
         <NotFound
           title="This board is in the trash"
+          documentTitle="Board in trash"
           description="Its owner moved it to the trash. Edits made on this device are kept and sync again if it is restored."
           says="Found it in the trash. Only its owner can bring it back."
           to="/dashboard"
@@ -78,7 +90,7 @@ export const BoardPage = ({
     );
   }
 
-  if (error instanceof ApiError && error.status === 403) {
+  if (locked) {
     return (
       <WithHeader>
         <UnlockBoardForm boardId={boardId} />
@@ -90,6 +102,7 @@ export const BoardPage = ({
     <WithHeader>
       <NotFound
         title="Board not found"
+        documentTitle="Board not found"
         description="It may have been deleted, or it belongs to someone else."
         to="/dashboard"
         action="Back to boards"

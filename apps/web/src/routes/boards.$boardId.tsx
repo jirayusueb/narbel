@@ -29,6 +29,8 @@ const text = (value: unknown) =>
   typeof value === "string" ? value : undefined;
 
 export const Route = createFileRoute("/boards/$boardId")({
+  // The board page swaps in the board's own name once it loads.
+  head: () => ({ meta: [{ title: "Board · narbel" }] }),
   ssr: false,
   beforeLoad: onboardedIfSignedIn,
   validateSearch: (

@@ -4,6 +4,8 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useDocumentTitle } from "@/shared/lib";
+
 import "./status-page.css";
 
 type Tone = "missing" | "error";
@@ -76,7 +78,7 @@ const Scene = ({
             >
               Agent
             </span>
-            <span className="status-bubble bg-primary text-primary-foreground shadow-elevated w-max max-w-[min(15rem,70vw)] rounded-lg rounded-tr-[4px] px-3.5 py-2.5 text-left text-[13px] leading-snug sm:rounded-tl-[4px] sm:rounded-tr-lg">
+            <span className="status-bubble bg-primary text-primary-foreground shadow-elevated text-dense w-max max-w-[min(15rem,70vw)] rounded-lg rounded-tr-[4px] px-3.5 py-2.5 text-left leading-snug sm:rounded-tl-[4px] sm:rounded-tr-lg">
               {says}
             </span>
           </div>
@@ -131,6 +133,7 @@ export const NotFound = ({
   to = "/",
   action = "Back home",
   signInRedirect,
+  documentTitle = "Page not found",
 }: {
   title?: string;
   description?: string;
@@ -138,40 +141,44 @@ export const NotFound = ({
   to?: "/" | "/dashboard";
   action?: string;
   signInRedirect?: string;
-}) => (
-  <StatusPage
-    word="404"
-    tone="missing"
-    says={says}
-    title={title}
-    description={description}
-    actions={
-      signInRedirect ? (
-        <Link
-          to="/login"
-          search={{ redirect: signInRedirect }}
-          className={buttonVariants()}
-        >
-          Sign in
-        </Link>
-      ) : (
-        <>
-          <Link to={to} className={buttonVariants()}>
-            {action}
+  documentTitle?: string;
+}) => {
+  useDocumentTitle(documentTitle);
+  return (
+    <StatusPage
+      word="404"
+      tone="missing"
+      says={says}
+      title={title}
+      description={description}
+      actions={
+        signInRedirect ? (
+          <Link
+            to="/login"
+            search={{ redirect: signInRedirect }}
+            className={buttonVariants()}
+          >
+            Sign in
           </Link>
-          {to === "/dashboard" ? null : (
-            <Link
-              to="/dashboard"
-              className={buttonVariants({ variant: "secondary" })}
-            >
-              Your boards
+        ) : (
+          <>
+            <Link to={to} className={buttonVariants()}>
+              {action}
             </Link>
-          )}
-        </>
-      )
-    }
-  />
-);
+            {to === "/dashboard" ? null : (
+              <Link
+                to="/dashboard"
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                Your boards
+              </Link>
+            )}
+          </>
+        )
+      }
+    />
+  );
+};
 
 export const ErrorState = ({ error, reset }: ErrorComponentProps) => {
   const router = useRouter();
@@ -202,7 +209,7 @@ export const ErrorState = ({ error, reset }: ErrorComponentProps) => {
     >
       {message ? (
         <details className="bg-card shadow-surface mt-6 w-full rounded-lg text-left">
-          <summary className="text-muted-foreground hover:text-foreground focus-visible:outline-ring cursor-pointer rounded-lg px-4 py-3 text-[13px] font-medium focus-visible:outline-2 focus-visible:outline-solid">
+          <summary className="text-muted-foreground hover:text-foreground focus-visible:outline-ring text-dense cursor-pointer rounded-lg px-4 py-3 font-medium focus-visible:outline-2 focus-visible:outline-solid">
             Error details
           </summary>
           <pre className="bg-muted text-muted-foreground mx-2 mb-2 overflow-x-auto rounded-md px-3.5 py-3 font-mono text-[12px] leading-relaxed whitespace-pre-wrap">

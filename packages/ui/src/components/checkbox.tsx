@@ -1,5 +1,5 @@
+import { cn } from "@narbel/ui/lib/utils";
 import { CheckIcon } from "@phosphor-icons/react";
-import { cn } from "cn";
 import {
   Checkbox as CheckboxPrimitive,
   composeRenderProps,

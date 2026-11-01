@@ -79,7 +79,7 @@ export const AssignPicker = ({
                 type="button"
                 aria-current={assignee?.id === member.userId}
                 onClick={() => assign(member.userId)}
-                className="hover:bg-accent focus-visible:outline-ring aria-[current=true]:bg-accent flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-solid"
+                className="hover:bg-accent focus-visible:outline-ring aria-[current=true]:bg-accent text-dense flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-solid"
               >
                 <UserAvatar size={24} user={{ id: member.userId, ...member }} />
                 <span className="min-w-0 flex-1 truncate font-medium">
@@ -94,7 +94,7 @@ export const AssignPicker = ({
             </li>
           ))}
           {matches.length === 0 ? (
-            <li className="text-muted-foreground px-2 py-3 text-center text-[13px]">
+            <li className="text-muted-foreground text-dense px-2 py-3 text-center">
               No one matches.
             </li>
           ) : null}
