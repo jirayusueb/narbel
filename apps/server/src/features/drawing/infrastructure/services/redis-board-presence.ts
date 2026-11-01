@@ -1,5 +1,6 @@
 import type Redis from "ioredis";
 
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type {
   IBoardPresence,
   Viewer,
@@ -8,8 +9,8 @@ import type {
 const STALE_AFTER_MS = 60_000;
 const KEY_TTL_SECONDS = 120;
 
-const membersKey = (boardId: string) => `presence:board:${boardId}`;
-const viewersKey = (boardId: string) => `presence:board:${boardId}:viewers`;
+const membersKey = (boardId: BoardId) => `presence:board:${boardId}`;
+const viewersKey = (boardId: BoardId) => `presence:board:${boardId}:viewers`;
 
 // A killed server never calls leave(), so each connection is scored by last-seen time and dropped by list() once stale.
 export class RedisBoardPresence implements IBoardPresence {
@@ -18,7 +19,7 @@ export class RedisBoardPresence implements IBoardPresence {
     private readonly now: () => number = Date.now
   ) {}
 
-  join(boardId: string, connectionId: string, viewer: Viewer) {
+  join(boardId: BoardId, connectionId: string, viewer: Viewer) {
     return this.run("join", () =>
       this.redis
         .multi()
@@ -30,7 +31,7 @@ export class RedisBoardPresence implements IBoardPresence {
     );
   }
 
-  leave(boardId: string, connectionId: string) {
+  leave(boardId: BoardId, connectionId: string) {
     return this.run("leave", () =>
       this.redis
         .multi()
@@ -40,7 +41,7 @@ export class RedisBoardPresence implements IBoardPresence {
     );
   }
 
-  async list(boardId: string): Promise<Viewer[]> {
+  async list(boardId: BoardId): Promise<Viewer[]> {
     try {
       const ids = await this.liveIds(boardId);
       if (ids.length === 0) {
@@ -55,12 +56,12 @@ export class RedisBoardPresence implements IBoardPresence {
   }
 
   // Counts members, not parsed viewers: a member whose viewer entry expired is still a connection.
-  async countStrict(boardId: string) {
+  async countStrict(boardId: BoardId) {
     const ids = await this.liveIds(boardId);
     return ids.length;
   }
 
-  private async liveIds(boardId: string) {
+  private async liveIds(boardId: BoardId) {
     const cutoff = this.now() - STALE_AFTER_MS;
     const stale = await this.redis.zrangebyscore(
       membersKey(boardId),

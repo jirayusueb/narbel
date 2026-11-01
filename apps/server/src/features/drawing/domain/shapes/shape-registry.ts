@@ -1,6 +1,6 @@
-import { err, ok } from "../../../../shared/kernel/types/result";
+import { err, ok, okEmpty } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
-import type { Element } from "../entities/element";
+import type { Element, ElementId } from "../entities/element";
 import { Geometry } from "../rules/geometry";
 import { ElementStyle } from "./element-style";
 import type { Style } from "./element-style";
@@ -23,17 +23,17 @@ interface BaseShape extends Partial<Style> {
   width?: number;
   height?: number;
   /** optional client-chosen id, so a later element in the same batch can bind to this one */
-  id?: string;
+  id?: ElementId;
 }
 
 interface Contained extends BaseShape {
-  frameId?: string;
+  frameId?: ElementId;
 }
 
 /** element ids (or batch ids) a connector attaches to */
 interface Ends {
-  startElementId?: string;
-  endElementId?: string;
+  startElementId?: ElementId;
+  endElementId?: ElementId;
 }
 
 export interface BoxShape extends Contained {
@@ -63,7 +63,7 @@ export interface ShapeInput extends BaseShape, Ends {
   type: ShapeType;
   text?: string;
   name?: string;
-  frameId?: string;
+  frameId?: ElementId;
 }
 
 export interface ShapeRejection {
@@ -77,7 +77,7 @@ export interface ShapeRejection {
 }
 
 export interface ElementIdentity {
-  id: string;
+  id: ElementId;
   seed: number;
   versionNonce: number;
   updated: number;
@@ -253,22 +253,22 @@ const connectorPlaced = (input: ShapeInput) =>
   (input.x !== undefined && input.y !== undefined) ||
   (input.startElementId !== undefined && input.endElementId !== undefined);
 
-const styleRejection = (input: ShapeInput): ShapeRejection | undefined => {
+const checkStyle = (input: ShapeInput): Result<undefined, ShapeRejection> => {
   const misplaced = ElementStyle.misplacedStyle(
     input.type,
     ElementStyle.pickStyle(input)
   );
   if (!misplaced) {
-    return;
+    return okEmpty();
   }
   const where =
     ElementStyle.STYLE[misplaced].on === "arrow"
       ? "arrows only"
       : "text, rectangle, ellipse, diamond and arrow elements only";
-  return {
+  return err({
     outcome: "bad-style",
     detail: `${misplaced} applies to ${where}, not ${input.type}`,
-  };
+  });
 };
 
 const geometryGiven = (input: ShapeInput) =>
@@ -328,9 +328,9 @@ export class ShapeRegistry {
   static parseShape(input: ShapeInput): Result<Shape, ShapeRejection> {
     const { startElementId, endElementId, name, text, frameId, ...base } =
       input;
-    const rejected = styleRejection(input);
-    if (rejected) {
-      return err(rejected);
+    const styled = checkStyle(input);
+    if (styled.isErr()) {
+      return err(styled.error);
     }
     switch (input.type) {
       case "rectangle":

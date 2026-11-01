@@ -4,7 +4,7 @@ import type {
   NotificationPage,
 } from "../../../../shared/application/interfaces/i-notifications";
 import type { IPubSub } from "../../../../shared/application/interfaces/i-pub-sub";
-import { AppError } from "../../../../shared/kernel/errors/app-error";
+import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import { decodeCursor } from "../../../../shared/kernel/types/cursor";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
@@ -38,8 +38,9 @@ export class NotificationUseCases {
     email: string,
     input: { cursor?: string; limit?: number }
   ): Promise<Result<NotificationPage, AppError>> {
-    if (input.cursor && !decodeCursor(input.cursor)) {
-      return err(AppError.validation("Invalid cursor"));
+    const after = decodeCursor(input.cursor);
+    if (after.isErr()) {
+      return err(after.error);
     }
     // decision 3: access is re-checked at list time, so a removed member stops seeing the board
     const readable = await this.readable.readableBoards({ id: userId, email });
@@ -47,7 +48,7 @@ export class NotificationUseCases {
     const page = await this.notifications.list(
       userId,
       {
-        cursor: input.cursor ?? null,
+        after: after.value,
         limit: Math.min(
           Math.max(Math.trunc(input.limit ?? DEFAULT_LIMIT), 1),
           MAX_LIMIT

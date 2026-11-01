@@ -7,6 +7,7 @@ import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 
 import type { IPubSub } from "../../../../shared/application/interfaces/i-pub-sub";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type {
   BoardText,
   IBoardDocumentStore,
@@ -32,6 +33,7 @@ import type {
   SyncPeer,
   SyncSession,
 } from "../../application/ports/i-board-sync-gateway";
+import type { ElementId } from "../../domain/entities/element";
 import type { TextIndex } from "./board-text";
 import { extractBoardText, indexTexts, sameTexts } from "./board-text";
 import { markAgentWriter } from "./changes";
@@ -51,7 +53,7 @@ const SERVER_ORIGIN = Symbol("server");
 const BUS_ORIGIN = Symbol("bus");
 const UNSAVED_ORIGIN = Symbol("unsaved");
 
-const channel = (boardId: string) => `sync:${boardId}`;
+const channel = (boardId: BoardId) => `sync:${boardId}`;
 const RESTORE_ATTEMPTS = 5;
 
 interface PeerState {
@@ -61,7 +63,7 @@ interface PeerState {
 }
 
 interface Room {
-  boardId: string;
+  boardId: BoardId;
   doc: Y.Doc;
   awareness: awarenessProtocol.Awareness;
   /** connected peers -> awareness client ids each one controls, and whether its edits apply */
@@ -92,7 +94,7 @@ const encodeMessage = (
 };
 
 /** Asks every instance holding the board, this one included through the bus echo, to decide its peers again. */
-export const recheckBoardPeers = (bus: IPubSub, boardId: string) =>
+export const recheckBoardPeers = (bus: IPubSub, boardId: BoardId) =>
   bus.publish(channel(boardId), Uint8Array.of(MESSAGE_RECHECK));
 
 /**
@@ -114,7 +116,7 @@ export class YjsBoardHub
   ) {}
 
   async transact<T>(
-    boardId: string,
+    boardId: BoardId,
     fn: (scene: SceneAccess) => T
   ): Promise<T> {
     const room = await this.room(boardId);
@@ -127,10 +129,10 @@ export class YjsBoardHub
     }, SERVER_ORIGIN);
   }
 
-  async getSelection(boardId: string): Promise<string[] | undefined> {
+  async getSelection(boardId: BoardId): Promise<ElementId[] | null> {
     const room = await this.room(boardId);
     if (room.peers.size === 0) {
-      return undefined;
+      return null;
     }
     const selection = (clientId: number | undefined) => {
       const value =
@@ -143,7 +145,7 @@ export class YjsBoardHub
   }
 
   async setSelection(
-    boardId: string,
+    boardId: BoardId,
     { pageId, ids, reveal }: AgentSelection
   ): Promise<void> {
     const room = await this.room(boardId);
@@ -160,7 +162,7 @@ export class YjsBoardHub
   }
 
   async connect(
-    boardId: string,
+    boardId: BoardId,
     peer: SyncPeer,
     canWrite: boolean,
     recheck: () => Promise<PeerAccess>
@@ -196,7 +198,7 @@ export class YjsBoardHub
   }
 
   async restore(
-    boardId: string,
+    boardId: BoardId,
     state: Uint8Array,
     keep: (point: RestorePoint) => Promise<void>
   ): Promise<RestoreOutcome> {
@@ -209,7 +211,7 @@ export class YjsBoardHub
   }
 
   private async restoreWithin(
-    boardId: string,
+    boardId: BoardId,
     target: Y.Doc,
     keep: (point: RestorePoint) => Promise<void>,
     attemptsLeft: number
@@ -251,7 +253,7 @@ export class YjsBoardHub
     return { status: "restored", changed };
   }
 
-  async discard(boardId: string): Promise<void> {
+  async discard(boardId: BoardId): Promise<void> {
     const pending = this.rooms.get(boardId);
     if (!pending) {
       return;
@@ -268,7 +270,7 @@ export class YjsBoardHub
     }
   }
 
-  async evict(boardId: string): Promise<void> {
+  async evict(boardId: BoardId): Promise<void> {
     // other instances hear it on the room channel; the echo to this one is a no-op by then
     await this.attempt(`Board ${boardId} could not publish its eviction`, () =>
       this.bus.publish(channel(boardId), Uint8Array.of(MESSAGE_EVICT))
@@ -276,7 +278,7 @@ export class YjsBoardHub
     await this.evictLocal(boardId);
   }
 
-  private async evictLocal(boardId: string): Promise<void> {
+  private async evictLocal(boardId: BoardId): Promise<void> {
     const pending = this.rooms.get(boardId);
     const room = await pending?.catch(() => null);
     if (!room || this.rooms.get(boardId) !== pending) {
@@ -335,7 +337,7 @@ export class YjsBoardHub
   }
 
   /** Every use of a room goes through here, which restarts its idle grace period. */
-  private async room(boardId: string): Promise<Room> {
+  private async room(boardId: BoardId): Promise<Room> {
     let pending = this.rooms.get(boardId);
     if (!pending) {
       pending = this.load(boardId);
@@ -347,7 +349,7 @@ export class YjsBoardHub
     return room;
   }
 
-  private async dropOnLoadFailure(boardId: string, pending: Promise<Room>) {
+  private async dropOnLoadFailure(boardId: BoardId, pending: Promise<Room>) {
     try {
       await pending;
     } catch {
@@ -355,7 +357,7 @@ export class YjsBoardHub
     }
   }
 
-  private async load(boardId: string): Promise<Room> {
+  private async load(boardId: BoardId): Promise<Room> {
     await this.flushing.get(boardId);
     const state = await this.store.load(boardId);
     const doc = new Y.Doc();
@@ -497,7 +499,7 @@ export class YjsBoardHub
     }
   }
 
-  private async evictFromBus(boardId: string) {
+  private async evictFromBus(boardId: BoardId) {
     try {
       await this.evictLocal(boardId);
     } catch (error) {

@@ -11,10 +11,8 @@ import type {
 } from "../../../../shared/application/interfaces/i-notifications";
 import type { IPubSub } from "../../../../shared/application/interfaces/i-pub-sub";
 import type { AfterCommit } from "../../../../shared/infrastructure/uow/drizzle-unit-of-work";
-import {
-  decodeCursor,
-  encodeCursor,
-} from "../../../../shared/kernel/types/cursor";
+import { encodeCursor } from "../../../../shared/kernel/types/cursor";
+import type { Cursor } from "../../../../shared/kernel/types/cursor";
 
 type Row = typeof notification.$inferSelect;
 const onReadableBoards = (readableBoardIds: string[]) =>
@@ -70,14 +68,13 @@ export class DrizzleNotificationRepository implements INotificationRepository {
 
   async list(
     userId: string,
-    page: { cursor: string | null; limit: number },
+    page: { after: Cursor | null; limit: number },
     readableBoardIds: string[]
   ) {
     if (readableBoardIds.length === 0) {
       return { items: [], nextCursor: null, unreadCount: 0 };
     }
     const readable = onReadableBoards(readableBoardIds);
-    const cursor = page.cursor ? decodeCursor(page.cursor) : null;
     const rows = await this.db
       .select()
       .from(notification)
@@ -85,12 +82,12 @@ export class DrizzleNotificationRepository implements INotificationRepository {
         and(
           eq(notification.userId, userId),
           readable,
-          cursor
+          page.after
             ? or(
-                lt(notification.createdAt, cursor.at),
+                lt(notification.createdAt, page.after.at),
                 and(
-                  eq(notification.createdAt, cursor.at),
-                  lt(notification.id, cursor.id)
+                  eq(notification.createdAt, page.after.at),
+                  lt(notification.id, page.after.id)
                 )
               )
             : undefined

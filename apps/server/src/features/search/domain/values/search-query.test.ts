@@ -4,17 +4,17 @@ import { SearchQuery } from "./search-query";
 
 const parse = (raw: string) => {
   const query = SearchQuery.parse(raw);
-  if (!query) {
+  if (query.isErr()) {
     throw new Error("expected a query");
   }
-  return query;
+  return query.value;
 };
 
 describe("SearchQuery", () => {
   it("rejects queries under 2 characters after trimming", () => {
-    expect(SearchQuery.parse(" a ")).toBeNull();
-    expect(SearchQuery.parse("   ")).toBeNull();
-    expect(SearchQuery.parse("ab")).not.toBeNull();
+    expect(SearchQuery.parse(" a ").isErr()).toBe(true);
+    expect(SearchQuery.parse("   ").isErr()).toBe(true);
+    expect(SearchQuery.parse("ab").isOk()).toBe(true);
   });
 
   it("caps the query at 100 characters", () => {

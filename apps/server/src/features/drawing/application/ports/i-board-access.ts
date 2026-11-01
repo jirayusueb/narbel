@@ -1,5 +1,6 @@
 import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type { Result } from "../../../../shared/kernel/types/result";
 
 /** What drawing needs to know about a board the caller reached. */
@@ -19,7 +20,7 @@ export interface ReachedBoard {
  */
 export interface IBoardAccess {
   decide(
-    boardId: string,
+    boardId: BoardId,
     actor: Actor,
     need: "read" | "write"
   ): Promise<Result<ReachedBoard, AppError>>;
@@ -34,13 +35,13 @@ export interface BoardState {
 /** Boards' record of a board, as the drawing's storage reads and moves it. */
 export interface IBoardRecords {
   /** Also a board in Trash; null once it is gone. */
-  findIncludingTrashed(boardId: string): Promise<BoardState | null>;
+  findIncludingTrashed(boardId: BoardId): Promise<BoardState | null>;
   /** Moves the board's last-edit time, which its list sorts by; called inside a document save's transaction. */
-  markEdited(boardId: string, at: Date): Promise<unknown>;
+  markEdited(boardId: BoardId, at: Date): Promise<unknown>;
 }
 
 /** The new board a duplicated drawing goes into; boards creates it and removes it after a failed copy. */
 export interface CopyTarget {
   create(): Promise<string>;
-  remove(boardId: string): Promise<void>;
+  remove(boardId: BoardId): Promise<void>;
 }

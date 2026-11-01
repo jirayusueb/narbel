@@ -1,8 +1,10 @@
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, okEmpty } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Drawing } from "../../domain/entities/drawing";
+import type { PageId } from "../../domain/entities/page";
 import type { IBoardAccess } from "../ports/i-board-access";
 import type { IBoardScenes } from "../ports/i-board-scenes";
 
@@ -14,8 +16,8 @@ export class DeletePage {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    pageId: string;
+    boardId: BoardId;
+    pageId: PageId;
   }): Promise<Result<undefined, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,

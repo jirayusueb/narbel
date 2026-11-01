@@ -9,6 +9,7 @@ import { DrizzleOutbox } from "../../../../shared/infrastructure/outbox/drizzle-
 import { wakeWhenQueued } from "../../../../shared/infrastructure/outbox/waking-outbox";
 import type { AfterCommit } from "../../../../shared/infrastructure/uow/drizzle-unit-of-work";
 import { DrizzleUnitOfWork } from "../../../../shared/infrastructure/uow/drizzle-unit-of-work";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type { IBoardRecords } from "../../application/ports/i-board-access";
 import type {
   BoardText,
@@ -23,7 +24,7 @@ import { checkpointIfDue } from "./board-versions";
  */
 export const publishTexts = (
   outbox: IOutbox,
-  boardId: string,
+  boardId: BoardId,
   texts: BoardText[]
 ) => {
   const event: DrawingEvent = {
@@ -65,7 +66,7 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
     });
   }
 
-  async load(boardId: string) {
+  async load(boardId: BoardId) {
     const [row] = await this.db
       .select({ state: boardDocument.state })
       .from(boardDocument)
@@ -75,7 +76,7 @@ export class DrizzleBoardDocumentStore implements IBoardDocumentStore {
   }
 
   save(
-    boardId: string,
+    boardId: BoardId,
     state: Uint8Array,
     texts?: BoardText[],
     checkpoint?: DocumentCheckpoint

@@ -1,4 +1,5 @@
 import type { Cursor } from "../../../../shared/kernel/types/cursor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 
 /** A comment as get_changes reports it. Discussion owns the full shape; board only reads where it sits. */
 export interface ChangedComment {
@@ -16,7 +17,7 @@ export interface CommentChange {
 /** Comment activity on a board after a cursor, oldest first; discussion answers it. */
 export interface ICommentActivity {
   since(input: {
-    boardId: string;
+    boardId: BoardId;
     after: Cursor;
     limit: number;
     viewerId?: string;

@@ -64,7 +64,8 @@ class CountingBoards implements IBoardRepository {
     this.rows.set(b.id, b);
     return Promise.resolve();
   };
-  markEdited = (id: string) => Promise.resolve(this.rows.get(id)?.ownerId);
+  markEdited = (id: string) =>
+    Promise.resolve(this.rows.get(id)?.ownerId ?? null);
   setTrashed = (id: string, at: Date | null) => {
     const row = this.rows.get(id);
     if (!row) {
@@ -86,15 +87,15 @@ class CountingBoards implements IBoardRepository {
 }
 
 describe("RedisCache", () => {
-  it("round-trips JSON with a TTL and reports misses as undefined", async () => {
+  it("round-trips JSON with a TTL and reports misses as null", async () => {
     const redis = new FakeRedis();
     const cache = new RedisCache(redis);
     await cache.set("k", { a: [1, 2] }, 60);
     expect(await cache.get("k")).toEqual({ a: [1, 2] });
     expect(redis.ttls.get("k")).toBe(60);
-    expect(await cache.get("missing")).toBeUndefined();
+    expect(await cache.get("missing")).toBeNull();
     await cache.del("k", "other");
-    expect(await cache.get("k")).toBeUndefined();
+    expect(await cache.get("k")).toBeNull();
   });
 
   it("degrades to misses instead of throwing when Redis is down", async () => {
@@ -102,7 +103,7 @@ describe("RedisCache", () => {
     redis.failing = true;
     const cache = new RedisCache(redis);
     await cache.set("k", 1, 60);
-    expect(await cache.get("k")).toBeUndefined();
+    expect(await cache.get("k")).toBeNull();
     await cache.del("k");
   });
 });
@@ -227,7 +228,7 @@ describe("transactionalCache", () => {
     const hooks: (() => Promise<void> | void)[] = [];
     const tx = transactionalCache(shared, (hook) => hooks.push(hook));
 
-    expect(await tx.get("board:b1")).toBeUndefined();
+    expect(await tx.get("board:b1")).toBeNull();
     await tx.set("board:b2", 1, 60);
     expect(redis.data.has("board:b2")).toBe(false);
 

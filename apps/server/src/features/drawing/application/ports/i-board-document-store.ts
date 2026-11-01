@@ -1,7 +1,10 @@
+import type { BoardId } from "../../../../shared/kernel/types/ids";
+import type { ElementId } from "../../domain/entities/element";
+import type { PageId } from "../../domain/entities/page";
 /** The searchable text of one element: live text elements, shape labels included. */
 export interface BoardText {
-  pageId: string;
-  elementId: string;
+  pageId: PageId;
+  elementId: ElementId;
   text: string;
 }
 
@@ -12,7 +15,7 @@ export interface DocumentCheckpoint {
 }
 
 export interface IBoardDocumentStore {
-  load(boardId: string): Promise<Uint8Array | null>;
+  load(boardId: BoardId): Promise<Uint8Array | null>;
   /**
    * Persists the state and, in the same transaction, an automatic history version when the last
    * one is old enough. `texts`, the board's full text set when it changed (omitted otherwise), goes
@@ -20,7 +23,7 @@ export interface IBoardDocumentStore {
    * in the same transaction.
    */
   save(
-    boardId: string,
+    boardId: BoardId,
     state: Uint8Array,
     texts?: BoardText[],
     checkpoint?: DocumentCheckpoint
@@ -29,5 +32,5 @@ export interface IBoardDocumentStore {
 
 /** Every stored row of one board's drawing: its document, history versions and image records. */
 export interface IDrawingRows {
-  deleteAll(boardId: string): Promise<void>;
+  deleteAll(boardId: BoardId): Promise<void>;
 }

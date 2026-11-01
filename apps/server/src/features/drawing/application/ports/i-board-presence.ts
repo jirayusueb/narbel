@@ -1,3 +1,5 @@
+import type { BoardId } from "../../../../shared/kernel/types/ids";
+
 export interface Viewer {
   /** null for an anonymous share-link viewer */
   userId: string | null;
@@ -7,10 +9,10 @@ export interface Viewer {
 /** Who has a board open right now, shared by every server instance. Never throws: presence must not break sync. */
 export interface IBoardPresence {
   /** Adds or refreshes a connection; sync repeats it periodically so a viewer pruned during an outage comes back. */
-  join(boardId: string, connectionId: string, viewer: Viewer): Promise<void>;
-  leave(boardId: string, connectionId: string): Promise<void>;
+  join(boardId: BoardId, connectionId: string, viewer: Viewer): Promise<void>;
+  leave(boardId: BoardId, connectionId: string): Promise<void>;
   /** Empty when the store is unreachable: fine for a UI list, never proof that nobody is connected. */
-  list(boardId: string): Promise<Viewer[]>;
+  list(boardId: BoardId): Promise<Viewer[]>;
   /** Live connection count. Rejects when the store is unreachable, so a caller deciding something destructive fails closed. */
-  countStrict(boardId: string): Promise<number>;
+  countStrict(boardId: BoardId): Promise<number>;
 }

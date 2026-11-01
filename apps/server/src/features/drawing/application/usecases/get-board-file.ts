@@ -1,6 +1,7 @@
 import type { IFileStorage } from "../../../../shared/application/interfaces/i-file-storage";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { FileKey } from "../../domain/values/file-key";
@@ -21,7 +22,7 @@ export class GetBoardFile {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
     fileId: string;
   }): Promise<Result<BoardFileContent, AppError>> {
     const granted = await this.policy.decide(

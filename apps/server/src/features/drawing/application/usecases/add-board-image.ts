@@ -2,11 +2,13 @@ import type { IFileStorage } from "../../../../shared/application/interfaces/i-f
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Drawing } from "../../domain/entities/drawing";
-import type { Element } from "../../domain/entities/element";
+import type { Element, ElementId } from "../../domain/entities/element";
 import { Page } from "../../domain/entities/page";
+import type { PageId } from "../../domain/entities/page";
 import { Geometry } from "../../domain/rules/geometry";
 import { ImageHeaderReader } from "../../domain/rules/image-header";
 import { Layout } from "../../domain/rules/layout";
@@ -19,7 +21,7 @@ import type { IBoardFileRepository } from "../ports/i-board-file-repository";
 import type { IBoardScenes, SceneAccess } from "../ports/i-board-scenes";
 
 export interface AddedImage {
-  id: string;
+  id: ElementId;
   fileId: string;
   width: number;
   height: number;
@@ -59,7 +61,7 @@ export class AddBoardImage {
 
   private target(
     scene: SceneAccess,
-    input: { pageId?: string; id?: string; frameId?: string }
+    input: { pageId?: PageId; id?: ElementId; frameId?: ElementId }
   ) {
     const page = Page.resolve(scene.pages(), input.pageId);
     if (!page) {
@@ -70,9 +72,7 @@ export class AddBoardImage {
       return "id-taken";
     }
     const frame =
-      input.frameId === undefined
-        ? undefined
-        : scene.get(page.id, input.frameId);
+      input.frameId === undefined ? null : scene.get(page.id, input.frameId);
     if (
       input.frameId !== undefined &&
       (frame?.type !== "frame" || frame.isDeleted)
@@ -84,15 +84,15 @@ export class AddBoardImage {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    pageId?: string;
+    boardId: BoardId;
+    pageId?: PageId;
     bytes: Uint8Array;
     x?: number;
     y?: number;
     width?: number;
     height?: number;
-    id?: string;
-    frameId?: string;
+    id?: ElementId;
+    frameId?: ElementId;
   }): Promise<Result<AddedImage, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,
@@ -109,12 +109,11 @@ export class AddBoardImage {
         })
       );
     }
-    const header = ImageHeaderReader.readImageHeader(input.bytes);
-    if (!header) {
-      return err(
-        AppError.unsupportedMediaType("Not a PNG, JPEG, GIF, WebP or SVG image")
-      );
+    const parsed = ImageHeaderReader.readImageHeader(input.bytes);
+    if (parsed.isErr()) {
+      return err(parsed.error);
     }
+    const header = parsed.value;
     // a few KiB can declare a huge raster; renders decode it in full
     if (
       header.size &&
@@ -182,7 +181,7 @@ export class AddBoardImage {
         const y = input.y ?? spot.y;
         const grows = autoPlaced && frame?.locked !== true;
         const inFrame =
-          frame !== undefined &&
+          frame &&
           (grows ||
             Geometry.overlaps(
               { ...size, x, y },

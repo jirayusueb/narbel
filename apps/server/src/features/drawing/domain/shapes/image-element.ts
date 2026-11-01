@@ -1,4 +1,4 @@
-import type { Element } from "../entities/element";
+import type { Element, ElementId } from "../entities/element";
 import { ShapeRegistry } from "./shape-registry";
 import type { ElementIdentity } from "./shape-registry";
 
@@ -38,7 +38,7 @@ export class ImageElement {
   }
 
   static buildImage(
-    input: Size & { x: number; y: number; fileId: string; frameId?: string },
+    input: Size & { x: number; y: number; fileId: string; frameId?: ElementId },
     identity: ElementIdentity
   ): Element {
     const base = ShapeRegistry.buildElement(

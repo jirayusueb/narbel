@@ -1,20 +1,21 @@
 import { AppError } from "../../../shared/kernel/errors/app-error";
 import { err, ok } from "../../../shared/kernel/types/result";
 import type { Result } from "../../../shared/kernel/types/result";
-import type { Element } from "../domain/entities/element";
+import type { Element, ElementId } from "../domain/entities/element";
+import type { PageId } from "../domain/entities/page";
 import type { SceneAccess } from "./ports/i-board-scenes";
 
 export interface Operands {
-  pageId: string;
+  pageId: PageId;
   elements: Element[];
 }
 
 export const resolveOperands = (
   scene: SceneAccess,
-  ids: string[]
+  ids: ElementId[]
 ): Result<Operands, AppError> => {
   const missing: string[] = [];
-  const byId = new Map<string, { pageId: string; element: Element }>();
+  const byId = new Map<ElementId, { pageId: PageId; element: Element }>();
   for (const id of ids) {
     const found = scene.locate(id);
     const host =

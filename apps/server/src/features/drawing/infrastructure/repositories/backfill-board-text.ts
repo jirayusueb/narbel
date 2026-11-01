@@ -5,13 +5,14 @@ import * as Y from "yjs";
 
 import { UuidGenerator } from "../../../../shared/infrastructure/ids/uuid-generator";
 import { DrizzleOutbox } from "../../../../shared/infrastructure/outbox/drizzle-outbox";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { extractBoardText } from "../crdt/board-text";
 import { publishTexts } from "./drizzle-board-document-store";
 
 const BACKFILL_BATCH = 50;
 const ids = new UuidGenerator();
 
-const indexOne = (db: Database, boardId: string) =>
+const indexOne = (db: Database, boardId: BoardId) =>
   db.transaction(async (tx) => {
     const [row] = await tx
       .update(boardDocument)

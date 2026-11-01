@@ -1,4 +1,13 @@
+import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Cursor } from "../../../../shared/kernel/types/cursor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
+import { err, ok } from "../../../../shared/kernel/types/result";
+import type { Result } from "../../../../shared/kernel/types/result";
+
+export const badCursor = () =>
+  AppError.validation(
+    "since is not a get_changes cursor for this board; call get_changes without since to start again"
+  );
 
 /** Encoded Yjs state vector, pruned to clients with live elements; minted only by the scene adapter. */
 export type SceneVersion = Uint8Array & {
@@ -32,19 +41,19 @@ const isWire = (value: unknown): value is Wire => {
 /** Where an agent last looked at one board: a scene version plus the last comment activity it was shown. */
 export class ChangeCursor {
   private constructor(
-    readonly boardId: string,
+    readonly boardId: BoardId,
     readonly scene: SceneVersion,
     /** keyset position over (activityAt, id) of comments already shown */
     readonly comments: Cursor
   ) {}
 
   /** First cursor of a watch: no comment activity shown yet, so comments start at `now`. */
-  static start(boardId: string, scene: SceneVersion, now: Date): ChangeCursor {
+  static start(boardId: BoardId, scene: SceneVersion, now: Date): ChangeCursor {
     return new ChangeCursor(boardId, scene, { at: now, id: "" });
   }
 
-  /** Null for anything this server did not mint for `boardId`: garbage, another format, another board. */
-  static parse(raw: string, boardId: string): ChangeCursor | null {
+  /** Err for anything this server did not mint for `boardId`: garbage, another format, another board. */
+  static parse(raw: string, boardId: BoardId): Result<ChangeCursor, AppError> {
     try {
       const wire: unknown = JSON.parse(
         Buffer.from(raw, "base64url").toString("utf-8")
@@ -54,14 +63,16 @@ export class ChangeCursor {
         wire.b === boardId &&
         at !== null &&
         !Number.isNaN(at.getTime())
-        ? new ChangeCursor(
-            boardId,
-            new Uint8Array(Buffer.from(wire.s, "base64url")) as SceneVersion,
-            { at, id: wire.i }
+        ? ok(
+            new ChangeCursor(
+              boardId,
+              new Uint8Array(Buffer.from(wire.s, "base64url")) as SceneVersion,
+              { at, id: wire.i }
+            )
           )
-        : null;
+        : err(badCursor());
     } catch {
-      return null;
+      return err(badCursor());
     }
   }
 

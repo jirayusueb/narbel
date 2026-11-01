@@ -1,4 +1,4 @@
-import type { Element } from "../entities/element";
+import type { Element, ElementId } from "../entities/element";
 import { Geometry } from "./geometry";
 import type { Bounds } from "./geometry";
 import { Groups } from "./groups";
@@ -11,12 +11,12 @@ export type Arrangement =
   | { kind: "distribute"; axis: Axis };
 
 export interface ArrangeItem {
-  id: string;
+  id: ElementId;
   bounds: Bounds;
 }
 
 export interface Move {
-  id: string;
+  id: ElementId;
   dx: number;
   dy: number;
 }
@@ -50,7 +50,7 @@ const distribute = (items: ArrangeItem[], axis: Axis): Move[] => {
   const lead = (b: Bounds) => (horizontal ? b.x : b.y);
   const size = (b: Bounds) => (horizontal ? b.width : b.height);
   const mid = (b: Bounds) => lead(b) + size(b) / 2;
-  const move = (id: string, delta: number): Move =>
+  const move = (id: ElementId, delta: number): Move =>
     horizontal ? { id, dx: delta, dy: 0 } : { id, dx: 0, dy: delta };
   const sorted = sortedBy(items, (i) => lead(i.bounds));
   const [head] = sorted;

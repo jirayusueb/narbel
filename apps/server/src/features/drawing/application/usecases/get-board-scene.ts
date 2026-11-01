@@ -1,8 +1,10 @@
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Page } from "../../domain/entities/page";
+import type { PageId } from "../../domain/entities/page";
 import { Geometry } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
 import { toSceneDtos } from "../dtos/scene-dto";
@@ -18,8 +20,8 @@ export class GetBoardScene {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    pageId?: string;
+    boardId: BoardId;
+    pageId?: PageId;
     within?: Bounds;
     types?: string[];
     limit?: number;

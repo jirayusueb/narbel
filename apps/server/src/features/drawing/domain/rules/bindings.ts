@@ -1,5 +1,5 @@
 import { Drawing } from "../entities/drawing";
-import type { Element } from "../entities/element";
+import type { Element, ElementId } from "../entities/element";
 
 // Excalidraw renders an arrow between its `points`; a binding additionally snaps it to the
 // target's edge and moves it when the target moves. We approximate the snap with the target's
@@ -8,8 +8,8 @@ import type { Element } from "../entities/element";
 export const GAP = 8;
 
 export interface ConnectorRefs {
-  startElementId?: string;
-  endElementId?: string;
+  startElementId?: ElementId;
+  endElementId?: ElementId;
 }
 
 interface Point {
@@ -60,7 +60,7 @@ const rounded = (value: number) => Math.round(value * 100) / 100;
 
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
-const binding = (elementId: string) => ({
+const binding = (elementId: ElementId) => ({
   elementId,
   focus: 0,
   gap: 1,
@@ -151,7 +151,7 @@ export class Bindings {
   static attachConnector(
     connector: Element,
     refs: ConnectorRefs,
-    targets: Map<string, Element>
+    targets: Map<ElementId, Element>
   ): { writes: Element[]; unbinds: string[] } {
     // a binding to a deleted element would be dangling, so the end stays free instead
     const start = Drawing.connectorTarget(refs.startElementId, targets);
@@ -186,7 +186,7 @@ export class Bindings {
   /** Connectors attached to `target`, re-routed to its current geometry. */
   static rerouteAround(
     target: Element,
-    lookup: Map<string, Element>
+    lookup: Map<ElementId, Element>
   ): Element[] {
     return (target.boundElements ?? [])
       .map((entry) => lookup.get(entry.id))
@@ -208,9 +208,9 @@ export class Bindings {
 
   static detachDeleted(
     deleted: Element,
-    lookup: Map<string, Element>
+    lookup: Map<ElementId, Element>
   ): Element[] {
-    const live = (id: string | undefined) => {
+    const live = (id: ElementId | undefined) => {
       const element = id === undefined ? undefined : lookup.get(id);
       return element?.isDeleted ? undefined : element;
     };

@@ -1,8 +1,10 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
+import type { ElementId } from "../../domain/entities/element";
 import { patchElement, stripReserved } from "../connectors";
 import type { PatchOutcome, RebindRefs } from "../connectors";
 import type { IBoardAccess } from "../ports/i-board-access";
@@ -33,11 +35,11 @@ export class UpdateBoardElement {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    id: string;
+    boardId: BoardId;
+    id: ElementId;
     patch: Record<string, unknown>;
     rebind?: RebindRefs;
-  }): Promise<Result<{ id: string }, AppError>> {
+  }): Promise<Result<{ id: ElementId }, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,
       input.actor,

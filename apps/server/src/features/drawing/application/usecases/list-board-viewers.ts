@@ -1,5 +1,6 @@
 import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import type { IBoardAccess } from "../ports/i-board-access";
@@ -19,7 +20,7 @@ export class ListBoardViewers {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
   }): Promise<Result<ViewersDto, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,

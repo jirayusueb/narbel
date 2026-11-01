@@ -118,6 +118,9 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 - Domain entities, value objects, rules and shapes are classes. Plain functions remain in the shared kernel (values like `parseUsername`, cursor codecs) and in application helper modules and DTO converters (`connectors.ts`, `board-images.ts`, dtos).
 - Plain functions also remain in the named infrastructure helpers (`board-versions.ts`, `prune-outbox.ts`, `route-events.ts`) and in throwaway scripts.
 - Callers reach entity helpers through the class, for example `Page.keyOf` and `Page.resolve`.
+- Ports return `T | null` for absence, never `undefined`.
+- `parse` returns `Result<T, AppError>`; a check that can refuse returns `Result<undefined, Refusal>`.
+- Ids in the drawing context are `Flavor`ed (`BoardId`, `PageId`, `ElementId`): plain strings stay assignable, two different ids do not.
 
 ## When Oxlint + Oxfmt Can't Help
 

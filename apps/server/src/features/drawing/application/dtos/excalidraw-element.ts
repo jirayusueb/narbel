@@ -3,11 +3,12 @@ import type {
   Binding,
   BoundElement,
   Roundness,
+  ElementId,
 } from "../../domain/entities/element";
 
 /** An element as Excalidraw stores and sends it: plain JSON with whatever fields its version has. */
 export interface ExcalidrawElement {
-  id: string;
+  id: ElementId;
   type: string;
   version: number;
   versionNonce: number;

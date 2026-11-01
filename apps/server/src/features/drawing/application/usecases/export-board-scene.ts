@@ -1,9 +1,11 @@
 import type { IFileStorage } from "../../../../shared/application/interfaces/i-file-storage";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Page } from "../../domain/entities/page";
+import type { PageId } from "../../domain/entities/page";
 import type { ImageData } from "../../domain/rendering/scene-svg";
 import { MAX_EXPORT_BYTES, loadBoardImages } from "../board-images";
 import { toExcalidraw } from "../dtos/excalidraw-element";
@@ -36,8 +38,8 @@ export class ExportBoardScene {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    pageId?: string;
+    boardId: BoardId;
+    pageId?: PageId;
     includeFiles?: boolean;
   }): Promise<Result<ExcalidrawFile, AppError>> {
     const granted = await this.policy.decide(

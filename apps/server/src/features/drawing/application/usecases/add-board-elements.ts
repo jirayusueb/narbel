@@ -1,11 +1,13 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Drawing } from "../../domain/entities/drawing";
-import type { Element } from "../../domain/entities/element";
+import type { Element, ElementId } from "../../domain/entities/element";
 import { Page } from "../../domain/entities/page";
+import type { PageId } from "../../domain/entities/page";
 import type { LayoutDirection } from "../../domain/rules/layout";
 import { Placement } from "../../domain/rules/placement";
 import type { Built } from "../../domain/rules/placement";
@@ -86,7 +88,7 @@ const referencedPageId = (batch: Built[], scene: SceneAccess) =>
 
 const labelAll = (
   placed: Built[],
-  known: Map<string, Element>,
+  known: Map<ElementId, Element>,
   ids: IIdGenerator,
   now: number
 ): string[] => {
@@ -119,11 +121,11 @@ export class AddBoardElements {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    pageId?: string;
+    boardId: BoardId;
+    pageId?: PageId;
     shapes: ShapeInput[];
     direction?: LayoutDirection;
-  }): Promise<Result<{ ids: string[] }, AppError>> {
+  }): Promise<Result<{ ids: ElementId[] }, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,
       input.actor,
@@ -170,7 +172,7 @@ export class AddBoardElements {
         }
         const existing = scene.all(page.id);
         const known = new Map(existing.map((element) => [element.id, element]));
-        const fresh = new Set<string>();
+        const fresh = new Set<ElementId>();
         for (const { element } of batch) {
           // a caller-chosen id must not overwrite an existing element or a sibling
           if (
@@ -187,9 +189,9 @@ export class AddBoardElements {
         for (const { element } of batch) {
           known.set(element.id, element);
         }
-        const refProblem = Placement.referenceProblem(batch, known);
-        if (refProblem) {
-          return refProblem;
+        const refs = Placement.checkReferences(batch, known);
+        if (refs.isErr()) {
+          return refs.error;
         }
         const placed = Placement.unframeStrays(
           Placement.arrange(batch, existing, input.direction),
@@ -198,14 +200,14 @@ export class AddBoardElements {
         for (const { element } of placed) {
           known.set(element.id, element);
         }
-        const touched = new Set<string>(fresh);
+        const touched = new Set<ElementId>(fresh);
         Placement.attachAll(placed, known, touched);
         for (const id of labelAll(placed, known, this.ids, now)) {
           fresh.add(id);
           touched.add(id);
         }
         Placement.fitFrames(batch, known, touched);
-        const isFrame = (id: string) => known.get(id)?.type === "frame";
+        const isFrame = (id: ElementId) => known.get(id)?.type === "frame";
         const order = [
           ...[...touched].filter(isFrame),
           ...[...touched].filter((id) => !isFrame(id)),

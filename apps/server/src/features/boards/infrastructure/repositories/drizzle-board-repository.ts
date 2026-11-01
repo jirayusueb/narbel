@@ -97,7 +97,7 @@ export class DrizzleBoardRepository implements IBoardRepository {
       .set({ updatedAt: at })
       .where(eq(board.id, id))
       .returning({ ownerId: board.ownerId });
-    return row?.ownerId;
+    return row?.ownerId ?? null;
   }
 
   async setTrashed(id: string, at: Date | null) {

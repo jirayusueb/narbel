@@ -1,16 +1,20 @@
 import { AppError } from "../../../../shared/kernel/errors/app-error";
+import type { Flavor } from "../../../../shared/kernel/types/flavor";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
+import type { ElementId } from "./element";
+
+export type PageId = Flavor<string, "PageId">;
 
 export const PAGE_NAME_MAX_LENGTH = 80;
 
 export class Page {
   private constructor(
-    readonly id: string,
+    readonly id: PageId,
     readonly name: string
   ) {}
 
-  static create(id: string, name: string): Page {
+  static create(id: PageId, name: string): Page {
     return new Page(id, name);
   }
 
@@ -26,11 +30,11 @@ export class Page {
   }
 
   /** Elements of every page share one map, so the key carries the page. */
-  static keyOf(pageId: string, elementId: string) {
+  static keyOf(pageId: PageId, elementId: ElementId) {
     return `${pageId}:${elementId}`;
   }
 
-  static resolve(pages: Page[], pageId: string | undefined) {
+  static resolve(pages: Page[], pageId: PageId | undefined) {
     return pageId === undefined
       ? pages[0]
       : pages.find((page) => page.id === pageId);

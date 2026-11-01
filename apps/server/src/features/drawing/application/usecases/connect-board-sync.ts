@@ -1,5 +1,6 @@
 import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok, okEmpty } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import type { IBoardAccess } from "../ports/i-board-access";
@@ -23,7 +24,7 @@ export class ConnectBoardSync {
   /** The upgrade-time check: the same read decision `execute` makes, so strangers get a plain HTTP error. */
   async admit(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
   }): Promise<Result<undefined, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,
@@ -35,7 +36,7 @@ export class ConnectBoardSync {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
     peer: SyncPeer;
   }): Promise<Result<SyncSession, AppError>> {
     const granted = await this.policy.decide(
@@ -74,7 +75,7 @@ export class ConnectBoardSync {
 
   // presence calls are not awaited: a slow or dead Redis must never delay sync frames
   private track(
-    boardId: string,
+    boardId: BoardId,
     actor: Actor,
     session: SyncSession
   ): SyncSession {

@@ -1,8 +1,10 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
+import type { ElementId } from "../../domain/entities/element";
 import { Arrange } from "../../domain/rules/arrange";
 import type { Arrangement } from "../../domain/rules/arrange";
 import { Bindings } from "../../domain/rules/bindings";
@@ -15,7 +17,7 @@ import type { IBoardScenes } from "../ports/i-board-scenes";
 
 export interface ArrangeResult {
   moved: string[];
-  skipped: { id: string; reason: "locked" | "connector" }[];
+  skipped: { id: ElementId; reason: "locked" | "connector" }[];
 }
 
 export class ArrangeElements {
@@ -27,8 +29,8 @@ export class ArrangeElements {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    ids: string[];
+    boardId: BoardId;
+    ids: ElementId[];
     how: Arrangement;
   }): Promise<Result<ArrangeResult, AppError>> {
     const granted = await this.policy.decide(

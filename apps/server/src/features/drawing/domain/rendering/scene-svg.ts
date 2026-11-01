@@ -1,4 +1,4 @@
-import type { Element } from "../entities/element";
+import type { Element, ElementId } from "../entities/element";
 import { Geometry } from "../rules/geometry";
 import type { Bounds, Point } from "../rules/geometry";
 import { ElementStyle } from "../shapes/element-style";
@@ -298,7 +298,7 @@ const byZOrder = (a: Element, b: Element) => {
   return ai < bi ? -1 : 1;
 };
 
-const boxContainer = (e: Element, byId: Map<string, Element>) => {
+const boxContainer = (e: Element, byId: Map<ElementId, Element>) => {
   const container =
     typeof e.containerId === "string" ? byId.get(e.containerId) : undefined;
   return container && !Geometry.isLinear(container) ? container : undefined;
@@ -306,7 +306,7 @@ const boxContainer = (e: Element, byId: Map<string, Element>) => {
 
 const element = (
   e: Element,
-  byId: Map<string, Element>,
+  byId: Map<ElementId, Element>,
   refs: Map<string, string>
 ) => {
   const container = boxContainer(e, byId);
@@ -337,7 +337,7 @@ const element = (
   return attrs === "" ? inner : `<g${attrs}>${inner}</g>`;
 };
 
-const drawnBounds = (e: Element, byId: Map<string, Element>) => {
+const drawnBounds = (e: Element, byId: Map<ElementId, Element>) => {
   const container = boxContainer(e, byId);
   return container
     ? Geometry.rotatedBounds(container, Geometry.geometryBox(container))

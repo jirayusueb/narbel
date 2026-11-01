@@ -1,4 +1,5 @@
 import type { IFileStorage } from "../../../shared/application/interfaces/i-file-storage";
+import type { BoardId } from "../../../shared/kernel/types/ids";
 import type { ImageData } from "../domain/rendering/scene-svg";
 import { ImageHeaderReader } from "../domain/rules/image-header";
 import type { ImageHeader } from "../domain/rules/image-header";
@@ -56,7 +57,7 @@ const SVG = "image/svg+xml";
 export const loadBoardImages = async (
   files: IBoardFileRepository,
   storage: IFileStorage,
-  boardId: string,
+  boardId: BoardId,
   fileIds: string[],
   maxBytes: number,
   /** server-side rasterising must not parse attacker-supplied SVG */

@@ -1,3 +1,4 @@
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 /** Close code and reason a peer receives when its board was moved to Trash; the web client keys off the code. */
 export const SYNC_CLOSE_TRASHED = { code: 4410, reason: "board-trashed" };
 /** Close code (1008, policy violation) and reason a peer receives when a recheck finds it can no longer read the board. */
@@ -23,7 +24,7 @@ export interface IBoardSyncGateway {
    * `recheck` decides the peer again whenever the board's access changes, on whichever instance holds it.
    */
   connect(
-    boardId: string,
+    boardId: BoardId,
     peer: SyncPeer,
     canWrite: boolean,
     recheck: () => Promise<PeerAccess>

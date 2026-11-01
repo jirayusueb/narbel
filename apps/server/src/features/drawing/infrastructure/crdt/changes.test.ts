@@ -228,7 +228,7 @@ describe("changesSince on a live board", () => {
     );
 
     expect(await second.transact("b1", (s) => s.get("page:main", "a"))).toBe(
-      undefined
+      null
     );
     expect((await since(second, before)).touches).toEqual([]);
     expect((await since(second, await now(second))).touches).toEqual([]);
@@ -304,8 +304,8 @@ describe("touchesSince on documents", () => {
     ).toEqual([["k", true]]);
   });
 
-  it("returns undefined for bytes that are not a version", () => {
+  it("returns null for bytes that are not a version", () => {
     const garbage = new Uint8Array([255, 255, 255]) as SceneVersion;
-    expect(touchesSince(new Y.Doc(), garbage)).toBeUndefined();
+    expect(touchesSince(new Y.Doc(), garbage)).toBeNull();
   });
 });

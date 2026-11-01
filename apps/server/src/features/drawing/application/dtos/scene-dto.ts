@@ -1,10 +1,11 @@
 import { Drawing } from "../../domain/entities/drawing";
-import type { Element } from "../../domain/entities/element";
+import type { Element, ElementId } from "../../domain/entities/element";
+import type { PageId } from "../../domain/entities/page";
 import { ElementStyle } from "../../domain/shapes/element-style";
 import type { Style } from "../../domain/shapes/element-style";
 
 export interface SceneElementDto extends Partial<Style> {
-  id: string;
+  id: ElementId;
   type: string;
   x: unknown;
   y: unknown;
@@ -12,17 +13,17 @@ export interface SceneElementDto extends Partial<Style> {
   height: unknown;
   text?: unknown;
   /** arrows/lines: what each end is attached to, so agents can read the diagram's graph */
-  startElementId?: string | null;
-  endElementId?: string | null;
+  startElementId?: ElementId | null;
+  endElementId?: ElementId | null;
   groupIds?: string[];
-  frameId?: string;
+  frameId?: ElementId;
   name?: string;
   locked?: true;
 }
 
 export interface SceneDto {
   title: string;
-  pageId: string;
+  pageId: PageId;
   total: number;
   truncated: boolean;
   elements: SceneElementDto[];
@@ -30,7 +31,10 @@ export interface SceneDto {
 
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
-const liveLabel = (e: Element, get: (id: string) => Element | undefined) => {
+const liveLabel = (
+  e: Element,
+  get: (id: ElementId) => Element | null | undefined
+) => {
   const labelId = Drawing.labelIdOf(e);
   const label = labelId === undefined ? undefined : get(labelId);
   return label && !label.isDeleted ? label : undefined;
@@ -41,7 +45,7 @@ export const roundCoord = <T>(value: T): T =>
 
 export const toSceneElementDto = (
   e: Element,
-  get: (id: string) => Element | undefined
+  get: (id: ElementId) => Element | null | undefined
 ): SceneElementDto => {
   const label = liveLabel(e, get);
   const content = e.type === "text" ? e : label;
@@ -82,7 +86,7 @@ export const byZOrder = (a: Element, b: Element) => {
   return ai < bi ? -1 : 1;
 };
 
-const isLabelOfLive = (byId: Map<string, Element>) => (e: Element) =>
+const isLabelOfLive = (byId: Map<ElementId, Element>) => (e: Element) =>
   typeof e.containerId === "string" &&
   byId.get(e.containerId)?.isDeleted === false;
 
@@ -99,6 +103,6 @@ export const toSceneDtos = (
   keep: (e: Element) => boolean = () => true
 ): SceneElementDto[] => {
   const { byId, live } = visible(elements);
-  const get = (id: string) => byId.get(id);
+  const get = (id: ElementId) => byId.get(id);
   return live.filter(keep).map((e) => toSceneElementDto(e, get));
 };

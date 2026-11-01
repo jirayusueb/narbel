@@ -1,8 +1,9 @@
-import { AppError } from "../../../../shared/kernel/errors/app-error";
+import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
-import { ChangeCursor } from "../../domain/values/change-cursor";
+import { ChangeCursor, badCursor } from "../../domain/values/change-cursor";
 import { toPageChanges } from "../dtos/changes-dto";
 import type { BoardChangesDto } from "../dtos/changes-dto";
 import type { IBoardAccess } from "../ports/i-board-access";
@@ -11,11 +12,6 @@ import type { ICommentActivity } from "../ports/i-comment-activity";
 
 export const MAX_ELEMENT_CHANGES = 100;
 export const MAX_COMMENT_CHANGES = 50;
-
-const badCursor = () =>
-  AppError.validation(
-    "since is not a get_changes cursor for this board; call get_changes without since to start again"
-  );
 
 /** What humans changed on a board since an agent's cursor: elements via the live CRDT, comments via discussion. */
 export class GetBoardChanges {
@@ -28,7 +24,7 @@ export class GetBoardChanges {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
     since?: string;
   }): Promise<Result<BoardChangesDto, AppError>> {
     const granted = await this.policy.decide(
@@ -39,12 +35,13 @@ export class GetBoardChanges {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const cursor = input.since
+    const parsed = input.since
       ? ChangeCursor.parse(input.since, input.boardId)
       : null;
-    if (input.since && !cursor) {
-      return err(badCursor());
+    if (parsed?.isErr()) {
+      return err(parsed.error);
     }
+    const cursor = parsed?.isOk() ? parsed.value : null;
     const read = await this.scenes.transact(input.boardId, (s) => {
       const found = s.changesSince(cursor?.scene ?? null);
       return (

@@ -1,5 +1,5 @@
-import type { Element } from "./element";
-import type { Page } from "./page";
+import type { Element, ElementId } from "./element";
+import type { Page, PageId } from "./page";
 
 /*
  * The Drawing aggregate: one board's pages and elements. The Yjs document is its storage and its
@@ -14,7 +14,7 @@ export class Drawing {
   /** The last page cannot be deleted. */
   static pageRemoval(
     pages: readonly Page[],
-    pageId: string
+    pageId: PageId
   ): "missing" | "last" | "removable" {
     if (!pages.some((page) => page.id === pageId)) {
       return "missing";
@@ -27,11 +27,11 @@ export class Drawing {
    * earlier element of the same write already uses it.
    */
   static isElementIdTaken(
-    id: string,
-    onBoard: (id: string) => unknown,
-    sameWrite: ReadonlySet<string> = new Set()
+    id: ElementId,
+    onBoard: (id: ElementId) => unknown,
+    sameWrite: ReadonlySet<ElementId> = new Set()
   ) {
-    return sameWrite.has(id) || onBoard(id) !== undefined;
+    return sameWrite.has(id) || Boolean(onBoard(id));
   }
 
   /** A label belongs to exactly one live shape: the id of the text the shape lists as its label. */
@@ -40,7 +40,7 @@ export class Drawing {
   }
 
   /** The shape listing `labelId` as its only label. */
-  static withLabel(container: Element, labelId: string): Element {
+  static withLabel(container: Element, labelId: ElementId): Element {
     return {
       ...container,
       boundElements: [
@@ -54,8 +54,8 @@ export class Drawing {
 
   /** A connector end points at a live shape or at nothing: a deleted or unknown target leaves it free. */
   static connectorTarget(
-    id: string | null | undefined,
-    targets: Map<string, Element>
+    id: ElementId | null | undefined,
+    targets: Map<ElementId, Element>
   ): Element | undefined {
     const target =
       id === undefined || id === null ? undefined : targets.get(id);

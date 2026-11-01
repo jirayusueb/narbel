@@ -1,6 +1,7 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Page } from "../../domain/entities/page";
@@ -16,7 +17,7 @@ export class AddPage {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
     name: string;
   }): Promise<Result<Page, AppError>> {
     const granted = await this.policy.decide(

@@ -8,6 +8,7 @@ import {
 import * as Y from "yjs";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/i-file-storage";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type { ExcalidrawElement } from "../../application/dtos/excalidraw-element";
 import type { IBoardRecords } from "../../application/ports/i-board-access";
 import type { IBoardPresence } from "../../application/ports/i-board-presence";
@@ -70,7 +71,7 @@ interface Snapshot {
  */
 const snapshotOf = async (
   { db, boards }: Pick<Deps, "db" | "boards">,
-  boardId: string
+  boardId: BoardId
 ): Promise<Snapshot | "trashed" | "uncertain"> => {
   const record = await boards.findIncludingTrashed(boardId);
   if (!record) {
@@ -124,7 +125,7 @@ const snapshotOf = async (
 type Reclaim = Pick<Deps, "db" | "boards" | "storage" | "presence" | "now">;
 
 /** True only when the store answered and nobody is connected; an outage is "not empty". */
-const isEmpty = async (presence: IBoardPresence, boardId: string) => {
+const isEmpty = async (presence: IBoardPresence, boardId: BoardId) => {
   try {
     return (await presence.countStrict(boardId)) === 0;
   } catch (error) {
@@ -142,7 +143,7 @@ const isEmpty = async (presence: IBoardPresence, boardId: string) => {
  */
 const finish = async (
   { db, boards, storage, presence, now = () => new Date() }: Reclaim,
-  boardId: string,
+  boardId: BoardId,
   fileId: string,
   claimedAt: Date
 ) => {
@@ -193,7 +194,7 @@ const finish = async (
   await db.delete(boardFile).where(mine);
 };
 
-const reclaim = async (deps: Reclaim, boardId: string, fileId: string) => {
+const reclaim = async (deps: Reclaim, boardId: BoardId, fileId: string) => {
   const { db, now = () => new Date() } = deps;
   const cutoff = new Date(now().getTime() - GRACE_MS);
   const claimedAt = now();
@@ -268,7 +269,7 @@ const recoverStaleClaims = async (deps: Reclaim) => {
   });
 };
 
-const sweepBoard = async (deps: Deps, boardId: string) => {
+const sweepBoard = async (deps: Deps, boardId: BoardId) => {
   const { db, presence, now = () => new Date() } = deps;
   const snap = await snapshotOf(deps, boardId);
   if (snap === "uncertain") {

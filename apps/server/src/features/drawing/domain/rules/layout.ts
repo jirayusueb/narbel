@@ -1,3 +1,4 @@
+import type { ElementId } from "../entities/element";
 import { GAP as BINDING_GAP } from "./bindings";
 import { Geometry } from "./geometry";
 import type { Bounds } from "./geometry";
@@ -5,7 +6,7 @@ import type { Bounds } from "./geometry";
 export type LayoutDirection = "down" | "right";
 
 export interface LayoutNode {
-  id: string;
+  id: ElementId;
   width: number;
   height: number;
 }
