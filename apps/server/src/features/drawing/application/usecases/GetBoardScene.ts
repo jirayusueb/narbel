@@ -2,7 +2,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { resolvePage } from "../../domain/entities/Page";
+import { Page } from "../../domain/entities/Page";
 import { Geometry } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
 import { toSceneDtos } from "../dtos/SceneDto";
@@ -33,7 +33,7 @@ export class GetBoardScene {
       return err(granted.error);
     }
     const scene = await this.scenes.transact(input.boardId, (s) => {
-      const page = resolvePage(s.pages(), input.pageId);
+      const page = Page.resolve(s.pages(), input.pageId);
       if (!page) {
         return;
       }

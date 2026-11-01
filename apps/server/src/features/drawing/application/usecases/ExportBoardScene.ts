@@ -3,7 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { resolvePage } from "../../domain/entities/Page";
+import { Page } from "../../domain/entities/Page";
 import type { ImageData } from "../../domain/rendering/sceneSvg";
 import { MAX_EXPORT_BYTES, loadBoardImages } from "../boardImages";
 import { toExcalidraw } from "../dtos/ExcalidrawElement";
@@ -49,7 +49,7 @@ export class ExportBoardScene {
       return err(granted.error);
     }
     const elements = await this.scenes.transact(input.boardId, (s) => {
-      const page = resolvePage(s.pages(), input.pageId);
+      const page = Page.resolve(s.pages(), input.pageId);
       return page && s.all(page.id).filter((e) => !e.isDeleted);
     });
     if (!elements) {

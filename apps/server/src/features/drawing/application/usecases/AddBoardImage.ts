@@ -6,7 +6,7 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
-import { resolvePage } from "../../domain/entities/Page";
+import { Page } from "../../domain/entities/Page";
 import { Geometry } from "../../domain/rules/geometry";
 import { ImageHeaderReader } from "../../domain/rules/imageHeader";
 import { Layout } from "../../domain/rules/layout";
@@ -61,7 +61,7 @@ export class AddBoardImage {
     scene: SceneAccess,
     input: { pageId?: string; id?: string; frameId?: string }
   ) {
-    const page = resolvePage(scene.pages(), input.pageId);
+    const page = Page.resolve(scene.pages(), input.pageId);
     if (!page) {
       return "no-page";
     }

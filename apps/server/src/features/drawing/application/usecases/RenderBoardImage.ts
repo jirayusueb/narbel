@@ -4,7 +4,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { resolvePage } from "../../domain/entities/Page";
+import { Page } from "../../domain/entities/Page";
 import { SceneSvgBuilder } from "../../domain/rendering/sceneSvg";
 import type { Bounds } from "../../domain/rules/geometry";
 import { MAX_RENDER_BYTES, loadBoardImages } from "../boardImages";
@@ -96,7 +96,7 @@ export class RenderBoardImage {
     maxSize?: number;
   }): Promise<Result<BoardImage, AppError>> {
     const page = await this.scenes.transact(input.boardId, (s) => {
-      const found = resolvePage(s.pages(), input.pageId);
+      const found = Page.resolve(s.pages(), input.pageId);
       return found && { ...found, elements: s.all(found.id) };
     });
     if (!page) {

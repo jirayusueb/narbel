@@ -5,7 +5,7 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
-import { resolvePage } from "../../domain/entities/Page";
+import { Page } from "../../domain/entities/Page";
 import { Bindings } from "../../domain/rules/bindings";
 import { Geometry } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
@@ -386,7 +386,7 @@ export class AddBoardElements {
     const outcome = await this.scenes.transact(
       input.boardId,
       (scene): AddOutcome => {
-        const page = resolvePage(
+        const page = Page.resolve(
           scene.pages(),
           input.pageId ?? referencedPageId(batch, scene)
         );

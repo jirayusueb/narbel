@@ -36,12 +36,13 @@ export class AccessPolicy {
     if (!board) {
       return err(AppError.notFound("Board"));
     }
+    const grantRole = await this.grantRole(board, actor);
     const share = actor.shareToken
       ? await this.grants.findShare(board.id)
       : null;
     const access = board.accessFor({
       userId: actor.userId,
-      grantRole: await this.grantRole(board, actor),
+      grantRole,
       shareRole: share?.roleFor(actor.shareToken, this.now()) ?? null,
       unlocked:
         board.passwordHash !== null &&

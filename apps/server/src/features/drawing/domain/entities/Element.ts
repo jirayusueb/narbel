@@ -70,7 +70,7 @@ export class Element implements Versioned {
   declare roughness?: number;
   declare roundness?: Roundness | null;
   declare opacity?: number;
-  rest: Record<string, unknown>;
+  declare rest: Record<string, unknown>;
 
   private constructor(
     typed: Omit<Element, "rest">,

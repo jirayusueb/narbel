@@ -114,7 +114,9 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 
 - The server is class-based first. Application-layer carriers (use cases, repositories, services, policies, outbox consumers) take their dependencies through the constructor.
 - Domain entities and value objects are classes with a private constructor and static factories (`create`, `restore`, `parse`). Domain rules are classes with static methods, one per module.
-- Only framework glue, the shared infrastructure helper modules (`boardVersions.ts`, `pruneOutbox.ts`, `routeEvents.ts`) and throwaway scripts are plain functions.
+- Domain entities, value objects, rules and shapes are classes. Plain functions remain in the shared kernel (values like `parseUsername`, cursor codecs) and in application helper modules and DTO converters (`connectors.ts`, `boardImages.ts`, dtos).
+- Plain functions also remain in the named infrastructure helpers (`boardVersions.ts`, `pruneOutbox.ts`, `routeEvents.ts`) and in throwaway scripts.
+- Callers reach entity helpers through the class, for example `Page.keyOf` and `Page.resolve`.
 
 ## When Oxlint + Oxfmt Can't Help
 
