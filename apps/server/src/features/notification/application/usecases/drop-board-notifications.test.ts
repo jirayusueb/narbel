@@ -6,8 +6,8 @@ import type {
 } from "../../../../shared/application/interfaces/i-notifications";
 import type { IOutbox } from "../../../../shared/application/interfaces/i-outbox";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
+import type { NotificationTx } from "../notification-consumer";
 import { DropBoardNotifications } from "./drop-board-notifications";
-import type { NotificationTx } from "./handle-discussion-event";
 
 const invited = (boardId: string): NotificationPayload => ({
   kind: "board.invited",

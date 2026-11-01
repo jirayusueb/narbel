@@ -10,7 +10,7 @@ import type {
 } from "../../../../shared/application/interfaces/i-outbox";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
 import { memberInvitedSchema } from "../../infrastructure/events/member-invited-schema";
-import type { NotificationTx } from "./handle-discussion-event";
+import type { NotificationTx } from "../notification-consumer";
 import { HandleMemberInvited } from "./handle-member-invited";
 
 const setup = (alive: string[] = ["ann", "owner"]) => {

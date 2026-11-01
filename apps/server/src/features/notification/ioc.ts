@@ -8,12 +8,12 @@ import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/drizz
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
+import type { NotificationTx } from "./application/notification-consumer";
 import type { IReadableBoards } from "./application/ports/i-readable-boards";
 import { DropBoardNotifications } from "./application/usecases/drop-board-notifications";
 import { ForgetDeletedPerson } from "./application/usecases/forget-deleted-person";
 import { ForgetRemovedInvite } from "./application/usecases/forget-removed-invite";
 import { HandleDiscussionEvent } from "./application/usecases/handle-discussion-event";
-import type { NotificationTx } from "./application/usecases/handle-discussion-event";
 import { HandleMemberInvited } from "./application/usecases/handle-member-invited";
 import { NotificationUseCases } from "./application/usecases/notification-use-cases";
 import { BoardDeletedConsumer } from "./infrastructure/events/board-deleted-consumer";

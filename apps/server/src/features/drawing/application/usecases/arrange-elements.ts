@@ -9,9 +9,9 @@ import { Bindings } from "../../domain/rules/bindings";
 import { Geometry } from "../../domain/rules/geometry";
 import { Groups } from "../../domain/rules/groups";
 import { pageLookup, patchElement } from "../connectors";
+import { resolveOperands } from "../operands";
 import type { IBoardAccess } from "../ports/i-board-access";
 import type { IBoardScenes } from "../ports/i-board-scenes";
-import { resolveOperands } from "./group-elements";
 
 export interface ArrangeResult {
   moved: string[];

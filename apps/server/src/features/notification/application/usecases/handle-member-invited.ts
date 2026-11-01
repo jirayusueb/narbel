@@ -1,7 +1,7 @@
 import type { BoardsEvent } from "../../../../shared/application/events/boards-event";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
-import { NOTIFICATION_CONSUMER } from "./handle-discussion-event";
-import type { NotificationTx } from "./handle-discussion-event";
+import { NOTIFICATION_CONSUMER } from "../notification-consumer";
+import type { NotificationTx } from "../notification-consumer";
 
 /**
  * Turns an invitation into the invitee's inbox entry and the invite email, once per event id. The

@@ -1,20 +1,9 @@
 import type { DiscussionEvent } from "../../../../shared/application/events/discussion-event";
-import type { INotificationRepository } from "../../../../shared/application/interfaces/i-notifications";
-import type { IOutbox } from "../../../../shared/application/interfaces/i-outbox";
-import type { IProcessedEvents } from "../../../../shared/application/interfaces/i-processed-events";
-import type { IProfileReader } from "../../../../shared/application/interfaces/i-profiles";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
 import { inSequence } from "../../../../shared/kernel/in-sequence";
 import { reactTo } from "../discussion-reactions";
-
-export const NOTIFICATION_CONSUMER = "notification";
-
-export interface NotificationTx {
-  notifications: INotificationRepository;
-  outbox: IOutbox;
-  processed: IProcessedEvents;
-  people: IProfileReader;
-}
+import { NOTIFICATION_CONSUMER } from "../notification-consumer";
+import type { NotificationTx } from "../notification-consumer";
 
 /**
  * Turns a discussion event into inbox entries and queued emails, once per event id. The
