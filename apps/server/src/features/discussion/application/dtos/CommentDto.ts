@@ -1,5 +1,4 @@
 import type { UserRef } from "../../../../shared/application/interfaces/IProfiles";
-import { threadIdOf } from "../../domain/entities/Comment";
 import type { CommentView, ReactionSummary } from "../ports/ICommentRepository";
 
 export interface CommentDto {
@@ -57,7 +56,7 @@ export const toCommentDto = (
     body: comment.body,
     author: ref(comment.authorId),
     parentId: comment.parentId,
-    threadId: threadIdOf(comment),
+    threadId: comment.threadId(),
     createdAt: comment.createdAt.toISOString(),
     editedAt: comment.editedAt?.toISOString() ?? null,
     resolvedAt: comment.resolvedAt?.toISOString() ?? null,

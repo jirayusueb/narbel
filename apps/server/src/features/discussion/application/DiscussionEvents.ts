@@ -3,7 +3,6 @@ import type {
   DiscussionEvent,
 } from "../../../shared/application/events/DiscussionEvent";
 import type { Person } from "../../../shared/application/interfaces/IProfiles";
-import { threadIdOf } from "../domain/entities/Comment";
 import type { Comment } from "../domain/entities/Comment";
 import { excerptOf, extractMentions } from "../domain/rules/mentions";
 import type { DiscussionTx } from "./ports/DiscussionTx";
@@ -59,7 +58,7 @@ export class DiscussionEvents {
       version: 1 as const,
       boardId: this.comment.boardId,
       commentId: this.comment.id,
-      threadId: threadIdOf(this.comment),
+      threadId: this.comment.threadId(),
       actor: {
         userId: this.actor.id,
         username: this.actor.username,

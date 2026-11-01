@@ -4,7 +4,6 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { editBody } from "../../domain/entities/Thread";
 import { extractMentions } from "../../domain/rules/mentions";
 import { presentOne } from "../CommentPresenter";
 import { commentChanged, DiscussionEvents } from "../DiscussionEvents";
@@ -43,7 +42,7 @@ export class EditComment {
         return err(AppError.notFound("Comment"));
       }
       const now = new Date();
-      const edited = editBody(comment, actor.value.id, input.body, now);
+      const edited = comment.editBody(actor.value.id, input.body, now);
       if (edited.isErr()) {
         return err(edited.error);
       }

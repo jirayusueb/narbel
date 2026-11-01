@@ -5,7 +5,7 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { startThread } from "../../domain/entities/Thread";
+import { Thread } from "../../domain/entities/Comment";
 import { presentOne } from "../CommentPresenter";
 import { commentChanged, DiscussionEvents } from "../DiscussionEvents";
 import type { CommentDto } from "../dtos/CommentDto";
@@ -43,7 +43,7 @@ export class AddComment {
         return err(actor.error);
       }
       const members = await tx.members.memberIds(board);
-      const comment = startThread(
+      const comment = Thread.start(
         {
           id: this.ids.generate(),
           boardId: board.id,
