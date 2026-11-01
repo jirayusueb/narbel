@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: deploy
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      API_APP_ID: oqFz4hVXvsWZ6S8q8jLjL
+      WEB_APP_ID: jGPTZkRXvg9Yuq7N1x03S
+      BASE_DOMAIN: narbel.84-247-158-105.sslip.io
+    steps:
+      - name: require deploy secrets
+        env:
+          HAS_DEPLOY_KEY: ${{ secrets.REBUILD_DEPLOY_KEY != '' }}
+        run: |
+          if [ -z "$DOKPLOY_URL" ] || [ -z "$DOKPLOY_API_KEY" ] || [ "$HAS_DEPLOY_KEY" != true ]; then
+            echo "::error::Set DOKPLOY_URL, DOKPLOY_API_KEY and REBUILD_DEPLOY_KEY in the production environment"
+            exit 1
+          fi
+      # GITHUB_TOKEN may not push commits that change workflow files, so `rebuild` moves with a write deploy key
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
+          ssh-key: ${{ secrets.REBUILD_DEPLOY_KEY }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      # Dokploy builds the head of `rebuild`; a plain push moves it forward to the tested commit and fails rather than rewind it
+      - run: git push origin "$SHA:refs/heads/rebuild"
+      # api first: it applies pending migrations on start, before the new web build talks to it
+      - run: bun scripts/dokploy-deploy.ts "ci ${SHA::7} run ${{ github.run_id }}.${{ github.run_attempt }}" "$API_APP_ID" "$WEB_APP_ID"
+      # a build reported done can still be swapping containers behind Traefik for a few seconds
+      - name: smoke
+        run: |
+          for _ in $(seq 30); do
+            if curl -fsS -o /dev/null "https://$BASE_DOMAIN/" &&
+              [ "$(curl -s -o /dev/null -w '%{http_code}' "https://api.$BASE_DOMAIN/api/boards")" = 401 ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::web or api did not come back healthy"
+          exit 1
