@@ -29,6 +29,17 @@ export class ShareLink {
     );
   }
 
+  /** Trusted DB source; restore does not re-run create-time checks. */
+  static restore(fields: {
+    boardId: string;
+    token: string;
+    role: MemberRole;
+    createdAt: Date;
+    expiresAt: Date | null;
+  }): ShareLink {
+    return ShareLink.create(fields);
+  }
+
   /** An expiry must lie in the future when it is set. */
   static parseExpiry(raw: string, now: Date): Result<Date, AppError> {
     const date = new Date(raw);

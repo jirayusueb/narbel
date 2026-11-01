@@ -161,7 +161,7 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
       .from(boardShare)
       .where(eq(boardShare.boardId, boardId))
       .limit(1);
-    return row ? ShareLink.create(row) : null;
+    return row ? ShareLink.restore(row) : null;
   }
 
   async saveShare(share: ShareLink) {
