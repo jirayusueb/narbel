@@ -4,7 +4,7 @@ import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUni
 import { FakeComments, ids, setupAccess } from "../../../../testing";
 import { Comment } from "../../domain/entities/Comment";
 import { excerptOf, extractMentions } from "../../domain/rules/mentions";
-import { parseReaction } from "../../domain/values/Reaction";
+import { Reaction } from "../../domain/values/Reaction";
 import type { DiscussionTx } from "../ports/DiscussionTx";
 import { AddComment } from "./AddComment";
 import { AssignComment } from "./AssignComment";
@@ -70,11 +70,11 @@ describe("mentions and reactions", () => {
 
   it("accepts the eight emoji with or without the variation selector", () => {
     for (const emoji of ["👍", "❤️", "❤", "😂", "🎉", "😮", "😢", "👀", "🚀"]) {
-      expect(parseReaction(emoji).isOk()).toBe(true);
+      expect(Reaction.parse(emoji).isOk()).toBe(true);
     }
-    expect(parseReaction("💩").isErr()).toBe(true);
-    const heart = parseReaction("❤");
-    expect(heart.isOk() && heart.value).toBe("❤️");
+    expect(Reaction.parse("💩").isErr()).toBe(true);
+    const heart = Reaction.parse("❤");
+    expect(heart.isOk() && heart.value.value).toBe("❤️");
   });
 });
 

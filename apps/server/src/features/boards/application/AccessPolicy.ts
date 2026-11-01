@@ -4,7 +4,6 @@ import { err, ok } from "../../../shared/kernel/types/Result";
 import type { Result } from "../../../shared/kernel/types/Result";
 import type { Board } from "../domain/entities/Board";
 import type { Access, MemberRole } from "../domain/values/Access";
-import { shareRoleFor } from "../domain/values/ShareLink";
 import type {
   IBoardAccessRepository,
   ReadableBoard,
@@ -37,16 +36,13 @@ export class AccessPolicy {
     if (!board) {
       return err(AppError.notFound("Board"));
     }
+    const share = actor.shareToken
+      ? await this.grants.findShare(board.id)
+      : null;
     const access = board.accessFor({
       userId: actor.userId,
       grantRole: await this.grantRole(board, actor),
-      shareRole: actor.shareToken
-        ? shareRoleFor(
-            await this.grants.findShare(board.id),
-            actor.shareToken,
-            this.now()
-          )
-        : null,
+      shareRole: share?.roleFor(actor.shareToken, this.now()) ?? null,
       unlocked:
         board.passwordHash !== null &&
         actor.unlockProof !== undefined &&

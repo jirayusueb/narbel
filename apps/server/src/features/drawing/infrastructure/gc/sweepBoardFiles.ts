@@ -11,7 +11,7 @@ import type { IFileStorage } from "../../../../shared/application/interfaces/IFi
 import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { IBoardRecords } from "../../application/ports/IBoardAccess";
 import type { IBoardPresence } from "../../application/ports/IBoardPresence";
-import { boardFileKey } from "../../domain/values/FileKey";
+import { FileKey } from "../../domain/values/FileKey";
 
 const MINUTE = 60_000;
 const DAY = 24 * 60 * MINUTE;
@@ -184,7 +184,7 @@ const finish = async (
     return;
   }
   try {
-    await storage.delete(boardFileKey(boardId, fileId));
+    await storage.delete(FileKey.of(boardId, fileId));
   } catch (error) {
     console.error(`Board file delete failed for ${boardId}/${fileId}`, error);
     await release(false);

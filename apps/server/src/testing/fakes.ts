@@ -4,7 +4,6 @@ import type {
   IBoardAccessRepository,
   Member,
   ReadableBoard,
-  Share,
 } from "../features/boards/application/ports/IBoardAccessRepository";
 import type { IBoardRepository } from "../features/boards/application/ports/IBoardRepository";
 import type { IUnlockTokens } from "../features/boards/application/ports/IUnlockTokens";
@@ -14,6 +13,7 @@ import type {
   Visibility,
 } from "../features/boards/domain/values/Access";
 import { BoardTitle } from "../features/boards/domain/values/BoardTitle";
+import type { ShareLink } from "../features/boards/domain/values/ShareLink";
 import type { IIdGenerator } from "../shared/application/interfaces/IIdGenerator";
 import type {
   INotificationRepository,
@@ -91,7 +91,7 @@ class FakeBoards implements IBoardRepository {
 
 class FakeGrants implements IBoardAccessRepository {
   readonly members: (Member & { boardId: string })[] = [];
-  share: Share | null = null;
+  share: ShareLink | null = null;
   constructor(private readonly boards = new FakeBoards()) {}
   findGrant = (
     boardId: string,
@@ -177,7 +177,7 @@ class FakeGrants implements IBoardAccessRepository {
   findUserIdByEmail: (email: string) => Promise<string | null> = () =>
     Promise.resolve(null);
   findShare = () => Promise.resolve(this.share);
-  saveShare = (share: Share) => {
+  saveShare = (share: ShareLink) => {
     this.share = share;
     return Promise.resolve();
   };

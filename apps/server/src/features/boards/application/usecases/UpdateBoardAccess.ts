@@ -7,13 +7,12 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Board } from "../../domain/entities/Board";
 import type { MemberRole, Visibility } from "../../domain/values/Access";
-import { validatePassword } from "../../domain/values/Password";
-import { parseShareExpiry } from "../../domain/values/ShareLink";
+import { Password } from "../../domain/values/Password";
+import { ShareLink } from "../../domain/values/ShareLink";
 import type { AccessPolicy } from "../AccessPolicy";
 import { toAccessDto } from "../dtos/AccessDto";
 import type { BoardAccessDto } from "../dtos/AccessDto";
 import type { BoardTx } from "../ports/BoardTx";
-import type { Share } from "../ports/IBoardAccessRepository";
 import type { IPasswordHasher } from "../ports/IPasswordHasher";
 
 export interface AccessPatch {
@@ -93,11 +92,11 @@ export class UpdateBoardAccess {
   ): Promise<Result<Board, AppError>> {
     let { passwordHash } = board;
     if (typeof patch.password === "string") {
-      const valid = validatePassword(patch.password);
+      const valid = Password.parse(patch.password);
       if (valid.isErr()) {
         return err(valid.error);
       }
-      passwordHash = await this.hasher.hash(patch.password);
+      passwordHash = await this.hasher.hash(valid.value.value);
     } else if (patch.password === null) {
       passwordHash = null;
     }
@@ -119,10 +118,10 @@ export class UpdateBoardAccess {
   private async applyShare(
     tx: BoardTx,
     board: Board,
-    existing: Share | null,
+    existing: ShareLink | null,
     patch: AccessPatch,
     now: Date
-  ): Promise<Result<Share | null, AppError>> {
+  ): Promise<Result<ShareLink | null, AppError>> {
     if (!(patch.shareTokenEnabled ?? existing !== null)) {
       if (existing) {
         await tx.grants.deleteShare(board.id);
@@ -138,7 +137,7 @@ export class UpdateBoardAccess {
     }
     let expiresAt = existing?.expiresAt ?? null;
     if (typeof patch.shareExpiresAt === "string") {
-      const parsed = parseShareExpiry(patch.shareExpiresAt, now);
+      const parsed = ShareLink.parseExpiry(patch.shareExpiresAt, now);
       if (parsed.isErr()) {
         return err(parsed.error);
       }
@@ -146,13 +145,13 @@ export class UpdateBoardAccess {
     } else if (patch.shareExpiresAt === null) {
       expiresAt = null;
     }
-    const share: Share = {
+    const share = ShareLink.create({
       boardId: board.id,
       token: existing?.token ?? this.ids.token(),
       role: patch.shareRole ?? existing?.role ?? "viewer",
       createdAt: existing?.createdAt ?? now,
       expiresAt,
-    };
+    });
     await tx.grants.saveShare(share);
     return ok(share);
   }

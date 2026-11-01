@@ -6,7 +6,7 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { MemberRole } from "../../domain/values/Access";
-import { normalizeEmail } from "../../domain/values/Email";
+import { Email } from "../../domain/values/Email";
 import type { AccessPolicy } from "../AccessPolicy";
 import type { BoardTx } from "../ports/BoardTx";
 
@@ -30,10 +30,11 @@ export class InviteBoardMember {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const email = normalizeEmail(input.email);
-    if (email.isErr()) {
-      return err(email.error);
+    const parsed = Email.parse(input.email);
+    if (parsed.isErr()) {
+      return err(parsed.error);
     }
+    const email = parsed.value;
     if (email.value === input.actor.email?.toLowerCase()) {
       return err(AppError.validation("You already own this board"));
     }

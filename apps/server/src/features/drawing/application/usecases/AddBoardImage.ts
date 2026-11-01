@@ -21,7 +21,7 @@ import {
   validateUpload,
 } from "../../domain/rules/UploadRules";
 import { buildImage, imageSize } from "../../domain/shapes/imageElement";
-import { boardFileKey } from "../../domain/values/FileKey";
+import { FileKey } from "../../domain/values/FileKey";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
@@ -164,7 +164,7 @@ export class AddBoardImage {
       return err(AppError.conflict("Image is being cleaned up, retry"));
     }
     await this.storage.put(
-      boardFileKey(input.boardId, fileId),
+      FileKey.of(input.boardId, fileId),
       input.bytes,
       header.mimeType
     );

@@ -5,10 +5,10 @@ import { board, boardAccess, boardShare } from "@narbel/db/schema/boards";
 import type {
   IBoardAccessRepository,
   ReadableBoard,
-  Share,
 } from "../../application/ports/IBoardAccessRepository";
 import type { IBoardPeople } from "../../application/ports/IBoardPeople";
 import type { Role } from "../../domain/values/Access";
+import { ShareLink } from "../../domain/values/ShareLink";
 
 export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
   constructor(
@@ -161,10 +161,10 @@ export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
       .from(boardShare)
       .where(eq(boardShare.boardId, boardId))
       .limit(1);
-    return row ?? null;
+    return row ? ShareLink.create(row) : null;
   }
 
-  async saveShare(share: Share) {
+  async saveShare(share: ShareLink) {
     await this.db
       .insert(boardShare)
       .values(share)

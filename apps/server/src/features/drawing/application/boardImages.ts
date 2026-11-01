@@ -2,7 +2,7 @@ import type { IFileStorage } from "../../../shared/application/interfaces/IFileS
 import type { ImageData } from "../domain/rendering/sceneSvg";
 import { NEEDS_MORE, parseImageHeader } from "../domain/rules/imageHeader";
 import { MAX_IMAGE_PIXELS } from "../domain/rules/UploadRules";
-import { boardFileKey } from "../domain/values/FileKey";
+import { FileKey } from "../domain/values/FileKey";
 import type { IBoardFileRepository } from "./ports/IBoardFileRepository";
 
 export const MAX_RENDER_BYTES = 32 * 1024 * 1024;
@@ -61,7 +61,7 @@ export const loadBoardImages = async (
   const found = await Promise.all(
     unique.map(async (fileId) => {
       const file = await files.findById(boardId, fileId);
-      const key = boardFileKey(boardId, fileId);
+      const key = FileKey.of(boardId, fileId);
       // The presigned PUT does not bind the declared size, so budget on what storage holds.
       if (!file || (skipSvg && file.mimeType === SVG)) {
         return null;

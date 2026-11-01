@@ -3,7 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { parseReaction } from "../../domain/values/Reaction";
+import { Reaction } from "../../domain/values/Reaction";
 import { presentOne } from "../CommentPresenter";
 import type { CommentDto } from "../dtos/CommentDto";
 import type { IBoardAccess } from "../ports/IBoardAccess";
@@ -36,7 +36,7 @@ export class SetCommentReaction {
     if (!userId) {
       return err(AppError.unauthorized());
     }
-    const emoji = parseReaction(input.emoji);
+    const emoji = Reaction.parse(input.emoji);
     if (emoji.isErr()) {
       return err(emoji.error);
     }
@@ -44,8 +44,12 @@ export class SetCommentReaction {
       return err(AppError.notFound("Comment"));
     }
     await (input.present
-      ? this.comments.addReaction(input.commentId, userId, emoji.value)
-      : this.comments.removeReaction(input.commentId, userId, emoji.value));
+      ? this.comments.addReaction(input.commentId, userId, emoji.value.value)
+      : this.comments.removeReaction(
+          input.commentId,
+          userId,
+          emoji.value.value
+        ));
     return await presentOne(
       this.comments,
       this.profiles,

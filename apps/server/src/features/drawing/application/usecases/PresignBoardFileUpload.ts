@@ -4,7 +4,7 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { validateUpload } from "../../domain/rules/UploadRules";
-import { boardFileKey } from "../../domain/values/FileKey";
+import { FileKey } from "../../domain/values/FileKey";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 
@@ -52,7 +52,7 @@ export class PresignBoardFileUpload {
     return ok({
       fileId: input.fileId,
       uploadUrl: this.storage.presignUpload(
-        boardFileKey(input.boardId, input.fileId),
+        FileKey.of(input.boardId, input.fileId),
         input.mimeType,
         PRESIGN_SECONDS
       ),
