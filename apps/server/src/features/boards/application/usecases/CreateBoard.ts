@@ -2,7 +2,7 @@ import type { IIdGenerator } from "../../../../shared/application/interfaces/IId
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { Board } from "../../domain/entities/Board";
+import { createBoard } from "../../domain/entities/Board";
 import { BoardTitle } from "../../domain/values/BoardTitle";
 import { toBoardDto } from "../dtos/BoardDto";
 import type { BoardDto } from "../dtos/BoardDto";
@@ -22,7 +22,7 @@ export class CreateBoard {
     if (title.isErr()) {
       return err(title.error);
     }
-    const board = Board.create(
+    const board = createBoard(
       this.ids.generate(),
       input.userId,
       title.value,

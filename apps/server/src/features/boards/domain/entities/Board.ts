@@ -15,118 +15,106 @@ export interface AccessProofs {
   unlocked: boolean;
 }
 
-export class Board {
-  private constructor(
-    public readonly id: string,
-    public readonly ownerId: string,
-    public readonly title: BoardTitle,
-    public readonly createdAt: Date,
-    public readonly updatedAt: Date,
-    public readonly visibility: Visibility,
-    public readonly passwordHash: string | null,
-    /** null while live; the moment its owner moved it to Trash */
-    public readonly trashedAt: Date | null
-  ) {}
+export interface Board {
+  readonly id: string;
+  readonly ownerId: string;
+  readonly title: BoardTitle;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly visibility: Visibility;
+  readonly passwordHash: string | null;
+  /** null while live; the moment its owner moved it to Trash */
+  readonly trashedAt: Date | null;
+}
 
-  static create(
-    id: string,
-    ownerId: string,
-    title: BoardTitle,
-    now: Date
-  ): Board {
-    return new Board(id, ownerId, title, now, now, "private", null, null);
+export const createBoard = (
+  id: string,
+  ownerId: string,
+  title: BoardTitle,
+  now: Date
+): Board => ({
+  id,
+  ownerId,
+  title,
+  createdAt: now,
+  updatedAt: now,
+  visibility: "private",
+  passwordHash: null,
+  trashedAt: null,
+});
+
+export const restoreBoard = (row: {
+  id: string;
+  ownerId: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  visibility: Visibility;
+  passwordHash: string | null;
+  trashedAt: Date | null;
+}): Board => ({
+  id: row.id,
+  ownerId: row.ownerId,
+  title: BoardTitle.restore(row.title),
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+  visibility: row.visibility,
+  passwordHash: row.passwordHash,
+  trashedAt: row.trashedAt,
+});
+
+export const renameBoard = (
+  board: Board,
+  title: BoardTitle,
+  now: Date
+): Board => ({ ...board, title, updatedAt: now });
+
+export const protectBoard = (
+  board: Board,
+  visibility: Visibility,
+  passwordHash: string | null,
+  now: Date
+): Result<Board, AppError> => {
+  if (visibility === "password" && passwordHash === null) {
+    return err(AppError.validation("Set a password before locking the board"));
   }
+  return ok({ ...board, updatedAt: now, visibility, passwordHash });
+};
 
-  static restore(row: {
-    id: string;
-    ownerId: string;
-    title: string;
-    createdAt: Date;
-    updatedAt: Date;
-    visibility: Visibility;
-    passwordHash: string | null;
-    trashedAt: Date | null;
-  }): Board {
-    return new Board(
-      row.id,
-      row.ownerId,
-      BoardTitle.restore(row.title),
-      row.createdAt,
-      row.updatedAt,
-      row.visibility,
-      row.passwordHash,
-      row.trashedAt
-    );
+export const isBoardOwnedBy = (
+  board: Board,
+  userId: string | undefined
+): boolean => userId !== undefined && board.ownerId === userId;
+
+// Order matters: the most specific grant wins, a public setting is the last resort.
+const grantedRole = (board: Board, proofs: AccessProofs): Role | null => {
+  if (isBoardOwnedBy(board, proofs.userId)) {
+    return "owner";
   }
-
-  rename(title: BoardTitle, now: Date): Board {
-    return new Board(
-      this.id,
-      this.ownerId,
-      title,
-      this.createdAt,
-      now,
-      this.visibility,
-      this.passwordHash,
-      this.trashedAt
-    );
+  if (proofs.grantRole) {
+    return proofs.grantRole;
   }
-
-  protect(
-    visibility: Visibility,
-    passwordHash: string | null,
-    now: Date
-  ): Result<Board, AppError> {
-    if (visibility === "password" && passwordHash === null) {
-      return err(
-        AppError.validation("Set a password before locking the board")
-      );
-    }
-    return ok(
-      new Board(
-        this.id,
-        this.ownerId,
-        this.title,
-        this.createdAt,
-        now,
-        visibility,
-        passwordHash,
-        this.trashedAt
-      )
-    );
+  if (proofs.shareRole) {
+    return proofs.shareRole;
   }
-
-  isOwnedBy(userId: string | undefined): boolean {
-    return userId !== undefined && this.ownerId === userId;
+  if (
+    board.visibility === "link" ||
+    (board.visibility === "password" && proofs.unlocked)
+  ) {
+    return "viewer";
   }
+  return null;
+};
 
-  /** null when the proofs open nothing; guests get viewer at most. */
-  accessFor(proofs: AccessProofs): Access | null {
-    const role = this.grantedRole(proofs);
-    if (!role) {
-      return null;
-    }
-    const capped = proofs.userId === undefined ? "viewer" : role;
-    return { role: capped, canRead: true, canWrite: capped !== "viewer" };
-  }
-
-  // Order matters: the most specific grant wins, a public setting is the last resort.
-  private grantedRole(proofs: AccessProofs): Role | null {
-    if (this.isOwnedBy(proofs.userId)) {
-      return "owner";
-    }
-    if (proofs.grantRole) {
-      return proofs.grantRole;
-    }
-    if (proofs.shareRole) {
-      return proofs.shareRole;
-    }
-    if (
-      this.visibility === "link" ||
-      (this.visibility === "password" && proofs.unlocked)
-    ) {
-      return "viewer";
-    }
+/** null when the proofs open nothing; guests get viewer at most. */
+export const boardAccessFor = (
+  board: Board,
+  proofs: AccessProofs
+): Access | null => {
+  const role = grantedRole(board, proofs);
+  if (!role) {
     return null;
   }
-}
+  const capped = proofs.userId === undefined ? "viewer" : role;
+  return { role: capped, canRead: true, canWrite: capped !== "viewer" };
+};
