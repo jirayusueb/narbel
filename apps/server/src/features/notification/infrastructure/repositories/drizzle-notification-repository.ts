@@ -75,7 +75,6 @@ export class DrizzleNotificationRepository implements INotificationRepository {
       return { items: [], nextCursor: null, unreadCount: 0 };
     }
     const readable = onReadableBoards(readableBoardIds);
-    const cursor = page.after;
     const rows = await this.db
       .select()
       .from(notification)
@@ -83,12 +82,12 @@ export class DrizzleNotificationRepository implements INotificationRepository {
         and(
           eq(notification.userId, userId),
           readable,
-          cursor
+          page.after
             ? or(
-                lt(notification.createdAt, cursor.at),
+                lt(notification.createdAt, page.after.at),
                 and(
-                  eq(notification.createdAt, cursor.at),
-                  lt(notification.id, cursor.id)
+                  eq(notification.createdAt, page.after.at),
+                  lt(notification.id, page.after.id)
                 )
               )
             : undefined

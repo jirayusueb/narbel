@@ -11,12 +11,12 @@ export const parsePaging = (input: {
   cursor?: string;
   limit?: number;
 }): Result<{ after: Cursor | null; limit: number }, AppError> => {
-  const after = input.cursor ? decodeCursor(input.cursor) : null;
-  if (after?.isErr()) {
+  const after = decodeCursor(input.cursor);
+  if (after.isErr()) {
     return err(after.error);
   }
   return ok({
-    after: after?.isOk() ? after.value : null,
+    after: after.value,
     limit: Math.min(
       Math.max(Math.trunc(input.limit ?? DEFAULT_PAGE_SIZE), 1),
       MAX_PAGE_SIZE

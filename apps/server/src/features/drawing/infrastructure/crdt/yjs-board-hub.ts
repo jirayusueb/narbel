@@ -33,6 +33,7 @@ import type {
   SyncPeer,
   SyncSession,
 } from "../../application/ports/i-board-sync-gateway";
+import type { ElementId } from "../../domain/entities/element";
 import type { TextIndex } from "./board-text";
 import { extractBoardText, indexTexts, sameTexts } from "./board-text";
 import { markAgentWriter } from "./changes";
@@ -128,7 +129,7 @@ export class YjsBoardHub
     }, SERVER_ORIGIN);
   }
 
-  async getSelection(boardId: BoardId): Promise<string[] | null> {
+  async getSelection(boardId: BoardId): Promise<ElementId[] | null> {
     const room = await this.room(boardId);
     if (room.peers.size === 0) {
       return null;

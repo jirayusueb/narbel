@@ -56,7 +56,7 @@ export interface IBoardScenes {
    * Element ids selected by the client that changed its selection last, or null
    * when nobody is connected.
    */
-  getSelection(boardId: BoardId): Promise<string[] | null>;
+  getSelection(boardId: BoardId): Promise<ElementId[] | null>;
   /** Publishes the selection as the "MCP" collaborator on `pageId`, outlined in every browser on that page. */
   setSelection(boardId: BoardId, selection: AgentSelection): Promise<void>;
   /** Drops the live document and its connections without persisting (the board is gone). */

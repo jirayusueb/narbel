@@ -11,8 +11,13 @@ export interface Cursor {
 export const encodeCursor = ({ at, id }: Cursor) =>
   btoa(`${at.getTime()}:${id}`).replaceAll("=", "");
 
-/** Err when the text is not a cursor this server produced. */
-export const decodeCursor = (raw: string): Result<Cursor, AppError> => {
+/** Ok(null) when there is no cursor; err when the text is not a cursor this server produced. */
+export const decodeCursor = (
+  raw: string | undefined
+): Result<Cursor | null, AppError> => {
+  if (!raw) {
+    return ok(null);
+  }
   try {
     const text = atob(raw);
     const split = text.indexOf(":");

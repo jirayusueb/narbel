@@ -38,8 +38,8 @@ export class NotificationUseCases {
     email: string,
     input: { cursor?: string; limit?: number }
   ): Promise<Result<NotificationPage, AppError>> {
-    const after = input.cursor ? decodeCursor(input.cursor) : null;
-    if (after?.isErr()) {
+    const after = decodeCursor(input.cursor);
+    if (after.isErr()) {
       return err(after.error);
     }
     // decision 3: access is re-checked at list time, so a removed member stops seeing the board
@@ -48,7 +48,7 @@ export class NotificationUseCases {
     const page = await this.notifications.list(
       userId,
       {
-        after: after?.isOk() ? after.value : null,
+        after: after.value,
         limit: Math.min(
           Math.max(Math.trunc(input.limit ?? DEFAULT_LIMIT), 1),
           MAX_LIMIT
