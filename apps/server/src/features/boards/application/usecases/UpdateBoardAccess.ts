@@ -5,7 +5,6 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { protectBoard } from "../../domain/entities/Board";
 import type { Board } from "../../domain/entities/Board";
 import type { MemberRole, Visibility } from "../../domain/values/Access";
 import { validatePassword } from "../../domain/values/Password";
@@ -103,7 +102,7 @@ export class UpdateBoardAccess {
       passwordHash = null;
     }
     const visibility = patch.visibility ?? board.visibility;
-    const updated = protectBoard(board, visibility, passwordHash, now);
+    const updated = board.protect(visibility, passwordHash, now);
     if (updated.isErr()) {
       return updated;
     }

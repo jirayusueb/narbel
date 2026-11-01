@@ -2,7 +2,6 @@ import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { renameBoard } from "../../domain/entities/Board";
 import { BoardTitle } from "../../domain/values/BoardTitle";
 import type { AccessPolicy } from "../AccessPolicy";
 import { toBoardDto } from "../dtos/BoardDto";
@@ -32,7 +31,7 @@ export class RenameBoard {
     if (title.isErr()) {
       return err(title.error);
     }
-    const renamed = renameBoard(granted.value.board, title.value, new Date());
+    const renamed = granted.value.board.rename(title.value, new Date());
     await this.boards.save(renamed);
     return ok(toBoardDto(renamed, "owner"));
   }

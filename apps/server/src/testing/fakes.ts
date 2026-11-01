@@ -8,12 +8,7 @@ import type {
 } from "../features/boards/application/ports/IBoardAccessRepository";
 import type { IBoardRepository } from "../features/boards/application/ports/IBoardRepository";
 import type { IUnlockTokens } from "../features/boards/application/ports/IUnlockTokens";
-import {
-  createBoard,
-  protectBoard,
-  restoreBoard,
-} from "../features/boards/domain/entities/Board";
-import type { Board } from "../features/boards/domain/entities/Board";
+import { Board } from "../features/boards/domain/entities/Board";
 import type {
   MemberRole,
   Visibility,
@@ -81,7 +76,7 @@ class FakeBoards implements IBoardRepository {
     }
     this.rows.set(
       id,
-      restoreBoard({ ...row, title: row.title.value, trashedAt: at })
+      Board.restore({ ...row, title: row.title.value, trashedAt: at })
     );
     return Promise.resolve(true);
   };
@@ -274,14 +269,14 @@ export const fakeUnlock: IUnlockTokens = {
 };
 
 export const newBoard = (id = "b1", owner = "owner") =>
-  createBoard(id, owner, BoardTitle.restore("Mine"), new Date());
+  Board.create(id, owner, BoardTitle.restore("Mine"), new Date());
 
 export const protectedBoard = (
   visibility: Visibility,
   passwordHash: string | null,
   board = newBoard()
 ) => {
-  const result = protectBoard(board, visibility, passwordHash, new Date());
+  const result = board.protect(visibility, passwordHash, new Date());
   if (result.isErr()) {
     throw new Error(result.error.message);
   }

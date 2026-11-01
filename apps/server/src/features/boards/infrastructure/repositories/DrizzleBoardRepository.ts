@@ -3,12 +3,11 @@ import type { DbExecutor } from "@narbel/db";
 import { board, boardAccess } from "@narbel/db/schema/boards";
 
 import type { IBoardRepository } from "../../application/ports/IBoardRepository";
-import { restoreBoard } from "../../domain/entities/Board";
-import type { Board } from "../../domain/entities/Board";
+import { Board } from "../../domain/entities/Board";
 
 type BoardRow = typeof board.$inferSelect;
 
-const toDomain = (row: BoardRow) => restoreBoard(row);
+const toDomain = (row: BoardRow) => Board.restore(row);
 
 export class DrizzleBoardRepository implements IBoardRepository {
   constructor(private readonly db: DbExecutor) {}
