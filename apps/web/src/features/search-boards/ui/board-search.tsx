@@ -9,6 +9,8 @@ import { useDebounce } from "@reactuses/core";
 import { Link } from "@tanstack/react-router";
 import { MessageSquare, Search, Type, X } from "lucide-react";
 
+import { TOUCH_ICON } from "@/shared/ui";
+
 import { useSearchBoards } from "../api/use-search-boards";
 import type {
   BoardSearchMatch,
@@ -54,6 +56,7 @@ export const BoardSearchField = ({
       <InputGroupAddon align="inline-end">
         <InputGroupButton
           size="icon-xs"
+          className={TOUCH_ICON}
           aria-label="Clear search"
           onPress={() => onChange("")}
         >

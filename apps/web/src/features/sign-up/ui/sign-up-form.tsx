@@ -9,6 +9,7 @@ import { Input } from "@narbel/ui/components/input";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -25,10 +26,13 @@ export const SignUpForm = ({
 }) => {
   const router = useRouter();
   const { isPending } = useSession();
+  // A refused sign-up (e.g. the email is taken) sits next to the form, not in a toast across the page.
+  const [formError, setFormError] = useState<string>();
 
   const form = useForm({
     defaultValues: { name: "", email: "", password: "" },
     onSubmit: async ({ value }) => {
+      setFormError(undefined);
       await authClient.signUp.email(value, {
         onSuccess: (ctx) => {
           // an OAuth authorize request is waiting: the client follows `url` itself
@@ -39,7 +43,7 @@ export const SignUpForm = ({
           toast.success("Account created");
         },
         onError: (error) => {
-          toast.error(error.error.message || error.error.statusText);
+          setFormError(error.error.message || error.error.statusText);
         },
       });
     },
@@ -90,9 +94,13 @@ export const SignUpForm = ({
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-describedby={invalid ? "name-error" : undefined}
                     />
                     {invalid ? (
-                      <FieldError errors={field.state.meta.errors} />
+                      <FieldError
+                        id="name-error"
+                        errors={field.state.meta.errors}
+                      />
                     ) : null}
                   </Field>
                 );
@@ -114,9 +122,13 @@ export const SignUpForm = ({
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-describedby={invalid ? "email-error" : undefined}
                     />
                     {invalid ? (
-                      <FieldError errors={field.state.meta.errors} />
+                      <FieldError
+                        id="email-error"
+                        errors={field.state.meta.errors}
+                      />
                     ) : null}
                   </Field>
                 );
@@ -138,14 +150,19 @@ export const SignUpForm = ({
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-describedby={invalid ? "password-error" : undefined}
                     />
                     {invalid ? (
-                      <FieldError errors={field.state.meta.errors} />
+                      <FieldError
+                        id="password-error"
+                        errors={field.state.meta.errors}
+                      />
                     ) : null}
                   </Field>
                 );
               }}
             </form.Field>
+            {formError ? <FieldError>{formError}</FieldError> : null}
             <form.Subscribe
               selector={(state) => ({
                 canSubmit: state.canSubmit,

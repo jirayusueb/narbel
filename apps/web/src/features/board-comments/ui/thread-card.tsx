@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { UserAvatar, handle } from "@/entities/person";
 import { timeAgo, useDraftKey } from "@/shared/lib";
+import { TOUCH_ICON, TOUCH_ROW } from "@/shared/ui";
 
 import { useReplies } from "../api/comments";
 import type { Comment } from "../api/comments";
@@ -14,7 +15,6 @@ import type { ThreadEnv } from "../model/types";
 import { AssignPicker } from "./assign-picker";
 import { CommentBody, CommentComposer } from "./comment-editor";
 import { ReactionBar } from "./reaction-bar";
-import { TOUCH_ICON, TOUCH_ROW } from "./touch";
 
 const onError = (error: Error) => toast.error(error.message);
 

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { PUBLIC_SERVER_URL } from "@/shared/config";
 import { useCopy } from "@/shared/lib";
-import { BrandSticker, chat } from "@/shared/ui";
+import { BrandSticker, TOUCH_ICON, chat } from "@/shared/ui";
 
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../api/keys";
 
@@ -45,6 +45,7 @@ const CopyUrlButton = ({ url }: { url: string }) => {
     <Button
       variant="ghost"
       size="icon-sm"
+      className={TOUCH_ICON}
       aria-label={copied ? "Copied" : "Copy URL"}
       onPress={() => copy(url)}
     >
@@ -156,7 +157,7 @@ export const McpKeysPanel = () => {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="hover:text-destructive"
+                className={`hover:text-destructive ${TOUCH_ICON}`}
                 aria-label={`Revoke ${key.name ?? "key"}`}
                 isDisabled={revoke.isPending}
                 onPress={() =>

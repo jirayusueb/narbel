@@ -5,11 +5,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useSession } from "@/entities/session";
+import { TOUCH_ICON, TOUCH_ROW } from "@/shared/ui";
 
 import type { Comment } from "../api/comments";
 import { REACTIONS } from "../model/types";
 import type { ThreadEnv } from "../model/types";
-import { TOUCH_ICON, TOUCH_ROW } from "./touch";
 
 export const ReactionBar = ({
   comment,

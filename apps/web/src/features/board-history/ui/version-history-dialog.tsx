@@ -168,7 +168,11 @@ const VersionList = ({
     aria-label="Saved versions"
     className="flex max-h-40 flex-col gap-1 overflow-y-auto sm:max-h-none"
   >
-    {isPending ? <Spinner /> : null}
+    {isPending ? (
+      <li className="list-none">
+        <Spinner />
+      </li>
+    ) : null}
     {versions?.length === 0 ? (
       <li className="text-muted-foreground text-sm">
         No versions yet. The first one appears after the board is edited.

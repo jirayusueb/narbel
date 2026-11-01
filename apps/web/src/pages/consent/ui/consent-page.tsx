@@ -63,7 +63,7 @@ export const ConsentPage = ({
           {client.data ? (
             <>
               <div className="flex flex-col gap-2">
-                <h1 className="font-display text-headline leading-tight font-normal">
+                <h1 className="font-display text-headline leading-tight font-normal break-words">
                   Connect {client.data.client_name ?? "this app"}?
                 </h1>
                 <p className="text-muted-foreground text-sm">
@@ -75,7 +75,9 @@ export const ConsentPage = ({
                 className="flex list-disc flex-col gap-1 pl-5 text-sm"
               >
                 {scopes.map((item) => (
-                  <li key={item}>{describe(item)}</li>
+                  <li key={item} className="break-words">
+                    {describe(item)}
+                  </li>
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2">
