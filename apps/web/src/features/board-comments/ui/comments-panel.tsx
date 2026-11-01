@@ -5,6 +5,8 @@ import { useIntersectionObserver } from "@reactuses/core";
 import { Layers, X } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { TOUCH_ICON } from "@/shared/ui";
+
 import { useThreads } from "../api/comments";
 import type { Comment, ThreadStatus } from "../api/comments";
 import type { ThreadEnv } from "../model/types";
@@ -112,6 +114,7 @@ export const CommentsPanel = ({
           variant="ghost"
           size="icon-sm"
           aria-label="Close comments"
+          className={TOUCH_ICON}
           onPress={onClose}
         >
           <X />

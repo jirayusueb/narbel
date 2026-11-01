@@ -9,6 +9,7 @@ import { Input } from "@narbel/ui/components/input";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -25,10 +26,13 @@ export const SignInForm = ({
 }) => {
   const router = useRouter();
   const { isPending } = useSession();
+  // Wrong credentials sit next to the form that caused them, not in a toast across the page.
+  const [formError, setFormError] = useState<string>();
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
     onSubmit: async ({ value }) => {
+      setFormError(undefined);
       await authClient.signIn.email(value, {
         onSuccess: (ctx) => {
           // an OAuth authorize request is waiting: the client follows `url` itself
@@ -39,7 +43,7 @@ export const SignInForm = ({
           toast.success("Signed in");
         },
         onError: (error) => {
-          toast.error(error.error.message || error.error.statusText);
+          setFormError(error.error.message || error.error.statusText);
         },
       });
     },
@@ -90,9 +94,13 @@ export const SignInForm = ({
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-describedby={invalid ? "email-error" : undefined}
                     />
                     {invalid ? (
-                      <FieldError errors={field.state.meta.errors} />
+                      <FieldError
+                        id="email-error"
+                        errors={field.state.meta.errors}
+                      />
                     ) : null}
                   </Field>
                 );
@@ -114,14 +122,19 @@ export const SignInForm = ({
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-describedby={invalid ? "password-error" : undefined}
                     />
                     {invalid ? (
-                      <FieldError errors={field.state.meta.errors} />
+                      <FieldError
+                        id="password-error"
+                        errors={field.state.meta.errors}
+                      />
                     ) : null}
                   </Field>
                 );
               }}
             </form.Field>
+            {formError ? <FieldError>{formError}</FieldError> : null}
             <form.Subscribe
               selector={(state) => ({
                 canSubmit: state.canSubmit,

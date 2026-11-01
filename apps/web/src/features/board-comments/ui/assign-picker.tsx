@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { UserAvatar, handle } from "@/entities/person";
+import { TOUCH_ROW } from "@/shared/ui";
 
 import type { Comment } from "../api/comments";
 import type { ThreadEnv } from "../model/types";
@@ -46,6 +47,7 @@ export const AssignPicker = ({
       <Button
         variant="secondary"
         size="xs"
+        className={TOUCH_ROW}
         aria-label={
           assignee ? `Assigned to ${handle(assignee)}` : "Assign thread"
         }
@@ -100,7 +102,12 @@ export const AssignPicker = ({
           ) : null}
         </ul>
         {assignee ? (
-          <Button variant="ghost" size="xs" onPress={() => assign(null)}>
+          <Button
+            variant="ghost"
+            size="xs"
+            className={TOUCH_ROW}
+            onPress={() => assign(null)}
+          >
             Unassign
           </Button>
         ) : null}

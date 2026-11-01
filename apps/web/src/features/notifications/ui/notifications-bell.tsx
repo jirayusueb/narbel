@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { UserAvatar } from "@/entities/person";
 import { timeAgo } from "@/shared/lib";
+import { TOUCH_ICON, TOUCH_ROW } from "@/shared/ui";
 
 import {
   useMarkRead,
@@ -59,7 +60,7 @@ export const NotificationsBell = () => {
           aria-label={
             unread > 0 ? `Notifications, ${unread} unread` : "Notifications"
           }
-          className="relative"
+          className={TOUCH_ICON}
         >
           <Bell />
           {unread > 0 ? (
@@ -81,6 +82,7 @@ export const NotificationsBell = () => {
             <Button
               variant="ghost"
               size="xs"
+              className={TOUCH_ROW}
               isPending={markRead.isPending}
               aria-disabled={unread === 0 || undefined}
               onPress={() => {
@@ -110,6 +112,7 @@ export const NotificationsBell = () => {
                 <Button
                   variant="outline"
                   size="xs"
+                  className={TOUCH_ROW}
                   isPending={list.isFetching}
                   onPress={() => list.refetch()}
                 >

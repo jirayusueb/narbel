@@ -112,7 +112,8 @@ const PhoneBar = ({
           {/* The narrowest phones leave room for the icon only. */}
           <span className="max-[359px]:sr-only">Board</span>
         </Button>
-        <div className="bg-card shadow-elevated flex rounded-md [&_:is(button,a)]:size-11">
+        {/* Already 44px here, so the controls' own touch hit areas would overlap their neighbours. */}
+        <div className="bg-card shadow-elevated flex rounded-md [&_:is(button,a)]:size-11 [&_:is(button,a)]:after:hidden">
           <CommentsPanelToggle open={panelOpen} onChange={onPanelChange} />
           {signedIn ? <NotificationsBell /> : null}
         </div>
@@ -350,7 +351,8 @@ export const BoardEditor = ({
   const actions = (
     <>
       <PresenceBar {...presenceProps} />
-      <div className="bg-card shadow-elevated flex items-center gap-1 rounded-lg p-1">
+      {/* Packed 4px apart, so the bell's touch hit area would steal taps from its neighbours. */}
+      <div className="bg-card shadow-elevated flex items-center gap-1 rounded-lg p-1 [&_:is(button,a)]:after:hidden">
         {writable ? (
           <CommentModeToggle active={commentMode} onChange={setCommentMode} />
         ) : null}
