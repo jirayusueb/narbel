@@ -10,6 +10,7 @@ const adapter = dependencyCruiser({
     sharedNoFeatures: "server-shared-no-features",
     domainPure: "server-domain-pure",
     applicationInward: "server-application-inward",
+    usecaseIsolation: "server-usecase-isolation",
     presentationNoInfrastructure: "server-presentation-no-infrastructure",
     infrastructureNoPresentation: "server-infrastructure-no-presentation",
     featurePublicApi: "server-feature-public-api",
@@ -47,6 +48,14 @@ export const proofs = defineProofs(gate, [
     mutate.appendText(
       `${F}/boards/application/usecases/create-board.ts`,
       '\nimport "../../infrastructure/repositories/drizzle-board-repository";\n'
+    )
+  ),
+  proof.red(
+    adapter.rules.usecaseIsolation,
+    "detects a use case importing a sibling use case",
+    mutate.appendText(
+      `${F}/boards/application/usecases/create-board.ts`,
+      '\nimport { ListBoards } from "./list-boards";\n'
     )
   ),
   proof.red(

@@ -5,9 +5,9 @@ import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { presentPage } from "../comment-presenter";
 import type { CommentDto, Paged } from "../dtos/comment-dto";
+import { parsePaging } from "../paging";
 import type { IBoardAccess } from "../ports/i-board-access";
 import type { ICommentRepository } from "../ports/i-comment-repository";
-import { parsePaging } from "./list-comments";
 
 /** Replies of one thread, oldest first. */
 export class ListReplies {

@@ -3,8 +3,8 @@ import { describe, expect, it } from "bun:test";
 import type { INotificationRepository } from "../../../../shared/application/interfaces/i-notifications";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
 import { personDeletedSchema } from "../../infrastructure/events/person-deleted-schema";
+import type { NotificationTx } from "../notification-consumer";
 import { ForgetDeletedPerson } from "./forget-deleted-person";
-import type { NotificationTx } from "./handle-discussion-event";
 
 const setup = () => {
   const pending = ["gone@x.io", "keep@x.io", "gone@x.io"];

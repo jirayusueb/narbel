@@ -34,6 +34,17 @@ module.exports = {
       },
     },
     {
+      name: "server-usecase-isolation",
+      comment:
+        "a use case shares logic through ports, domain rules or application helper modules, never through another use case file",
+      severity: "error",
+      from: {
+        path: `${S}/features/[^/]+/application/usecases/`,
+        pathNot: ["\\.test\\.ts$"],
+      },
+      to: { path: `${S}/features/[^/]+/application/usecases/` },
+    },
+    {
       name: "server-presentation-no-infrastructure",
       comment: "presentation reaches infrastructure only through ioc.ts",
       severity: "error",

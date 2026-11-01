@@ -1,7 +1,7 @@
 import type { BoardsEvent } from "../../../../shared/application/events/boards-event";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
-import { NOTIFICATION_CONSUMER } from "./handle-discussion-event";
-import type { NotificationTx } from "./handle-discussion-event";
+import { NOTIFICATION_CONSUMER } from "../notification-consumer";
+import type { NotificationTx } from "../notification-consumer";
 
 /** A deleted board's notifications go with it for every user, or they would open a dead page; once per event. */
 export class DropBoardNotifications {

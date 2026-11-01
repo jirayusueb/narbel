@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test";
 
 import type { INotificationRepository } from "../../../../shared/application/interfaces/i-notifications";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
+import type { NotificationTx } from "../notification-consumer";
 import { ForgetRemovedInvite } from "./forget-removed-invite";
-import type { NotificationTx } from "./handle-discussion-event";
 
 const setup = () => {
   const forgotten: string[] = [];

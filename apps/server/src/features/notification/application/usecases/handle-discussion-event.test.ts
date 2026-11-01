@@ -11,8 +11,8 @@ import type {
 } from "../../../../shared/application/interfaces/i-outbox";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
 import { discussionEventSchema } from "../../infrastructure/events/discussion-event-schema";
+import type { NotificationTx } from "../notification-consumer";
 import { HandleDiscussionEvent } from "./handle-discussion-event";
-import type { NotificationTx } from "./handle-discussion-event";
 
 const inMemory = (deleted: string[] = []) => {
   const sent: { userId: string; payload: NotificationPayload }[] = [];
