@@ -46,16 +46,17 @@ With https URLs the session cookie is `SameSite=None; Secure`. If `BETTER_AUTH_U
 
 ## Redeploying
 
-Pushing to the deploy branch does not trigger a build (the services use a custom git URL with an SSH key, so GitHub webhooks are not wired).
+Both applications build the head of `rebuild` (Dokploy's git branch setting on `narbel-api` and `narbel-web`). Keep it that way. If Dokploy built `main`, a build could pick up a commit whose CI has not passed yet. Pushing to `rebuild` does not trigger a build by itself (the services use a custom git URL with an SSH key, so GitHub webhooks are not wired).
 
 The `Deploy` workflow (`.github/workflows/deploy.yml`) does it instead. After CI passes on a push to `main`, it moves `rebuild` forward to that commit, redeploys `narbel-api` and then `narbel-web` through `scripts/dokploy-deploy.ts`, waits for each Dokploy build to report `done`, and checks that the web answers 200 and `GET /api/boards` answers 401. Run it by hand from the Actions tab with "Run workflow" on `main`.
 
-- It needs three secrets in the `production` GitHub environment: `DOKPLOY_URL`, `DOKPLOY_API_KEY`, and `REBUILD_DEPLOY_KEY`. Without them the job fails before it touches `rebuild`.
+- It needs three secrets in the `production` GitHub environment: `DOKPLOY_URL`, `DOKPLOY_API_KEY`, and `REBUILD_DEPLOY_KEY`. Without them the job fails before it touches `rebuild`. The environment accepts only `main`, so a workflow pushed on another branch cannot read these secrets.
 - `REBUILD_DEPLOY_KEY` is the private half of an SSH key whose public half is a deploy key on the repository with write access. GitHub refuses a push made with the built-in `GITHUB_TOKEN` when the pushed commits change files under `.github/workflows/`.
 - The push to `rebuild` also starts a CI run on `rebuild`. That run never deploys, because the workflow only deploys pushes to `main`.
 - To approve each deploy by hand, add a required reviewer to the `production` environment in the repository settings.
 - The push to `rebuild` is never forced. The job fails and deploys nothing if `rebuild` has a commit that `main` lacks, or if a rerun targets an older `main` commit after `rebuild` has moved past it.
 - A manual run deploys the head of `main` without checking that its CI passed.
+- Dokploy ignores the title in `application.deploy` and names each deployment after its commit message, so the script finds its build as the deployment id that did not exist before its deploy call.
 
 To redeploy without CI, call `POST /api/application.deploy {"applicationId": ...}` or use the Dokploy UI. The API applies pending migrations on start.
 

@@ -50,7 +50,7 @@ jobs:
       # Dokploy builds the head of `rebuild`; a plain push moves it forward to the tested commit and fails rather than rewind it
       - run: git push origin "$SHA:refs/heads/rebuild"
       # api first: it applies pending migrations on start, before the new web build talks to it
-      - run: bun scripts/dokploy-deploy.ts "ci ${SHA::7} run ${{ github.run_id }}.${{ github.run_attempt }}" "$API_APP_ID" "$WEB_APP_ID"
+      - run: bun scripts/dokploy-deploy.ts "$API_APP_ID" "$WEB_APP_ID"
       # a build reported done can still be swapping containers behind Traefik for a few seconds
       - name: smoke
         run: |
