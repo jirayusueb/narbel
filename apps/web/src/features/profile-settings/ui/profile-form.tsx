@@ -113,15 +113,26 @@ export const ProfileForm = () => {
         />
       </section>
       <form onSubmit={saveName} className="flex flex-col gap-4">
-        <Field>
+        <Field data-invalid={draft !== null && !nameValid}>
           <FieldLabel htmlFor="profile-name">Display name</FieldLabel>
           <Input
             id="profile-name"
             maxLength={60}
             autoComplete="name"
+            aria-invalid={draft !== null && !nameValid}
+            aria-describedby="profile-name-error"
             value={name}
             onChange={(e) => setDraft(e.target.value)}
           />
+          {draft !== null && !nameValid ? (
+            <p
+              id="profile-name-error"
+              role="alert"
+              className="text-destructive text-dense"
+            >
+              A display name needs 1 to 60 characters.
+            </p>
+          ) : null}
         </Field>
         <Field>
           <FieldLabel htmlFor="profile-username">Username</FieldLabel>

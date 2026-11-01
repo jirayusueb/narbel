@@ -72,9 +72,13 @@ const RenamePageForm = ({
         autoFocus
         maxLength={60}
         aria-label="Page name"
+        aria-describedby="rename-page-hint"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
+      <p id="rename-page-hint" className="text-muted-foreground text-dense">
+        Up to 60 characters. Enter a name to save.
+      </p>
       <DialogFooter>
         <DialogClose>Cancel</DialogClose>
         <Button type="submit" isDisabled={!trimmed}>

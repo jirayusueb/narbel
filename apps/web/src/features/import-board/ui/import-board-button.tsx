@@ -29,6 +29,7 @@ export const ImportBoardButton = () => {
       <Button
         variant="secondary"
         isDisabled={isPending}
+        aria-busy={isPending}
         onPress={() => input.current?.click()}
       >
         {isPending ? (
@@ -38,6 +39,7 @@ export const ImportBoardButton = () => {
         )}
         Import
       </Button>
+      <output className="sr-only">{isPending ? "Importing…" : ""}</output>
     </>
   );
 };
