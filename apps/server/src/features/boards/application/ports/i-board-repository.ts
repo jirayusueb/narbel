@@ -17,7 +17,7 @@ export interface IBoardRepository {
   ): Promise<{ board: Board; role: MemberRole }[]>;
   save(board: Board): Promise<void>;
   /** Moves the board's last-edit time (a drawing save); resolves to its owner, undefined when it is gone. */
-  markEdited(id: string, at: Date): Promise<string | undefined>;
+  markEdited(id: string, at: Date): Promise<string | null>;
   /** Removes the board for good, only while it is in Trash; false when it is live or already gone. */
   deleteTrashed(id: string): Promise<boolean>;
   /** Moves the board in or out of Trash; false when it was already in that state (or is gone). */

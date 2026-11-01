@@ -127,10 +127,10 @@ export class YjsBoardHub
     }, SERVER_ORIGIN);
   }
 
-  async getSelection(boardId: string): Promise<string[] | undefined> {
+  async getSelection(boardId: string): Promise<string[] | null> {
     const room = await this.room(boardId);
     if (room.peers.size === 0) {
-      return undefined;
+      return null;
     }
     const selection = (clientId: number | undefined) => {
       const value =

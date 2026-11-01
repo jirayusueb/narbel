@@ -68,7 +68,8 @@ class FakeBoards implements IBoardRepository {
     this.rows.set(board.id, board);
     return Promise.resolve();
   };
-  markEdited = (id: string) => Promise.resolve(this.rows.get(id)?.ownerId);
+  markEdited = (id: string) =>
+    Promise.resolve(this.rows.get(id)?.ownerId ?? null);
   setTrashed = (id: string, at: Date | null) => {
     const row = this.rows.get(id);
     if (!row || (row.trashedAt === null) === (at === null)) {

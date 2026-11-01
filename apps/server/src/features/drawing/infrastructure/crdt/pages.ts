@@ -148,7 +148,7 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
     },
     get: (pageId, id) => {
       const stored = elements.get(Page.keyOf(pageId, id));
-      return stored && toElement(stored);
+      return stored ? toElement(stored) : null;
     },
     all: (pageId) =>
       [...elements.entries()]
@@ -159,7 +159,9 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
         .toArray()
         .find((p) => elements.has(Page.keyOf(p.id, id)));
       const stored = page && elements.get(Page.keyOf(page.id, id));
-      return page && stored && { pageId: page.id, element: toElement(stored) };
+      return page && stored
+        ? { pageId: page.id, element: toElement(stored) }
+        : null;
     },
     ensureFile: (file) => {
       if (!files.has(file.id)) {

@@ -13,10 +13,10 @@ export class RedisCache implements ICache {
   constructor(private readonly redis: RedisLike) {}
 
   async get<T>(key: string) {
-    let value: T | undefined;
+    let value: T | null = null;
     try {
       const raw = await this.redis.get(key);
-      value = raw === null ? undefined : (JSON.parse(raw) as T);
+      value = raw === null ? null : (JSON.parse(raw) as T);
     } catch (error) {
       console.error(`Cache get failed for ${key}`, error);
     }

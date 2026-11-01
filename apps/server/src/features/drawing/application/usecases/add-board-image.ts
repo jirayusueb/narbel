@@ -70,9 +70,7 @@ export class AddBoardImage {
       return "id-taken";
     }
     const frame =
-      input.frameId === undefined
-        ? undefined
-        : scene.get(page.id, input.frameId);
+      input.frameId === undefined ? null : scene.get(page.id, input.frameId);
     if (
       input.frameId !== undefined &&
       (frame?.type !== "frame" || frame.isDeleted)
@@ -182,7 +180,7 @@ export class AddBoardImage {
         const y = input.y ?? spot.y;
         const grows = autoPlaced && frame?.locked !== true;
         const inFrame =
-          frame !== undefined &&
+          frame &&
           (grows ||
             Geometry.overlaps(
               { ...size, x, y },

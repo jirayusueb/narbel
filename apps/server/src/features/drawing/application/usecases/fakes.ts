@@ -21,7 +21,7 @@ export class FakeScenes implements IBoardScenes {
   >();
   discarded: string[] = [];
   evicted: string[] = [];
-  selection: string[] | undefined;
+  selection: string[] | null = null;
   lastSelection: AgentSelection | undefined;
   touches: ElementTouch[] = [];
   version = new Uint8Array() as SceneVersion;
@@ -45,7 +45,7 @@ export class FakeScenes implements IBoardScenes {
     },
     get: (pageId, id) => {
       const stored = this.elements.get(`${pageId}:${id}`);
-      return stored && toElement(stored);
+      return stored ? toElement(stored) : null;
     },
     all: (pageId) =>
       [...this.elements.entries()]
@@ -58,7 +58,7 @@ export class FakeScenes implements IBoardScenes {
           return { pageId: page.id, element: toElement(stored) };
         }
       }
-      return;
+      return null;
     },
     ensureFile: (file) => {
       if (!this.files.has(file.id)) {

@@ -22,7 +22,7 @@ const el = (id: string, extra: Record<string, unknown> = {}): Element =>
 const sceneOf = (elements: Element[], pageIds = ["p1"]) => ({
   pages: () => pageIds.map((id) => ({ id, name: `name ${id}` })),
   get: (pageId: string, id: string) =>
-    pageId === "p1" ? elements.find((e) => e.id === id) : undefined,
+    pageId === "p1" ? (elements.find((e) => e.id === id) ?? null) : null,
 });
 
 const touch = (

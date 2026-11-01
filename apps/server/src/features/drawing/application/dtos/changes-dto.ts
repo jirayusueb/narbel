@@ -115,7 +115,7 @@ export const toPageChanges = (
     }
     const labelOf = (e: Element) => {
       const labelId = Drawing.labelIdOf(e);
-      return labelId === undefined ? undefined : scene.get(page.id, labelId);
+      return labelId === undefined ? null : scene.get(page.id, labelId);
     };
     if (kind === "deleted") {
       const text =

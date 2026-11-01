@@ -31,7 +31,7 @@ export class Drawing {
     onBoard: (id: string) => unknown,
     sameWrite: ReadonlySet<string> = new Set()
   ) {
-    return sameWrite.has(id) || onBoard(id) !== undefined;
+    return sameWrite.has(id) || Boolean(onBoard(id));
   }
 
   /** A label belongs to exactly one live shape: the id of the text the shape lists as its label. */

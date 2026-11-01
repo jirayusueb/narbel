@@ -33,29 +33,29 @@ export interface SceneAccess {
   renamePage(id: string, name: string): boolean;
   /** Removes the page together with every element on it. */
   removePage(id: string): boolean;
-  get(pageId: string, id: string): Element | undefined;
+  get(pageId: string, id: string): Element | null;
   all(pageId: string): Element[];
   /** Finds an element on any page; element ids are unique per board. */
-  locate(id: string): { pageId: string; element: Element } | undefined;
+  locate(id: string): { pageId: string; element: Element } | null;
   /** Writes the element if it wins the merge rule against the stored one. */
   put(pageId: string, element: Element): void;
   ensureFile(file: { id: string; mimeType: string; created: number }): void;
   /**
    * Element keys at least one non-agent client wrote after `since` (null = now: no touches).
-   * Undefined when `since` is not a decodable version.
+   * Null when `since` is not a decodable version.
    * Elements removed by deleting their whole page are not reported (the key is deleted, no new write).
    */
-  changesSince(since: SceneVersion | null): SceneChanges | undefined;
+  changesSince(since: SceneVersion | null): SceneChanges | null;
 }
 
 export interface IBoardScenes {
   /** Runs `fn` as one atomic CRDT transaction on the live document, loading it if needed. */
   transact<T>(boardId: string, fn: (scene: SceneAccess) => T): Promise<T>;
   /**
-   * Element ids selected by the client that changed its selection last, or undefined
+   * Element ids selected by the client that changed its selection last, or null
    * when nobody is connected.
    */
-  getSelection(boardId: string): Promise<string[] | undefined>;
+  getSelection(boardId: string): Promise<string[] | null>;
   /** Publishes the selection as the "MCP" collaborator on `pageId`, outlined in every browser on that page. */
   setSelection(boardId: string, selection: AgentSelection): Promise<void>;
   /** Drops the live document and its connections without persisting (the board is gone). */

@@ -30,7 +30,10 @@ export interface SceneDto {
 
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
-const liveLabel = (e: Element, get: (id: string) => Element | undefined) => {
+const liveLabel = (
+  e: Element,
+  get: (id: string) => Element | null | undefined
+) => {
   const labelId = Drawing.labelIdOf(e);
   const label = labelId === undefined ? undefined : get(labelId);
   return label && !label.isDeleted ? label : undefined;
@@ -41,7 +44,7 @@ export const roundCoord = <T>(value: T): T =>
 
 export const toSceneElementDto = (
   e: Element,
-  get: (id: string) => Element | undefined
+  get: (id: string) => Element | null | undefined
 ): SceneElementDto => {
   const label = liveLabel(e, get);
   const content = e.type === "text" ? e : label;

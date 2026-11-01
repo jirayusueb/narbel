@@ -161,7 +161,7 @@ describe("YjsBoardHub roles", () => {
   it("has no selection while nobody is connected", async () => {
     expect(
       await new YjsBoardHub(store, new MemoryBus()).getSelection("b1")
-    ).toBeUndefined();
+    ).toBeNull();
   });
 
   it("publishes the agent selection with its page, and a fresh reveal only per focus", async () => {

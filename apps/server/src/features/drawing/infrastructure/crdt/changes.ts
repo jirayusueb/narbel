@@ -47,13 +47,13 @@ const keyHistory = (
 export const touchesSince = (
   doc: Y.Doc,
   since: SceneVersion | null
-): SceneChanges | undefined => {
+): SceneChanges | null => {
   let given: Map<number, number> | null = null;
   if (since) {
     try {
       given = Y.decodeStateVector(since);
     } catch {
-      return undefined;
+      return null;
     }
   }
   const agents = doc.getMap<true>("agents");

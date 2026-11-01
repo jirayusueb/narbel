@@ -134,7 +134,7 @@ describe("sceneAccess", () => {
     expect(scene.locate("b")?.pageId).toBe("page:two");
     expect(scene.renamePage("page:two", "Deux")).toBe(true);
     expect(scene.removePage("page:two")).toBe(true);
-    expect(scene.locate("b")).toBeUndefined();
+    expect(scene.locate("b")).toBeNull();
     expect(scene.removePage("page:two")).toBe(false);
   });
 
