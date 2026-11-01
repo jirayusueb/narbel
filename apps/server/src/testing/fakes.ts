@@ -1,34 +1,34 @@
-import { AccessPolicy } from "../features/boards/application/AccessPolicy";
-import type { BoardTx } from "../features/boards/application/ports/BoardTx";
+import { AccessPolicy } from "../features/boards/application/access-policy";
+import type { BoardTx } from "../features/boards/application/ports/board-tx";
 import type {
   IBoardAccessRepository,
   Member,
   ReadableBoard,
-} from "../features/boards/application/ports/IBoardAccessRepository";
-import type { IBoardRepository } from "../features/boards/application/ports/IBoardRepository";
-import type { IUnlockTokens } from "../features/boards/application/ports/IUnlockTokens";
-import { Board } from "../features/boards/domain/entities/Board";
+} from "../features/boards/application/ports/i-board-access-repository";
+import type { IBoardRepository } from "../features/boards/application/ports/i-board-repository";
+import type { IUnlockTokens } from "../features/boards/application/ports/i-unlock-tokens";
+import { Board } from "../features/boards/domain/entities/board";
 import type {
   MemberRole,
   Visibility,
-} from "../features/boards/domain/values/Access";
-import { BoardTitle } from "../features/boards/domain/values/BoardTitle";
-import type { ShareLink } from "../features/boards/domain/values/ShareLink";
-import type { IIdGenerator } from "../shared/application/interfaces/IIdGenerator";
+} from "../features/boards/domain/values/access";
+import { BoardTitle } from "../features/boards/domain/values/board-title";
+import type { ShareLink } from "../features/boards/domain/values/share-link";
+import type { IIdGenerator } from "../shared/application/interfaces/i-id-generator";
 import type {
   INotificationRepository,
   NotificationPayload,
-} from "../shared/application/interfaces/INotifications";
+} from "../shared/application/interfaces/i-notifications";
 import type {
   IOutbox,
   OutboxEvent,
   OutboxMessage,
-} from "../shared/application/interfaces/IOutbox";
+} from "../shared/application/interfaces/i-outbox";
 import type {
   IProfileReader,
   Person,
-} from "../shared/application/interfaces/IProfiles";
-import type { IUnitOfWork } from "../shared/application/interfaces/IUnitOfWork";
+} from "../shared/application/interfaces/i-profiles";
+import type { IUnitOfWork } from "../shared/application/interfaces/i-unit-of-work";
 
 let counter = 0;
 export const ids: IIdGenerator = {

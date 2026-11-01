@@ -24,12 +24,12 @@ import { createMcpController } from "../features/mcp";
 import { createNotificationModule } from "../features/notification";
 import { createProfileModule } from "../features/profile";
 import { createSearchModule, createSearchUseCases } from "../features/search";
-import type { ICache } from "../shared/application/interfaces/ICache";
-import type { IFileStorage } from "../shared/application/interfaces/IFileStorage";
-import type { IIdempotencyStore } from "../shared/application/interfaces/IIdempotencyStore";
-import type { IPubSub } from "../shared/application/interfaces/IPubSub";
-import { errorPlugin } from "../shared/presentation/plugins/errorPlugin";
-import { originGuard } from "../shared/presentation/plugins/originGuard";
+import type { ICache } from "../shared/application/interfaces/i-cache";
+import type { IFileStorage } from "../shared/application/interfaces/i-file-storage";
+import type { IIdempotencyStore } from "../shared/application/interfaces/i-idempotency-store";
+import type { IPubSub } from "../shared/application/interfaces/i-pub-sub";
+import { errorPlugin } from "../shared/presentation/plugins/error-plugin";
+import { originGuard } from "../shared/presentation/plugins/origin-guard";
 
 // Image bytes go straight to S3, so API bodies are small JSON; reject anything bigger before Bun buffers it.
 const MAX_REQUEST_BODY_BYTES = 1024 * 1024;

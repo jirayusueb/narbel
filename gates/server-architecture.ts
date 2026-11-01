@@ -29,7 +29,7 @@ export const proofs = defineProofs(gate, [
     adapter.rules.sharedNoFeatures,
     "detects shared importing a feature",
     mutate.appendText(
-      "apps/server/src/shared/kernel/errors/AppError.ts",
+      "apps/server/src/shared/kernel/errors/app-error.ts",
       '\nimport "../../../features/boards/index";\n'
     )
   ),
@@ -37,7 +37,7 @@ export const proofs = defineProofs(gate, [
     adapter.rules.domainPure,
     "detects a framework import in the domain",
     mutate.appendText(
-      `${F}/boards/domain/values/BoardTitle.ts`,
+      `${F}/boards/domain/values/board-title.ts`,
       '\nimport "elysia";\n'
     )
   ),
@@ -45,24 +45,24 @@ export const proofs = defineProofs(gate, [
     adapter.rules.applicationInward,
     "detects a use case importing infrastructure",
     mutate.appendText(
-      `${F}/boards/application/usecases/CreateBoard.ts`,
-      '\nimport "../../infrastructure/repositories/DrizzleBoardRepository";\n'
+      `${F}/boards/application/usecases/create-board.ts`,
+      '\nimport "../../infrastructure/repositories/drizzle-board-repository";\n'
     )
   ),
   proof.red(
     adapter.rules.presentationNoInfrastructure,
     "detects a controller importing infrastructure",
     mutate.appendText(
-      `${F}/boards/presentation/http/BoardController.ts`,
-      '\nimport "../../infrastructure/repositories/DrizzleBoardRepository";\n'
+      `${F}/boards/presentation/http/board-controller.ts`,
+      '\nimport "../../infrastructure/repositories/drizzle-board-repository";\n'
     )
   ),
   proof.red(
     adapter.rules.infrastructureNoPresentation,
     "detects infrastructure importing presentation",
     mutate.appendText(
-      `${F}/drawing/infrastructure/crdt/YjsBoardHub.ts`,
-      '\nimport "../../presentation/http/BoardFileController";\n'
+      `${F}/drawing/infrastructure/crdt/yjs-board-hub.ts`,
+      '\nimport "../../presentation/http/board-file-controller";\n'
     )
   ),
   proof.red(
@@ -70,7 +70,7 @@ export const proofs = defineProofs(gate, [
     "detects a feature reaching into another feature's internals",
     mutate.appendText(
       `${F}/auth/ioc.ts`,
-      '\nimport "../drawing/domain/values/FileKey";\n'
+      '\nimport "../drawing/domain/values/file-key";\n'
     )
   ),
   proof.red(
@@ -78,14 +78,14 @@ export const proofs = defineProofs(gate, [
     "detects a context reaching into search's internals",
     mutate.appendText(
       `${F}/drawing/ioc.ts`,
-      '\nimport "../search/infrastructure/repositories/DrizzleSearchMirrors";\n'
+      '\nimport "../search/infrastructure/repositories/drizzle-search-mirrors";\n'
     )
   ),
   proof.red(
     adapter.rules.schemaBoardsOwner,
     "detects a boards schema import outside features/boards",
     mutate.appendText(
-      `${F}/drawing/infrastructure/repositories/DrizzleBoardFileRepository.ts`,
+      `${F}/drawing/infrastructure/repositories/drizzle-board-file-repository.ts`,
       '\nimport { board } from "@narbel/db/schema/boards";\n'
     )
   ),
@@ -93,7 +93,7 @@ export const proofs = defineProofs(gate, [
     adapter.rules.schemaDrawingOwner,
     "detects a drawing schema import outside features/drawing",
     mutate.appendText(
-      `${F}/boards/infrastructure/repositories/DrizzleBoardRepository.ts`,
+      `${F}/boards/infrastructure/repositories/drizzle-board-repository.ts`,
       '\nimport { boardDocument } from "@narbel/db/schema/drawing";\n'
     )
   ),
@@ -101,7 +101,7 @@ export const proofs = defineProofs(gate, [
     adapter.rules.schemaSearchOwner,
     "detects a search schema import outside features/search, drawing's former write path included",
     mutate.appendText(
-      `${F}/drawing/infrastructure/repositories/DrizzleBoardDocumentStore.ts`,
+      `${F}/drawing/infrastructure/repositories/drizzle-board-document-store.ts`,
       '\nimport { boardText } from "@narbel/db/schema/search";\n'
     )
   ),

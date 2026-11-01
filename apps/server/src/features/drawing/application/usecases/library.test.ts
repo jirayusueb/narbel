@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { LibraryRules } from "../../domain/rules/LibraryRules";
-import type { ILibraryRepository } from "../ports/ILibraryRepository";
-import { GetLibrary } from "./GetLibrary";
-import { SaveLibrary } from "./SaveLibrary";
+import { LibraryRules } from "../../domain/rules/library-rules";
+import type { ILibraryRepository } from "../ports/i-library-repository";
+import { GetLibrary } from "./get-library";
+import { SaveLibrary } from "./save-library";
 
 const setup = () => {
   const rows = new Map<string, unknown[]>();

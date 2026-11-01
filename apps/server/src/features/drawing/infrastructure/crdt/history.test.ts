@@ -2,13 +2,13 @@ import { describe, expect, it } from "bun:test";
 
 import * as Y from "yjs";
 
-import { toElement } from "../../application/dtos/ExcalidrawElement";
-import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
-import type { Page } from "../../domain/entities/Page";
-import { MergeElement } from "../../domain/rules/mergeElement";
+import { toElement } from "../../application/dtos/excalidraw-element";
+import type { ExcalidrawElement } from "../../application/dtos/excalidraw-element";
+import type { Page } from "../../domain/entities/page";
+import { MergeElement } from "../../domain/rules/merge-element";
 import { fileIdsOf, loadState, readSnapshot, restoreScene } from "./history";
-import { MemoryBus } from "./MemoryBus";
-import { YjsBoardHub } from "./YjsBoardHub";
+import { MemoryBus } from "./memory-bus";
+import { YjsBoardHub } from "./yjs-board-hub";
 
 const MAIN: Page = { id: "page:main", name: "Page 1" };
 const rect = (

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
 
 import { ids, setupAccess } from "../../../../testing";
-import { AddPage } from "./AddPage";
-import { DeletePage } from "./DeletePage";
+import { AddPage } from "./add-page";
+import { DeletePage } from "./delete-page";
 import { FakeScenes } from "./fakes";
-import { RenamePage } from "./RenamePage";
-import { EditSelection, GetSelection, SelectElements } from "./Selection";
+import { RenamePage } from "./rename-page";
+import { EditSelection, GetSelection, SelectElements } from "./selection";
 
 const actor = { userId: "owner" };
 

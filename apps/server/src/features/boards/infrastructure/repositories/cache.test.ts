@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
-import { RedisCache } from "../../../../shared/infrastructure/cache/RedisCache";
-import type { RedisLike } from "../../../../shared/infrastructure/cache/RedisCache";
-import { transactionalCache } from "../../../../shared/infrastructure/cache/TransactionalCache";
-import type { IBoardRepository } from "../../application/ports/IBoardRepository";
-import { Board } from "../../domain/entities/Board";
-import { BoardTitle } from "../../domain/values/BoardTitle";
-import { CachedBoardRepository } from "./CachedBoardRepository";
+import { RedisCache } from "../../../../shared/infrastructure/cache/redis-cache";
+import type { RedisLike } from "../../../../shared/infrastructure/cache/redis-cache";
+import { transactionalCache } from "../../../../shared/infrastructure/cache/transactional-cache";
+import type { IBoardRepository } from "../../application/ports/i-board-repository";
+import { Board } from "../../domain/entities/board";
+import { BoardTitle } from "../../domain/values/board-title";
+import { CachedBoardRepository } from "./cached-board-repository";
 
 /** Only the slice of ioredis RedisCache uses, backed by a map, with TTLs recorded rather than run. */
 class FakeRedis implements RedisLike {

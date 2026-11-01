@@ -1,4 +1,4 @@
-import type { Element } from "../entities/Element";
+import type { Element } from "../entities/element";
 import { Geometry } from "./geometry";
 import type { Bounds } from "./geometry";
 import { Groups } from "./groups";

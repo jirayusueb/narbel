@@ -4,4 +4,4 @@ export {
   type ProfileDeps,
 } from "./ioc";
 // boards, discussion and notification build this themselves until PeopleDirectory replaces it
-export { DrizzleProfileRepository } from "./infrastructure/repositories/DrizzleProfileRepository";
+export { DrizzleProfileRepository } from "./infrastructure/repositories/drizzle-profile-repository";

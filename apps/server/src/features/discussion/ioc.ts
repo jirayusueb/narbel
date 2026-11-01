@@ -1,33 +1,33 @@
 import type { Database, DbExecutor } from "@narbel/db";
 import { Elysia } from "elysia";
 
-import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
-import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
-import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
-import { wakeWhenQueued } from "../../shared/infrastructure/outbox/WakingOutbox";
-import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
+import { UuidGenerator } from "../../shared/infrastructure/ids/uuid-generator";
+import { DrizzleOutbox } from "../../shared/infrastructure/outbox/drizzle-outbox";
+import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/drizzle-processed-events";
+import { wakeWhenQueued } from "../../shared/infrastructure/outbox/waking-outbox";
+import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
-import { CommentActivityFeed } from "./application/CommentActivityFeed";
-import type { DiscussionTx } from "./application/ports/DiscussionTx";
+import { CommentActivityFeed } from "./application/comment-activity-feed";
+import type { DiscussionTx } from "./application/ports/discussion-tx";
 import type {
   IBoardAccess,
   IBoardMembers,
-} from "./application/ports/IBoardAccess";
-import { AddComment } from "./application/usecases/AddComment";
-import { AssignComment } from "./application/usecases/AssignComment";
-import { DeleteComment } from "./application/usecases/DeleteComment";
-import { EditComment } from "./application/usecases/EditComment";
-import { ListComments } from "./application/usecases/ListComments";
-import { ListReplies } from "./application/usecases/ListReplies";
-import { ReplyToComment } from "./application/usecases/ReplyToComment";
-import { ResolveComment } from "./application/usecases/ResolveComment";
-import { SetCommentReaction } from "./application/usecases/SetCommentReaction";
-import { UnassignRemovedMember } from "./application/usecases/UnassignRemovedMember";
-import type { UnassignTx } from "./application/usecases/UnassignRemovedMember";
-import { MemberRemovedConsumer } from "./infrastructure/events/MemberRemovedConsumer";
-import { DrizzleCommentRepository } from "./infrastructure/repositories/DrizzleCommentRepository";
-import { createBoardCommentController } from "./presentation/http/CommentController";
+} from "./application/ports/i-board-access";
+import { AddComment } from "./application/usecases/add-comment";
+import { AssignComment } from "./application/usecases/assign-comment";
+import { DeleteComment } from "./application/usecases/delete-comment";
+import { EditComment } from "./application/usecases/edit-comment";
+import { ListComments } from "./application/usecases/list-comments";
+import { ListReplies } from "./application/usecases/list-replies";
+import { ReplyToComment } from "./application/usecases/reply-to-comment";
+import { ResolveComment } from "./application/usecases/resolve-comment";
+import { SetCommentReaction } from "./application/usecases/set-comment-reaction";
+import { UnassignRemovedMember } from "./application/usecases/unassign-removed-member";
+import type { UnassignTx } from "./application/usecases/unassign-removed-member";
+import { MemberRemovedConsumer } from "./infrastructure/events/member-removed-consumer";
+import { DrizzleCommentRepository } from "./infrastructure/repositories/drizzle-comment-repository";
+import { createBoardCommentController } from "./presentation/http/comment-controller";
 
 /** The comment use cases the transport drives. */
 export interface CommentUseCases {

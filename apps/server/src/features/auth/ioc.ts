@@ -1,7 +1,7 @@
 import type { createAuth } from "@narbel/auth";
 import { Elysia } from "elysia";
 
-import { createBetterAuthPlugin } from "./presentation/http/betterAuthPlugin";
+import { createBetterAuthPlugin } from "./presentation/http/better-auth-plugin";
 
 export interface AuthDeps {
   auth: ReturnType<typeof createAuth>;

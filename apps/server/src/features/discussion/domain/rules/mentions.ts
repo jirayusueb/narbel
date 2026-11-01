@@ -1,4 +1,4 @@
-import { USERNAME_PATTERN } from "../../../../shared/kernel/values/Username";
+import { USERNAME_PATTERN } from "../../../../shared/kernel/values/username";
 
 const EXCERPT_LENGTH = 140;
 

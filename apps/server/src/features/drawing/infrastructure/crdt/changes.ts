@@ -1,12 +1,12 @@
 import * as Y from "yjs";
 
-import { toElement } from "../../application/dtos/ExcalidrawElement";
-import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
+import { toElement } from "../../application/dtos/excalidraw-element";
+import type { ExcalidrawElement } from "../../application/dtos/excalidraw-element";
 import type {
   ElementTouch,
   SceneChanges,
-} from "../../application/ports/IBoardScenes";
-import type { SceneVersion } from "../../domain/values/ChangeCursor";
+} from "../../application/ports/i-board-scenes";
+import type { SceneVersion } from "../../domain/values/change-cursor";
 
 /** Records this doc's clientID as an agent writer. Call inside a transaction that changed the doc; idempotent. */
 export const markAgentWriter = (doc: Y.Doc): void => {

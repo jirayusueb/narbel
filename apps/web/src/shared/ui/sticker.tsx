@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 
 import { brand } from "./stickers/fun";
-import { Sticker } from "./stickers/Sticker";
+import { Sticker } from "./stickers/sticker";
 
 // Citrus bodies, moss for dark parts and checks: the stickers speak the same two accents as the UI.
 const PALETTE = brand("#ddec61", "#717453");

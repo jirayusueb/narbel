@@ -1,4 +1,4 @@
-import type { Element } from "../entities/Element";
+import type { Element } from "../entities/element";
 
 export class Groups {
   private constructor() {

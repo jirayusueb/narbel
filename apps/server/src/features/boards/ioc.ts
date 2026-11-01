@@ -2,48 +2,48 @@ import type { Database, DbExecutor } from "@narbel/db";
 import { Elysia } from "elysia";
 import type Redis from "ioredis";
 
-import type { ICache } from "../../shared/application/interfaces/ICache";
-import { transactionalCache } from "../../shared/infrastructure/cache/TransactionalCache";
-import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
-import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
-import { wakeWhenQueued } from "../../shared/infrastructure/outbox/WakingOutbox";
-import type { AfterCommit } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
-import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
+import type { ICache } from "../../shared/application/interfaces/i-cache";
+import { transactionalCache } from "../../shared/infrastructure/cache/transactional-cache";
+import { UuidGenerator } from "../../shared/infrastructure/ids/uuid-generator";
+import { DrizzleOutbox } from "../../shared/infrastructure/outbox/drizzle-outbox";
+import { wakeWhenQueued } from "../../shared/infrastructure/outbox/waking-outbox";
+import type { AfterCommit } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
+import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
-import { AccessPolicy } from "./application/AccessPolicy";
-import type { BoardTx } from "./application/ports/BoardTx";
+import { AccessPolicy } from "./application/access-policy";
+import type { BoardTx } from "./application/ports/board-tx";
 import type {
   IDrawingCopier,
   ILiveDrawings,
-} from "./application/ports/IDrawings";
-import { CreateBoard } from "./application/usecases/CreateBoard";
-import { DuplicateBoard } from "./application/usecases/DuplicateBoard";
-import { GetBoard } from "./application/usecases/GetBoard";
-import { GetBoardAccess } from "./application/usecases/GetBoardAccess";
-import { InviteBoardMember } from "./application/usecases/InviteBoardMember";
-import { ListBoardMembers } from "./application/usecases/ListBoardMembers";
-import { ListBoards } from "./application/usecases/ListBoards";
-import { ListSharedBoards } from "./application/usecases/ListSharedBoards";
-import { ListTrash } from "./application/usecases/ListTrash";
-import { PurgeBoard } from "./application/usecases/PurgeBoard";
-import { RemoveBoardMember } from "./application/usecases/RemoveBoardMember";
-import { RenameBoard } from "./application/usecases/RenameBoard";
-import { RestoreBoard } from "./application/usecases/RestoreBoard";
-import { TrashBoard } from "./application/usecases/TrashBoard";
-import { UnlockBoard } from "./application/usecases/UnlockBoard";
-import { UpdateBoardAccess } from "./application/usecases/UpdateBoardAccess";
-import { CachedBoardRepository } from "./infrastructure/repositories/CachedBoardRepository";
-import { DrizzleBoardAccessRepository } from "./infrastructure/repositories/DrizzleBoardAccessRepository";
-import { DrizzleBoardRepository } from "./infrastructure/repositories/DrizzleBoardRepository";
-import { HmacUnlockTokens } from "./infrastructure/services/HmacUnlockTokens";
-import { RedisAttemptLimiter } from "./infrastructure/services/RedisAttemptLimiter";
-import { ScryptPasswordHasher } from "./infrastructure/services/ScryptPasswordHasher";
-import { createBoardAccessController } from "./presentation/http/BoardAccessController";
+} from "./application/ports/i-drawings";
+import { CreateBoard } from "./application/usecases/create-board";
+import { DuplicateBoard } from "./application/usecases/duplicate-board";
+import { GetBoard } from "./application/usecases/get-board";
+import { GetBoardAccess } from "./application/usecases/get-board-access";
+import { InviteBoardMember } from "./application/usecases/invite-board-member";
+import { ListBoardMembers } from "./application/usecases/list-board-members";
+import { ListBoards } from "./application/usecases/list-boards";
+import { ListSharedBoards } from "./application/usecases/list-shared-boards";
+import { ListTrash } from "./application/usecases/list-trash";
+import { PurgeBoard } from "./application/usecases/purge-board";
+import { RemoveBoardMember } from "./application/usecases/remove-board-member";
+import { RenameBoard } from "./application/usecases/rename-board";
+import { RestoreBoard } from "./application/usecases/restore-board";
+import { TrashBoard } from "./application/usecases/trash-board";
+import { UnlockBoard } from "./application/usecases/unlock-board";
+import { UpdateBoardAccess } from "./application/usecases/update-board-access";
+import { CachedBoardRepository } from "./infrastructure/repositories/cached-board-repository";
+import { DrizzleBoardAccessRepository } from "./infrastructure/repositories/drizzle-board-access-repository";
+import { DrizzleBoardRepository } from "./infrastructure/repositories/drizzle-board-repository";
+import { HmacUnlockTokens } from "./infrastructure/services/hmac-unlock-tokens";
+import { RedisAttemptLimiter } from "./infrastructure/services/redis-attempt-limiter";
+import { ScryptPasswordHasher } from "./infrastructure/services/scrypt-password-hasher";
+import { createBoardAccessController } from "./presentation/http/board-access-controller";
 import {
   createBoardController,
   createSharedBoardsController,
-} from "./presentation/http/BoardController";
+} from "./presentation/http/board-controller";
 
 /** The use cases boards' transports (HTTP, MCP) drive. */
 export interface BoardsUseCases {

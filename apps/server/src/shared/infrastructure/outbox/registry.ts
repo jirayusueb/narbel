@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import type { Email } from "../../application/interfaces/IEmailSender";
+import type { Email } from "../../application/interfaces/i-email-sender";
 import type {
   OutboxMessage,
   OutboxMessageType,
-} from "../../application/interfaces/IOutbox";
+} from "../../application/interfaces/i-outbox";
 import { buildCommentEmail, buildInviteEmail } from "./emails";
 
 export interface RenderContext {

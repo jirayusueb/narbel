@@ -17,20 +17,20 @@ import {
 import { createNotificationConsumers } from "./features/notification";
 import { createDeletePerson } from "./features/profile";
 import { createSearchConsumers } from "./features/search";
-import { RedisSecondaryStorage } from "./shared/infrastructure/auth/RedisSecondaryStorage";
-import { RedisCache } from "./shared/infrastructure/cache/RedisCache";
-import { ResendEmailSender } from "./shared/infrastructure/email/ResendEmailSender";
-import { RedisIdempotencyStore } from "./shared/infrastructure/idempotency/RedisIdempotencyStore";
-import { RedisJobLock } from "./shared/infrastructure/lock/RedisJobLock";
-import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/DrizzleOutboxStore";
+import { RedisSecondaryStorage } from "./shared/infrastructure/auth/redis-secondary-storage";
+import { RedisCache } from "./shared/infrastructure/cache/redis-cache";
+import { ResendEmailSender } from "./shared/infrastructure/email/resend-email-sender";
+import { RedisIdempotencyStore } from "./shared/infrastructure/idempotency/redis-idempotency-store";
+import { RedisJobLock } from "./shared/infrastructure/lock/redis-job-lock";
+import { DrizzleOutboxStore } from "./shared/infrastructure/outbox/drizzle-outbox-store";
 import {
   DEFAULT_OUTBOX_POLICY,
   OutboxWorker,
-} from "./shared/infrastructure/outbox/OutboxWorker";
-import { pruneOutbox } from "./shared/infrastructure/outbox/pruneOutbox";
-import { routeEvents } from "./shared/infrastructure/outbox/routeEvents";
-import { RedisPubSub } from "./shared/infrastructure/pubsub/RedisPubSub";
-import { BunS3FileStorage } from "./shared/infrastructure/storage/BunS3FileStorage";
+} from "./shared/infrastructure/outbox/outbox-worker";
+import { pruneOutbox } from "./shared/infrastructure/outbox/prune-outbox";
+import { routeEvents } from "./shared/infrastructure/outbox/route-events";
+import { RedisPubSub } from "./shared/infrastructure/pubsub/redis-pub-sub";
+import { BunS3FileStorage } from "./shared/infrastructure/storage/bun-s3-file-storage";
 
 const db = createDb(ENV);
 // set only in the deployed image, which ships the migrations folder; dev uses drizzle-kit

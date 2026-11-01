@@ -1,10 +1,13 @@
 import { describe, expect, it } from "bun:test";
 
 import { setupAccess } from "../../../../testing";
-import type { IBoardPresence, Viewer } from "../ports/IBoardPresence";
-import type { IBoardSyncGateway, PeerAccess } from "../ports/IBoardSyncGateway";
-import { ConnectBoardSync, TOUCH_INTERVAL_MS } from "./ConnectBoardSync";
-import { ListBoardViewers } from "./ListBoardViewers";
+import type { IBoardPresence, Viewer } from "../ports/i-board-presence";
+import type {
+  IBoardSyncGateway,
+  PeerAccess,
+} from "../ports/i-board-sync-gateway";
+import { ConnectBoardSync, TOUCH_INTERVAL_MS } from "./connect-board-sync";
+import { ListBoardViewers } from "./list-board-viewers";
 
 class FakePresence implements IBoardPresence {
   readonly calls: string[] = [];

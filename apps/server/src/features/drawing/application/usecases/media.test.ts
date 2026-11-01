@@ -1,17 +1,17 @@
 import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
 
-import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
+import type { IFileStorage } from "../../../../shared/application/interfaces/i-file-storage";
 import { ids, setupAccess } from "../../../../testing";
-import { UploadRules } from "../../domain/rules/UploadRules";
-import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
-import { AddBoardElements } from "./AddBoardElements";
-import { AddBoardImage } from "./AddBoardImage";
-import { DeleteBoardElements } from "./DeleteBoardElements";
-import { ExportBoardScene } from "./ExportBoardScene";
+import { UploadRules } from "../../domain/rules/upload-rules";
+import type { IBoardFileRepository } from "../ports/i-board-file-repository";
+import { AddBoardElements } from "./add-board-elements";
+import { AddBoardImage } from "./add-board-image";
+import { DeleteBoardElements } from "./delete-board-elements";
+import { ExportBoardScene } from "./export-board-scene";
 import { FakeScenes } from "./fakes";
-import { RenderBoardImage } from "./RenderBoardImage";
-import { UpdateBoardElement } from "./UpdateBoardElement";
+import { RenderBoardImage } from "./render-board-image";
+import { UpdateBoardElement } from "./update-board-element";
 
 const actor = { userId: "owner" };
 

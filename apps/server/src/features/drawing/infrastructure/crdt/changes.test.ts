@@ -6,11 +6,11 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
 
-import type { SyncPeer } from "../../application/ports/IBoardSyncGateway";
-import type { SceneVersion } from "../../domain/values/ChangeCursor";
+import type { SyncPeer } from "../../application/ports/i-board-sync-gateway";
+import type { SceneVersion } from "../../domain/values/change-cursor";
 import { touchesSince } from "./changes";
-import { MemoryBus } from "./MemoryBus";
-import { YjsBoardHub } from "./YjsBoardHub";
+import { MemoryBus } from "./memory-bus";
+import { YjsBoardHub } from "./yjs-board-hub";
 
 const emptyStore = {
   load: () => Promise.resolve(null),

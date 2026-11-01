@@ -1,19 +1,19 @@
 import type { Database } from "@narbel/db";
 import { Elysia } from "elysia";
 
-import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
-import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
+import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/drizzle-processed-events";
+import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
 import type { BetterAuthPlugin } from "../auth";
-import type { IReadableBoards } from "./application/ports/IReadableBoards";
-import type { SearchTx } from "./application/ports/SearchTx";
-import { IndexComment } from "./application/usecases/IndexComment";
-import { IndexDrawingText } from "./application/usecases/IndexDrawingText";
-import { SearchBoards } from "./application/usecases/SearchBoards";
-import { CommentChangeConsumer } from "./infrastructure/events/CommentChangeConsumer";
-import { DrawingTextConsumer } from "./infrastructure/events/DrawingTextConsumer";
-import { DrizzleSearchIndex } from "./infrastructure/repositories/DrizzleSearchIndex";
-import { DrizzleSearchMirrors } from "./infrastructure/repositories/DrizzleSearchMirrors";
-import { createSearchController } from "./presentation/http/SearchController";
+import type { IReadableBoards } from "./application/ports/i-readable-boards";
+import type { SearchTx } from "./application/ports/search-tx";
+import { IndexComment } from "./application/usecases/index-comment";
+import { IndexDrawingText } from "./application/usecases/index-drawing-text";
+import { SearchBoards } from "./application/usecases/search-boards";
+import { CommentChangeConsumer } from "./infrastructure/events/comment-change-consumer";
+import { DrawingTextConsumer } from "./infrastructure/events/drawing-text-consumer";
+import { DrizzleSearchIndex } from "./infrastructure/repositories/drizzle-search-index";
+import { DrizzleSearchMirrors } from "./infrastructure/repositories/drizzle-search-mirrors";
+import { createSearchController } from "./presentation/http/search-controller";
 
 /** The use cases search's transports (HTTP, MCP) drive. */
 export interface SearchUseCases {

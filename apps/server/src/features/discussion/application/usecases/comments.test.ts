@@ -1,20 +1,20 @@
 import { describe, expect, it } from "bun:test";
 
-import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
+import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
 import { FakeComments, ids, setupAccess } from "../../../../testing";
-import { Comment } from "../../domain/entities/Comment";
+import { Comment } from "../../domain/entities/comment";
 import { Mentions } from "../../domain/rules/mentions";
-import { Reaction } from "../../domain/values/Reaction";
-import type { DiscussionTx } from "../ports/DiscussionTx";
-import { AddComment } from "./AddComment";
-import { AssignComment } from "./AssignComment";
-import { DeleteComment } from "./DeleteComment";
-import { EditComment } from "./EditComment";
-import { ListComments } from "./ListComments";
-import { ListReplies } from "./ListReplies";
-import { ReplyToComment } from "./ReplyToComment";
-import { ResolveComment } from "./ResolveComment";
-import { SetCommentReaction } from "./SetCommentReaction";
+import { Reaction } from "../../domain/values/reaction";
+import type { DiscussionTx } from "../ports/discussion-tx";
+import { AddComment } from "./add-comment";
+import { AssignComment } from "./assign-comment";
+import { DeleteComment } from "./delete-comment";
+import { EditComment } from "./edit-comment";
+import { ListComments } from "./list-comments";
+import { ListReplies } from "./list-replies";
+import { ReplyToComment } from "./reply-to-comment";
+import { ResolveComment } from "./resolve-comment";
+import { SetCommentReaction } from "./set-comment-reaction";
 
 const base = {
   id: "c",
