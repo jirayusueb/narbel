@@ -7,13 +7,13 @@ import { parseReaction } from "../../domain/values/Reaction";
 import { presentOne } from "../CommentPresenter";
 import type { CommentDto } from "../dtos/CommentDto";
 import type { IBoardAccess } from "../ports/IBoardAccess";
-import type { IBoardCommentRepository } from "../ports/ICommentRepository";
+import type { ICommentRepository } from "../ports/ICommentRepository";
 
 /** Adds or removes the caller's reaction; viewers may react. Repeating either is a no-op. */
 export class SetCommentReaction {
   constructor(
     private readonly access: IBoardAccess,
-    private readonly comments: IBoardCommentRepository,
+    private readonly comments: ICommentRepository,
     private readonly profiles: IProfileReader
   ) {}
 

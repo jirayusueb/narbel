@@ -8,7 +8,7 @@ import { presentPage } from "../CommentPresenter";
 import type { CommentDto, Paged } from "../dtos/CommentDto";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type {
-  IBoardCommentRepository,
+  ICommentRepository,
   ThreadStatus,
 } from "../ports/ICommentRepository";
 
@@ -38,7 +38,7 @@ export const parsePaging = (input: {
 export class ListComments {
   constructor(
     private readonly access: IBoardAccess,
-    private readonly comments: IBoardCommentRepository,
+    private readonly comments: ICommentRepository,
     private readonly profiles: IProfileReader
   ) {}
 

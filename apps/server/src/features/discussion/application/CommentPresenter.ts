@@ -8,7 +8,7 @@ import { referencedUserIds, toCommentDto } from "./dtos/CommentDto";
 import type { CommentDto, Paged } from "./dtos/CommentDto";
 import type {
   CommentView,
-  IBoardCommentRepository,
+  ICommentRepository,
 } from "./ports/ICommentRepository";
 
 export const presentComments = async (
@@ -22,7 +22,7 @@ export const presentComments = async (
 
 /** Reads a comment back (inside the caller's transaction when given its repositories) as the client sees it. */
 export const presentOne = async (
-  comments: IBoardCommentRepository,
+  comments: ICommentRepository,
   profiles: IProfileReader,
   boardId: string,
   id: string,

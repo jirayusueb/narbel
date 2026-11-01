@@ -2,12 +2,12 @@ import type { IProfileReader } from "../../../shared/application/interfaces/IPro
 import type { Cursor } from "../../../shared/kernel/types/Cursor";
 import { presentComments } from "./CommentPresenter";
 import type { CommentDto } from "./dtos/CommentDto";
-import type { IBoardCommentRepository } from "./ports/ICommentRepository";
+import type { ICommentRepository } from "./ports/ICommentRepository";
 
 /** Comment activity after a cursor, each presented as clients see it, oldest first. */
 export class CommentActivityFeed {
   constructor(
-    private readonly comments: IBoardCommentRepository,
+    private readonly comments: ICommentRepository,
     private readonly profiles: IProfileReader
   ) {}
 

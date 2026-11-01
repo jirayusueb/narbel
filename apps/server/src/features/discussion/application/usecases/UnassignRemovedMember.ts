@@ -1,12 +1,12 @@
 import type { BoardsEvent } from "../../../../shared/application/events/BoardsEvent";
 import type { IProcessedEvents } from "../../../../shared/application/interfaces/IProcessedEvents";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import type { IBoardCommentRepository } from "../ports/ICommentRepository";
+import type { ICommentRepository } from "../ports/ICommentRepository";
 
 export const DISCUSSION_CONSUMER = "discussion";
 
 export interface UnassignTx {
-  comments: IBoardCommentRepository;
+  comments: ICommentRepository;
   processed: IProcessedEvents;
 }
 

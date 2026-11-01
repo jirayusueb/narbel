@@ -1,6 +1,6 @@
 import type {
   CommentView,
-  IBoardCommentRepository,
+  ICommentRepository,
   ReactionSummary,
   ThreadQuery,
 } from "../features/discussion/application/ports/ICommentRepository";
@@ -17,7 +17,7 @@ const activityAt = (c: Comment) =>
   );
 
 /** In-memory comments with the repository's contract: newest threads first, oldest activity first. */
-export class FakeComments implements IBoardCommentRepository {
+export class FakeComments implements ICommentRepository {
   readonly rows = new Map<string, Comment>();
   readonly reactions: { commentId: string; userId: string; emoji: string }[] =
     [];
@@ -109,7 +109,7 @@ export class FakeComments implements IBoardCommentRepository {
   update = (
     boardId: string,
     id: string,
-    patch: Parameters<IBoardCommentRepository["update"]>[2]
+    patch: Parameters<ICommentRepository["update"]>[2]
   ) => {
     const row = this.rows.get(id);
     if (row?.boardId === boardId) {

@@ -6,14 +6,14 @@ import type { Result } from "../../../../shared/kernel/types/Result";
 import { presentPage } from "../CommentPresenter";
 import type { CommentDto, Paged } from "../dtos/CommentDto";
 import type { IBoardAccess } from "../ports/IBoardAccess";
-import type { IBoardCommentRepository } from "../ports/ICommentRepository";
+import type { ICommentRepository } from "../ports/ICommentRepository";
 import { parsePaging } from "./ListComments";
 
 /** Replies of one thread, oldest first. */
 export class ListReplies {
   constructor(
     private readonly access: IBoardAccess,
-    private readonly comments: IBoardCommentRepository,
+    private readonly comments: ICommentRepository,
     private readonly profiles: IProfileReader
   ) {}
 
