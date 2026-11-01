@@ -1,3 +1,7 @@
+import { AppError } from "../../../../shared/kernel/errors/app-error";
+import { err, ok } from "../../../../shared/kernel/types/result";
+import type { Result } from "../../../../shared/kernel/types/result";
+
 export interface ImageHeader {
   mimeType:
     | "image/png"
@@ -149,8 +153,14 @@ export class ImageHeaderReader {
     return svg(b);
   }
 
-  static readImageHeader(b: Uint8Array): ImageHeader | null {
+  static readImageHeader(b: Uint8Array): Result<ImageHeader, AppError> {
     const header = ImageHeaderReader.parseImageHeader(b);
-    return header === NEEDS_MORE ? null : header;
+    return header === NEEDS_MORE || header === null
+      ? err(
+          AppError.unsupportedMediaType(
+            "Not a PNG, JPEG, GIF, WebP or SVG image"
+          )
+        )
+      : ok(header);
   }
 }

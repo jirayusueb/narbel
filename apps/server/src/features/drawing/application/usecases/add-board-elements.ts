@@ -187,9 +187,9 @@ export class AddBoardElements {
         for (const { element } of batch) {
           known.set(element.id, element);
         }
-        const refProblem = Placement.referenceProblem(batch, known);
-        if (refProblem) {
-          return refProblem;
+        const refs = Placement.checkReferences(batch, known);
+        if (refs.isErr()) {
+          return refs.error;
         }
         const placed = Placement.unframeStrays(
           Placement.arrange(batch, existing, input.direction),

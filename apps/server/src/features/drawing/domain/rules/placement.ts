@@ -1,3 +1,5 @@
+import { err, okEmpty } from "../../../../shared/kernel/types/result";
+import type { Result } from "../../../../shared/kernel/types/result";
 import { Drawing } from "../entities/drawing";
 import type { Element } from "../entities/element";
 import { ElementStyle } from "../shapes/element-style";
@@ -136,13 +138,13 @@ export class Placement {
     });
   }
 
-  static referenceProblem(
+  static checkReferences(
     batch: Built[],
     known: Map<string, Element>
-  ): PlacementRefusal | undefined {
+  ): Result<undefined, PlacementRefusal> {
     for (const { shape, strayEnds } of batch) {
       if (strayEnds) {
-        return "not-connector";
+        return err("not-connector");
       }
       const { startElementId, endElementId } = ShapeRegistry.endsOf(shape);
       if (
@@ -150,13 +152,13 @@ export class Placement {
           (ref) => ref !== undefined && !known.has(ref)
         )
       ) {
-        return "missing-ref";
+        return err("missing-ref");
       }
       const frameId = ShapeRegistry.frameIdOf(shape);
       if (frameId !== undefined) {
         const frame = known.get(frameId);
         if (frame?.type !== "frame" || frame.isDeleted) {
-          return "missing-frame";
+          return err("missing-frame");
         }
       }
     }
@@ -168,8 +170,8 @@ export class Placement {
         !isPlaced(built.shape) &&
         !hasChildren(built)
     )
-      ? "frame-empty"
-      : undefined;
+      ? err("frame-empty")
+      : okEmpty();
   }
 
   static attachAll(

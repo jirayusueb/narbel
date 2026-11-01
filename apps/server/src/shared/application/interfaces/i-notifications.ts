@@ -1,3 +1,5 @@
+import type { Cursor } from "../../kernel/types/cursor";
+
 export interface ActorRef {
   userId: string;
   username: string | null;
@@ -62,7 +64,7 @@ export interface INotificationRepository {
   /** Only notifications of boards in `readableBoardIds` are listed; the set comes from the boards context. */
   list(
     userId: string,
-    page: { cursor: string | null; limit: number },
+    page: { after: Cursor | null; limit: number },
     readableBoardIds: string[]
   ): Promise<NotificationPage>;
   /** Marks `ids` (all when omitted) read and returns the new unread count, counting only readable boards. */

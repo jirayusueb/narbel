@@ -107,12 +107,11 @@ export class AddBoardImage {
         })
       );
     }
-    const header = ImageHeaderReader.readImageHeader(input.bytes);
-    if (!header) {
-      return err(
-        AppError.unsupportedMediaType("Not a PNG, JPEG, GIF, WebP or SVG image")
-      );
+    const parsed = ImageHeaderReader.readImageHeader(input.bytes);
+    if (parsed.isErr()) {
+      return err(parsed.error);
     }
+    const header = parsed.value;
     // a few KiB can declare a huge raster; renders decode it in full
     if (
       header.size &&

@@ -6,6 +6,7 @@ import type {
   NotificationPage,
 } from "../../../../shared/application/interfaces/i-notifications";
 import type { IPubSub } from "../../../../shared/application/interfaces/i-pub-sub";
+import type { Cursor } from "../../../../shared/kernel/types/cursor";
 import type { IReadableBoards } from "../ports/i-readable-boards";
 import { NotificationUseCases } from "./notification-use-cases";
 
@@ -23,7 +24,7 @@ class RecordingRepo implements INotificationRepository {
   }
   list(
     _userId: string,
-    _page: { cursor: string | null; limit: number },
+    _page: { after: Cursor | null; limit: number },
     readableBoardIds: string[]
   ) {
     this.listedWith = readableBoardIds;

@@ -26,10 +26,11 @@ export class SearchBoards {
     email: string;
     q: string;
   }): Promise<Result<BoardSearchResultDto[], AppError>> {
-    const query = SearchQuery.parse(input.q);
-    if (!query) {
+    const parsed = SearchQuery.parse(input.q);
+    if (parsed.isErr()) {
       return ok([]);
     }
+    const query = parsed.value;
     const readable = await this.boards.readableBoards({
       id: input.userId,
       email: input.email,

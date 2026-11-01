@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 
 import { ImageHeaderReader } from "./image-header";
 
-const { readImageHeader } = ImageHeaderReader;
+const readImageHeader = (b: Uint8Array) => {
+  const result = ImageHeaderReader.readImageHeader(b);
+  return result.isOk() ? result.value : null;
+};
 
 const bytes = (...parts: (number[] | string)[]) =>
   Uint8Array.from(
@@ -103,5 +106,9 @@ describe("readImageHeader", () => {
     expect(readImageHeader(bytes("hello world, not an image"))).toBeNull();
     expect(readImageHeader(bytes())).toBeNull();
     expect(readImageHeader(bytes([0x89], "PNG"))).toBeNull();
+    const refused = ImageHeaderReader.readImageHeader(bytes());
+    expect(refused.isErr() && refused.error.message).toBe(
+      "Not a PNG, JPEG, GIF, WebP or SVG image"
+    );
   });
 });

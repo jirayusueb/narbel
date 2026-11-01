@@ -1,3 +1,7 @@
+import { AppError } from "../../../../shared/kernel/errors/app-error";
+import { err, ok } from "../../../../shared/kernel/types/result";
+import type { Result } from "../../../../shared/kernel/types/result";
+
 export const SEARCH_MIN_LENGTH = 2;
 export const SEARCH_MAX_LENGTH = 100;
 const SNIPPET_RADIUS = 40;
@@ -9,10 +13,16 @@ const escapeWith = (value: string, pattern: RegExp) =>
 export class SearchQuery {
   private constructor(public readonly value: string) {}
 
-  /** Null when the trimmed query is too short to search. */
-  static parse(raw: string): SearchQuery | null {
+  /** Err when the trimmed query is too short to search. */
+  static parse(raw: string): Result<SearchQuery, AppError> {
     const value = raw.trim().slice(0, SEARCH_MAX_LENGTH).trim();
-    return value.length < SEARCH_MIN_LENGTH ? null : new SearchQuery(value);
+    return value.length < SEARCH_MIN_LENGTH
+      ? err(
+          AppError.validation(
+            `Search text must be ${SEARCH_MIN_LENGTH} to ${SEARCH_MAX_LENGTH} characters`
+          )
+        )
+      : ok(new SearchQuery(value));
   }
 
   /** ILIKE pattern with LIKE wildcards in the query made literal. */

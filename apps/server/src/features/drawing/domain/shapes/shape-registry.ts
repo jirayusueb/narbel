@@ -1,4 +1,4 @@
-import { err, ok } from "../../../../shared/kernel/types/result";
+import { err, ok, okEmpty } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import type { Element } from "../entities/element";
 import { Geometry } from "../rules/geometry";
@@ -253,22 +253,22 @@ const connectorPlaced = (input: ShapeInput) =>
   (input.x !== undefined && input.y !== undefined) ||
   (input.startElementId !== undefined && input.endElementId !== undefined);
 
-const styleRejection = (input: ShapeInput): ShapeRejection | undefined => {
+const checkStyle = (input: ShapeInput): Result<undefined, ShapeRejection> => {
   const misplaced = ElementStyle.misplacedStyle(
     input.type,
     ElementStyle.pickStyle(input)
   );
   if (!misplaced) {
-    return;
+    return okEmpty();
   }
   const where =
     ElementStyle.STYLE[misplaced].on === "arrow"
       ? "arrows only"
       : "text, rectangle, ellipse, diamond and arrow elements only";
-  return {
+  return err({
     outcome: "bad-style",
     detail: `${misplaced} applies to ${where}, not ${input.type}`,
-  };
+  });
 };
 
 const geometryGiven = (input: ShapeInput) =>
@@ -328,9 +328,9 @@ export class ShapeRegistry {
   static parseShape(input: ShapeInput): Result<Shape, ShapeRejection> {
     const { startElementId, endElementId, name, text, frameId, ...base } =
       input;
-    const rejected = styleRejection(input);
-    if (rejected) {
-      return err(rejected);
+    const styled = checkStyle(input);
+    if (styled.isErr()) {
+      return err(styled.error);
     }
     switch (input.type) {
       case "rectangle":

@@ -1,4 +1,12 @@
+import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Cursor } from "../../../../shared/kernel/types/cursor";
+import { err, ok } from "../../../../shared/kernel/types/result";
+import type { Result } from "../../../../shared/kernel/types/result";
+
+export const badCursor = () =>
+  AppError.validation(
+    "since is not a get_changes cursor for this board; call get_changes without since to start again"
+  );
 
 /** Encoded Yjs state vector, pruned to clients with live elements; minted only by the scene adapter. */
 export type SceneVersion = Uint8Array & {
@@ -43,8 +51,8 @@ export class ChangeCursor {
     return new ChangeCursor(boardId, scene, { at: now, id: "" });
   }
 
-  /** Null for anything this server did not mint for `boardId`: garbage, another format, another board. */
-  static parse(raw: string, boardId: string): ChangeCursor | null {
+  /** Err for anything this server did not mint for `boardId`: garbage, another format, another board. */
+  static parse(raw: string, boardId: string): Result<ChangeCursor, AppError> {
     try {
       const wire: unknown = JSON.parse(
         Buffer.from(raw, "base64url").toString("utf-8")
@@ -54,14 +62,16 @@ export class ChangeCursor {
         wire.b === boardId &&
         at !== null &&
         !Number.isNaN(at.getTime())
-        ? new ChangeCursor(
-            boardId,
-            new Uint8Array(Buffer.from(wire.s, "base64url")) as SceneVersion,
-            { at, id: wire.i }
+        ? ok(
+            new ChangeCursor(
+              boardId,
+              new Uint8Array(Buffer.from(wire.s, "base64url")) as SceneVersion,
+              { at, id: wire.i }
+            )
           )
-        : null;
+        : err(badCursor());
     } catch {
-      return null;
+      return err(badCursor());
     }
   }
 

@@ -21,10 +21,10 @@ const reachable = await admin
 
 const q = (raw: string) => {
   const query = SearchQuery.parse(raw);
-  if (!query) {
+  if (query.isErr()) {
     throw new Error("expected a query");
   }
-  return query;
+  return query.value;
 };
 
 const at = (seconds: number) => new Date(seconds * 1000).toISOString();
