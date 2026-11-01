@@ -85,6 +85,8 @@ Import shared components like this:
 import { Button } from "@narbel/ui/components/button";
 ```
 
+Use `PasswordField` from `@narbel/ui/components/password-field` for password inputs. It preserves native input props and refs and includes a keyboard-accessible show/hide button.
+
 ### Add app-specific blocks
 
 If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
@@ -98,6 +100,17 @@ Import the generated `ENV` accessor in application code. Shared database and aut
 Bun's automatic env loading is disabled in `bunfig.toml`; the framework integration or server bootstrap loads Varlock. Node deployments must include Varlock and its dependencies alongside the app schema.
 
 Run standalone Node/Bun tools that use Varlock from the owning app directory so they load that app's schema and env files. `env:generate` only generates TypeScript files; it does not initialize environment values in a subsequent command.
+
+## Versioning and changelogs
+
+All workspaces are private. [Changesets](https://changesets.dev/guide/config) tracks independent versions and generates workspace changelogs without npm publication.
+
+1. Run `bun run changeset` after a user-visible change. Select the affected workspaces, choose each bump type, and write the release note.
+2. Commit the generated `.changeset/*.md` file with the change. Use `bun run changeset --empty` for changes that need no version bump.
+3. Run `bun run changeset:status` to inspect the pending version bumps.
+4. To prepare a release, run `bun run version-packages`, then `bun install --lockfile-only`. Commit the version, changelog, and lockfile changes through a PR.
+
+The root package is not a release target. Changesets does not create commits, tags, publish jobs, or deployments. Merging a release PR follows the existing CI and deployment workflow.
 
 ## Deployment
 
@@ -143,6 +156,9 @@ narbel/
 - `bun run db:migrate`: Run database migrations
 - `bun run db:studio`: Open database studio UI
 - `bun run check`: Run Oxlint and Oxfmt
+- `bun run changeset`: Record a release note and version bump
+- `bun run changeset:status`: List pending version bumps
+- `bun run version-packages`: Apply pending version bumps and update workspace changelogs
 - `bun run docker:build`: Build the Docker Compose images
 - `bun run docker:up`: Build and start the Docker Compose stack
 - `bun run docker:logs`: Tail logs from the Docker Compose stack

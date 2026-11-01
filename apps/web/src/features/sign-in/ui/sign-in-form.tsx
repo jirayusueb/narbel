@@ -6,6 +6,7 @@ import {
   FieldLabel,
 } from "@narbel/ui/components/field";
 import { Input } from "@narbel/ui/components/input";
+import { PasswordField } from "@narbel/ui/components/password-field";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
@@ -113,10 +114,9 @@ export const SignInForm = ({
                 return (
                   <Field data-invalid={invalid}>
                     <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                    <Input
+                    <PasswordField
                       id={field.name}
                       name={field.name}
-                      type="password"
                       autoComplete="current-password"
                       value={field.state.value}
                       onBlur={field.handleBlur}

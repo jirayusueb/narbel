@@ -146,6 +146,29 @@
   box-shadow: var(--shadow-island);
 }
 
+.excalidraw .zoom-actions,
+.excalidraw .undo-redo-buttons {
+  --default-button-size: 2.5rem;
+  --lg-button-size: 2.5rem;
+}
+
+.excalidraw .undo-redo-buttons {
+  margin-inline-start: 0.5rem;
+}
+
+.excalidraw .footer-center {
+  align-items: center;
+  margin-inline-start: 0.5rem;
+}
+
+@media (pointer: coarse) {
+  .excalidraw .zoom-actions,
+  .excalidraw .undo-redo-buttons {
+    --default-button-size: 2.75rem;
+    --lg-button-size: 2.75rem;
+  }
+}
+
 /* Excalidraw's own text joins the Label role instead of its tracked-out 12px caps-style label. */
 .excalidraw .sidebar-trigger__label {
   font-size: 0.8125rem;
