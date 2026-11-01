@@ -5,7 +5,7 @@ import { PUBLIC_SERVER_URL } from "@/shared/config";
 
 import type { UserRef } from "../model/types";
 
-// DESIGN.md tokens: citrus, moss, light moss, ink, recess.
+// design.md tokens: citrus, moss, light moss, ink, recess.
 const PALETTE = ["#ddec61", "#63664a", "#979a73", "#080808", "#e1e1de"];
 
 const resolve = (user: UserRef) => {

@@ -3,9 +3,9 @@ import type {
   ICommentRepository,
   ReactionSummary,
   ThreadQuery,
-} from "../features/discussion/application/ports/ICommentRepository";
-import { Comment } from "../features/discussion/domain/entities/Comment";
-import type { Cursor } from "../shared/kernel/types/Cursor";
+} from "../features/discussion/application/ports/i-comment-repository";
+import { Comment } from "../features/discussion/domain/entities/comment";
+import type { Cursor } from "../shared/kernel/types/cursor";
 
 const activityAt = (c: Comment) =>
   new Date(

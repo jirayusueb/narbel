@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
-import { HmacUnlockTokens } from "./HmacUnlockTokens";
-import { ScryptPasswordHasher } from "./ScryptPasswordHasher";
+import { HmacUnlockTokens } from "./hmac-unlock-tokens";
+import { ScryptPasswordHasher } from "./scrypt-password-hasher";
 
 describe("ScryptPasswordHasher", () => {
   const hasher = new ScryptPasswordHasher();

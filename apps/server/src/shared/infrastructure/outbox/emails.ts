@@ -1,4 +1,4 @@
-import type { Email } from "../../application/interfaces/IEmailSender";
+import type { Email } from "../../application/interfaces/i-email-sender";
 
 type Mail = Omit<Email, "to">;
 

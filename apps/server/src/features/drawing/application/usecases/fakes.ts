@@ -1,14 +1,14 @@
-import { Page } from "../../domain/entities/Page";
-import { MergeElement } from "../../domain/rules/mergeElement";
-import type { SceneVersion } from "../../domain/values/ChangeCursor";
-import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
-import { toElement, toExcalidraw } from "../dtos/ExcalidrawElement";
+import { Page } from "../../domain/entities/page";
+import { MergeElement } from "../../domain/rules/merge-element";
+import type { SceneVersion } from "../../domain/values/change-cursor";
+import type { ExcalidrawElement } from "../dtos/excalidraw-element";
+import { toElement, toExcalidraw } from "../dtos/excalidraw-element";
 import type {
   AgentSelection,
   ElementTouch,
   IBoardScenes,
   SceneAccess,
-} from "../ports/IBoardScenes";
+} from "../ports/i-board-scenes";
 
 /** The live document in memory, with the hub's merge rule. */
 export class FakeScenes implements IBoardScenes {

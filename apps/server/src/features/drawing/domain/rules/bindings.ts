@@ -1,5 +1,5 @@
-import { Drawing } from "../entities/Drawing";
-import type { Element } from "../entities/Element";
+import { Drawing } from "../entities/drawing";
+import type { Element } from "../entities/element";
 
 // Excalidraw renders an arrow between its `points`; a binding additionally snaps it to the
 // target's edge and moves it when the target moves. We approximate the snap with the target's

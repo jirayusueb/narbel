@@ -2,13 +2,13 @@ import { describe, expect, it } from "bun:test";
 
 import { ids, setupAccess } from "../../../../testing";
 import { Geometry } from "../../domain/rules/geometry";
-import { toElement } from "../dtos/ExcalidrawElement";
-import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
-import { AddBoardElements } from "./AddBoardElements";
-import { ArrangeElements } from "./ArrangeElements";
+import { toElement } from "../dtos/excalidraw-element";
+import type { ExcalidrawElement } from "../dtos/excalidraw-element";
+import { AddBoardElements } from "./add-board-elements";
+import { ArrangeElements } from "./arrange-elements";
 import { FakeScenes } from "./fakes";
-import { GroupElements } from "./GroupElements";
-import { UpdateBoardElement } from "./UpdateBoardElement";
+import { GroupElements } from "./group-elements";
+import { UpdateBoardElement } from "./update-board-element";
 
 const owner = { userId: "owner" };
 

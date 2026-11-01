@@ -1,13 +1,13 @@
-import type { IIdGenerator } from "../../../shared/application/interfaces/IIdGenerator";
-import { Drawing } from "../domain/entities/Drawing";
-import type { Element } from "../domain/entities/Element";
+import type { IIdGenerator } from "../../../shared/application/interfaces/i-id-generator";
+import { Drawing } from "../domain/entities/drawing";
+import type { Element } from "../domain/entities/element";
 import { Bindings } from "../domain/rules/bindings";
 import type { ConnectorRefs } from "../domain/rules/bindings";
 import { Geometry } from "../domain/rules/geometry";
-import { ElementStyle } from "../domain/shapes/ElementStyle";
-import type { LabelStyle, Style } from "../domain/shapes/ElementStyle";
-import { ShapeRegistry } from "../domain/shapes/ShapeRegistry";
-import type { SceneAccess } from "./ports/IBoardScenes";
+import { ElementStyle } from "../domain/shapes/element-style";
+import type { LabelStyle, Style } from "../domain/shapes/element-style";
+import { ShapeRegistry } from "../domain/shapes/shape-registry";
+import type { SceneAccess } from "./ports/i-board-scenes";
 
 // Identity, versioning and binding records belong to the system; bindings change only
 // through `RebindRefs`, so a raw patch can never leave the two ends inconsistent.

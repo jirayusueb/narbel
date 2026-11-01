@@ -1,15 +1,15 @@
-# Design Systems from DESIGN.md
+# Design Systems from design.md
 
-Build a new app from a preset, install every component, restyle it from a `DESIGN.md`, then render a design system page.
+Build a new app from a preset, install every component, restyle it from a `design.md`, then render a design system page.
 
-Trigger phrases: "build me a design system using <preset>", "apply this DESIGN.md", "create a showcase / design system page", "make shadcn look like <brand>".
+Trigger phrases: "build me a design system using <preset>", "apply this design.md", "create a showcase / design system page", "make shadcn look like <brand>".
 
 ## Contents
 
 - Inputs to confirm
 - Step 1: Scaffold
 - Step 2: Install everything
-- Step 3: Read the DESIGN.md
+- Step 3: Read the design.md
 - Step 4: Map tokens to the theme
 - Step 5: Map component recipes to variants
 - Step 6: Build the design system page ([design-system-page.md](./design-system-page.md))
@@ -23,12 +23,12 @@ Trigger phrases: "build me a design system using <preset>", "apply this DESIGN.m
 | Input | Default | Notes |
 | --- | --- | --- |
 | Preset | Optional | Code (`b0`), style name (`luma`) or URL. Pass it through. Never decode it by hand. Without one, pick a style (see Step 1). |
-| DESIGN.md | Required | A path, URL or pasted content. Copy it into the new app root as `DESIGN.md`. |
+| design.md | Required | A path, URL or pasted content. Copy it into the new app root as `design.md`. |
 | Template | `vite` | Use `next` when the user says Next.js, App Router or SSR. |
-| App name | Derived from the brand in DESIGN.md | Kebab-case. |
+| App name | Derived from the brand in design.md | Kebab-case. |
 | Base | `base` | Pass `--base` when no preset code is given. Use `radix` only when the user asks. `info --json` after init decides `render` vs `asChild`. |
 
-If the DESIGN.md path can't be read (macOS privacy blocks `~/Downloads` and `~/Desktop` for some hosts), ask the user to copy it into the working directory. Don't guess its contents.
+If the design.md path can't be read (macOS privacy blocks `~/Downloads` and `~/Desktop` for some hosts), ask the user to copy it into the working directory. Don't guess its contents.
 
 ---
 
@@ -40,7 +40,7 @@ With a preset code from the user:
 npx shadcn@latest init --preset <code> --template vite --name <app> --no-monorepo -y
 ```
 
-Without one, pick the style whose geometry is closest to the DESIGN.md and pass it with `--base`:
+Without one, pick the style whose geometry is closest to the design.md and pass it with `--base`:
 
 ```bash
 npx shadcn@latest init --base base --preset <style> --template vite --name <app> --no-monorepo -y
@@ -57,9 +57,9 @@ npx shadcn@latest info --json
 
 ### Picking a style
 
-The theme gets replaced by the DESIGN.md anyway. The style decides geometry the CSS variables can't reach: control padding, density, how rounded and how raised the components are. Read the DESIGN.md's radius scale, control heights, shadows and layout density, then pick:
+The theme gets replaced by the design.md anyway. The style decides geometry the CSS variables can't reach: control padding, density, how rounded and how raised the components are. Read the design.md's radius scale, control heights, shadows and layout density, then pick:
 
-| Style | Character | Pick when the DESIGN.md has |
+| Style | Character | Pick when the design.md has |
 | --- | --- | --- |
 | `vega` | The classic shadcn/ui look. | Neutral, conventional SaaS geometry; nothing extreme. |
 | `nova` | Reduced padding and margins for compact layouts. | 32–36px controls, 6–8px radius, hairlines over shadows. |
@@ -97,9 +97,9 @@ Fix generated files that fail strict checks (for example, an unused `React` impo
 
 ---
 
-## Step 3: Read the DESIGN.md
+## Step 3: Read the design.md
 
-DESIGN.md files usually carry YAML frontmatter (`colors`, `typography`, `rounded`, `spacing`, `components`) and prose sections (Overview, Colors, Typography, Layout, Elevation, Shapes, Components, Do's and Don'ts, Responsive, Known Gaps). Some only have prose with `{colors.x}` references. Handle both.
+design.md files usually carry YAML frontmatter (`colors`, `typography`, `rounded`, `spacing`, `components`) and prose sections (Overview, Colors, Typography, Layout, Elevation, Shapes, Components, Do's and Don'ts, Responsive, Known Gaps). Some only have prose with `{colors.x}` references. Handle both.
 
 Long files exceed one read. Grep the headings first, then read frontmatter, **Do's and Don'ts**, **Iteration Guide** and **Known Gaps** in full. Those sections hold the rules that override defaults.
 
@@ -124,11 +124,11 @@ Extract into a working table before editing anything:
 
 ## Step 4: Map Tokens to the Theme
 
-Edit only `tailwindCssFile`. Keep hex values when the DESIGN.md gives hex. Don't convert them to OKLCH.
+Edit only `tailwindCssFile`. Keep hex values when the design.md gives hex. Don't convert them to OKLCH.
 
 ### Role mapping
 
-| DESIGN.md role | shadcn variable |
+| design.md role | shadcn variable |
 | --- | --- |
 | canvas / surface / page floor | `--background` |
 | ink / headline text | `--foreground`, `--card-foreground`, `--popover-foreground` |
@@ -162,7 +162,7 @@ Every token without a shadcn slot gets a variable in `:root` (and `.dark` when i
 
 ### Radius
 
-A DESIGN.md radius scale rarely fits the `--radius` multipliers. Pin each step in `@theme inline` instead. These are the classes base-nova components use:
+A design.md radius scale rarely fits the `--radius` multipliers. Pin each step in `@theme inline` instead. These are the classes base-nova components use:
 
 | Class         | Used by                                         |
 | ------------- | ----------------------------------------------- |
@@ -175,7 +175,7 @@ A DESIGN.md radius scale rarely fits the `--radius` multipliers. Pin each step i
 
 ```css
 @theme inline {
-  /* DESIGN.md step → Tailwind class used by that component. */
+  /* design.md step → Tailwind class used by that component. */
   --radius-sm: 4px; /* xs: accents. */
   --radius-md: 6px; /* sm: menu items. */
   --radius-lg: 8px; /* md: buttons, inputs. */
@@ -192,7 +192,7 @@ Replace the existing `--radius-*` lines in `@theme inline` rather than adding a 
 grep -ohE "rounded-(\[[^ \"]+\]|[a-z0-9]+)" <ui>/*.tsx | sort | uniq -c
 ```
 
-`rounded-[min(var(--radius-md),Npx)]` caps small buttons and select triggers. Edit the cap when the DESIGN.md wants rounder small controls.
+`rounded-[min(var(--radius-md),Npx)]` caps small buttons and select triggers. Edit the cap when the design.md wants rounder small controls.
 
 ### Elevation
 
@@ -208,7 +208,7 @@ Override Tailwind's shadow scale in `@theme`, not `@theme inline`. Copy multi-la
 
 ### Fonts
 
-Brand fonts are usually licensed. Use the substitutes the DESIGN.md names, installed from Fontsource with the project's package manager, and import every face you reference at the top of the CSS file:
+Brand fonts are usually licensed. Use the substitutes the design.md names, installed from Fontsource with the project's package manager, and import every face you reference at the top of the CSS file:
 
 ```bash
 npm install @fontsource-variable/inter @fontsource-variable/cormorant-garamond @fontsource-variable/jetbrains-mono
@@ -255,8 +255,8 @@ Turn every typography token into a `type-*` utility. Don't use `--text-*` theme 
 
 ### Dark mode
 
-- **DESIGN.md defines dark surfaces** (product mockups, footers): put them in `.dark`. Because shadcn's `@custom-variant dark (&:is(.dark *))` scopes to descendants, `className="dark"` on any section renders every component inside it with dark tokens. Use it for dark bands, featured pricing cards and footers.
-- **DESIGN.md is light-only**: derive `.dark` from the brand's known dark surfaces and tell the user it's derived.
+- **design.md defines dark surfaces** (product mockups, footers): put them in `.dark`. Because shadcn's `@custom-variant dark (&:is(.dark *))` scopes to descendants, `className="dark"` on any section renders every component inside it with dark tokens. Use it for dark bands, featured pricing cards and footers.
+- **design.md is light-only**: derive `.dark` from the brand's known dark surfaces and tell the user it's derived.
 
 ### Focus
 
@@ -282,15 +282,15 @@ Match the documented focus treatment:
 }
 ```
 
-This covers actions only. Field controls keep their ring. When the DESIGN.md applies the outline to fields too, add `input, textarea, select, [role="combobox"]` to the selector.
+This covers actions only. Field controls keep their ring. When the design.md applies the outline to fields too, add `input, textarea, select, [role="combobox"]` to the selector.
 
 ---
 
 ## Step 5: Map Component Recipes to Variants
 
-Restyle by editing the `cva` variants in the installed component source. Keep existing variant names so usage stays standard. Add a variant only when the DESIGN.md defines a distinct recipe.
+Restyle by editing the `cva` variants in the installed component source. Keep existing variant names so usage stays standard. Add a variant only when the design.md defines a distinct recipe.
 
-| DESIGN.md recipe | shadcn target |
+| design.md recipe | shadcn target |
 | --- | --- |
 | `button-primary` | `Button` `default` |
 | `button-secondary` (tinted fill) | `Button` `secondary` |
@@ -321,7 +321,7 @@ Restyle by editing the `cva` variants in the installed component source. Keep ex
 
 Re-grep before editing (`grep -n "\bh-8\b\|size-8\b" <ui>/*.tsx`); other styles use different values.
 
-**States.** Follow the documented states exactly. If the DESIGN.md says "darken on press only", use `active:` instead of `hover:`. Keep hover on ghost buttons and menu items even when the spec omits it, and tell the user you did.
+**States.** Follow the documented states exactly. If the design.md says "darken on press only", use `active:` instead of `hover:`. Keep hover on ghost buttons and menu items even when the spec omits it, and tell the user you did.
 
 **Hard rules.** Turn each "Don't" into a check before you finish, for example: no radius outside the scale, no accent color on buttons, no bold display type.
 
@@ -335,7 +335,7 @@ In short:
 
 1. Foundations first: color roles as contrast-checked pairs, palette, type specimen table, spacing, radius and elevation ladders.
 2. Components by tier: primitives get a variant × state matrix, size ladder and icon row. Composed components get a typical example, additions and edge cases. Overlays get real triggers.
-3. Then rendered do/don't pairs for the DESIGN.md's rules, the DESIGN.md's named recipes rebuilt from components, and one example screen.
+3. Then rendered do/don't pairs for the design.md's rules, the design.md's named recipes rebuilt from components, and one example screen.
 
 Copy the helpers from `assets/showcase/` (`preview-states.css`, `state-matrix.tsx`, `color-pair.tsx`). Put sections in `src/showcase/<section>.tsx` (Vite) or `app/design-system/` (Next.js). Write copy in the brand's voice.
 
@@ -371,7 +371,7 @@ Start the dev server and check it in a browser:
 2. No console errors.
 3. Loads at `scrollY === 0`. Anything else means a component is stealing scroll on mount.
 4. No horizontal overflow at 375px and 1280px: `document.documentElement.scrollWidth <= innerWidth`.
-5. Screenshot the hero, Foundations, one form section and one dark band. Compare against the DESIGN.md: canvas color, CTA color, display font, radius, focus ring.
+5. Screenshot the hero, Foundations, one form section and one dark band. Compare against the design.md: canvas color, CTA color, display font, radius, focus ring.
 6. Toggle dark mode once.
 
 ---
@@ -381,6 +381,6 @@ Start the dev server and check it in a browser:
 - App path, dev URL, component count from disk.
 - The style picked (when no preset was given) and why.
 - What maps where: colors, fonts (and substitutes), radius, shadows, focus.
-- Contrast pairs under 4.5:1, including ones the DESIGN.md itself specifies.
+- Contrast pairs under 4.5:1, including ones the design.md itself specifies.
 - Every component file you edited and why.
-- Every deliberate deviation from the DESIGN.md (derived dark mode, kept hover, substituted fonts).
+- Every deliberate deviation from the design.md (derived dark mode, kept hover, substituted fonts).

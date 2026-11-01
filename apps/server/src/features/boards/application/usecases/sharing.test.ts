@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { Actor } from "../../../../shared/kernel/types/Actor";
+import type { Actor } from "../../../../shared/kernel/types/actor";
 import {
   fakeUnlock,
   ids,
@@ -8,16 +8,16 @@ import {
   protectedBoard,
   setupAccess,
 } from "../../../../testing";
-import { ShareLink } from "../../domain/values/ShareLink";
-import { HmacUnlockTokens } from "../../infrastructure/services/HmacUnlockTokens";
-import { AccessPolicy } from "../AccessPolicy";
-import type { Need } from "../AccessPolicy";
-import { GetBoard } from "./GetBoard";
-import { InviteBoardMember } from "./InviteBoardMember";
-import { RemoveBoardMember } from "./RemoveBoardMember";
-import { UnlockBoard } from "./UnlockBoard";
-import { UpdateBoardAccess } from "./UpdateBoardAccess";
-import type { AccessPatch } from "./UpdateBoardAccess";
+import { ShareLink } from "../../domain/values/share-link";
+import { HmacUnlockTokens } from "../../infrastructure/services/hmac-unlock-tokens";
+import { AccessPolicy } from "../access-policy";
+import type { Need } from "../access-policy";
+import { GetBoard } from "./get-board";
+import { InviteBoardMember } from "./invite-board-member";
+import { RemoveBoardMember } from "./remove-board-member";
+import { UnlockBoard } from "./unlock-board";
+import { UpdateBoardAccess } from "./update-board-access";
+import type { AccessPatch } from "./update-board-access";
 
 const TOKEN = "t".repeat(43);
 const future = new Date(Date.now() + 3_600_000);

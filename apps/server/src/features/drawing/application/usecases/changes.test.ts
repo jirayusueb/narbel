@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
 import { FakeComments, newBoard, setupAccess } from "../../../../testing";
-import { CommentActivityFeed } from "../../../discussion/application/CommentActivityFeed";
-import { Comment } from "../../../discussion/domain/entities/Comment";
-import type { CommentFields } from "../../../discussion/domain/entities/Comment";
+import { CommentActivityFeed } from "../../../discussion/application/comment-activity-feed";
+import { Comment } from "../../../discussion/domain/entities/comment";
+import type { CommentFields } from "../../../discussion/domain/entities/comment";
 import { FakeScenes } from "./fakes";
-import { GetBoardChanges, MAX_COMMENT_CHANGES } from "./GetBoardChanges";
-import { SelectElements } from "./Selection";
+import { GetBoardChanges, MAX_COMMENT_CHANGES } from "./get-board-changes";
+import { SelectElements } from "./selection";
 
 const actor = { userId: "owner" };
 const start = new Date("2026-01-01T00:00:00.000Z");

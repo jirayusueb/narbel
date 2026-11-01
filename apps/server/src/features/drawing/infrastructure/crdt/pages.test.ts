@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import * as Y from "yjs";
 
-import { toElement } from "../../application/dtos/ExcalidrawElement";
+import { toElement } from "../../application/dtos/excalidraw-element";
 import {
   TOMBSTONE_TTL_MS,
   ensurePages,

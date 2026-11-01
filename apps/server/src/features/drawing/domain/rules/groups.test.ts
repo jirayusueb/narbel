@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import type { Element } from "../entities/Element";
+import type { Element } from "../entities/element";
 import { Groups } from "./groups";
 
 const el = (id: string, groupIds: string[] = [], extra = {}): Element => ({

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
 import { ids, setupAccess } from "../../../../testing";
-import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
-import { AddBoardElements } from "./AddBoardElements";
-import { DeleteBoardElements } from "./DeleteBoardElements";
+import type { ExcalidrawElement } from "../dtos/excalidraw-element";
+import { AddBoardElements } from "./add-board-elements";
+import { DeleteBoardElements } from "./delete-board-elements";
 import { FakeScenes } from "./fakes";
-import { EditSelection } from "./Selection";
-import { UpdateBoardElement } from "./UpdateBoardElement";
+import { EditSelection } from "./selection";
+import { UpdateBoardElement } from "./update-board-element";
 
 const owner = { userId: "owner" };
 

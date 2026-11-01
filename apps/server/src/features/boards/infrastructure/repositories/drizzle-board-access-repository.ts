@@ -1,0 +1,180 @@
+import { and, eq, isNotNull, isNull, or, sql } from "@narbel/db";
+import type { DbExecutor } from "@narbel/db";
+import { board, boardAccess, boardShare } from "@narbel/db/schema/boards";
+
+import type {
+  IBoardAccessRepository,
+  ReadableBoard,
+} from "../../application/ports/i-board-access-repository";
+import type { IBoardPeople } from "../../application/ports/i-board-people";
+import type { Role } from "../../domain/values/access";
+import { ShareLink } from "../../domain/values/share-link";
+
+export class DrizzleBoardAccessRepository implements IBoardAccessRepository {
+  constructor(
+    private readonly db: DbExecutor,
+    private readonly people: IBoardPeople
+  ) {}
+
+  private async namesByEmail(emails: string[]) {
+    const found = await this.people.findByEmails(emails);
+    return new Map(found.map((person) => [person.email, person]));
+  }
+
+  async findGrant(
+    boardId: string,
+    who: { userId: string; email: string | undefined }
+  ) {
+    const email = who.email?.toLowerCase();
+    const [row] = await this.db
+      .select({
+        grantId: boardAccess.id,
+        userId: boardAccess.userId,
+        role: boardAccess.role,
+      })
+      .from(boardAccess)
+      .where(
+        and(
+          eq(boardAccess.boardId, boardId),
+          email
+            ? or(
+                eq(boardAccess.userId, who.userId),
+                eq(boardAccess.email, email)
+              )
+            : eq(boardAccess.userId, who.userId)
+        )
+      )
+      .limit(1);
+    return row ?? null;
+  }
+
+  async claim(grantId: string, userId: string) {
+    await this.db
+      .update(boardAccess)
+      .set({ userId })
+      .where(and(eq(boardAccess.id, grantId), isNull(boardAccess.userId)));
+  }
+
+  async readableBoards(person: { id: string; email: string }) {
+    const rows: ReadableBoard[] = await this.db
+      .select({
+        id: board.id,
+        title: board.title,
+        role: sql<Role>`CASE WHEN ${board.ownerId} = ${person.id} THEN 'owner' ELSE ${boardAccess.role} END`,
+        visibility: board.visibility,
+        createdAt: board.createdAt,
+        updatedAt: board.updatedAt,
+      })
+      .from(board)
+      .leftJoin(
+        boardAccess,
+        and(
+          eq(boardAccess.boardId, board.id),
+          or(
+            eq(boardAccess.userId, person.id),
+            eq(boardAccess.email, person.email.toLowerCase())
+          )
+        )
+      )
+      .where(
+        and(
+          or(eq(board.ownerId, person.id), isNotNull(boardAccess.id)),
+          isNull(board.trashedAt)
+        )
+      );
+    // a board matched by both user id and email comes back twice; the map keeps one
+    return [...new Map(rows.map((row) => [row.id, row])).values()];
+  }
+
+  async listMembers(boardId: string) {
+    const rows = await this.db
+      .select({
+        userId: boardAccess.userId,
+        email: boardAccess.email,
+        role: boardAccess.role,
+      })
+      .from(boardAccess)
+      .where(eq(boardAccess.boardId, boardId))
+      .orderBy(boardAccess.createdAt);
+    const names = await this.namesByEmail(rows.map((row) => row.email));
+    return rows.map((row) => ({
+      ...row,
+      name: names.get(row.email)?.name ?? row.email,
+    }));
+  }
+
+  async listMemberRoles(boardId: string) {
+    const rows = await this.db
+      .select({
+        userId: boardAccess.userId,
+        email: boardAccess.email,
+        role: boardAccess.role,
+      })
+      .from(boardAccess)
+      .where(eq(boardAccess.boardId, boardId));
+    const registered = await this.namesByEmail(
+      rows.filter((row) => !row.userId).map((row) => row.email)
+    );
+    return rows.flatMap(({ userId, email, role }) => {
+      const id = userId ?? registered.get(email)?.id;
+      return id ? [{ userId: id, role }] : [];
+    });
+  }
+
+  async upsertMember(
+    boardId: string,
+    member: { email: string; userId: string | null; role: "editor" | "viewer" }
+  ) {
+    await this.db
+      .insert(boardAccess)
+      .values({ id: crypto.randomUUID(), boardId, ...member })
+      .onConflictDoUpdate({
+        target: [boardAccess.boardId, boardAccess.email],
+        set: { role: member.role },
+      });
+  }
+
+  async removeMember(boardId: string, key: string) {
+    const removed = await this.db
+      .delete(boardAccess)
+      .where(
+        and(
+          eq(boardAccess.boardId, boardId),
+          or(
+            eq(boardAccess.userId, key),
+            eq(boardAccess.email, key.toLowerCase())
+          )
+        )
+      )
+      .returning({ userId: boardAccess.userId, email: boardAccess.email });
+    return removed[0] ?? null;
+  }
+
+  async findUserIdByEmail(email: string) {
+    const [person] = await this.people.findByEmails([email]);
+    return person?.id ?? null;
+  }
+
+  async findShare(boardId: string) {
+    const [row] = await this.db
+      .select()
+      .from(boardShare)
+      .where(eq(boardShare.boardId, boardId))
+      .limit(1);
+    return row ? ShareLink.create(row) : null;
+  }
+
+  async saveShare(share: ShareLink) {
+    await this.db
+      .insert(boardShare)
+      .values(share)
+      .onConflictDoUpdate({
+        target: boardShare.boardId,
+        set: { role: share.role, expiresAt: share.expiresAt },
+      });
+  }
+
+  async deleteShare(boardId: string) {
+    await this.db.delete(boardShare).where(eq(boardShare.boardId, boardId));
+  }
+}

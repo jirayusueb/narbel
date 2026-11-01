@@ -1,24 +1,24 @@
 import { describe, expect, it } from "bun:test";
 
-import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
-import type { Actor } from "../../../../shared/kernel/types/Actor";
+import type { IFileStorage } from "../../../../shared/application/interfaces/i-file-storage";
+import type { Actor } from "../../../../shared/kernel/types/actor";
 import { protectedBoard, setupAccess } from "../../../../testing";
-import type { IBoardFileRepository } from "../../../drawing/application/ports/IBoardFileRepository";
-import type { IBoardPresence } from "../../../drawing/application/ports/IBoardPresence";
+import type { IBoardFileRepository } from "../../../drawing/application/ports/i-board-file-repository";
+import type { IBoardPresence } from "../../../drawing/application/ports/i-board-presence";
 import type {
   IBoardSyncGateway,
   SyncSession,
-} from "../../../drawing/application/ports/IBoardSyncGateway";
-import { ConnectBoardSync } from "../../../drawing/application/usecases/ConnectBoardSync";
+} from "../../../drawing/application/ports/i-board-sync-gateway";
+import { ConnectBoardSync } from "../../../drawing/application/usecases/connect-board-sync";
 import { FakeScenes } from "../../../drawing/application/usecases/fakes";
-import { GetBoardFile } from "../../../drawing/application/usecases/GetBoardFile";
-import { ShareLink } from "../../domain/values/ShareLink";
-import { GetBoard } from "./GetBoard";
-import { ListBoards } from "./ListBoards";
-import { ListTrash } from "./ListTrash";
-import { PurgeBoard } from "./PurgeBoard";
-import { RestoreBoard } from "./RestoreBoard";
-import { TrashBoard } from "./TrashBoard";
+import { GetBoardFile } from "../../../drawing/application/usecases/get-board-file";
+import { ShareLink } from "../../domain/values/share-link";
+import { GetBoard } from "./get-board";
+import { ListBoards } from "./list-boards";
+import { ListTrash } from "./list-trash";
+import { PurgeBoard } from "./purge-board";
+import { RestoreBoard } from "./restore-board";
+import { TrashBoard } from "./trash-board";
 
 const owner: Actor = { userId: "owner" };
 const member: Actor = { userId: "ed", email: "ed@x.io" };

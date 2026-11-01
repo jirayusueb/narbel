@@ -1,28 +1,28 @@
 import type { Database } from "@narbel/db";
 import { Elysia } from "elysia";
 
-import type { IPubSub } from "../../shared/application/interfaces/IPubSub";
-import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
-import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
-import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
-import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
+import type { IPubSub } from "../../shared/application/interfaces/i-pub-sub";
+import { UuidGenerator } from "../../shared/infrastructure/ids/uuid-generator";
+import { DrizzleOutbox } from "../../shared/infrastructure/outbox/drizzle-outbox";
+import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/drizzle-processed-events";
+import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
-import type { IReadableBoards } from "./application/ports/IReadableBoards";
-import { DropBoardNotifications } from "./application/usecases/DropBoardNotifications";
-import { ForgetDeletedPerson } from "./application/usecases/ForgetDeletedPerson";
-import { ForgetRemovedInvite } from "./application/usecases/ForgetRemovedInvite";
-import { HandleDiscussionEvent } from "./application/usecases/HandleDiscussionEvent";
-import type { NotificationTx } from "./application/usecases/HandleDiscussionEvent";
-import { HandleMemberInvited } from "./application/usecases/HandleMemberInvited";
-import { NotificationUseCases } from "./application/usecases/NotificationUseCases";
-import { BoardDeletedConsumer } from "./infrastructure/events/BoardDeletedConsumer";
-import { DiscussionEventConsumer } from "./infrastructure/events/DiscussionEventConsumer";
-import { MemberInvitedConsumer } from "./infrastructure/events/MemberInvitedConsumer";
-import { MemberRemovedConsumer } from "./infrastructure/events/MemberRemovedConsumer";
-import { PersonDeletedConsumer } from "./infrastructure/events/PersonDeletedConsumer";
-import { DrizzleNotificationRepository } from "./infrastructure/repositories/DrizzleNotificationRepository";
-import { createNotificationController } from "./presentation/http/NotificationController";
+import type { IReadableBoards } from "./application/ports/i-readable-boards";
+import { DropBoardNotifications } from "./application/usecases/drop-board-notifications";
+import { ForgetDeletedPerson } from "./application/usecases/forget-deleted-person";
+import { ForgetRemovedInvite } from "./application/usecases/forget-removed-invite";
+import { HandleDiscussionEvent } from "./application/usecases/handle-discussion-event";
+import type { NotificationTx } from "./application/usecases/handle-discussion-event";
+import { HandleMemberInvited } from "./application/usecases/handle-member-invited";
+import { NotificationUseCases } from "./application/usecases/notification-use-cases";
+import { BoardDeletedConsumer } from "./infrastructure/events/board-deleted-consumer";
+import { DiscussionEventConsumer } from "./infrastructure/events/discussion-event-consumer";
+import { MemberInvitedConsumer } from "./infrastructure/events/member-invited-consumer";
+import { MemberRemovedConsumer } from "./infrastructure/events/member-removed-consumer";
+import { PersonDeletedConsumer } from "./infrastructure/events/person-deleted-consumer";
+import { DrizzleNotificationRepository } from "./infrastructure/repositories/drizzle-notification-repository";
+import { createNotificationController } from "./presentation/http/notification-controller";
 
 export interface NotificationDeps {
   db: Database;

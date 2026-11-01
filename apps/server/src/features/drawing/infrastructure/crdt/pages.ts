@@ -4,11 +4,11 @@ import type * as Y from "yjs";
 import {
   toElement,
   toExcalidraw,
-} from "../../application/dtos/ExcalidrawElement";
-import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
-import type { SceneAccess } from "../../application/ports/IBoardScenes";
-import { MAIN_PAGE, Page } from "../../domain/entities/Page";
-import { MergeElement } from "../../domain/rules/mergeElement";
+} from "../../application/dtos/excalidraw-element";
+import type { ExcalidrawElement } from "../../application/dtos/excalidraw-element";
+import type { SceneAccess } from "../../application/ports/i-board-scenes";
+import { MAIN_PAGE, Page } from "../../domain/entities/page";
+import { MergeElement } from "../../domain/rules/merge-element";
 import { touchesSince } from "./changes";
 
 /**

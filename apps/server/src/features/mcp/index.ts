@@ -1,1 +1,1 @@
-export { createMcpController } from "./presentation/McpController";
+export { createMcpController } from "./presentation/mcp-controller";

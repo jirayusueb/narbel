@@ -1,14 +1,14 @@
 import type { Database } from "@narbel/db";
 import { Elysia } from "elysia";
 
-import type { IFileStorage } from "../../shared/application/interfaces/IFileStorage";
-import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
-import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
+import type { IFileStorage } from "../../shared/application/interfaces/i-file-storage";
+import { UuidGenerator } from "../../shared/infrastructure/ids/uuid-generator";
+import { DrizzleOutbox } from "../../shared/infrastructure/outbox/drizzle-outbox";
 import type { AuthDeps, BetterAuthPlugin } from "../auth";
-import { DeletePerson } from "./application/usecases/DeletePerson";
-import { ProfileUseCases } from "./application/usecases/ProfileUseCases";
-import { DrizzleProfileRepository } from "./infrastructure/repositories/DrizzleProfileRepository";
-import { createProfileController } from "./presentation/http/ProfileController";
+import { DeletePerson } from "./application/usecases/delete-person";
+import { ProfileUseCases } from "./application/usecases/profile-use-cases";
+import { DrizzleProfileRepository } from "./infrastructure/repositories/drizzle-profile-repository";
+import { createProfileController } from "./presentation/http/profile-controller";
 
 export interface ProfileDeps {
   db: Database;

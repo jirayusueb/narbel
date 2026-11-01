@@ -1,0 +1,102 @@
+import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
+import type { AppError } from "../../../../shared/kernel/errors/app-error";
+import type { Actor } from "../../../../shared/kernel/types/actor";
+import { err, ok } from "../../../../shared/kernel/types/result";
+import type { Result } from "../../../../shared/kernel/types/result";
+import { Arrange } from "../../domain/rules/arrange";
+import type { Arrangement } from "../../domain/rules/arrange";
+import { Bindings } from "../../domain/rules/bindings";
+import { Geometry } from "../../domain/rules/geometry";
+import { Groups } from "../../domain/rules/groups";
+import { pageLookup, patchElement } from "../connectors";
+import type { IBoardAccess } from "../ports/i-board-access";
+import type { IBoardScenes } from "../ports/i-board-scenes";
+import { resolveOperands } from "./group-elements";
+
+export interface ArrangeResult {
+  moved: string[];
+  skipped: { id: string; reason: "locked" | "connector" }[];
+}
+
+export class ArrangeElements {
+  constructor(
+    private readonly policy: IBoardAccess,
+    private readonly scenes: IBoardScenes,
+    private readonly ids: IIdGenerator
+  ) {}
+
+  async execute(input: {
+    actor: Actor;
+    boardId: string;
+    ids: string[];
+    how: Arrangement;
+  }): Promise<Result<ArrangeResult, AppError>> {
+    const granted = await this.policy.decide(
+      input.boardId,
+      input.actor,
+      "write"
+    );
+    if (granted.isErr()) {
+      return err(granted.error);
+    }
+    return this.scenes.transact(input.boardId, (scene) => {
+      const operands = resolveOperands(scene, input.ids);
+      if (operands.isErr()) {
+        return err(operands.error);
+      }
+      const skipped: ArrangeResult["skipped"] = [];
+      const mates = Groups.withGroupMates(
+        operands.value.elements,
+        scene.all(operands.value.pageId)
+      );
+      // a frame carries its children, so a child among the movers (named or via a group) must not move twice
+      const moving = new Set(mates.map((e) => e.id));
+      const members = mates
+        .filter(
+          (e) => !(typeof e.frameId === "string" && moving.has(e.frameId))
+        )
+        .filter((e) => {
+          const bound =
+            Bindings.connectorCapable(e) &&
+            Boolean(e.startBinding ?? e.endBinding);
+          if (bound) {
+            skipped.push({ id: e.id, reason: "connector" });
+          }
+          return !bound;
+        });
+      const units = Arrange.unitsOf(members).filter((unit) => {
+        const locked = unit.members.some((e) => e.locked === true);
+        if (locked) {
+          skipped.push(
+            ...unit.members.map((e) => ({
+              id: e.id,
+              reason: "locked" as const,
+            }))
+          );
+        }
+        return !locked;
+      });
+      const byKey = new Map(units.map((u) => [u.key, u]));
+      const lookup = pageLookup(scene, operands.value.pageId);
+      const moved: string[] = [];
+      for (const { id, dx, dy } of Arrange.arrangeMoves(
+        units.map(Arrange.unitItem),
+        input.how
+      )) {
+        for (const e of byKey.get(id)?.members ?? []) {
+          const fields = {
+            x: Geometry.num(e.x) + dx,
+            y: Geometry.num(e.y) + dy,
+          };
+          if (
+            patchElement(scene, this.ids, e.id, fields, {}, false, lookup) ===
+            "ok"
+          ) {
+            moved.push(e.id);
+          }
+        }
+      }
+      return ok({ moved, skipped });
+    });
+  }
+}

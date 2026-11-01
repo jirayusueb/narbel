@@ -25,8 +25,8 @@ What goes on a design system page, and how to show it. Distilled from Primer, Ca
 4. **Pin states so reviewers can see them.** Hover, focus and pressed render side by side without interaction. Use one consistent label, and never put the state name inside the component.
 5. **Don't render every combination.** Primitives get a variant × state matrix. Composed components get a typical example plus additions. Exhaustive combinations belong in tests (Material 3 cut its list kit from 700+ variants to about 45).
 6. **Real content in the brand's voice.** No lorem ipsum. Include the awkward cases: long text, empty, error, loading.
-7. **Composition proves the system.** End with the DESIGN.md's own recipes and one realistic screen built only from the tokens and components.
-8. **Make the DESIGN.md's rules visible.** Turn its Do's and Don'ts into rendered do/don't pairs.
+7. **Composition proves the system.** End with the design.md's own recipes and one realistic screen built only from the tokens and components.
+8. **Make the design.md's rules visible.** Turn its Do's and Don'ts into rendered do/don't pairs.
 
 ---
 
@@ -34,8 +34,8 @@ What goes on a design system page, and how to show it. Distilled from Primer, Ca
 
 | # | Section | Contents |
 | --- | --- | --- |
-| 1 | Header | System name, "Themed from DESIGN.md", section anchors, light/dark toggle, primary CTA. |
-| 2 | Overview | The DESIGN.md hero recipe: display type, one-line personality, its signature artifact. |
+| 1 | Header | System name, "Themed from design.md", section anchors, light/dark toggle, primary CTA. |
+| 2 | Overview | The design.md hero recipe: display type, one-line personality, its signature artifact. |
 | 3 | Foundations | Color roles, palette, typography, spacing, radius, elevation, motion (if specified), icons. |
 | 4 | Actions | Button, ButtonGroup, Toggle, ToggleGroup, Badge, Kbd. |
 | 5 | Inputs | Field, Input, InputGroup, Textarea, Select, NativeSelect, Combobox, Checkbox, RadioGroup, Switch, Slider, InputOTP, Calendar, Label. |
@@ -44,13 +44,13 @@ What goes on a design system page, and how to show it. Distilled from Primer, Ca
 | 8 | Feedback | Alert, toast (and Sonner in Base UI projects), Progress, Spinner, Skeleton, Empty. |
 | 9 | Overlays | Dialog, AlertDialog, Sheet, Drawer, Popover, HoverCard, Tooltip, DropdownMenu, ContextMenu, Command. |
 | 10 | Conversation | MessageScroller, Message, Bubble, Attachment, Marker, Questionnaire. See [rules/chat.md](./rules/chat.md). |
-| 11 | Do and Don't | Rendered pairs for the DESIGN.md's rules. |
-| 12 | Recipes and example screen | The DESIGN.md's named components, then one realistic screen. |
-| 13 | Footer | The DESIGN.md footer recipe. |
+| 11 | Do and Don't | Rendered pairs for the design.md's rules. |
+| 12 | Recipes and example screen | The design.md's named components, then one realistic screen. |
+| 13 | Footer | The design.md footer recipe. |
 
 DirectionProvider goes wherever RTL matters (an RTL row in Inputs or Navigation).
 
-Alternate section surfaces the way the DESIGN.md paces its bands. Use `className="dark"` on a section to render a dark band with the same components.
+Alternate section surfaces the way the design.md paces its bands. Use `className="dark"` on a section to render a dark band with the same components.
 
 ---
 
@@ -72,11 +72,11 @@ A grid of pairs, each rendered as the surface with "Aa" in its foreground color,
 | `destructive` on `background`         | Yes          |
 | Each extra text token on `background` | When defined |
 
-Use `ColorPair` from the helpers. It measures contrast live and re-measures when the theme changes. Report any pair below 4.5:1 for body-size text, even when the DESIGN.md specifies it. A brand primary at 3:1 behind 14px labels is a real finding.
+Use `ColorPair` from the helpers. It measures contrast live and re-measures when the theme changes. Report any pair below 4.5:1 for body-size text, even when the design.md specifies it. A brand primary at 3:1 behind 14px labels is a real finding.
 
 ### Palette
 
-Swatches grouped the way the DESIGN.md groups them (brand, surfaces, text, status, accents). Label each with its DESIGN.md name and token, for example "Warm Stone · `surface-warm`". Show `border`, `input`, `ring`, `chart-1…5` and `sidebar-*` here too.
+Swatches grouped the way the design.md groups them (brand, surfaces, text, status, accents). Label each with its design.md name and token, for example "Warm Stone · `surface-warm`". Show `border`, `input`, `ring`, `chart-1…5` and `sidebar-*` here too.
 
 ### Typography
 
@@ -86,14 +86,14 @@ A specimen table, one row per type token (Cloudscape, Carbon, Atlassian):
 | -------- | ------------------------------------------------- |
 | Token    | `type-display-lg`                                 |
 | Spec     | size / line height / weight / tracking            |
-| Use      | "Section heads", taken from the DESIGN.md         |
+| Use      | "Section heads", taken from the design.md         |
 | Specimen | Real copy set in the token, truncated to one line |
 
 Group the rows display → title → body → label/caption → code. Below the table, show one paragraph of running text at body size, with a link and inline code, so line length and rhythm are visible.
 
 ### Spacing
 
-The base unit and the scale as labeled horizontal bars (Carbon, Atlassian), then a semantic ladder: inside a component, between related items, between groups, between sections (Pajamas). Skip it if the DESIGN.md defines no spacing.
+The base unit and the scale as labeled horizontal bars (Carbon, Atlassian), then a semantic ladder: inside a component, between related items, between groups, between sections (Pajamas). Skip it if the design.md defines no spacing.
 
 ### Radius
 
@@ -105,7 +105,7 @@ Each level as a raised surface with the components that rest there (Pajamas, Mat
 
 ### Motion and icons
 
-Show motion only if the DESIGN.md defines durations or easings: a table of token, milliseconds and use. For icons, show one row with the icon library at each size used by components, in `foreground` and `muted-foreground`.
+Show motion only if the design.md defines durations or easings: a table of token, milliseconds and use. For icons, show one row with the icon library at each size used by components, in `foreground` and `muted-foreground`.
 
 ---
 
@@ -126,7 +126,7 @@ Show motion only if the DESIGN.md defines durations or easings: a table of token
 
 Each component block, in this order. Skip the parts that don't apply:
 
-1. **Name and one line on when to use it.** Take the wording from the DESIGN.md recipe when there is one.
+1. **Name and one line on when to use it.** Take the wording from the design.md recipe when there is one.
 2. **Typical example** in real content.
 3. **Variants** in priority order (primary before secondary before ghost), each with a one-line "when".
 4. **Sizes** as a ladder, smallest to largest.
@@ -190,7 +190,7 @@ The columns are default, hover, focus, active and disabled. Add `loading` with S
 />
 ```
 
-If the DESIGN.md says a state doesn't change ("primary darkens on press only"), leave that column identical. The matrix shows the spec is followed.
+If the design.md says a state doesn't change ("primary darkens on press only"), leave that column identical. The matrix shows the spec is followed.
 
 ---
 
@@ -213,7 +213,7 @@ Show these next to the component they stress:
 
 ## Do and Don't
 
-Pick the two to four DESIGN.md rules that are easiest to break and render each as a pair (Primer, Orbit, Carbon):
+Pick the two to four design.md rules that are easiest to break and render each as a pair (Primer, Orbit, Carbon):
 
 ```tsx
 <div className="grid gap-4 md:grid-cols-2">
@@ -234,7 +234,7 @@ Caption each with the rule in one line, for example "One primary action per grou
 
 ## Recipes and Example Screens
 
-**Recipes.** Build each named component in the DESIGN.md (`hero-band`, `feature-card`, `pricing-tier-card`, `callout-card-coral`, `footer`) from shadcn components and tokens. These are the spec's acceptance tests. If a recipe can't be built without raw values, the token mapping is incomplete.
+**Recipes.** Build each named component in the design.md (`hero-band`, `feature-card`, `pricing-tier-card`, `callout-card-coral`, `footer`) from shadcn components and tokens. These are the spec's acceptance tests. If a recipe can't be built without raw values, the token mapping is incomplete.
 
 **Example screen.** One realistic screen in the brand's domain (Cloudscape demos, Paste page templates): a settings page (FieldGroup, Switch, Select, Button) or a list view (Table, Badge, Pagination, Empty). Use only tokens and components.
 
@@ -258,11 +258,11 @@ They import `cn` from `@/lib/utils`. Rewrite that path to the project's `utils` 
 
 - [ ] Every installed component renders (run the coverage script).
 - [ ] Color roles shown as pairs with contrast; any pair under 4.5:1 is noted in the report.
-- [ ] Type specimen covers every DESIGN.md type token, in real copy.
+- [ ] Type specimen covers every design.md type token, in real copy.
 - [ ] Radius and elevation ladders name the components that use each step.
 - [ ] Primitives have a state matrix; Button and fields include loading and invalid.
 - [ ] Edge cases: long text, empty, error, loading, missing image.
-- [ ] Do/Don't pairs for the DESIGN.md's key rules.
-- [ ] DESIGN.md recipes rebuilt, plus one example screen.
-- [ ] Page-level theme toggle works, and at least one scoped dark band if the DESIGN.md has dark surfaces.
+- [ ] Do/Don't pairs for the design.md's key rules.
+- [ ] design.md recipes rebuilt, plus one example screen.
+- [ ] Page-level theme toggle works, and at least one scoped dark band if the design.md has dark surfaces.
 - [ ] No lorem ipsum, and no state names inside components.

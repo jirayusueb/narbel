@@ -2,64 +2,64 @@ import type { Database, DbExecutor } from "@narbel/db";
 import { Elysia } from "elysia";
 import type Redis from "ioredis";
 
-import type { ICache } from "../../shared/application/interfaces/ICache";
-import type { IFileStorage } from "../../shared/application/interfaces/IFileStorage";
-import type { IPubSub } from "../../shared/application/interfaces/IPubSub";
-import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
-import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
-import type { AfterCommit } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
-import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
+import type { ICache } from "../../shared/application/interfaces/i-cache";
+import type { IFileStorage } from "../../shared/application/interfaces/i-file-storage";
+import type { IPubSub } from "../../shared/application/interfaces/i-pub-sub";
+import { UuidGenerator } from "../../shared/infrastructure/ids/uuid-generator";
+import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/drizzle-processed-events";
+import type { AfterCommit } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
+import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/drizzle-unit-of-work";
 import type { BetterAuthPlugin } from "../auth";
 import type {
   IBoardAccess,
   IBoardRecords,
-} from "./application/ports/IBoardAccess";
-import type { ICommentActivity } from "./application/ports/ICommentActivity";
-import { AddBoardElements } from "./application/usecases/AddBoardElements";
-import { AddBoardImage } from "./application/usecases/AddBoardImage";
-import { AddPage } from "./application/usecases/AddPage";
-import { ArrangeElements } from "./application/usecases/ArrangeElements";
-import { ConnectBoardSync } from "./application/usecases/ConnectBoardSync";
-import { CopyDrawing } from "./application/usecases/CopyDrawing";
-import { DeleteBoardElements } from "./application/usecases/DeleteBoardElements";
-import { DeleteDrawing } from "./application/usecases/DeleteDrawing";
-import type { DeleteDrawingTx } from "./application/usecases/DeleteDrawing";
-import { DeletePage } from "./application/usecases/DeletePage";
-import { ExportBoardScene } from "./application/usecases/ExportBoardScene";
-import { GetBoardChanges } from "./application/usecases/GetBoardChanges";
-import { GetBoardFile } from "./application/usecases/GetBoardFile";
-import { GetBoardScene } from "./application/usecases/GetBoardScene";
-import { GetBoardVersion } from "./application/usecases/GetBoardVersion";
-import { GetLibrary } from "./application/usecases/GetLibrary";
-import { GroupElements } from "./application/usecases/GroupElements";
-import { ListBoardVersions } from "./application/usecases/ListBoardVersions";
-import { ListBoardViewers } from "./application/usecases/ListBoardViewers";
-import { ListPages } from "./application/usecases/ListPages";
-import { PresignBoardFileUpload } from "./application/usecases/PresignBoardFileUpload";
-import { RenamePage } from "./application/usecases/RenamePage";
-import { RenderBoardImage } from "./application/usecases/RenderBoardImage";
-import { RestoreBoardVersion } from "./application/usecases/RestoreBoardVersion";
-import { SaveLibrary } from "./application/usecases/SaveLibrary";
+} from "./application/ports/i-board-access";
+import type { ICommentActivity } from "./application/ports/i-comment-activity";
+import { AddBoardElements } from "./application/usecases/add-board-elements";
+import { AddBoardImage } from "./application/usecases/add-board-image";
+import { AddPage } from "./application/usecases/add-page";
+import { ArrangeElements } from "./application/usecases/arrange-elements";
+import { ConnectBoardSync } from "./application/usecases/connect-board-sync";
+import { CopyDrawing } from "./application/usecases/copy-drawing";
+import { DeleteBoardElements } from "./application/usecases/delete-board-elements";
+import { DeleteDrawing } from "./application/usecases/delete-drawing";
+import type { DeleteDrawingTx } from "./application/usecases/delete-drawing";
+import { DeletePage } from "./application/usecases/delete-page";
+import { ExportBoardScene } from "./application/usecases/export-board-scene";
+import { GetBoardChanges } from "./application/usecases/get-board-changes";
+import { GetBoardFile } from "./application/usecases/get-board-file";
+import { GetBoardScene } from "./application/usecases/get-board-scene";
+import { GetBoardVersion } from "./application/usecases/get-board-version";
+import { GetLibrary } from "./application/usecases/get-library";
+import { GroupElements } from "./application/usecases/group-elements";
+import { ListBoardVersions } from "./application/usecases/list-board-versions";
+import { ListBoardViewers } from "./application/usecases/list-board-viewers";
+import { ListPages } from "./application/usecases/list-pages";
+import { PresignBoardFileUpload } from "./application/usecases/presign-board-file-upload";
+import { RenamePage } from "./application/usecases/rename-page";
+import { RenderBoardImage } from "./application/usecases/render-board-image";
+import { RestoreBoardVersion } from "./application/usecases/restore-board-version";
+import { SaveLibrary } from "./application/usecases/save-library";
 import {
   EditSelection,
   GetSelection,
   SelectElements,
-} from "./application/usecases/Selection";
-import { UpdateBoardElement } from "./application/usecases/UpdateBoardElement";
-import { YjsBoardHub } from "./infrastructure/crdt/YjsBoardHub";
-import { BoardDeletedConsumer } from "./infrastructure/events/BoardDeletedConsumer";
-import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/DrizzleBoardDocumentStore";
-import { DrizzleBoardFileRepository } from "./infrastructure/repositories/DrizzleBoardFileRepository";
-import { DrizzleBoardVersionRepository } from "./infrastructure/repositories/DrizzleBoardVersionRepository";
-import { DrizzleDrawingRows } from "./infrastructure/repositories/DrizzleDrawingRows";
-import { DrizzleLibraryRepository } from "./infrastructure/repositories/DrizzleLibraryRepository";
-import { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence";
-import { ResvgRasterizer } from "./infrastructure/services/ResvgRasterizer";
-import { createBoardFileController } from "./presentation/http/BoardFileController";
-import { createBoardPreviewController } from "./presentation/http/BoardPreviewController";
-import { createBoardVersionController } from "./presentation/http/BoardVersionController";
-import { createLibraryController } from "./presentation/http/LibraryController";
-import { createBoardSyncController } from "./presentation/ws/BoardSyncController";
+} from "./application/usecases/selection";
+import { UpdateBoardElement } from "./application/usecases/update-board-element";
+import { YjsBoardHub } from "./infrastructure/crdt/yjs-board-hub";
+import { BoardDeletedConsumer } from "./infrastructure/events/board-deleted-consumer";
+import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/drizzle-board-document-store";
+import { DrizzleBoardFileRepository } from "./infrastructure/repositories/drizzle-board-file-repository";
+import { DrizzleBoardVersionRepository } from "./infrastructure/repositories/drizzle-board-version-repository";
+import { DrizzleDrawingRows } from "./infrastructure/repositories/drizzle-drawing-rows";
+import { DrizzleLibraryRepository } from "./infrastructure/repositories/drizzle-library-repository";
+import { RedisBoardPresence } from "./infrastructure/services/redis-board-presence";
+import { ResvgRasterizer } from "./infrastructure/services/resvg-rasterizer";
+import { createBoardFileController } from "./presentation/http/board-file-controller";
+import { createBoardPreviewController } from "./presentation/http/board-preview-controller";
+import { createBoardVersionController } from "./presentation/http/board-version-controller";
+import { createLibraryController } from "./presentation/http/library-controller";
+import { createBoardSyncController } from "./presentation/ws/board-sync-controller";
 
 /** The use cases drawing's transports (HTTP, WebSocket, MCP) drive. */
 export interface DrawingUseCases {

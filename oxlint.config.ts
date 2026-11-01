@@ -15,11 +15,10 @@ export default defineConfig({
   ],
   overrides: [
     {
-      // the server follows the clean-architecture gist: PascalCase class files,
+      // the server follows the clean-architecture gist: class-first files,
       // constructor injection via parameter properties, method-style port signatures
       files: ["apps/server/src/**"],
       rules: {
-        "unicorn/filename-case": "off",
         "typescript/parameter-properties": "off",
         "typescript/method-signature-style": "off",
         "eslint/class-methods-use-this": "off",
@@ -31,7 +30,7 @@ export default defineConfig({
       files: [
         "apps/server/src/**/*.test.ts",
         "apps/server/src/**/fakes.ts",
-        "apps/server/src/**/MemoryBus.ts",
+        "apps/server/src/**/memory-bus.ts",
       ],
       rules: {
         "unicorn/no-await-expression-member": "off",

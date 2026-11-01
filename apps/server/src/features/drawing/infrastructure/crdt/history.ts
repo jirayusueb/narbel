@@ -4,14 +4,14 @@ import * as Y from "yjs";
 import {
   toElement,
   toExcalidraw,
-} from "../../application/dtos/ExcalidrawElement";
-import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
-import { byZOrder } from "../../application/dtos/SceneDto";
+} from "../../application/dtos/excalidraw-element";
+import type { ExcalidrawElement } from "../../application/dtos/excalidraw-element";
+import { byZOrder } from "../../application/dtos/scene-dto";
 import type {
   VersionFile,
   VersionScene,
-} from "../../application/ports/IBoardHistory";
-import type { Page } from "../../domain/entities/Page";
+} from "../../application/ports/i-board-history";
+import type { Page } from "../../domain/entities/page";
 import { ensurePages } from "./pages";
 
 /** Every image fileId any element (deleted ones included) references. */
