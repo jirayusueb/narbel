@@ -1,22 +1,11 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
-import { AppError } from "../../../../shared/kernel/errors/app-error";
+import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
-import { PAGE_NAME_MAX_LENGTH, Page } from "../../domain/entities/page";
+import { Page } from "../../domain/entities/page";
 import type { IBoardAccess } from "../ports/i-board-access";
 import type { IBoardScenes } from "../ports/i-board-scenes";
-
-export const validPageName = (raw: string): Result<string, AppError> => {
-  const name = raw.trim();
-  return name.length < 1 || name.length > PAGE_NAME_MAX_LENGTH
-    ? err(
-        AppError.validation(
-          `Page name must be 1 to ${PAGE_NAME_MAX_LENGTH} characters`
-        )
-      )
-    : ok(name);
-};
 
 export class AddPage {
   constructor(
@@ -38,7 +27,7 @@ export class AddPage {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const name = validPageName(input.name);
+    const name = Page.parseName(input.name);
     if (name.isErr()) {
       return err(name.error);
     }

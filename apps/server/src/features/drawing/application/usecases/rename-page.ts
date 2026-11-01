@@ -5,7 +5,6 @@ import type { Result } from "../../../../shared/kernel/types/result";
 import { Page } from "../../domain/entities/page";
 import type { IBoardAccess } from "../ports/i-board-access";
 import type { IBoardScenes } from "../ports/i-board-scenes";
-import { validPageName } from "./add-page";
 
 export class RenamePage {
   constructor(
@@ -27,7 +26,7 @@ export class RenamePage {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const name = validPageName(input.name);
+    const name = Page.parseName(input.name);
     if (name.isErr()) {
       return err(name.error);
     }
