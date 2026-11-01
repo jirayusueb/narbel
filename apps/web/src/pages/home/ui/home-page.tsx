@@ -460,7 +460,7 @@ const Stage = () => {
           </div>
         </div>
       </div>
-      <figcaption className="text-subtle-foreground mt-4 text-center text-[13px]">
+      <figcaption className="text-subtle-foreground text-dense mt-4 text-center">
         Illustration. Agents connect over MCP and edit the live board like any
         other collaborator.
         <span className="sr-only">
@@ -508,7 +508,7 @@ const McpSnippet = () => (
       <span className="bg-citrus text-citrus-foreground rounded-sm px-2 py-0.5 text-xs font-medium">
         POST
       </span>
-      <code className="text-moss truncate font-mono text-[13px]">
+      <code className="text-moss text-dense truncate font-mono">
         {PUBLIC_SERVER_URL}/mcp
       </code>
     </div>
@@ -622,7 +622,7 @@ export const HomePage = () => {
           <MarqueeRow tiles={TILES_TOP} duration="80s" />
           <MarqueeRow tiles={TILES_BOTTOM} duration="95s" reverse />
         </div>
-        <div className="text-subtle-foreground mt-3 flex items-center justify-center gap-1.5 text-[13px] motion-reduce:hidden">
+        <div className="text-subtle-foreground text-dense mt-3 flex items-center justify-center gap-1.5 motion-reduce:hidden">
           Example boards
           <Button
             variant="ghost"

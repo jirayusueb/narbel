@@ -11,6 +11,7 @@ const ConsentRoute = () => {
 };
 
 export const Route = createFileRoute("/consent")({
+  head: () => ({ meta: [{ title: "Connect an app · narbel" }] }),
   ssr: false,
   validateSearch: (search: Record<string, unknown>) => ({
     client_id: text(search.client_id),

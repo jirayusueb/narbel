@@ -138,9 +138,7 @@ const VisibilitySection = ({
               </span>
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-sm font-medium">{label}</span>
-                <span className="text-muted-foreground text-[13px]">
-                  {hint}
-                </span>
+                <span className="text-muted-foreground text-dense">{hint}</span>
               </span>
             </button>
           )
@@ -190,7 +188,7 @@ const VisibilitySection = ({
         </form>
       ) : null}
       {showPasswordForm && saved !== "password" ? (
-        <p id="password-hint" className="text-muted-foreground text-[13px]">
+        <p id="password-hint" className="text-muted-foreground text-dense">
           Set a password to turn this on. Until you save, the board stays{" "}
           {VISIBILITY_OPTIONS.find((o) => o.value === saved)?.label}.
         </p>
@@ -252,7 +250,7 @@ const LinkSection = ({
             readOnly
             aria-label="Share link"
             value={share.url}
-            className="text-foreground focus-visible:outline-ring min-w-0 flex-1 truncate rounded-xs bg-transparent font-mono text-[13px] outline-hidden focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
+            className="text-foreground focus-visible:outline-ring text-dense min-w-0 flex-1 truncate rounded-xs bg-transparent font-mono outline-hidden focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-solid"
           />
           <Button
             variant="secondary"

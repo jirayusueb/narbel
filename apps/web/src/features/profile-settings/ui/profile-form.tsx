@@ -98,7 +98,7 @@ export const ProfileForm = () => {
               </Button>
             ) : null}
           </div>
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-dense">
             {me.avatarUrl
               ? "PNG, JPEG or WebP, up to 2 MB."
               : "Your generated avatar. Upload a photo to replace it."}
@@ -131,7 +131,7 @@ export const ProfileForm = () => {
             value={me.username ? `@${me.username}` : ""}
             className="bg-muted text-muted-foreground"
           />
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-dense">
             Usernames can&apos;t be changed.
           </p>
         </Field>

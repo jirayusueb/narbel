@@ -1,4 +1,4 @@
-import { cn } from "cn";
+import { cn } from "@narbel/ui/lib/utils";
 
 // A thin arc that grows and shrinks as it turns, so it reads as progress rather than a static wheel.
 function Spinner({ className, ...props }: React.ComponentProps<"svg">) {

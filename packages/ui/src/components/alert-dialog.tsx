@@ -1,6 +1,6 @@
 import { Button } from "@narbel/ui/components/button";
 import { ModalRoot, overlayClass } from "@narbel/ui/components/modal-motion";
-import { cn } from "cn";
+import { cn } from "@narbel/ui/lib/utils";
 import * as React from "react";
 import { Dialog as AlertDialogPrimitive, Heading } from "react-aria-components";
 

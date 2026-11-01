@@ -75,7 +75,7 @@ export const McpKeysPanel = () => {
             Let AI agents read and edit your boards. Paste the URL below into an
             MCP client and it signs you in with OAuth. For clients without
             OAuth, create a key and send it in the{" "}
-            <code className="font-mono text-[13px]">x-api-key</code> header.
+            <code className="text-dense font-mono">x-api-key</code> header.
           </p>
         </div>
       </div>
@@ -83,7 +83,7 @@ export const McpKeysPanel = () => {
         <span className="bg-citrus text-citrus-foreground shrink-0 rounded-sm px-2 text-xs font-medium">
           POST
         </span>
-        <code className="text-moss min-w-0 flex-1 truncate font-mono text-[13px]">
+        <code className="text-moss text-dense min-w-0 flex-1 truncate font-mono">
           {MCP_URL}
         </code>
         <CopyUrlButton url={MCP_URL} />
@@ -124,7 +124,7 @@ export const McpKeysPanel = () => {
           <p className="text-muted-foreground text-sm">
             Copy this key now. It is shown only once.
           </p>
-          <pre className="bg-muted text-foreground overflow-x-auto rounded-md p-3 font-mono text-[13px]">
+          <pre className="bg-muted text-foreground text-dense overflow-x-auto rounded-md p-3 font-mono">
             {clientConfig(fresh)}
           </pre>
           <div className="flex flex-wrap gap-2">
@@ -149,7 +149,7 @@ export const McpKeysPanel = () => {
                 <span className="truncate text-sm font-medium">
                   {key.name ?? "Unnamed key"}
                 </span>
-                <span className="text-subtle-foreground shrink-0 font-mono text-[13px]">
+                <span className="text-subtle-foreground text-dense shrink-0 font-mono">
                   {key.start}…
                 </span>
               </span>

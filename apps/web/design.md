@@ -230,12 +230,13 @@ Warm, slightly yellowed greys carry everything; citrus is the single accent.
 - **Closing** (400, 64px desktop `text-closing` / 40px mobile `text-title`, 0.95, -0.04em): the landing's closing call ("Draw the next thing together.") only, one step under the hero.
 - **Wordmark** (400 serif, -0.04em): "narbel" in lowercase. Defaults to Feature size (24px); the landing footer scales it to 24vw beside the mark.
 - **Status word** (400, clamp(7rem, 24vw, 18rem), 1, -0.04em): the "404" and "Oops" words on the not-found and error pages only.
-- **Title** (400, 40px, 1, -0.035em): page titles ("Boards"), landing section headings on desktop.
+- **Title** (400, 40px at every width, 1, -0.035em): page titles ("Boards", "Profile"), landing section headings on desktop.
 - **Headline** (400, 32px, 1, -0.035em): section headings, dialog titles, auth panel titles.
 - **Feature** (400, 24px, 1.05, -0.02em): board card titles, empty-state titles, card titles, and the titles of the board's comments panel and phone drawer.
 - **Chrome title** (400 serif, 17px, 1.5, -0.02em): the board name inside its 40px name card, the one serif small enough to sit in Excalidraw's chrome.
 - **Body** (400, 14px to 17px, 1.4 to 1.45, -0.01em): copy. Landing paragraphs run 17px; comment bodies run 14px.
 - **Label** (500, 14px or 13px, 1.15): buttons, field labels, tabs, page tabs, Excalidraw's Library label. Dense rows (thread authors, mention and assignee pickers, notifications) use 13px.
+- **Dense** (13px, `text-dense`, line height inherited): the one step between caption and label, for dense rows, meta lines (board card dates, trash notes), field labels and descriptions, small buttons and inline code. Never a literal `text-[13px]`; custom sizes merge through `cn` from `@narbel/ui/lib/utils`, which knows the ramp's names.
 - **Caption** (400, 12px, 1.33): timestamps, the Live status, composer hints, resolved-by lines.
 - **Badge** (600, 10px, 1, tabular figures): the unread count on the bell, and nothing else.
 
@@ -277,7 +278,7 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 ### Chips
 
-- **Status pill:** 24px tall, full radius, sheet background with a 6px dot. Live: citrus dot. Connecting and Syncing: subtle-ink dot, pulsing, with shimmering text. Offline (once the socket has closed and a reconnect is pending) and No access: alert dot with its label. No access means the server refused the socket ("forbidden") or the board endpoint now answers 403/404; reconnecting stops, the canvas turns read-only, and the board page swaps to its Unlock or Not found screen. One polite live region announces Offline, No access and "Back online"; the visible pills stay silent. "View only" is a recess-tone pill, never a bordered one.
+- **Status pill:** 24px tall, full radius, sheet background with a 6px dot. Live: citrus dot with a 1px ink ring (citrus alone is 1.1:1 on a sheet). Connecting and Syncing: subtle-ink dot, pulsing, with shimmering text. Offline (once the socket has closed and a reconnect is pending) and No access: alert dot with its label. No access means the server refused the socket ("forbidden") or the board endpoint now answers 403/404; reconnecting stops, the canvas turns read-only, and the board page swaps to its Unlock or Not found screen. One polite live region announces Offline, No access and "Back online"; the visible pills stay silent. "View only" is a recess-tone pill, never a bordered one.
 - **Offline cache:** for signed-in users the board's doc is kept in IndexedDB (`narbel:<userId>:<boardId>`), so a returning visit paints the scene from disk while the pill still reads Connecting or Syncing until the server syncs; edits made while Offline are kept there and merge on reconnect. Guests on a share link are never cached. Signing out, or the server refusing the board, deletes the cache.
 - **Method chip:** citrus, 8px radius, 12px medium text ("POST").
 
@@ -291,7 +292,7 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 
 ### Inputs / Fields
 
-- **Style:** 40px tall, 10px radius, sheet background, 1px input stroke (ink at 20%), 14px text, subtle-ink placeholder.
+- **Style:** 40px tall, 10px radius, sheet background, 1px input stroke (ink at 45% light, white at 36% dark: 3:1 against both the desk and a sheet), 14px text, subtle-ink placeholder.
 - **Focus:** 2px ring-colour outline offset 2px; no glow.
 - **Error / Disabled:** alert outline and 13px alert message; disabled uses the recess fill.
 
@@ -309,10 +310,10 @@ One field above the boards grid: 40px input group (search glyph, clear button on
 
 The board is a full-viewport Excalidraw canvas. Excalidraw's own phone/desktop flag is the single source of truth for which chrome shows (a child of `<Excalidraw>` reports it up; a ResizeObserver calls `api.refresh()` only when the phone breakpoint flips, because Excalidraw's own observer updates the flag without re-rendering).
 
-- **Desktop:** a name card (mark, serif title capped at 288px, status) floats beside Excalidraw's menu button; presence, comment toggle, notifications, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer.
+- **Desktop:** a name card (mark, serif title capped at 288px, status) floats beside Excalidraw's menu button; presence, comment toggle, notifications, a citrus Share and the account pill sit in Excalidraw's top-right slot; page tabs sit in its footer. The name card (and, in compact mode, the whole second row) comes before Excalidraw in the DOM, so Tab reaches the board's name before the toolbar and the footer.
 - **Page tabs:** one island in Excalidraw's footer, capped at 560px. Names truncate at 160px with an ellipsis. Once the tabs overflow, the strip scrolls without a scrollbar, and three controls appear: earlier and later chevrons (each disabled at its own end) and an "All pages" menu listing every page with a check on the current one. The controls depend on overflow alone, never on scroll position, so the strip keeps its width while it scrolls. The active tab, with its rename, duplicate and delete actions, always scrolls into view when it changes or a page is added. Board routes opt out of the router's scroll restoration, which would otherwise write stale offsets back over the strip.
 - **Compact desktop:** chosen by measured space, not width. When the name card or the top-right cluster would come within 8px of Excalidraw's centred toolbar (a long account name or a few collaborators can do this as wide as 1440px), the name card and the actions drop to a second row under the toolbar: name card left with a truncating title and a dot-only live status, actions right. Returning needs 32px of room so the layout doesn't flicker. Excalidraw's hint and shape-properties panel move down by one row.
-- **Phones:** one bottom drawer holds pages, board actions, people and preferences. Above the bottom row (Board button, comments, notifications, all 44px) a status pill always shows: dot only while live, dot and label otherwise, plus "View only" for viewers. While following someone, an ink "Following X" pill (44px, tap to stop) sits top-centre under the toolbar, outside the drawer.
+- **Phones:** one bottom drawer holds pages, board actions, people and preferences. The bottom row (Board button, comments, notifications, all 44px) shares the centre line of Excalidraw's bottom buttons and sits in the middle of the gap between its menu button and undo/redo; below 360px the Board button keeps only its icon. Above the row a status pill always shows: dot only while live, dot and label otherwise, plus "View only" for viewers. Both step aside while Excalidraw's main menu is open. While following someone, an ink "Following X" pill (44px, tap to stop) sits top-centre under the toolbar, outside the drawer.
 
 Preferences, theme and export live in Excalidraw's main menu. Excalidraw's islands are re-tokenised to the same radii, Inter and white surfaces; its focus ring is the ring colour (ink light, citrus dark) at 2px on every control, and the canvas itself shows an inset 2px ring when it has keyboard focus; its hint and shortcut digits use subtle ink, its selection box and handles are moss in light and a pre-inverted `#455a00` in dark (Excalidraw inverts dark canvases, so it renders as a light lime), its right-click menu uses the app's menu styling, and its built-in collaborator list is hidden because the presence bar already shows people. Deleting a page asks first, naming the page and saying it is removed for everyone. Buttons that are busy or unavailable (`isPending`, `aria-disabled`) dim to 40% like disabled ones but stay focusable.
 
@@ -329,7 +330,7 @@ Isometric slab stickers from the fun-isometric kit (vendored in `src/shared/ui/s
 ### Loading
 
 - **Signature loader:** the mark drawn by its own pen. The arch stroke draws on, the collaborator's dot lands with a citrus ring ping, then the ink runs off the far end and the loop restarts (1.6s). The label under it uses the text shimmer. Reduced motion: the static mark breathes in opacity. Used for route pending states and inside the board skeleton.
-- **Skeletons:** recess-grey shapes with one shared sheen band that sweeps the whole viewport (`skeleton-sheen`, fixed background), so every skeleton on screen moves as one. Skeletons copy the real layout: board cards keep their sheet, title lines and meta line; the board skeleton places ghost islands where Excalidraw's islands will appear.
+- **Skeletons:** recess-grey shapes with one shared sheen band that sweeps the whole viewport (`skeleton-sheen`), so every skeleton on screen moves as one. Each skeleton clips its own copy of the band, offset by its left edge (`--sheen-x`, measured by `<Skeleton>` once at mount), and the band moves by transform only, so the sweep never repaints. Skeletons copy the real layout: board cards keep their sheet, title lines and meta line; the board skeleton places ghost islands where Excalidraw's islands will appear.
 - **Spinner:** a thin arc that lengthens and shortens as it turns, for button-level waits.
 - **Text shimmer:** in-progress labels ("Connecting", "Syncing", "Loading") carry a brighter band through their own ink (`text-shimmer`).
 

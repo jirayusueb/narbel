@@ -70,7 +70,7 @@ const CommentRow = ({
     <div ref={row} className="group/row flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
         <UserAvatar size={24} user={comment.author} />
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+        <span className="text-dense min-w-0 flex-1 truncate font-medium">
           {comment.author.name}
           <span className="text-muted-foreground font-normal">
             {comment.author.username ? ` @${comment.author.username}` : ""}
@@ -310,7 +310,7 @@ export const ThreadCard = ({
             className="focus-visible:outline-ring flex cursor-pointer items-center gap-2 rounded-sm text-left focus-visible:outline-2 focus-visible:outline-solid"
           >
             <UserAvatar size={24} user={thread.author} />
-            <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
+            <span className="text-dense min-w-0 flex-1 truncate font-medium">
               {thread.author.name}
             </span>
             <Meta comment={thread} />

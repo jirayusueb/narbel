@@ -1,4 +1,5 @@
 import { Button } from "@narbel/ui/components/button";
+import { cn } from "@narbel/ui/lib/utils";
 import { ArrowDownIcon } from "@phosphor-icons/react";
 import {
   MessageScroller as MessageScrollerPrimitive,
@@ -6,7 +7,6 @@ import {
   useMessageScrollerScrollable,
   useMessageScrollerVisibility,
 } from "@shadcn/react/message-scroller";
-import { cn } from "cn";
 import * as React from "react";
 
 function MessageScrollerProvider(

@@ -1,7 +1,7 @@
 "use client";
 
+import { cn } from "@narbel/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
 import type * as React from "react";
 import {
   Button as ButtonPrimitive,
@@ -33,7 +33,7 @@ const buttonVariants = cva(
         default:
           "h-10 gap-2.5 rounded-[15px] px-5 text-sm has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
         xs: "h-7 gap-1.5 rounded-[8px] px-2.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
-        sm: "h-8 gap-2 rounded-[10px] px-3.5 text-[13px] has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3 [&_svg:not([class*='size-'])]:size-4",
+        sm: "text-dense h-8 gap-2 rounded-[10px] px-3.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3 [&_svg:not([class*='size-'])]:size-4",
         lg: "h-15 gap-4 rounded-[20px] px-7.5 text-sm has-data-[icon=inline-start]:pl-6.5",
         icon: "size-10 rounded-[15px]",
         "icon-xs":

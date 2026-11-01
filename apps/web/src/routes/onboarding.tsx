@@ -8,6 +8,7 @@ const OnboardingRoute = () => (
 );
 
 export const Route = createFileRoute("/onboarding")({
+  head: () => ({ meta: [{ title: "Pick your username · narbel" }] }),
   ssr: false,
   validateSearch: redirectSearch,
   beforeLoad: requireNotOnboarded,

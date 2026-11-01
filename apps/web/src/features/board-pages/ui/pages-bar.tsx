@@ -342,7 +342,7 @@ export const PagesBar = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`relative text-[13px] text-inherit hover:bg-transparent ${active ? "font-medium" : "hover:text-foreground"}`}
+                  className={`text-dense relative text-inherit hover:bg-transparent ${active ? "font-medium" : "hover:text-foreground"}`}
                   data-page-tab
                   aria-current={active ? "page" : undefined}
                   onPress={() => onSelect(page.id)}

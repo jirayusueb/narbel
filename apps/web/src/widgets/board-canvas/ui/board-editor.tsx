@@ -15,7 +15,7 @@ import { ArrowLeft, History, Pencil, Share2, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 import type { Board } from "@/entities/board";
 import { useMe } from "@/entities/person";
@@ -76,6 +76,7 @@ const DeviceReporter = ({
 };
 
 const PhoneBar = ({
+  hidden,
   signedIn,
   status,
   canWrite,
@@ -83,35 +84,41 @@ const PhoneBar = ({
   onPanelChange,
   onOpenDrawer,
 }: {
+  // Excalidraw's main menu opens over this bar's spot, so the bar steps aside meanwhile.
+  hidden: boolean;
   signedIn: boolean;
   status: CollabStatus;
   canWrite: boolean;
   panelOpen: boolean;
   onPanelChange: (open: boolean) => void;
   onOpenDrawer: () => void;
-}) => (
-  // Status sits on its own line so the action row stays narrow enough to clear Excalidraw's menu and undo buttons.
-  <div className="pointer-events-none absolute bottom-8 left-1/2 z-[4] flex -translate-x-1/2 flex-col items-center gap-2 [&>*]:pointer-events-auto">
-    <div className="bg-card shadow-elevated flex h-8 items-center rounded-full px-3">
-      <BoardStatus status={status} canWrite={canWrite} compact />
-    </div>
-    <div className="flex items-center gap-1.5">
-      <Button
-        variant="secondary"
-        size="sm"
-        className="h-11"
-        onPress={onOpenDrawer}
-      >
-        <Users data-icon="inline-start" />
-        Board
-      </Button>
-      <div className="bg-card shadow-elevated flex rounded-md [&_:is(button,a)]:size-11">
-        <CommentsPanelToggle open={panelOpen} onChange={onPanelChange} />
-        {signedIn ? <NotificationsBell /> : null}
+}) =>
+  hidden ? null : (
+    // Status sits on its own line so the action row stays narrow enough to clear Excalidraw's menu and undo buttons.
+    // The row shares the centre line of Excalidraw's 44px bottom buttons (22px up) and the middle of the gap between
+    // its menu button and the twice-as-wide undo/redo pair (22px left of the viewport centre).
+    <div className="pointer-events-none absolute bottom-[22px] left-[calc(50%-22px)] z-[4] flex -translate-x-1/2 flex-col items-center gap-2 [&>*]:pointer-events-auto">
+      <div className="bg-card shadow-elevated flex h-8 items-center rounded-full px-3">
+        <BoardStatus status={status} canWrite={canWrite} compact />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-11 max-[359px]:w-11 max-[359px]:px-0"
+          onPress={onOpenDrawer}
+        >
+          <Users data-icon="inline-start" />
+          {/* The narrowest phones leave room for the icon only. */}
+          <span className="max-[359px]:sr-only">Board</span>
+        </Button>
+        <div className="bg-card shadow-elevated flex rounded-md [&_:is(button,a)]:size-11">
+          <CommentsPanelToggle open={panelOpen} onChange={onPanelChange} />
+          {signedIn ? <NotificationsBell /> : null}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 
 const BoardMainMenu = ({
   board,
@@ -223,6 +230,7 @@ export const BoardEditor = ({
     [pageId, onPageChange]
   );
   const [commentMode, setCommentMode] = useState(false);
+  const [mainMenuOpen, setMainMenuOpen] = useState(false);
   const {
     value: drawerOpen,
     setTrue: handleOpenDrawer,
@@ -363,7 +371,9 @@ export const BoardEditor = ({
     </>
   );
 
-  let chrome = (
+  // Desktop chrome renders before Excalidraw in the DOM so Tab reaches the top row before the toolbar and
+  // footer; the phone bar sits at the bottom, so it follows them.
+  let topChrome: ReactNode = (
     <BoardIdentity
       board={board}
       status={status}
@@ -371,9 +381,12 @@ export const BoardEditor = ({
       cardRef={setCard}
     />
   );
+  let phoneBar: ReactNode = null;
   if (isPhone) {
-    chrome = (
+    topChrome = null;
+    phoneBar = (
       <PhoneBar
+        hidden={mainMenuOpen}
         signedIn={signedIn}
         status={status}
         canWrite={writable}
@@ -383,7 +396,7 @@ export const BoardEditor = ({
       />
     );
   } else if (isCompact) {
-    chrome = (
+    topChrome = (
       <div className="pointer-events-none absolute inset-x-4 top-[68px] z-[4] flex items-center justify-between gap-2 [&>*]:pointer-events-auto">
         <BoardIdentity
           board={board}
@@ -409,6 +422,7 @@ export const BoardEditor = ({
       data-chrome={isCompact && !isPhone ? "compact" : undefined}
       className="bg-background relative h-svh w-full overflow-hidden"
     >
+      {topChrome}
       <Excalidraw
         theme={resolvedTheme === "dark" ? "dark" : "light"}
         name={board.title}
@@ -420,6 +434,7 @@ export const BoardEditor = ({
           onChange(elements, appState);
           preferences.onAppState(appState);
           onFiles(files);
+          setMainMenuOpen(appState.openMenu === "canvas");
         }}
         onPointerUpdate={onPointerUpdate}
         renderTopRightUI={() =>
@@ -487,7 +502,7 @@ export const BoardEditor = ({
           <FollowingPill {...presenceProps} touch />
         </div>
       ) : null}
-      {chrome}
+      {phoneBar}
       <StatusAnnouncer status={status} />
       <BoardDrawer
         isOpen={drawerOpen}

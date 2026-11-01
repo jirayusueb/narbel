@@ -99,7 +99,7 @@ export const ClaimUsernameForm = ({ redirectTo }: { redirectTo?: string }) => {
           <p
             id="username-status"
             aria-live="polite"
-            className={`text-[13px] ${TONE[status.tone]}`}
+            className={`text-dense ${TONE[status.tone]}`}
           >
             {status.text}
           </p>

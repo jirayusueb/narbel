@@ -1,8 +1,8 @@
 "use client";
 
+import { cn } from "@narbel/ui/lib/utils";
 import { CheckIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { cva } from "class-variance-authority";
-import { cn } from "cn";
 import * as React from "react";
 import {
   composeRenderProps,

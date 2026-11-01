@@ -142,7 +142,7 @@ const EmptyBoards = () => (
 const DashboardHeader = ({ boards }: { boards: Board[] | undefined }) => (
   <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
     <div className="flex flex-col gap-1">
-      <h1 className="font-display text-title leading-none font-normal md:text-[56px]">
+      <h1 className="font-display text-title leading-none font-normal">
         Boards
       </h1>
       {boards ? (

@@ -2,8 +2,8 @@
 
 import { Button } from "@narbel/ui/components/button";
 import { ModalRoot, overlayClass } from "@narbel/ui/components/modal-motion";
+import { cn } from "@narbel/ui/lib/utils";
 import { XIcon } from "@phosphor-icons/react";
-import { cn } from "cn";
 import { useDragControls } from "motion/react";
 import * as React from "react";
 import { Dialog as DialogPrimitive, Heading } from "react-aria-components";

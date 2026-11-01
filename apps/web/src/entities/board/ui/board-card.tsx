@@ -52,7 +52,7 @@ export const BoardCard = ({
         </Link>
       </ViewTransition>
     </h3>
-    <p className="text-subtle-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+    <p className="text-subtle-foreground text-dense flex flex-wrap items-center gap-x-3 gap-y-1">
       <span className="flex items-center gap-1.5">
         <Clock aria-hidden className="size-3.5" />
         <span>

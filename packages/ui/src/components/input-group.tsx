@@ -3,8 +3,8 @@
 import { Button } from "@narbel/ui/components/button";
 import { Input } from "@narbel/ui/components/input";
 import { Textarea } from "@narbel/ui/components/textarea";
+import { cn } from "@narbel/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
 import * as React from "react";
 import { Group, type GroupProps } from "react-aria-components";
 
