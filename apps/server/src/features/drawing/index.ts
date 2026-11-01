@@ -6,7 +6,7 @@ export {
   type DrawingRooms,
   type DrawingUseCases,
 } from "./ioc";
-export { createLiveConsumer } from "./infrastructure/events/liveConsumer";
+export { LiveConsumer } from "./infrastructure/events/LiveConsumer";
 export { backfillBoardText } from "./infrastructure/repositories/backfillBoardText";
 export { sweepBoardFiles } from "./infrastructure/gc/sweepBoardFiles";
 export { RedisBoardPresence } from "./infrastructure/services/RedisBoardPresence";

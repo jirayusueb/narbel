@@ -33,7 +33,7 @@ export interface ThreadQuery {
   viewerId?: string;
 }
 
-export interface IBoardCommentRepository {
+export interface ICommentRepository {
   findById(boardId: string, id: string): Promise<Comment | null>;
   view(
     boardId: string,

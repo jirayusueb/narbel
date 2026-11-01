@@ -10,7 +10,7 @@ import {
   backfillBoardText,
   createDrawingConsumer,
   createDrawingRooms,
-  createLiveConsumer,
+  LiveConsumer,
   RedisBoardPresence,
   sweepBoardFiles,
 } from "./features/drawing";
@@ -72,7 +72,7 @@ const notification = createNotificationConsumers({
   pubsub,
   apiOrigin: ENV.BETTER_AUTH_URL,
 });
-const live = createLiveConsumer({ pubsub });
+const live = new LiveConsumer(pubsub);
 const search = createSearchConsumers({ db });
 const cache = new RedisCache(redis);
 // one set of live rooms per instance: the HTTP and WebSocket use cases and the board-deleted consumer share it
@@ -96,26 +96,26 @@ const outbox = new OutboxWorker(
   () => new Date(),
   // the event router: each type reaches every context that reacts to it
   routeEvents({
-    "event.comment-assigned": [notification.discussion],
-    "event.people-mentioned": [notification.discussion],
-    "event.thread-replied": [notification.discussion],
-    "event.thread-resolved": [notification.discussion],
-    "event.comment-posted": [search.comment],
-    "event.comment-edited": [search.comment],
-    "event.comment-deleted": [search.comment],
-    "event.drawing-text-changed": [search.text],
-    "event.member-invited": [notification.memberInvited],
-    "event.person-deleted": [notification.personDeleted],
+    "event.comment-assigned": [notification.discussion.consume],
+    "event.people-mentioned": [notification.discussion.consume],
+    "event.thread-replied": [notification.discussion.consume],
+    "event.thread-resolved": [notification.discussion.consume],
+    "event.comment-posted": [search.comment.consume],
+    "event.comment-edited": [search.comment.consume],
+    "event.comment-deleted": [search.comment.consume],
+    "event.drawing-text-changed": [search.text.consume],
+    "event.member-invited": [notification.memberInvited.consume],
+    "event.person-deleted": [notification.personDeleted.consume],
     "event.member-removed": [
-      createDiscussionConsumer({ db }),
-      notification.memberRemoved,
-      live,
+      createDiscussionConsumer({ db }).consume,
+      notification.memberRemoved.consume,
+      live.consume,
     ],
-    "event.access-changed": [live],
+    "event.access-changed": [live.consume],
     // discussion and search have no consumer: comments and their search rows still cascade with the board row
     "event.board-deleted": [
-      createDrawingConsumer({ db, storage, rooms }),
-      notification.boardDeleted,
+      createDrawingConsumer({ db, storage, rooms }).consume,
+      notification.boardDeleted.consume,
     ],
   })
 );

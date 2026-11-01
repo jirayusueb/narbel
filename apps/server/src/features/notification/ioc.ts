@@ -5,8 +5,6 @@ import type { IPubSub } from "../../shared/application/interfaces/IPubSub";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
 import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
 import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
-import { UnreadableEventError } from "../../shared/infrastructure/outbox/OutboxWorker";
-import type { EventConsumer } from "../../shared/infrastructure/outbox/OutboxWorker";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
 import { DrizzleProfileRepository } from "../profile";
@@ -18,11 +16,11 @@ import { HandleDiscussionEvent } from "./application/usecases/HandleDiscussionEv
 import type { NotificationTx } from "./application/usecases/HandleDiscussionEvent";
 import { HandleMemberInvited } from "./application/usecases/HandleMemberInvited";
 import { NotificationUseCases } from "./application/usecases/NotificationUseCases";
-import { boardDeletedSchema } from "./infrastructure/events/boardDeletedSchema";
-import { discussionEventSchema } from "./infrastructure/events/discussionEventSchema";
-import { memberInvitedSchema } from "./infrastructure/events/memberInvitedSchema";
-import { memberRemovedSchema } from "./infrastructure/events/memberRemovedSchema";
-import { personDeletedSchema } from "./infrastructure/events/personDeletedSchema";
+import { BoardDeletedConsumer } from "./infrastructure/events/BoardDeletedConsumer";
+import { DiscussionEventConsumer } from "./infrastructure/events/DiscussionEventConsumer";
+import { MemberInvitedConsumer } from "./infrastructure/events/MemberInvitedConsumer";
+import { MemberRemovedConsumer } from "./infrastructure/events/MemberRemovedConsumer";
+import { PersonDeletedConsumer } from "./infrastructure/events/PersonDeletedConsumer";
 import { DrizzleNotificationRepository } from "./infrastructure/repositories/DrizzleNotificationRepository";
 import { createNotificationController } from "./presentation/http/NotificationController";
 
@@ -63,13 +61,7 @@ export const createNotificationConsumers = ({
   db: Database;
   pubsub: IPubSub;
   apiOrigin: string;
-}): {
-  discussion: EventConsumer;
-  memberInvited: EventConsumer;
-  memberRemoved: EventConsumer;
-  boardDeleted: EventConsumer;
-  personDeleted: EventConsumer;
-} => {
+}) => {
   const ids = new UuidGenerator();
   const uow = new DrizzleUnitOfWork<NotificationTx>(db, (tx, afterCommit) => ({
     notifications: new DrizzleNotificationRepository(
@@ -82,46 +74,11 @@ export const createNotificationConsumers = ({
     processed: new DrizzleProcessedEvents(tx),
     people: new DrizzleProfileRepository(tx, apiOrigin),
   }));
-  const handle = new HandleDiscussionEvent(uow);
-  const invited = new HandleMemberInvited(uow);
-  const forget = new ForgetRemovedInvite(uow);
-  const forgetPerson = new ForgetDeletedPerson(uow);
-  const drop = new DropBoardNotifications(uow);
   return {
-    discussion: async (id, payload) => {
-      const event = discussionEventSchema.safeParse(payload);
-      if (!event.success) {
-        throw new UnreadableEventError(event.error.message);
-      }
-      await handle.execute(id, event.data);
-    },
-    memberInvited: async (id, payload) => {
-      const event = memberInvitedSchema.safeParse(payload);
-      if (!event.success) {
-        throw new UnreadableEventError(event.error.message);
-      }
-      await invited.execute(id, event.data);
-    },
-    memberRemoved: async (id, payload) => {
-      const event = memberRemovedSchema.safeParse(payload);
-      if (!event.success) {
-        throw new UnreadableEventError(event.error.message);
-      }
-      await forget.execute(id, event.data);
-    },
-    boardDeleted: async (id, payload) => {
-      const event = boardDeletedSchema.safeParse(payload);
-      if (!event.success) {
-        throw new UnreadableEventError(event.error.message);
-      }
-      await drop.execute(id, event.data);
-    },
-    personDeleted: async (id, payload) => {
-      const event = personDeletedSchema.safeParse(payload);
-      if (!event.success) {
-        throw new UnreadableEventError(event.error.message);
-      }
-      await forgetPerson.execute(id, event.data);
-    },
+    discussion: new DiscussionEventConsumer(new HandleDiscussionEvent(uow)),
+    memberInvited: new MemberInvitedConsumer(new HandleMemberInvited(uow)),
+    memberRemoved: new MemberRemovedConsumer(new ForgetRemovedInvite(uow)),
+    boardDeleted: new BoardDeletedConsumer(new DropBoardNotifications(uow)),
+    personDeleted: new PersonDeletedConsumer(new ForgetDeletedPerson(uow)),
   };
 };

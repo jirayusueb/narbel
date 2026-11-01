@@ -110,6 +110,12 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 - Don't use `.only` or `.skip` in committed code
 - Keep test suites reasonably flat - avoid excessive `describe` nesting
 
+## Server code style
+
+- Anything in `apps/server` that carries application logic (use cases, repositories, services, policies, outbox consumers) is a class that receives its dependencies through the constructor.
+- Domain entities, rules and validators are an interface plus plain functions over that data. A value object wrapping a single primitive (`BoardTitle`, `SearchQuery`, `ChangeCursor`) stays a class with a private constructor and a static `parse` or `create`.
+- Modules of pure helper functions that infrastructure shares (`boardVersions.ts`, `pruneOutbox.ts`, `routeEvents.ts`) stay as functions.
+
 ## When Oxlint + Oxfmt Can't Help
 
 Oxlint + Oxfmt will catch most mechanical issues automatically. Focus your attention on:

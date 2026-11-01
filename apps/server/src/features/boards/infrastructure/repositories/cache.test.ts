@@ -4,7 +4,8 @@ import { RedisCache } from "../../../../shared/infrastructure/cache/RedisCache";
 import type { RedisLike } from "../../../../shared/infrastructure/cache/RedisCache";
 import { transactionalCache } from "../../../../shared/infrastructure/cache/TransactionalCache";
 import type { IBoardRepository } from "../../application/ports/IBoardRepository";
-import { Board } from "../../domain/entities/Board";
+import { createBoard, restoreBoard } from "../../domain/entities/Board";
+import type { Board } from "../../domain/entities/Board";
 import { BoardTitle } from "../../domain/values/BoardTitle";
 import { CachedBoardRepository } from "./CachedBoardRepository";
 
@@ -36,7 +37,7 @@ class FakeRedis implements RedisLike {
 
 const now = new Date("2026-01-01T00:00:00Z");
 const board = (id = "b1", title = "Mine") =>
-  Board.create(id, "owner", BoardTitle.restore(title), now);
+  createBoard(id, "owner", BoardTitle.restore(title), now);
 
 class CountingBoards implements IBoardRepository {
   reads = 0;
@@ -72,7 +73,7 @@ class CountingBoards implements IBoardRepository {
     }
     this.rows.set(
       id,
-      Board.restore({ ...row, title: row.title.value, trashedAt: at })
+      restoreBoard({ ...row, title: row.title.value, trashedAt: at })
     );
     return Promise.resolve(true);
   };

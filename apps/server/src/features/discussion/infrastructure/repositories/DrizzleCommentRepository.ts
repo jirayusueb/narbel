@@ -18,7 +18,7 @@ import type { Cursor } from "../../../../shared/kernel/types/Cursor";
 import type {
   CommentActivity,
   CommentView,
-  IBoardCommentRepository,
+  ICommentRepository,
   ReactionSummary,
   ThreadQuery,
 } from "../../application/ports/ICommentRepository";
@@ -53,7 +53,7 @@ const statusFilter = (status: ThreadQuery["status"]) => {
     : isNotNull(comment.resolvedAt);
 };
 
-export class DrizzleCommentRepository implements IBoardCommentRepository {
+export class DrizzleCommentRepository implements ICommentRepository {
   constructor(private readonly db: DbExecutor) {}
 
   async findById(boardId: string, id: string) {
@@ -127,7 +127,7 @@ export class DrizzleCommentRepository implements IBoardCommentRepository {
   async update(
     boardId: string,
     id: string,
-    patch: Parameters<IBoardCommentRepository["update"]>[2]
+    patch: Parameters<ICommentRepository["update"]>[2]
   ) {
     await this.db
       .update(comment)

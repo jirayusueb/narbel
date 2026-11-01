@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
-import type { IBoardCommentRepository } from "../ports/ICommentRepository";
+import type { ICommentRepository } from "../ports/ICommentRepository";
 import { UnassignRemovedMember } from "./UnassignRemovedMember";
 import type { UnassignTx } from "./UnassignRemovedMember";
 
@@ -14,7 +14,7 @@ const setup = () => {
         cleared.push(`${boardId}:${userId}`);
         return Promise.resolve();
       },
-    } as unknown as IBoardCommentRepository,
+    } as unknown as ICommentRepository,
     processed: {
       claim: (consumer, id) => {
         const fresh = !seen.has(`${consumer}:${id}`);
