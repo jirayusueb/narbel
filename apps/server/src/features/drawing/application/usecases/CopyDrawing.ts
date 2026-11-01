@@ -3,8 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, ok, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Element } from "../../domain/entities/Element";
-import { MAIN_PAGE } from "../../domain/entities/Page";
-import type { Page } from "../../domain/entities/Page";
+import { MAIN_PAGE, Page } from "../../domain/entities/Page";
 import { MAX_FILE_BYTES } from "../../domain/rules/UploadRules";
 import { boardFileKey, boardFilePrefix } from "../../domain/values/FileKey";
 import type { CopyTarget } from "../ports/IBoardAccess";
@@ -60,7 +59,7 @@ export class CopyDrawing {
   ): Promise<Result<undefined, AppError>> {
     // one transaction, so a concurrent editor cannot tear the snapshot
     const snapshot = await this.scenes.transact(sourceId, (s) => {
-      const pages = s.pages().map((p): Page => ({ ...p }));
+      const pages = s.pages().map((p) => Page.create(p.id, p.name));
       const elements = pages.flatMap((p) =>
         s
           .all(p.id)

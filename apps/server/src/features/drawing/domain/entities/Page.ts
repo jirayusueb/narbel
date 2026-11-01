@@ -1,9 +1,15 @@
-export interface Page {
-  id: string;
-  name: string;
+export class Page {
+  private constructor(
+    readonly id: string,
+    readonly name: string
+  ) {}
+
+  static create(id: string, name: string): Page {
+    return new Page(id, name);
+  }
 }
 
-export const MAIN_PAGE: Page = { id: "page:main", name: "Page 1" };
+export const MAIN_PAGE = Page.create("page:main", "Page 1");
 export const PAGE_NAME_MAX_LENGTH = 80;
 
 /** Elements of every page share one map, so the key carries the page. */

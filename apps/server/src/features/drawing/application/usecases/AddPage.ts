@@ -3,8 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { PAGE_NAME_MAX_LENGTH } from "../../domain/entities/Page";
-import type { Page } from "../../domain/entities/Page";
+import { PAGE_NAME_MAX_LENGTH, Page } from "../../domain/entities/Page";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardScenes } from "../ports/IBoardScenes";
 
@@ -43,7 +42,7 @@ export class AddPage {
     if (name.isErr()) {
       return err(name.error);
     }
-    const page = { id: `page:${this.ids.generate()}`, name: name.value };
+    const page = Page.create(`page:${this.ids.generate()}`, name.value);
     await this.scenes.transact(input.boardId, (s) => {
       s.addPage(page);
     });

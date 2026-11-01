@@ -7,8 +7,7 @@ import {
 } from "../../application/dtos/ExcalidrawElement";
 import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { SceneAccess } from "../../application/ports/IBoardScenes";
-import { MAIN_PAGE, elementKey } from "../../domain/entities/Page";
-import type { Page } from "../../domain/entities/Page";
+import { MAIN_PAGE, Page, elementKey } from "../../domain/entities/Page";
 import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
 import { touchesSince } from "./changes";
 
@@ -23,7 +22,7 @@ export const ensurePages = (doc: Y.Doc, origin: unknown): boolean => {
   }
   const elements = doc.getMap<ExcalidrawElement>("elements");
   doc.transact(() => {
-    pages.push([MAIN_PAGE]);
+    pages.push([{ id: MAIN_PAGE.id, name: MAIN_PAGE.name }]);
     // snapshot first: setting keys while iterating the live map would revisit them
     for (const [key, element] of Object.entries(elements.toJSON())) {
       elements.delete(key);
@@ -119,9 +118,10 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
     });
   const indexOf = (id: string) => pages.toArray().findIndex((p) => p.id === id);
   return {
-    pages: () => pages.toArray(),
+    pages: () => pages.toArray().map((p) => Page.create(p.id, p.name)),
+    // the document stores plain JSON, so a Page is copied out
     addPage: (page) => {
-      pages.push([page]);
+      pages.push([{ id: page.id, name: page.name }]);
     },
     renamePage: (id, name) => {
       const index = indexOf(id);
