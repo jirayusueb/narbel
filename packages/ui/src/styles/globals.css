@@ -112,6 +112,10 @@
   --text-feature: 1.5rem;
   --text-feature--line-height: 1.05;
   --text-feature--letter-spacing: -0.02em;
+  /* The board name in its 40px name card: the one serif small enough for Excalidraw's chrome. */
+  --text-chrome: 1.0625rem;
+  --text-chrome--line-height: 1.5;
+  --text-chrome--letter-spacing: -0.02em;
   --text-label: 0.875rem;
   --text-label--line-height: 1.15;
   --text-label--letter-spacing: -0.01em;

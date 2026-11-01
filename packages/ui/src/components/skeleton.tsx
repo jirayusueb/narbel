@@ -30,7 +30,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
       ref={alignSheen}
       data-slot="skeleton"
       aria-hidden="true"
-      className={cn("bg-muted skeleton-sheen rounded-[10px]", className)}
+      className={cn("bg-muted skeleton-sheen rounded-md", className)}
       {...props}
     />
   );

@@ -1,8 +1,8 @@
 /* Maps Excalidraw's UI tokens onto the Intent system. Canvas colours stay Excalidraw's own per theme. */
 .excalidraw {
   --ui-font: "Inter Variable", system-ui, sans-serif;
-  --border-radius-md: 10px;
-  --border-radius-lg: 15px;
+  --border-radius-md: var(--radius-md);
+  --border-radius-lg: var(--radius-lg);
   --island-bg-color: #ffffff;
   --default-border-color: #f0f0eb;
   --color-surface-high: #f0f0eb;
@@ -10,7 +10,8 @@
   --color-surface-low: #ffffff;
   --color-on-surface: #080808;
   --text-primary-color: #080808;
-  --shadow-island: 0 10px 20px rgb(0 0 0 / 0.08);
+  /* Islands rest on the canvas like any sheet; the token flips with the theme. */
+  --shadow-island: var(--surface-shadow);
   --color-primary: #080808;
   --color-brand-hover: #272727;
   --color-brand-active: #3d3d3c;
@@ -41,7 +42,6 @@
   --color-surface-low: #272727;
   --color-on-surface: #f0f0eb;
   --text-primary-color: #f0f0eb;
-  --shadow-island: 0 10px 20px rgb(0 0 0 / 0.4);
   --color-primary: #ddec61;
   --color-brand-hover: #d4e167;
   --color-brand-active: #c0cc54;
@@ -105,15 +105,21 @@
     --default-button-size: 2.75rem;
     --lg-button-size: 2.75rem;
   }
+
+  /* Menu rows reach the same 44px as the buttons that open them (doubled class: outranks the row rules below). */
+  .excalidraw.excalidraw .dropdown-menu-item,
+  .excalidraw.excalidraw .context-menu-item {
+    min-height: 2.75rem;
+  }
 }
 
 .excalidraw .Island {
-  border-radius: 15px;
+  border-radius: var(--radius-lg);
 }
 
 .excalidraw .ToolIcon__icon,
 .excalidraw .ToolIcon_type_button {
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .excalidraw .ToolIcon .ToolIcon_type_radio:checked + .ToolIcon__icon,
@@ -166,7 +172,7 @@
 .excalidraw .context-menu {
   padding: 0.375rem;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   background-color: var(--popover);
   box-shadow:
     0 0 0 1px var(--border),
@@ -185,7 +191,7 @@
 .excalidraw .context-menu-item {
   min-height: 1.875rem;
   padding: 0.3125rem 0.75rem 0.3125rem 1.75rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   letter-spacing: -0.01em;
   transition: background-color 150ms;

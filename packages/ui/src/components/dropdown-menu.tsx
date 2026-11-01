@@ -51,7 +51,7 @@ function DropdownMenu({
       offset={offset}
       crossOffset={crossOffset}
       className={cn(
-        "bg-popover text-popover-foreground ring-border data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 shadow-elevated z-50 w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) overflow-x-hidden overflow-y-auto rounded-[15px] p-1.5 ring-1 duration-150 outline-none data-exiting:overflow-hidden",
+        "bg-popover text-popover-foreground ring-border data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 shadow-elevated z-50 w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) overflow-x-hidden overflow-y-auto rounded-lg p-1.5 ring-1 duration-150 outline-none data-exiting:overflow-hidden",
         className
       )}
     >
@@ -98,11 +98,11 @@ const dropdownMenuItemVariants = cva(
   {
     variants: {
       selectionMode: {
-        none: "focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:*:[svg]:text-destructive gap-2 rounded-[10px] px-3 py-2 text-sm data-inset:pl-8 [&_svg:not([class*='size-'])]:size-4",
+        none: "focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:*:[svg]:text-destructive gap-2 rounded-md px-3 py-2 text-sm data-inset:pl-8 [&_svg:not([class*='size-'])]:size-4",
         single:
-          "focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground gap-2 rounded-[10px] py-2 pr-9 pl-3 text-sm data-inset:pl-8 [&_svg:not([class*='size-'])]:size-4",
+          "focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground gap-2 rounded-md py-2 pr-9 pl-3 text-sm data-inset:pl-8 [&_svg:not([class*='size-'])]:size-4",
         multiple:
-          "focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground gap-2 rounded-[10px] py-2 pr-9 pl-3 text-sm data-inset:pl-8 [&_svg:not([class*='size-'])]:size-4",
+          "focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground gap-2 rounded-md py-2 pr-9 pl-3 text-sm data-inset:pl-8 [&_svg:not([class*='size-'])]:size-4",
       },
     },
   }
@@ -173,7 +173,7 @@ function DropdownMenuSubTrigger({
       data-inset={inset}
       textValue={typeof children === "string" ? children : props.textValue}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-open:bg-accent data-open:text-accent-foreground flex cursor-default items-center gap-2 rounded-[10px] px-3 py-2 text-sm outline-hidden select-none data-inset:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-open:bg-accent data-open:text-accent-foreground flex cursor-default items-center gap-2 rounded-md px-3 py-2 text-sm outline-hidden select-none data-inset:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -199,7 +199,7 @@ function DropdownMenuSubContent({
     <DropdownMenu
       data-slot="dropdown-menu-sub-content"
       className={cn(
-        "bg-popover text-popover-foreground ring-border shadow-elevated w-auto min-w-[96px] rounded-[15px] ring-1 duration-150",
+        "bg-popover text-popover-foreground ring-border shadow-elevated w-auto min-w-[96px] rounded-lg ring-1 duration-150",
         className
       )}
       placement={placement}

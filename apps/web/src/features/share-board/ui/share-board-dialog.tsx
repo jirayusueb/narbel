@@ -397,7 +397,7 @@ const ShareBoardDialog = ({
   let body = <Skeleton className="h-40" />;
   if (access) {
     body = (
-      <div className="flex max-h-[70vh] flex-col gap-8 overflow-y-auto px-1 py-1">
+      <div className="flex max-h-[70svh] flex-col gap-8 overflow-y-auto px-1 py-1">
         <VisibilitySection boardId={board.id} access={access} />
         <LinkSection boardId={board.id} access={access} />
         <InviteSection boardId={board.id} />
@@ -432,7 +432,7 @@ const ShareBoardDialog = ({
       onExitComplete={unmount}
     >
       <DialogHeader>
-        <DialogTitle className="font-display text-[24px] font-normal tracking-[-0.02em]">
+        <DialogTitle className="font-display text-feature font-normal">
           Share “{board.title}”
         </DialogTitle>
         <DialogDescription>

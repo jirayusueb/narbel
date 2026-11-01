@@ -58,7 +58,7 @@ function Dialog({
         reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }
       }
       panelClassName={cn(
-        "bg-popover text-popover-foreground shadow-elevated ring-border relative grid max-h-full w-full max-w-md gap-4 overflow-y-auto rounded-[20px] p-6 text-sm ring-1 outline-none sm:p-7",
+        "bg-popover text-popover-foreground shadow-elevated ring-border relative grid max-h-full w-full max-w-md gap-4 overflow-y-auto rounded-xl p-6 text-sm ring-1 outline-none sm:p-7",
         className
       )}
     >
@@ -70,7 +70,7 @@ function Dialog({
         {showCloseButton && (
           <DialogClose
             variant="ghost"
-            className="absolute top-3 right-3 rounded-[10px]"
+            className="absolute top-3 right-3 rounded-md"
             size="icon-sm"
           >
             <XIcon />

@@ -12,6 +12,7 @@ export const cn = createCn({
             "title",
             "headline",
             "feature",
+            "chrome",
             "label",
             "dense",
           ],

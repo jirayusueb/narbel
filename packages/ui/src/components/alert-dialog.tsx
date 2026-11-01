@@ -36,7 +36,7 @@ function AlertDialog({
         reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }
       }
       panelClassName={cn(
-        "group/alert-dialog-content bg-popover text-popover-foreground shadow-elevated ring-border relative grid max-h-full w-full gap-4 overflow-y-auto rounded-[20px] p-6 ring-1 outline-none data-[size=sm]:max-w-xs sm:p-7 data-[size=default]:sm:max-w-md",
+        "group/alert-dialog-content bg-popover text-popover-foreground shadow-elevated ring-border relative grid max-h-full w-full gap-4 overflow-y-auto rounded-xl p-6 ring-1 outline-none data-[size=sm]:max-w-xs sm:p-7 data-[size=default]:sm:max-w-md",
         className
       )}
     >
@@ -91,7 +91,7 @@ function AlertDialogMedia({
     <div
       data-slot="alert-dialog-media"
       className={cn(
-        "bg-muted mb-2 inline-flex size-12 items-center justify-center rounded-[15px] sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-6",
+        "bg-muted mb-2 inline-flex size-12 items-center justify-center rounded-lg sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-6",
         className
       )}
       {...props}
