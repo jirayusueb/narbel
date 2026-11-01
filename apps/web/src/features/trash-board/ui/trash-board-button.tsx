@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useTrashBoard } from "@/entities/board";
 import type { Board } from "@/entities/board";
+import { focusAfterRemoval } from "@/shared/lib";
 
 import { useRestoreBoard } from "../api/use-restore-board";
 
@@ -17,9 +18,11 @@ export const TrashBoardButton = ({ board }: { board: Board }) => {
       size="icon-sm"
       aria-label={`Move ${board.title} to trash`}
       isDisabled={trash.isPending}
-      onPress={() =>
+      onPress={(e) => {
+        const refocus = focusAfterRemoval(e.target, "main h1");
         trash.mutate(board.id, {
-          onSuccess: () =>
+          onSuccess: () => {
+            refocus();
             toast(`Moved “${board.title}” to trash`, {
               description:
                 "It is hidden for everyone it was shared with until you restore it.",
@@ -30,10 +33,11 @@ export const TrashBoardButton = ({ board }: { board: Board }) => {
                     onError: (error) => toast.error(error.message),
                   }),
               },
-            }),
+            });
+          },
           onError: (error) => toast.error(error.message),
-        })
-      }
+        });
+      }}
     >
       <Trash2 />
     </Button>

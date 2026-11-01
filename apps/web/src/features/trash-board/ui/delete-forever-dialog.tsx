@@ -20,11 +20,13 @@ const DeleteForeverDialog = ({
   isOpen,
   close,
   unmount,
+  onDeleted,
 }: {
   board: Board;
   isOpen: boolean;
   close: () => void;
   unmount: () => void;
+  onDeleted: () => void;
 }) => {
   const purge = usePurgeBoard();
   const { data: session } = useSession();
@@ -38,7 +40,13 @@ const DeleteForeverDialog = ({
           close();
         }
       }}
-      onExitComplete={unmount}
+      onExitComplete={() => {
+        unmount();
+        // The dialog hands focus back to its trigger, which left with the deleted row; move it on after that.
+        if (purge.isSuccess) {
+          requestAnimationFrame(onDeleted);
+        }
+      }}
     >
       <AlertDialogHeader>
         <AlertDialogTitle className="font-display text-feature font-normal">
@@ -75,6 +83,11 @@ const DeleteForeverDialog = ({
   );
 };
 
-export const openDeleteForeverDialog = (board: Board) => {
-  overlay.open((control) => <DeleteForeverDialog board={board} {...control} />);
+export const openDeleteForeverDialog = (
+  board: Board,
+  onDeleted: () => void
+) => {
+  overlay.open((control) => (
+    <DeleteForeverDialog board={board} onDeleted={onDeleted} {...control} />
+  ));
 };

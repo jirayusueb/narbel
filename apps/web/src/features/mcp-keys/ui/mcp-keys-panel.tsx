@@ -7,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PUBLIC_SERVER_URL } from "@/shared/config";
-import { useCopy } from "@/shared/lib";
+import { focusAfterRemoval, useCopy } from "@/shared/lib";
 import { BrandSticker, TOUCH_ICON, chat } from "@/shared/ui";
 
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../api/keys";
@@ -160,11 +160,13 @@ export const McpKeysPanel = () => {
                 className={`hover:text-destructive ${TOUCH_ICON}`}
                 aria-label={`Revoke ${key.name ?? "key"}`}
                 isDisabled={revoke.isPending}
-                onPress={() =>
+                onPress={(e) => {
+                  const refocus = focusAfterRemoval(e.target, "#mcp-key-name");
                   revoke.mutate(key.id, {
+                    onSuccess: refocus,
                     onError: (error) => toast.error(error.message),
-                  })
-                }
+                  });
+                }}
               >
                 <Trash2 />
               </Button>

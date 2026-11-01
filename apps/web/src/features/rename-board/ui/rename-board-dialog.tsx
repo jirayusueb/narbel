@@ -61,7 +61,9 @@ const RenameBoardDialog = ({
           <DialogTitle className="font-display text-feature font-normal">
             Rename board
           </DialogTitle>
-          <DialogDescription>Titles are 1 to 120 characters.</DialogDescription>
+          <DialogDescription id={`rename-board-${board.id}-hint`}>
+            Titles are 1 to 120 characters.
+          </DialogDescription>
         </DialogHeader>
         <FieldGroup>
           <Field>
@@ -70,6 +72,7 @@ const RenameBoardDialog = ({
               id={`rename-board-${board.id}`}
               autoFocus
               maxLength={120}
+              aria-describedby={`rename-board-${board.id}-hint`}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />

@@ -47,6 +47,7 @@ const BoardGrid = ({
         {boards.map((board, index) => (
           <motion.div
             key={board.id}
+            data-row
             layout={!reduce}
             initial={{ opacity: 0, scale: reduce ? 1 : 0.96 }}
             animate={{

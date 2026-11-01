@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { SignInForm } from "@/features/sign-in";
 import { SignUpForm } from "@/features/sign-up";
@@ -7,12 +7,22 @@ import { BrandMark } from "@/shared/ui";
 
 export const LoginPage = ({ redirectTo }: { redirectTo?: string }) => {
   const [showSignIn, setShowSignIn] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="flex flex-1 flex-col">
       <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-16 px-5 py-10 md:px-[30px] lg:grid-cols-2">
-        <motion.div layout transition={{ duration: 0.22 }}>
-          <AnimatePresence mode="wait" initial={false}>
+        <motion.div ref={panelRef} layout transition={{ duration: 0.22 }}>
+          <AnimatePresence
+            mode="wait"
+            initial={false}
+            // The switch link that held focus leaves with the old form; the new form's first field takes it.
+            onExitComplete={() =>
+              requestAnimationFrame(() =>
+                panelRef.current?.querySelector("input")?.focus()
+              )
+            }
+          >
             <motion.div
               key={showSignIn ? "sign-in" : "sign-up"}
               initial={{ opacity: 0, y: 8 }}

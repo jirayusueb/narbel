@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { useBoardAccess } from "@/entities/board";
 import type { Board, BoardAccess, Visibility } from "@/entities/board";
 import { UserAvatar } from "@/entities/person";
-import { useCopy } from "@/shared/lib";
+import { focusAfterRemoval, useCopy } from "@/shared/lib";
+import { TOUCH_ICON } from "@/shared/ui";
 
 import {
   useInviteMember,
@@ -359,11 +360,19 @@ const MembersSection = ({
                 <Button
                   variant="ghost"
                   size="icon-sm"
+                  className={TOUCH_ICON}
                   aria-label={`Remove ${member.email}`}
                   isDisabled={remove.isPending}
-                  onPress={() =>
-                    remove.mutate(member.userId ?? member.email, { onError })
-                  }
+                  onPress={(e) => {
+                    const refocus = focusAfterRemoval(
+                      e.target,
+                      "[aria-label='Invite email']"
+                    );
+                    remove.mutate(member.userId ?? member.email, {
+                      onSuccess: refocus,
+                      onError,
+                    });
+                  }}
                 >
                   <X />
                 </Button>

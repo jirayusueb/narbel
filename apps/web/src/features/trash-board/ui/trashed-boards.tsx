@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useTrashedBoards } from "@/entities/board";
 import type { Board } from "@/entities/board";
+import { focusAfterRemoval } from "@/shared/lib";
 
 import { useRestoreBoard } from "../api/use-restore-board";
 import { openDeleteForeverDialog } from "./delete-forever-dialog";
@@ -35,12 +36,16 @@ const TrashedBoardRow = ({ board }: { board: Board }) => {
           variant="outline"
           aria-label={`Restore ${board.title}`}
           isDisabled={restore.isPending}
-          onPress={() =>
+          onPress={(e) => {
+            const refocus = focusAfterRemoval(e.target, "main h1");
             restore.mutate(board.id, {
-              onSuccess: () => toast(`Restored “${board.title}”`),
+              onSuccess: () => {
+                refocus();
+                toast(`Restored “${board.title}”`);
+              },
               onError: (error) => toast.error(error.message),
-            })
-          }
+            });
+          }}
         >
           <RotateCcw data-icon="inline-start" />
           Restore
@@ -48,7 +53,12 @@ const TrashedBoardRow = ({ board }: { board: Board }) => {
         <Button
           variant="ghost"
           aria-label={`Delete ${board.title} forever`}
-          onPress={() => openDeleteForeverDialog(board)}
+          onPress={(e) =>
+            openDeleteForeverDialog(
+              board,
+              focusAfterRemoval(e.target, "main h1")
+            )
+          }
         >
           <Trash2 data-icon="inline-start" />
           Delete forever

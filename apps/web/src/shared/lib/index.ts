@@ -1,5 +1,6 @@
 export { authClient } from "./auth-client";
 export { colorFromName } from "./identity";
+export { focusAfterRemoval } from "./focus-after-removal";
 export { timeAgo } from "./time-ago";
 export { useCopy } from "./use-copy";
 export { useDraftKey } from "./use-draft-key";
