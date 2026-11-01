@@ -4,18 +4,9 @@ import type { Element } from "../domain/entities/Element";
 import { Bindings } from "../domain/rules/bindings";
 import type { ConnectorRefs } from "../domain/rules/bindings";
 import { Geometry } from "../domain/rules/geometry";
-import {
-  hasLabelSlot,
-  routeStyle,
-  toStored,
-} from "../domain/shapes/ElementStyle";
+import { ElementStyle } from "../domain/shapes/ElementStyle";
 import type { LabelStyle, Style } from "../domain/shapes/ElementStyle";
-import {
-  LABEL_FOLLOWS,
-  buildLabel,
-  fitLabel,
-  refitText,
-} from "../domain/shapes/ShapeRegistry";
+import { ShapeRegistry } from "../domain/shapes/ShapeRegistry";
 import type { SceneAccess } from "./ports/IBoardScenes";
 
 // Identity, versioning and binding records belong to the system; bindings change only
@@ -171,7 +162,12 @@ const relabel = (
       : { container, writes: [] };
   }
   if (text !== undefined && !label) {
-    const created = buildLabel(container, text, style, newIdentity(ids));
+    const created = ShapeRegistry.buildLabel(
+      container,
+      text,
+      style,
+      newIdentity(ids)
+    );
     return {
       container: Drawing.withLabel(container, created.id),
       writes: [created],
@@ -186,7 +182,7 @@ const relabel = (
     };
     return {
       container,
-      writes: [bumped(fitLabel(changed, container), ids)],
+      writes: [bumped(ShapeRegistry.fitLabel(changed, container), ids)],
     };
   }
   return { container, writes: [] };
@@ -211,7 +207,7 @@ const restyled = (
   const next = bumped(
     {
       ...local,
-      ...toStored(local.type, own),
+      ...ElementStyle.toStored(local.type, own),
       ...(isText && typeof text === "string"
         ? { text, originalText: text }
         : {}),
@@ -221,7 +217,9 @@ const restyled = (
   const measurable = isText && typeof local.containerId !== "string";
   const resized = "width" in own || "height" in own;
   const retyped = typeof text === "string" || "fontSize" in own;
-  return measurable && !resized && retyped ? refitText(next) : next;
+  return measurable && !resized && retyped
+    ? ShapeRegistry.refitText(next)
+    : next;
 };
 
 const released = (
@@ -297,10 +295,12 @@ export const patchElement = (
     return "locked";
   }
   const { text, ...rest } = fields;
-  const { own, label } = routeStyle(local.type, rest);
+  const { own, label } = ElementStyle.routeStyle(local.type, rest);
   const geometryChanged = Object.keys(own).some((key) => GEOMETRY[key]);
   const refit =
-    geometryChanged || wantsRebind || LABEL_FOLLOWS.some((key) => key in own);
+    geometryChanged ||
+    wantsRebind ||
+    ShapeRegistry.LABEL_FOLLOWS.some((key) => key in own);
   const grown = restyled(local, text, own, ids);
   const next = released(grown, lookup, geometryChanged);
   const movesShape = !Bindings.connectorCapable(local) && geometryChanged;
@@ -322,7 +322,9 @@ export const patchElement = (
     head,
     {
       text:
-        hasLabelSlot(local.type) && typeof text === "string" ? text : undefined,
+        ElementStyle.hasLabelSlot(local.type) && typeof text === "string"
+          ? text
+          : undefined,
       style: label,
       refit,
     },

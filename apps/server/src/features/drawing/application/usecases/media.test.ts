@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 
 import type { IFileStorage } from "../../../../shared/application/interfaces/IFileStorage";
 import { ids, setupAccess } from "../../../../testing";
-import { MAX_INLINE_IMAGE_BYTES } from "../../domain/rules/UploadRules";
+import { UploadRules } from "../../domain/rules/UploadRules";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
 import { AddBoardElements } from "./AddBoardElements";
 import { AddBoardImage } from "./AddBoardImage";
@@ -229,7 +229,7 @@ describe("AddBoardImage", () => {
     const result = await t.add.execute({
       actor,
       boardId: "b1",
-      bytes: png(3, 2, MAX_INLINE_IMAGE_BYTES),
+      bytes: png(3, 2, UploadRules.MAX_INLINE_IMAGE_BYTES),
     });
     expect(result.isErr() && result.error.code).toBe("PayloadTooLarge");
     expect(t.stored.size).toBe(0);

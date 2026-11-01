@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 
-import { MAX_FILE_BYTES, validateUpload } from "./UploadRules";
+import { UploadRules } from "./UploadRules";
 
 const valid = { fileId: "abc123", mimeType: "image/png", size: 1024 };
-const codeOf = (input: Parameters<typeof validateUpload>[0]) => {
-  const result = validateUpload(input);
+const codeOf = (input: Parameters<typeof UploadRules.validateUpload>[0]) => {
+  const result = UploadRules.validateUpload(input);
   return result.isErr() ? result.error.code : "ok";
 };
 
@@ -31,8 +31,8 @@ describe("validateUpload", () => {
   });
 
   it("allows exactly 10 MiB and rejects one byte more with 413", () => {
-    expect(codeOf({ ...valid, size: MAX_FILE_BYTES })).toBe("ok");
-    expect(codeOf({ ...valid, size: MAX_FILE_BYTES + 1 })).toBe(
+    expect(codeOf({ ...valid, size: UploadRules.MAX_FILE_BYTES })).toBe("ok");
+    expect(codeOf({ ...valid, size: UploadRules.MAX_FILE_BYTES + 1 })).toBe(
       "PayloadTooLarge"
     );
   });

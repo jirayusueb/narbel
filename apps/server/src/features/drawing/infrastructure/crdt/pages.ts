@@ -8,7 +8,7 @@ import {
 import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { SceneAccess } from "../../application/ports/IBoardScenes";
 import { MAIN_PAGE, Page, elementKey } from "../../domain/entities/Page";
-import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
+import { MergeElement } from "../../domain/rules/mergeElement";
 import { touchesSince } from "./changes";
 
 /**
@@ -185,7 +185,7 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
               ...element,
               index: newOrderKey(pageKeys(pageId), container, frame),
             };
-      if (shouldAcceptIncoming(current, ordered)) {
+      if (MergeElement.shouldAcceptIncoming(current, ordered)) {
         elements.set(key, toExcalidraw(ordered));
       }
     },

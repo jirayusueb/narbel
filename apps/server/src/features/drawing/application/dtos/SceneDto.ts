@@ -1,6 +1,6 @@
 import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
-import { styleDiff } from "../../domain/shapes/ElementStyle";
+import { ElementStyle } from "../../domain/shapes/ElementStyle";
 import type { Style } from "../../domain/shapes/ElementStyle";
 
 export interface SceneElementDto extends Partial<Style> {
@@ -53,7 +53,7 @@ export const toSceneElementDto = (
     width: roundCoord(e.width),
     height: roundCoord(e.height),
     ...(content ? { text: content.originalText ?? content.text } : {}),
-    ...styleDiff(e, label),
+    ...ElementStyle.styleDiff(e, label),
     ...(CONNECTOR_TYPES[e.type]
       ? {
           startElementId: e.startBinding?.elementId ?? null,

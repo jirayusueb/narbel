@@ -17,11 +17,7 @@ export {
   MAX_MAX_SIZE,
   MIN_MAX_SIZE,
 } from "./domain/rendering/sceneSvg";
-export { MAX_INLINE_IMAGE_BYTES } from "./domain/rules/UploadRules";
-export {
-  STYLE,
-  STYLE_KEYS,
-  type Style,
-  type StyleKey,
-} from "./domain/shapes/ElementStyle";
-export { SHAPE_TYPES } from "./domain/shapes/ShapeRegistry";
+export { UploadRules } from "./domain/rules/UploadRules";
+export { ElementStyle } from "./domain/shapes/ElementStyle";
+export type { Style, StyleKey } from "./domain/shapes/ElementStyle";
+export { ShapeRegistry } from "./domain/shapes/ShapeRegistry";

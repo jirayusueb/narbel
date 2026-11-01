@@ -2,17 +2,10 @@ import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Element } from "../entities/Element";
 import { Geometry } from "../rules/geometry";
-import {
-  STYLE,
-  defaultsFor,
-  misplacedStyle,
-  pickStyle,
-  routeStyle,
-  toStored,
-} from "./ElementStyle";
+import { ElementStyle } from "./ElementStyle";
 import type { Style } from "./ElementStyle";
 
-export const SHAPE_TYPES = [
+const SHAPE_TYPES = [
   "rectangle",
   "ellipse",
   "diamond",
@@ -83,15 +76,6 @@ export interface ShapeRejection {
   detail?: string;
 }
 
-export const frameIdOf = (shape: Shape) =>
-  "frameId" in shape ? shape.frameId : undefined;
-
-export const textOf = (shape: Shape) =>
-  "text" in shape ? shape.text : undefined;
-
-export const endsOf = (shape: Shape): Ends =>
-  shape.type === "arrow" || shape.type === "line" ? shape : {};
-
 export interface ElementIdentity {
   id: string;
   seed: number;
@@ -103,7 +87,7 @@ const LINE_HEIGHT = 1.25;
 const LABEL_PADDING = 20;
 const MIN_LABELLED = { width: 100, height: 60 };
 
-export const LABEL_FOLLOWS = [
+const LABEL_FOLLOWS = [
   "groupIds",
   "frameId",
   "locked",
@@ -130,7 +114,7 @@ interface Layout {
   rest?: Record<string, unknown>;
 }
 
-export const measure = (text: string, fontSize: number): Size => {
+const measureText = (text: string, fontSize: number): Size => {
   const lines = text.split("\n");
   return {
     width: Math.max(...lines.map((l) => l.length), 1) * fontSize * 0.6,
@@ -164,14 +148,10 @@ const wrapText = (text: string, fontSize: number, maxWidth: number): string => {
     .join("\n");
 };
 
-/** Size an arrow label takes at the narrowest wrap, before the arrow's width is known. */
-export const arrowLabelSize = (text: string, fontSize: number): Size =>
-  measure(wrapText(text, fontSize, arrowLabelMaxWidth(0, fontSize)), fontSize);
-
 const fontSizeOf = (shape: object) =>
   "fontSize" in shape && typeof shape.fontSize === "number"
     ? shape.fontSize
-    : STYLE.fontSize.default;
+    : ElementStyle.STYLE.fontSize.default;
 
 // a labelled shape without an explicit size grows to fit its label
 const box = (shape: BoxShape): Size => {
@@ -179,7 +159,7 @@ const box = (shape: BoxShape): Size => {
     return { width: shape.width ?? 100, height: shape.height ?? 100 };
   }
   const inset = INSET[shape.type] ?? 1;
-  const text = measure(shape.text, fontSizeOf(shape));
+  const text = measureText(shape.text, fontSizeOf(shape));
   return {
     width:
       shape.width ??
@@ -197,7 +177,7 @@ const box = (shape: BoxShape): Size => {
 };
 
 const textSize = (shape: TextShape): Size => {
-  const text = measure(shape.text ?? "", fontSizeOf(shape));
+  const text = measureText(shape.text ?? "", fontSizeOf(shape));
   return {
     width: shape.width ?? text.width,
     height: shape.height ?? text.height,
@@ -274,12 +254,15 @@ const connectorPlaced = (input: ShapeInput) =>
   (input.startElementId !== undefined && input.endElementId !== undefined);
 
 const styleRejection = (input: ShapeInput): ShapeRejection | undefined => {
-  const misplaced = misplacedStyle(input.type, pickStyle(input));
+  const misplaced = ElementStyle.misplacedStyle(
+    input.type,
+    ElementStyle.pickStyle(input)
+  );
   if (!misplaced) {
     return;
   }
   const where =
-    STYLE[misplaced].on === "arrow"
+    ElementStyle.STYLE[misplaced].on === "arrow"
       ? "arrows only"
       : "text, rectangle, ellipse, diamond and arrow elements only";
   return {
@@ -290,88 +273,6 @@ const styleRejection = (input: ShapeInput): ShapeRejection | undefined => {
 
 const geometryGiven = (input: ShapeInput) =>
   GEOMETRY_KEYS.filter((key) => input[key] !== undefined).length;
-
-/**
- * Narrows the flat tool input into the one shape its `type` allows.
- * Fields that do not exist on a type (a frame's text, a box's name) are dropped, as before;
- * combinations that never worked are rejected.
- */
-export const parseShape = (
-  input: ShapeInput
-): Result<Shape, ShapeRejection> => {
-  const { startElementId, endElementId, name, text, frameId, ...base } = input;
-  const rejected = styleRejection(input);
-  if (rejected) {
-    return err(rejected);
-  }
-  switch (input.type) {
-    case "rectangle":
-    case "ellipse":
-    case "diamond":
-    case "text": {
-      return ok({ ...base, type: input.type, text, frameId });
-    }
-    case "frame": {
-      if (frameId !== undefined) {
-        return err({ outcome: "nested-frame" });
-      }
-      const given = geometryGiven(input);
-      return given === 0 || given === GEOMETRY_KEYS.length
-        ? ok({ ...base, type: "frame", name })
-        : err({ outcome: "frame-geometry" });
-    }
-    case "arrow": {
-      return connectorPlaced(input)
-        ? ok({
-            ...base,
-            type: "arrow",
-            text,
-            startElementId,
-            endElementId,
-            frameId,
-          })
-        : err({ outcome: "connector-position" });
-    }
-    case "line": {
-      if (text !== undefined) {
-        return err({ outcome: "connector-text" });
-      }
-      return connectorPlaced(input)
-        ? ok({ ...base, type: "line", startElementId, endElementId, frameId })
-        : err({ outcome: "connector-position" });
-    }
-    default: {
-      return input.type satisfies never;
-    }
-  }
-};
-
-export const buildElement = (
-  shape: Shape,
-  identity: ElementIdentity
-): Element => {
-  const { size, extras, rest } = layout(shape);
-  const { own } = routeStyle(shape.type, pickStyle(shape));
-  return {
-    id: identity.id,
-    type: shape.type,
-    // the use case lays out unplaced shapes before anything is written
-    x: shape.x ?? 0,
-    y: shape.y ?? 0,
-    ...size,
-    ...toStored(shape.type, { ...defaultsFor(shape.type), ...own }),
-    groupIds: [],
-    frameId: frameIdOf(shape) ?? null,
-    version: 1,
-    versionNonce: identity.versionNonce,
-    isDeleted: false,
-    boundElements: null,
-    updated: identity.updated,
-    locked: false,
-    ...extras,
-    rest: { seed: identity.seed, link: null, ...rest },
-  };
-};
 
 /** The fields of `source` among `keys` that it has. */
 const definedFields = <K extends keyof Element>(
@@ -387,60 +288,180 @@ const definedFields = <K extends keyof Element>(
   return fields;
 };
 
-export const fitLabel = (label: Element, container: Element): Element => {
-  const onArrow = Geometry.isLinear(container);
-  const fontSize = fontSizeOf(label);
-  const text = onArrow
-    ? wrapText(
-        label.originalText ?? label.text ?? "",
-        fontSize,
-        arrowLabelMaxWidth(Number(container.width), fontSize)
-      )
-    : (label.text ?? "");
-  const size = measure(text, fontSize);
-  const center = onArrow
-    ? Geometry.polylineMidpoint(container)
-    : {
-        x: Number(container.x) + Number(container.width) / 2,
-        y: Number(container.y) + Number(container.height) / 2,
-      };
-  return {
-    ...label,
-    ...size,
-    text,
-    ...(onArrow ? { originalText: label.originalText ?? label.text } : {}),
-    x: center.x - size.width / 2,
-    y: center.y - size.height / 2,
-    ...definedFields(container, LABEL_FOLLOWS),
-  };
-};
+export class ShapeRegistry {
+  static readonly SHAPE_TYPES = SHAPE_TYPES;
+  static readonly LABEL_FOLLOWS = LABEL_FOLLOWS;
 
-/** A text element bound inside `container`; the container must list it in `boundElements`. */
-export const buildLabel = (
-  container: Element,
-  text: string,
-  style: Partial<Style>,
-  identity: ElementIdentity
-): Element =>
-  fitLabel(
-    {
-      ...buildElement(
-        {
-          type: "text",
-          text,
-          strokeColor: String(container.strokeColor),
-          textAlign: "center",
-          ...style,
-        },
-        identity
-      ),
-      verticalAlign: "middle",
-      containerId: container.id,
-    },
-    container
-  );
+  private constructor() {
+    // static rules only
+  }
 
-export const refitText = (element: Element): Element => ({
-  ...element,
-  ...measure(element.text ?? "", fontSizeOf(element)),
-});
+  static frameIdOf(shape: Shape) {
+    return "frameId" in shape ? shape.frameId : undefined;
+  }
+
+  static textOf(shape: Shape) {
+    return "text" in shape ? shape.text : undefined;
+  }
+
+  static endsOf(shape: Shape): Ends {
+    return shape.type === "arrow" || shape.type === "line" ? shape : {};
+  }
+
+  static measure(text: string, fontSize: number): Size {
+    return measureText(text, fontSize);
+  }
+
+  /** Size an arrow label takes at the narrowest wrap, before the arrow's width is known. */
+  static arrowLabelSize(text: string, fontSize: number): Size {
+    return ShapeRegistry.measure(
+      wrapText(text, fontSize, arrowLabelMaxWidth(0, fontSize)),
+      fontSize
+    );
+  }
+
+  /**
+   * Narrows the flat tool input into the one shape its `type` allows.
+   * Fields that do not exist on a type (a frame's text, a box's name) are dropped, as before;
+   * combinations that never worked are rejected.
+   */
+  static parseShape(input: ShapeInput): Result<Shape, ShapeRejection> {
+    const { startElementId, endElementId, name, text, frameId, ...base } =
+      input;
+    const rejected = styleRejection(input);
+    if (rejected) {
+      return err(rejected);
+    }
+    switch (input.type) {
+      case "rectangle":
+      case "ellipse":
+      case "diamond":
+      case "text": {
+        return ok({ ...base, type: input.type, text, frameId });
+      }
+      case "frame": {
+        if (frameId !== undefined) {
+          return err({ outcome: "nested-frame" });
+        }
+        const given = geometryGiven(input);
+        return given === 0 || given === GEOMETRY_KEYS.length
+          ? ok({ ...base, type: "frame", name })
+          : err({ outcome: "frame-geometry" });
+      }
+      case "arrow": {
+        return connectorPlaced(input)
+          ? ok({
+              ...base,
+              type: "arrow",
+              text,
+              startElementId,
+              endElementId,
+              frameId,
+            })
+          : err({ outcome: "connector-position" });
+      }
+      case "line": {
+        if (text !== undefined) {
+          return err({ outcome: "connector-text" });
+        }
+        return connectorPlaced(input)
+          ? ok({ ...base, type: "line", startElementId, endElementId, frameId })
+          : err({ outcome: "connector-position" });
+      }
+      default: {
+        return input.type satisfies never;
+      }
+    }
+  }
+
+  static buildElement(shape: Shape, identity: ElementIdentity): Element {
+    const { size, extras, rest } = layout(shape);
+    const { own } = ElementStyle.routeStyle(
+      shape.type,
+      ElementStyle.pickStyle(shape)
+    );
+    return {
+      id: identity.id,
+      type: shape.type,
+      // the use case lays out unplaced shapes before anything is written
+      x: shape.x ?? 0,
+      y: shape.y ?? 0,
+      ...size,
+      ...ElementStyle.toStored(shape.type, {
+        ...ElementStyle.defaultsFor(shape.type),
+        ...own,
+      }),
+      groupIds: [],
+      frameId: ShapeRegistry.frameIdOf(shape) ?? null,
+      version: 1,
+      versionNonce: identity.versionNonce,
+      isDeleted: false,
+      boundElements: null,
+      updated: identity.updated,
+      locked: false,
+      ...extras,
+      rest: { seed: identity.seed, link: null, ...rest },
+    };
+  }
+
+  static fitLabel(label: Element, container: Element): Element {
+    const onArrow = Geometry.isLinear(container);
+    const fontSize = fontSizeOf(label);
+    const text = onArrow
+      ? wrapText(
+          label.originalText ?? label.text ?? "",
+          fontSize,
+          arrowLabelMaxWidth(Number(container.width), fontSize)
+        )
+      : (label.text ?? "");
+    const size = ShapeRegistry.measure(text, fontSize);
+    const center = onArrow
+      ? Geometry.polylineMidpoint(container)
+      : {
+          x: Number(container.x) + Number(container.width) / 2,
+          y: Number(container.y) + Number(container.height) / 2,
+        };
+    return {
+      ...label,
+      ...size,
+      text,
+      ...(onArrow ? { originalText: label.originalText ?? label.text } : {}),
+      x: center.x - size.width / 2,
+      y: center.y - size.height / 2,
+      ...definedFields(container, LABEL_FOLLOWS),
+    };
+  }
+
+  /** A text element bound inside `container`; the container must list it in `boundElements`. */
+  static buildLabel(
+    container: Element,
+    text: string,
+    style: Partial<Style>,
+    identity: ElementIdentity
+  ): Element {
+    return ShapeRegistry.fitLabel(
+      {
+        ...ShapeRegistry.buildElement(
+          {
+            type: "text",
+            text,
+            strokeColor: String(container.strokeColor),
+            textAlign: "center",
+            ...style,
+          },
+          identity
+        ),
+        verticalAlign: "middle",
+        containerId: container.id,
+      },
+      container
+    );
+  }
+
+  static refitText(element: Element): Element {
+    return {
+      ...element,
+      ...ShapeRegistry.measure(element.text ?? "", fontSizeOf(element)),
+    };
+  }
+}

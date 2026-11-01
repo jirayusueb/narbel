@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { STYLE, STYLE_KEYS } from "../../drawing";
+import { ElementStyle } from "../../drawing";
 import type { Style, StyleKey } from "../../drawing";
 
 const STYLE_DOCS = {
@@ -28,7 +28,7 @@ const STYLE_DOCS = {
 } satisfies Record<StyleKey, string>;
 
 const styleField = (key: StyleKey): z.ZodTypeAny => {
-  const field: (typeof STYLE)[StyleKey] = STYLE[key];
+  const field: (typeof ElementStyle.STYLE)[StyleKey] = ElementStyle.STYLE[key];
   let schema: z.ZodTypeAny;
   switch (field.kind) {
     case "color": {
@@ -63,5 +63,5 @@ const styleField = (key: StyleKey): z.ZodTypeAny => {
 };
 
 export const style = Object.fromEntries(
-  STYLE_KEYS.map((key) => [key, styleField(key)])
+  ElementStyle.STYLE_KEYS.map((key) => [key, styleField(key)])
 ) as { [K in StyleKey]: z.ZodType<Style[K] | undefined> };

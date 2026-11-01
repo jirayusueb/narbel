@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 
-import {
+import { ElementStyle } from "./ElementStyle";
+import type { StyleKey } from "./ElementStyle";
+import { ShapeRegistry } from "./ShapeRegistry";
+
+const {
   STYLE,
   STYLE_KEYS,
   defaultsFor,
@@ -8,9 +12,8 @@ import {
   routeStyle,
   styleDiff,
   toStored,
-} from "./ElementStyle";
-import type { StyleKey } from "./ElementStyle";
-import { buildElement } from "./ShapeRegistry";
+} = ElementStyle;
+const { buildElement } = ShapeRegistry;
 
 const identity = { id: "e1", seed: 7, versionNonce: 9, updated: 1000 };
 

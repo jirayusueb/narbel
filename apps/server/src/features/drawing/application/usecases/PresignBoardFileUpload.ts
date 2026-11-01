@@ -3,7 +3,7 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { validateUpload } from "../../domain/rules/UploadRules";
+import { UploadRules } from "../../domain/rules/UploadRules";
 import { FileKey } from "../../domain/values/FileKey";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
@@ -32,7 +32,7 @@ export class PresignBoardFileUpload {
     if (granted.isErr()) {
       return err(granted.error);
     }
-    const valid = validateUpload(input);
+    const valid = UploadRules.validateUpload(input);
     if (valid.isErr()) {
       return err(valid.error);
     }

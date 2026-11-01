@@ -5,7 +5,7 @@ import * as Y from "yjs";
 import { toElement } from "../../application/dtos/ExcalidrawElement";
 import type { ExcalidrawElement } from "../../application/dtos/ExcalidrawElement";
 import type { Page } from "../../domain/entities/Page";
-import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
+import { MergeElement } from "../../domain/rules/mergeElement";
 import { fileIdsOf, loadState, readSnapshot, restoreScene } from "./history";
 import { MemoryBus } from "./MemoryBus";
 import { YjsBoardHub } from "./YjsBoardHub";
@@ -188,7 +188,9 @@ describe("restoreScene", () => {
     live.getMap("elements").set("page:main:a", rect("a", 9, { x: 5 }));
     restore(live, old);
     const restored = elementsOf(live)["page:main:a"] as ExcalidrawElement;
-    expect(shouldAcceptIncoming(rect("a", 9), restored)).toBe(true);
+    expect(MergeElement.shouldAcceptIncoming(rect("a", 9), restored)).toBe(
+      true
+    );
   });
 });
 

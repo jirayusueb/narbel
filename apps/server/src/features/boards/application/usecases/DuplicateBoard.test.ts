@@ -10,7 +10,7 @@ import type {
 } from "../../../drawing/application/ports/IBoardScenes";
 import { CopyDrawing } from "../../../drawing/application/usecases/CopyDrawing";
 import { FakeScenes } from "../../../drawing/application/usecases/fakes";
-import { MAX_FILE_BYTES } from "../../../drawing/domain/rules/UploadRules";
+import { UploadRules } from "../../../drawing/domain/rules/UploadRules";
 import { DuplicateBoard } from "./DuplicateBoard";
 
 const owner = { userId: "owner" };
@@ -200,7 +200,7 @@ describe("DuplicateBoard", () => {
   it("refuses an image over the size limit", async () => {
     const t = setup();
     t.stored.set("boards/b1/file1", {
-      bytes: new Uint8Array(MAX_FILE_BYTES + 1),
+      bytes: new Uint8Array(UploadRules.MAX_FILE_BYTES + 1),
       mimeType: "image/png",
     });
     const result = await t.duplicate.execute({ actor: owner, boardId: "b1" });
@@ -210,7 +210,7 @@ describe("DuplicateBoard", () => {
 
   it("refuses a board whose images together exceed the copy budget and creates nothing", async () => {
     const t = setup();
-    const bytes = new Uint8Array(MAX_FILE_BYTES);
+    const bytes = new Uint8Array(UploadRules.MAX_FILE_BYTES);
     // 26 x MAX_FILE_BYTES is over 256 MiB while every image is individually allowed
     for (let i = 0; i < 26; i += 1) {
       const fileId = `big${i}`;

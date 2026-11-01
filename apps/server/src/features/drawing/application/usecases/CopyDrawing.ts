@@ -4,7 +4,7 @@ import { err, ok, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Element } from "../../domain/entities/Element";
 import { MAIN_PAGE, Page } from "../../domain/entities/Page";
-import { MAX_FILE_BYTES } from "../../domain/rules/UploadRules";
+import { UploadRules } from "../../domain/rules/UploadRules";
 import { FileKey } from "../../domain/values/FileKey";
 import type { CopyTarget } from "../ports/IBoardAccess";
 import type { IBoardFileRepository } from "../ports/IBoardFileRepository";
@@ -135,7 +135,7 @@ export class CopyDrawing {
         AppError.conflict(`Image ${fileId} is missing from the board's storage`)
       );
     }
-    if (stored.size > MAX_FILE_BYTES) {
+    if (stored.size > UploadRules.MAX_FILE_BYTES) {
       return err(
         AppError.payloadTooLarge(`Image ${fileId} is too large to copy`, {
           fileId,

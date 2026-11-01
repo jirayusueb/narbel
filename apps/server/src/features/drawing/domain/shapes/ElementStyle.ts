@@ -1,16 +1,11 @@
 import type { Element, Roundness } from "../entities/Element";
 
-export const FILL_STYLES = [
-  "hachure",
-  "cross-hatch",
-  "solid",
-  "zigzag",
-] as const;
-export const STROKE_STYLES = ["solid", "dashed", "dotted"] as const;
-export const ROUGHNESS = [0, 1, 2] as const;
-export const TEXT_ALIGNS = ["left", "center", "right"] as const;
-export const FONT_FAMILIES = [1, 2, 3, 5, 6, 7, 8, 9] as const;
-export const ARROWHEADS = [
+const FILL_STYLES = ["hachure", "cross-hatch", "solid", "zigzag"] as const;
+const STROKE_STYLES = ["solid", "dashed", "dotted"] as const;
+const ROUGHNESS = [0, 1, 2] as const;
+const TEXT_ALIGNS = ["left", "center", "right"] as const;
+const FONT_FAMILIES = [1, 2, 3, 5, 6, 7, 8, 9] as const;
+const ARROWHEADS = [
   "arrow",
   "bar",
   "dot",
@@ -39,7 +34,7 @@ type Field =
       on: Target;
     };
 
-export const STYLE = {
+const STYLE = {
   strokeColor: { kind: "color", default: "#1e1e1e", on: "element" },
   backgroundColor: { kind: "color", default: "transparent", on: "element" },
   fillStyle: {
@@ -116,7 +111,7 @@ export type StyleKey = keyof Style;
 export type LabelStyle = Partial<
   Pick<Style, "fontSize" | "fontFamily" | "textAlign">
 >;
-export const STYLE_KEYS = Object.keys(STYLE) as StyleKey[];
+const STYLE_KEYS = Object.keys(STYLE) as StyleKey[];
 
 const isStyleKey = (key: string): key is StyleKey => key in STYLE;
 
@@ -127,7 +122,7 @@ const LABELLED: Record<string, true> = {
   arrow: true,
 };
 
-export const hasLabelSlot = (type: string): boolean => Boolean(LABELLED[type]);
+const hasLabelSlot = (type: string): boolean => Boolean(LABELLED[type]);
 
 const applies = (type: string, key: StyleKey): boolean => {
   const { on } = STYLE[key];
@@ -139,67 +134,6 @@ const applies = (type: string, key: StyleKey): boolean => {
     : type === "text" || hasLabelSlot(type);
 };
 
-export const defaultsFor = (
-  type: string,
-  role: "element" | "label" = "element"
-): Partial<Style> => {
-  const kind = role === "label" ? "text" : type;
-  const defaults: Record<string, unknown> = {};
-  for (const key of STYLE_KEYS) {
-    const wanted =
-      role === "label"
-        ? STYLE[key].on === "text"
-        : applies(kind, key) && (STYLE[key].on !== "text" || kind === "text");
-    if (wanted) {
-      defaults[key] = STYLE[key].default;
-    }
-  }
-  if (role === "label") {
-    defaults.textAlign = "center";
-  }
-  return defaults as Partial<Style>;
-};
-
-export const misplacedStyle = (
-  type: string,
-  fields: Record<string, unknown>
-): StyleKey | undefined =>
-  Object.keys(fields).find(
-    (key): key is StyleKey =>
-      fields[key] !== undefined && isStyleKey(key) && !applies(type, key)
-  );
-
-export const pickStyle = (source: object): Partial<Style> =>
-  Object.fromEntries(
-    Object.entries(source).filter(
-      ([key, value]) => isStyleKey(key) && value !== undefined
-    )
-  );
-
-export const routeStyle = <F extends Partial<Style>>(
-  type: string,
-  fields: F
-): { own: Partial<F>; label: LabelStyle } => {
-  const own: Record<string, unknown> = {};
-  const label: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(fields)) {
-    if (value === undefined) {
-      continue;
-    }
-    if (!isStyleKey(key)) {
-      own[key] = value;
-    } else if (STYLE[key].on === "text" && type !== "text") {
-      if (hasLabelSlot(type)) {
-        label[key] = value;
-      }
-    } else if (applies(type, key)) {
-      own[key] = value;
-    }
-  }
-  // own keeps a subset of `fields`; label only text fields
-  return { own: own as Partial<F>, label: label as LabelStyle };
-};
-
 const PROPORTIONAL_RADIUS = 2;
 const ADAPTIVE_RADIUS = 3;
 const ADAPTIVE_TYPES: Record<string, true> = {
@@ -209,47 +143,125 @@ const ADAPTIVE_TYPES: Record<string, true> = {
   embeddable: true,
 };
 
-export const toStored = <F extends { roundness?: boolean }>(
-  type: string,
-  fields: F
-): Omit<F, "roundness"> & { roundness?: Roundness | null } => {
-  const { roundness, ...rest } = fields;
-  if (roundness === undefined) {
-    return rest;
-  }
-  return {
-    ...rest,
-    roundness: roundness
-      ? { type: ADAPTIVE_TYPES[type] ? ADAPTIVE_RADIUS : PROPORTIONAL_RADIUS }
-      : null,
-  };
-};
+export class ElementStyle {
+  static readonly STYLE = STYLE;
+  static readonly STYLE_KEYS = STYLE_KEYS;
 
-export const styleDiff = (
-  element: Element,
-  label?: Element
-): Partial<Style> => {
-  const diff: Record<string, unknown> = {};
-  const own = defaultsFor(element.type) as Record<string, unknown>;
-  const labelled = defaultsFor(element.type, "label") as Record<
-    string,
-    unknown
-  >;
-  for (const key of STYLE_KEYS) {
-    const isLabelField = STYLE[key].on === "text" && element.type !== "text";
-    const source = isLabelField ? label : element;
-    const defaults = isLabelField ? labelled : own;
-    if (!source || !(key in defaults)) {
-      continue;
-    }
-    const stored = source[key];
-    let value = stored === undefined ? defaults[key] : stored;
-    if (key === "roundness") {
-      value = Boolean(stored);
-    }
-    if (value !== defaults[key]) {
-      diff[key] = value;
-    }
+  private constructor() {
+    // static rules only
   }
-  return diff as Partial<Style>;
-};
+
+  static hasLabelSlot(type: string): boolean {
+    return hasLabelSlot(type);
+  }
+
+  static defaultsFor(
+    type: string,
+    role: "element" | "label" = "element"
+  ): Partial<Style> {
+    const kind = role === "label" ? "text" : type;
+    const defaults: Record<string, unknown> = {};
+    for (const key of STYLE_KEYS) {
+      const wanted =
+        role === "label"
+          ? STYLE[key].on === "text"
+          : applies(kind, key) && (STYLE[key].on !== "text" || kind === "text");
+      if (wanted) {
+        defaults[key] = STYLE[key].default;
+      }
+    }
+    if (role === "label") {
+      defaults.textAlign = "center";
+    }
+    return defaults as Partial<Style>;
+  }
+
+  static misplacedStyle(
+    type: string,
+    fields: Record<string, unknown>
+  ): StyleKey | undefined {
+    return Object.keys(fields).find(
+      (key): key is StyleKey =>
+        fields[key] !== undefined && isStyleKey(key) && !applies(type, key)
+    );
+  }
+
+  static pickStyle(source: object): Partial<Style> {
+    return Object.fromEntries(
+      Object.entries(source).filter(
+        ([key, value]) => isStyleKey(key) && value !== undefined
+      )
+    );
+  }
+
+  static routeStyle<F extends Partial<Style>>(
+    type: string,
+    fields: F
+  ): { own: Partial<F>; label: LabelStyle } {
+    const own: Record<string, unknown> = {};
+    const label: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value === undefined) {
+        continue;
+      }
+      if (!isStyleKey(key)) {
+        own[key] = value;
+      } else if (STYLE[key].on === "text" && type !== "text") {
+        if (ElementStyle.hasLabelSlot(type)) {
+          label[key] = value;
+        }
+      } else if (applies(type, key)) {
+        own[key] = value;
+      }
+    }
+    // own keeps a subset of `fields`; label only text fields
+    return { own: own as Partial<F>, label: label as LabelStyle };
+  }
+
+  static toStored<F extends { roundness?: boolean }>(
+    type: string,
+    fields: F
+  ): Omit<F, "roundness"> & { roundness?: Roundness | null } {
+    const { roundness, ...rest } = fields;
+    if (roundness === undefined) {
+      return rest;
+    }
+    return {
+      ...rest,
+      roundness: roundness
+        ? {
+            type: ADAPTIVE_TYPES[type] ? ADAPTIVE_RADIUS : PROPORTIONAL_RADIUS,
+          }
+        : null,
+    };
+  }
+
+  static styleDiff(element: Element, label?: Element): Partial<Style> {
+    const diff: Record<string, unknown> = {};
+    const own = ElementStyle.defaultsFor(element.type) as Record<
+      string,
+      unknown
+    >;
+    const labelled = ElementStyle.defaultsFor(element.type, "label") as Record<
+      string,
+      unknown
+    >;
+    for (const key of STYLE_KEYS) {
+      const isLabelField = STYLE[key].on === "text" && element.type !== "text";
+      const source = isLabelField ? label : element;
+      const defaults = isLabelField ? labelled : own;
+      if (!source || !(key in defaults)) {
+        continue;
+      }
+      const stored = source[key];
+      let value = stored === undefined ? defaults[key] : stored;
+      if (key === "roundness") {
+        value = Boolean(stored);
+      }
+      if (value !== defaults[key]) {
+        diff[key] = value;
+      }
+    }
+    return diff as Partial<Style>;
+  }
+}

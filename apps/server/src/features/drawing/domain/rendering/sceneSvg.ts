@@ -1,7 +1,7 @@
 import type { Element } from "../entities/Element";
 import { Geometry } from "../rules/geometry";
 import type { Bounds, Point } from "../rules/geometry";
-import { STYLE } from "../shapes/ElementStyle";
+import { ElementStyle } from "../shapes/ElementStyle";
 
 export const FONT_FAMILY = "Sarabun";
 export const DEFAULT_MAX_SIZE = 1600;
@@ -51,7 +51,7 @@ const strokeAttrs = (e: Element) => {
   const width = Math.max(Geometry.num(e.strokeWidth, 1), 0.5);
   const dash = DASH[String(e.strokeStyle)]?.(width);
   return (
-    `stroke="${escapeXml(str(e.strokeColor, STYLE.strokeColor.default))}" stroke-width="${width}"` +
+    `stroke="${escapeXml(str(e.strokeColor, ElementStyle.STYLE.strokeColor.default))}" stroke-width="${width}"` +
     ` stroke-linecap="round" stroke-linejoin="round"${
       dash ? ` stroke-dasharray="${dash}"` : ""
     }`
@@ -104,7 +104,9 @@ const arrowhead = (
   const back: Point = [tip[0] - ux * size, tip[1] - uy * size];
   const left: Point = [back[0] - uy * size * 0.45, back[1] + ux * size * 0.45];
   const right: Point = [back[0] + uy * size * 0.45, back[1] - ux * size * 0.45];
-  const color = escapeXml(str(e.strokeColor, STYLE.strokeColor.default));
+  const color = escapeXml(
+    str(e.strokeColor, ElementStyle.STYLE.strokeColor.default)
+  );
   const stroke = strokeAttrs({ ...e, strokeStyle: "solid" });
   const poly = (pts: Point[], fill: string) =>
     `<polygon points="${pts.map((p) => p.join(",")).join(" ")}" fill="${fill}" ${stroke}/>`;
@@ -160,7 +162,7 @@ const linear = (e: Element): string => {
   const heads = [
     [
       e.endArrowhead === undefined
-        ? STYLE.endArrowhead.default
+        ? ElementStyle.STYLE.endArrowhead.default
         : e.endArrowhead,
       pts.at(-1),
       pts.at(-2),
@@ -195,7 +197,10 @@ const VERTICAL_SHARE: Record<string, number> = { middle: 0.5, bottom: 1 };
 
 const textNode = (e: Element, area: TextArea) => {
   const lines = (e.text ?? "").split("\n");
-  const fontSize = Geometry.num(e.fontSize, STYLE.fontSize.default);
+  const fontSize = Geometry.num(
+    e.fontSize,
+    ElementStyle.STYLE.fontSize.default
+  );
   const lineHeight = fontSize * Geometry.num(e.lineHeight, DEFAULT_LINE_HEIGHT);
   const align = ALIGN[String(e.textAlign)] ?? LEFT;
   const x = area.x + area.width * align.share;
@@ -203,7 +208,9 @@ const textNode = (e: Element, area: TextArea) => {
   const top =
     area.y +
     (area.height - total) * (VERTICAL_SHARE[String(e.verticalAlign)] ?? 0);
-  const color = escapeXml(str(e.strokeColor, STYLE.strokeColor.default));
+  const color = escapeXml(
+    str(e.strokeColor, ElementStyle.STYLE.strokeColor.default)
+  );
   const tspans = lines
     .map(
       (line, i) =>

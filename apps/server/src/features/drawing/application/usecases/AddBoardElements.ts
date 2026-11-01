@@ -9,30 +9,10 @@ import { resolvePage } from "../../domain/entities/Page";
 import { Bindings } from "../../domain/rules/bindings";
 import { Geometry } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
-import {
-  CLEARANCE,
-  FRAME_PADDING,
-  besideContent,
-  layered,
-  wrapFrame,
-} from "../../domain/rules/layout";
+import { Layout } from "../../domain/rules/layout";
 import type { LayoutDirection } from "../../domain/rules/layout";
-import {
-  STYLE,
-  hasLabelSlot,
-  pickStyle,
-  routeStyle,
-} from "../../domain/shapes/ElementStyle";
-import {
-  buildElement,
-  buildLabel,
-  arrowLabelSize,
-  endsOf,
-  fitLabel,
-  frameIdOf,
-  parseShape,
-  textOf,
-} from "../../domain/shapes/ShapeRegistry";
+import { ElementStyle } from "../../domain/shapes/ElementStyle";
+import { ShapeRegistry } from "../../domain/shapes/ShapeRegistry";
 import type { Shape, ShapeInput } from "../../domain/shapes/ShapeRegistry";
 import { bumped, newIdentity } from "../connectors";
 import type { IBoardAccess } from "../ports/IBoardAccess";
@@ -140,8 +120,8 @@ const arrange = (
   ].map(Geometry.elementBounds);
   const groups = new Map<string | undefined, Built[]>();
   for (const built of loose) {
-    groups.set(frameIdOf(built.shape), [
-      ...(groups.get(frameIdOf(built.shape)) ?? []),
+    groups.set(ShapeRegistry.frameIdOf(built.shape), [
+      ...(groups.get(ShapeRegistry.frameIdOf(built.shape)) ?? []),
       built,
     ]);
   }
@@ -149,7 +129,7 @@ const arrange = (
   for (const [frameId, members] of groups) {
     const ids = new Set(members.map(({ element }) => element.id));
     const edges = batch.flatMap(({ shape }) => {
-      const { startElementId, endElementId } = endsOf(shape);
+      const { startElementId, endElementId } = ShapeRegistry.endsOf(shape);
       return startElementId &&
         endElementId &&
         ids.has(startElementId) &&
@@ -160,16 +140,16 @@ const arrange = (
               to: endElementId,
               label:
                 shape.type === "arrow" && shape.text
-                  ? arrowLabelSize(
+                  ? ShapeRegistry.arrowLabelSize(
                       shape.text,
-                      shape.fontSize ?? STYLE.fontSize.default
+                      shape.fontSize ?? ElementStyle.STYLE.fontSize.default
                     )
                   : undefined,
             },
           ]
         : [];
     });
-    const positions = layered(
+    const positions = Layout.layered(
       members.map(({ element }) => ({
         id: element.id,
         width: Number(element.width),
@@ -180,11 +160,11 @@ const arrange = (
     );
     const frame = frameId === undefined ? undefined : byId.get(frameId);
     const inside = frame !== undefined && !unsized.has(frame.id);
-    const pad = frameId === undefined ? 0 : FRAME_PADDING;
+    const pad = frameId === undefined ? 0 : Layout.FRAME_PADDING;
     const start = inside
       ? { left: Number(frame.x) + pad, top: Number(frame.y) + pad }
       : (() => {
-          const beside = besideContent(fixed, CLEARANCE);
+          const beside = Layout.besideContent(fixed, Layout.CLEARANCE);
           return { left: beside.left + pad, top: beside.top + pad };
         })();
     const placed = members.map(({ element }) => {
@@ -200,7 +180,7 @@ const arrange = (
       };
     });
     if (!inside) {
-      fixed.push(pad === 0 ? Geometry.union(placed) : wrapFrame(placed));
+      fixed.push(pad === 0 ? Geometry.union(placed) : Layout.wrapFrame(placed));
     }
   }
   return batch.map((built) => {
@@ -213,9 +193,9 @@ const arrange = (
 const referencedPageId = (batch: Built[], scene: SceneAccess) =>
   batch
     .flatMap(({ shape }) => [
-      endsOf(shape).startElementId,
-      endsOf(shape).endElementId,
-      frameIdOf(shape),
+      ShapeRegistry.endsOf(shape).startElementId,
+      ShapeRegistry.endsOf(shape).endElementId,
+      ShapeRegistry.frameIdOf(shape),
     ])
     .map((ref) => (ref === undefined ? undefined : scene.locate(ref)?.pageId))
     .find((pageId) => pageId !== undefined);
@@ -228,7 +208,7 @@ const referenceProblem = (
     if (strayEnds) {
       return "not-connector";
     }
-    const { startElementId, endElementId } = endsOf(shape);
+    const { startElementId, endElementId } = ShapeRegistry.endsOf(shape);
     if (
       [startElementId, endElementId].some(
         (ref) => ref !== undefined && !known.has(ref)
@@ -236,7 +216,7 @@ const referenceProblem = (
     ) {
       return "missing-ref";
     }
-    const frameId = frameIdOf(shape);
+    const frameId = ShapeRegistry.frameIdOf(shape);
     if (frameId !== undefined) {
       const frame = known.get(frameId);
       if (frame?.type !== "frame" || frame.isDeleted) {
@@ -245,7 +225,7 @@ const referenceProblem = (
     }
   }
   const hasChildren = ({ element }: Built) =>
-    batch.some(({ shape }) => frameIdOf(shape) === element.id);
+    batch.some(({ shape }) => ShapeRegistry.frameIdOf(shape) === element.id);
   return batch.some(
     (built) =>
       built.shape.type === "frame" &&
@@ -262,7 +242,7 @@ const attachAll = (
   touched: Set<string>
 ) => {
   for (const { shape, element } of placed) {
-    const ends = endsOf(shape);
+    const ends = ShapeRegistry.endsOf(shape);
     if (ends.startElementId === undefined && ends.endElementId === undefined) {
       continue;
     }
@@ -283,14 +263,14 @@ const labelAll = (
   const created: string[] = [];
   for (const { shape, element } of placed) {
     const latest = known.get(element.id) ?? element;
-    const text = textOf(shape);
-    if (!(text && hasLabelSlot(latest.type))) {
+    const text = ShapeRegistry.textOf(shape);
+    if (!(text && ElementStyle.hasLabelSlot(latest.type))) {
       continue;
     }
-    const label = buildLabel(
+    const label = ShapeRegistry.buildLabel(
       latest,
       text,
-      routeStyle(latest.type, pickStyle(shape)).label,
+      ElementStyle.routeStyle(latest.type, ElementStyle.pickStyle(shape)).label,
       newIdentity(ids, now)
     );
     known.set(latest.id, Drawing.withLabel(latest, label.id));
@@ -314,7 +294,7 @@ const fitFrames = (
     );
     known.set(element.id, {
       ...(known.get(element.id) ?? element),
-      ...wrapFrame(children.map(Geometry.elementBounds)),
+      ...Layout.wrapFrame(children.map(Geometry.elementBounds)),
     });
   }
   for (const { element } of fitted) {
@@ -326,7 +306,7 @@ const fitFrames = (
       touched.add(arrow.id);
       const label = known.get(Drawing.labelIdOf(arrow) ?? "");
       if (label) {
-        known.set(label.id, fitLabel(label, arrow));
+        known.set(label.id, ShapeRegistry.fitLabel(label, arrow));
       }
     }
   }
@@ -341,7 +321,7 @@ const unframeStrays = (placed: Built[], known: Map<string, Element>) => {
   );
   return placed.map((built) => {
     const { shape, element } = built;
-    const frameId = frameIdOf(shape);
+    const frameId = ShapeRegistry.frameIdOf(shape);
     const frame = frameId === undefined ? undefined : known.get(frameId);
     const stray =
       isPlaced(shape) &&
@@ -387,7 +367,7 @@ export class AddBoardElements {
         flat.type !== "line"
     );
     for (const flat of input.shapes) {
-      const parsed = parseShape(flat);
+      const parsed = ShapeRegistry.parseShape(flat);
       if (parsed.isErr()) {
         return err(FAILURES[parsed.error.outcome](parsed.error.detail));
       }
@@ -396,7 +376,7 @@ export class AddBoardElements {
     const batch = shapes.map((shape, i) => ({
       shape,
       strayEnds: strayEnds[i] ?? false,
-      element: buildElement(shape, {
+      element: ShapeRegistry.buildElement(shape, {
         id: shape.id ?? this.ids.generate(),
         seed: this.ids.int(),
         versionNonce: this.ids.int(),

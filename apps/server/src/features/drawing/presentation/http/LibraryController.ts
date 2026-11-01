@@ -5,7 +5,7 @@ import {
   resultPlugin,
 } from "../../../../shared/presentation/plugins/resultPlugin";
 import type { BetterAuthPlugin } from "../../../auth";
-import { MAX_LIBRARY_ITEMS } from "../../domain/rules/LibraryRules";
+import { LibraryRules } from "../../domain/rules/LibraryRules";
 import type { DrawingUseCases } from "../../ioc";
 
 export const createLibraryController = (
@@ -25,7 +25,7 @@ export const createLibraryController = (
         // t.Record keeps every item field; a declared t.Object would strip status, created and name
         body: t.Object({
           libraryItems: t.Array(t.Record(t.String(), t.Unknown()), {
-            maxItems: MAX_LIBRARY_ITEMS,
+            maxItems: LibraryRules.MAX_LIBRARY_ITEMS,
           }),
         }),
       },

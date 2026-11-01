@@ -37,7 +37,7 @@ const STANDALONE = (marker: number) =>
   marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7);
 
 /** The bytes end before a JPEG's size marker, so more of the file could still answer. */
-export const NEEDS_MORE = "needs-more";
+const NEEDS_MORE = "needs-more";
 
 const jpeg = (b: Uint8Array) => {
   let at = 2;
@@ -124,25 +124,33 @@ const svg = (b: Uint8Array): ImageHeader | null => {
     : { mimeType: "image/svg+xml" };
 };
 
-export const parseImageHeader = (
-  b: Uint8Array
-): ImageHeader | typeof NEEDS_MORE | null => {
-  if (b[0] === 0x89 && ascii(b, 1, "PNG")) {
-    return png(b);
-  }
-  if (ascii(b, 0, "GIF8")) {
-    return gif(b);
-  }
-  if (b[0] === 0xff && b[1] === 0xd8) {
-    return jpeg(b);
-  }
-  if (ascii(b, 0, "RIFF") && ascii(b, 8, "WEBP")) {
-    return webp(b);
-  }
-  return svg(b);
-};
+export class ImageHeaderReader {
+  static readonly NEEDS_MORE = NEEDS_MORE;
 
-export const readImageHeader = (b: Uint8Array): ImageHeader | null => {
-  const header = parseImageHeader(b);
-  return header === NEEDS_MORE ? null : header;
-};
+  private constructor() {
+    // static rules only
+  }
+
+  static parseImageHeader(
+    b: Uint8Array
+  ): ImageHeader | typeof NEEDS_MORE | null {
+    if (b[0] === 0x89 && ascii(b, 1, "PNG")) {
+      return png(b);
+    }
+    if (ascii(b, 0, "GIF8")) {
+      return gif(b);
+    }
+    if (b[0] === 0xff && b[1] === 0xd8) {
+      return jpeg(b);
+    }
+    if (ascii(b, 0, "RIFF") && ascii(b, 8, "WEBP")) {
+      return webp(b);
+    }
+    return svg(b);
+  }
+
+  static readImageHeader(b: Uint8Array): ImageHeader | null {
+    const header = ImageHeaderReader.parseImageHeader(b);
+    return header === NEEDS_MORE ? null : header;
+  }
+}

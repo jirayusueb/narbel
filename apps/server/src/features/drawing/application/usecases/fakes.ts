@@ -1,5 +1,5 @@
 import { Page } from "../../domain/entities/Page";
-import { shouldAcceptIncoming } from "../../domain/rules/mergeElement";
+import { MergeElement } from "../../domain/rules/mergeElement";
 import type { SceneVersion } from "../../domain/values/ChangeCursor";
 import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import { toElement, toExcalidraw } from "../dtos/ExcalidrawElement";
@@ -68,7 +68,7 @@ export class FakeScenes implements IBoardScenes {
     // same merge rule as the live hub, so a write without a version bump is dropped here too
     put: (pageId, el) => {
       const key = `${pageId}:${el.id}`;
-      if (shouldAcceptIncoming(this.elements.get(key), el)) {
+      if (MergeElement.shouldAcceptIncoming(this.elements.get(key), el)) {
         this.elements.set(key, toExcalidraw(el));
       }
     },

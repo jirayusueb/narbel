@@ -1,7 +1,7 @@
 import type { AppError } from "../../../../shared/kernel/errors/AppError";
 import { err, okEmpty } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { validateLibraryItems } from "../../domain/rules/LibraryRules";
+import { LibraryRules } from "../../domain/rules/LibraryRules";
 import type { ILibraryRepository } from "../ports/ILibraryRepository";
 
 export class SaveLibrary {
@@ -11,7 +11,7 @@ export class SaveLibrary {
     userId: string;
     libraryItems: unknown[];
   }): Promise<Result<void, AppError>> {
-    const valid = validateLibraryItems(input.libraryItems);
+    const valid = LibraryRules.validateLibraryItems(input.libraryItems);
     if (valid.isErr()) {
       return err(valid.error);
     }
