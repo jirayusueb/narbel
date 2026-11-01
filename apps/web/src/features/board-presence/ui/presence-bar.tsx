@@ -69,7 +69,6 @@ export const PresenceBar = ({
           <motion.li key={peer.clientId} layout {...POP}>
             <button
               type="button"
-              title={`Follow ${peer.user.name}`}
               aria-label={`Follow ${peer.user.name}`}
               aria-pressed={peer.clientId === followId}
               onClick={() =>
