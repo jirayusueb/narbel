@@ -33,7 +33,11 @@ const texts = (...values: string[]) =>
 
 describe.skipIf(!reachable)("search mirrors (postgres)", () => {
   const index = new DrizzleSearchIndex(db);
-  const consumers = createSearchConsumers({ db });
+  const built = createSearchConsumers({ db });
+  const consumers = {
+    text: built.text.consume,
+    comment: built.comment.consume,
+  };
   const textEvent = (boardId: string, savedAt: string, set: unknown[]) => ({
     type: "event.drawing-text-changed",
     version: 1,

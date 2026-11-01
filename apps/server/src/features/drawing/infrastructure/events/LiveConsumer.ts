@@ -17,12 +17,14 @@ const accessEventSchema = z.object({
  * board on every instance. A recheck is idempotent, so a repeated delivery needs no processed mark,
  * and a bus failure throws so the event is retried.
  */
-export const createLiveConsumer =
-  ({ pubsub }: { pubsub: IPubSub }): EventConsumer =>
-  async (_id, payload) => {
+export class LiveConsumer {
+  constructor(private readonly pubsub: IPubSub) {}
+
+  readonly consume: EventConsumer = async (_id, payload) => {
     const event = accessEventSchema.safeParse(payload);
     if (!event.success) {
       throw new UnreadableEventError(event.error.message);
     }
-    await recheckBoardPeers(pubsub, event.data.boardId);
+    await recheckBoardPeers(this.pubsub, event.data.boardId);
   };
+}

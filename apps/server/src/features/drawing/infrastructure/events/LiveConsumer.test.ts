@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { UnreadableEventError } from "../../../../shared/infrastructure/outbox/OutboxWorker";
 import { MemoryBus } from "../crdt/MemoryBus";
 import { YjsBoardHub } from "../crdt/YjsBoardHub";
-import { createLiveConsumer } from "./liveConsumer";
+import { LiveConsumer } from "./LiveConsumer";
 
 const store = {
   load: () => Promise.resolve(null),
@@ -19,7 +19,7 @@ const settle = async () => {
 describe("drawing.live consumer", () => {
   it("rechecks the board's peers on every instance for each access event", async () => {
     const bus = new MemoryBus();
-    const consume = createLiveConsumer({ pubsub: bus });
+    const { consume } = new LiveConsumer(bus);
     const decided: string[] = [];
     for (const hub of [
       new YjsBoardHub(store, bus),
@@ -51,7 +51,7 @@ describe("drawing.live consumer", () => {
   });
 
   it("parks a payload it cannot read", async () => {
-    const consume = createLiveConsumer({ pubsub: new MemoryBus() });
+    const { consume } = new LiveConsumer(new MemoryBus());
     await expect(
       consume("e1", { type: "event.access-changed", version: 2 })
     ).rejects.toBeInstanceOf(UnreadableEventError);

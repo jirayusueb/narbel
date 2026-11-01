@@ -7,8 +7,6 @@ import type { IFileStorage } from "../../shared/application/interfaces/IFileStor
 import type { IPubSub } from "../../shared/application/interfaces/IPubSub";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
 import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
-import { UnreadableEventError } from "../../shared/infrastructure/outbox/OutboxWorker";
-import type { EventConsumer } from "../../shared/infrastructure/outbox/OutboxWorker";
 import type { AfterCommit } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
@@ -49,7 +47,7 @@ import {
 } from "./application/usecases/Selection";
 import { UpdateBoardElement } from "./application/usecases/UpdateBoardElement";
 import { YjsBoardHub } from "./infrastructure/crdt/YjsBoardHub";
-import { boardDeletedSchema } from "./infrastructure/events/boardDeletedSchema";
+import { BoardDeletedConsumer } from "./infrastructure/events/BoardDeletedConsumer";
 import { DrizzleBoardDocumentStore } from "./infrastructure/repositories/DrizzleBoardDocumentStore";
 import { DrizzleBoardFileRepository } from "./infrastructure/repositories/DrizzleBoardFileRepository";
 import { DrizzleBoardVersionRepository } from "./infrastructure/repositories/DrizzleBoardVersionRepository";
@@ -193,10 +191,7 @@ export const createDrawingModule = (
     .use(createBoardPreviewController(betterAuth, uc))
     .use(createLibraryController(betterAuth, uc));
 
-/**
- * Reads boards' board-deleted off the outbox: drops the board's drawing rows, its live room and its
- * stored files, once per event.
- */
+/** Wires the board-deleted consumer: the use case commits with its processed mark. */
 export const createDrawingConsumer = ({
   db,
   storage,
@@ -205,20 +200,14 @@ export const createDrawingConsumer = ({
   db: Database;
   storage: IFileStorage;
   rooms: DrawingRooms;
-}): EventConsumer => {
-  const deleteDrawing = new DeleteDrawing(
-    new DrizzleUnitOfWork<DeleteDrawingTx>(db, (tx) => ({
-      drawings: new DrizzleDrawingRows(tx),
-      processed: new DrizzleProcessedEvents(tx),
-    })),
-    rooms,
-    storage
+}) =>
+  new BoardDeletedConsumer(
+    new DeleteDrawing(
+      new DrizzleUnitOfWork<DeleteDrawingTx>(db, (tx) => ({
+        drawings: new DrizzleDrawingRows(tx),
+        processed: new DrizzleProcessedEvents(tx),
+      })),
+      rooms,
+      storage
+    )
   );
-  return async (id, payload) => {
-    const event = boardDeletedSchema.safeParse(payload);
-    if (!event.success) {
-      throw new UnreadableEventError(event.error.message);
-    }
-    await deleteDrawing.execute(id, event.data);
-  };
-};

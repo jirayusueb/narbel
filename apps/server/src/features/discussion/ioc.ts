@@ -4,8 +4,6 @@ import { Elysia } from "elysia";
 import { UuidGenerator } from "../../shared/infrastructure/ids/UuidGenerator";
 import { DrizzleOutbox } from "../../shared/infrastructure/outbox/DrizzleOutbox";
 import { DrizzleProcessedEvents } from "../../shared/infrastructure/outbox/DrizzleProcessedEvents";
-import { UnreadableEventError } from "../../shared/infrastructure/outbox/OutboxWorker";
-import type { EventConsumer } from "../../shared/infrastructure/outbox/OutboxWorker";
 import { wakeWhenQueued } from "../../shared/infrastructure/outbox/WakingOutbox";
 import { DrizzleUnitOfWork } from "../../shared/infrastructure/uow/DrizzleUnitOfWork";
 import type { BetterAuthPlugin } from "../auth";
@@ -27,7 +25,7 @@ import { ResolveComment } from "./application/usecases/ResolveComment";
 import { SetCommentReaction } from "./application/usecases/SetCommentReaction";
 import { UnassignRemovedMember } from "./application/usecases/UnassignRemovedMember";
 import type { UnassignTx } from "./application/usecases/UnassignRemovedMember";
-import { memberRemovedSchema } from "./infrastructure/events/memberRemovedSchema";
+import { MemberRemovedConsumer } from "./infrastructure/events/MemberRemovedConsumer";
 import { DrizzleCommentRepository } from "./infrastructure/repositories/DrizzleCommentRepository";
 import { createBoardCommentController } from "./presentation/http/CommentController";
 
@@ -111,23 +109,13 @@ export const createDiscussionModule = (
     createBoardCommentController(betterAuth, uc)
   );
 
-/** Reads boards' member-removed off the outbox: the unassign and the processed mark commit together. */
-export const createDiscussionConsumer = ({
-  db,
-}: {
-  db: Database;
-}): EventConsumer => {
-  const unassign = new UnassignRemovedMember(
-    new DrizzleUnitOfWork<UnassignTx>(db, (tx) => ({
-      comments: new DrizzleCommentRepository(tx),
-      processed: new DrizzleProcessedEvents(tx),
-    }))
+/** Wires the member-removed consumer: the unassign commits with its processed mark. */
+export const createDiscussionConsumer = ({ db }: { db: Database }) =>
+  new MemberRemovedConsumer(
+    new UnassignRemovedMember(
+      new DrizzleUnitOfWork<UnassignTx>(db, (tx) => ({
+        comments: new DrizzleCommentRepository(tx),
+        processed: new DrizzleProcessedEvents(tx),
+      }))
+    )
   );
-  return async (id, payload) => {
-    const event = memberRemovedSchema.safeParse(payload);
-    if (!event.success) {
-      throw new UnreadableEventError(event.error.message);
-    }
-    await unassign.execute(id, event.data);
-  };
-};
