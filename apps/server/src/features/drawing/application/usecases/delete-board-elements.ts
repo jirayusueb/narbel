@@ -1,8 +1,10 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
+import type { ElementId } from "../../domain/entities/element";
 import { deleteElement } from "../connectors";
 import type { IBoardAccess } from "../ports/i-board-access";
 import type { IBoardScenes } from "../ports/i-board-scenes";
@@ -16,8 +18,8 @@ export class DeleteBoardElements {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    ids: string[];
+    boardId: BoardId;
+    ids: ElementId[];
   }): Promise<Result<{ deleted: number; locked?: string[] }, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,

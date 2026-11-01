@@ -1,3 +1,4 @@
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type { Page } from "../../domain/entities/page";
 import type { ExcalidrawElement } from "../dtos/excalidraw-element";
 
@@ -36,7 +37,7 @@ export interface IBoardHistory {
    * restore only applies if nothing changed meanwhile (otherwise it takes a fresh recovery point).
    */
   restore(
-    boardId: string,
+    boardId: BoardId,
     state: Uint8Array,
     keep: (point: RestorePoint) => Promise<void>
   ): Promise<RestoreOutcome>;

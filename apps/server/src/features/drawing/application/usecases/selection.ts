@@ -1,8 +1,10 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
+import type { ElementId } from "../../domain/entities/element";
 import { patchElement, stripReserved } from "../connectors";
 import { toSceneElementDto } from "../dtos/scene-dto";
 import type { SceneElementDto } from "../dtos/scene-dto";
@@ -10,14 +12,14 @@ import type { IBoardAccess } from "../ports/i-board-access";
 import type { IBoardScenes, SceneAccess } from "../ports/i-board-scenes";
 
 export interface SelectionDto {
-  ids: string[];
+  ids: ElementId[];
   elements: SceneElementDto[];
 }
 
 const noClient = () =>
   AppError.notFound("Selection (no browser is connected to this board)");
 
-const liveDtos = (s: SceneAccess, ids: string[]): SceneElementDto[] =>
+const liveDtos = (s: SceneAccess, ids: ElementId[]): SceneElementDto[] =>
   ids.flatMap((id) => {
     const found = s.locate(id);
     return found && !found.element.isDeleted
@@ -29,7 +31,7 @@ const liveDtos = (s: SceneAccess, ids: string[]): SceneElementDto[] =>
       : [];
   });
 
-const firstLive = (s: SceneAccess, ids: string[]) =>
+const firstLive = (s: SceneAccess, ids: ElementId[]) =>
   ids
     .map((id) => s.locate(id))
     .find((found) => found && !found.element.isDeleted);
@@ -43,7 +45,7 @@ export class GetSelection {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
   }): Promise<Result<SelectionDto, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,
@@ -73,8 +75,8 @@ export class SelectElements {
   /** `reveal` (the focus tool) also requires at least one live element and brings it into viewers' view. */
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    ids: string[];
+    boardId: BoardId;
+    ids: ElementId[];
     reveal?: boolean;
   }): Promise<Result<SelectionDto, AppError>> {
     const granted = await this.policy.decide(
@@ -114,7 +116,7 @@ export class EditSelection {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
     patch: Record<string, unknown>;
   }): Promise<Result<{ updated: string[]; locked?: string[] }, AppError>> {
     const granted = await this.policy.decide(

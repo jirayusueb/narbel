@@ -1,19 +1,20 @@
 import { Drawing } from "../../domain/entities/drawing";
-import type { Element } from "../../domain/entities/element";
+import type { Element, ElementId } from "../../domain/entities/element";
+import type { PageId } from "../../domain/entities/page";
 import type { ElementTouch, SceneAccess } from "../ports/i-board-scenes";
 import type { ChangedComment } from "../ports/i-comment-activity";
 import { byZOrder, toSceneElementDto } from "./scene-dto";
 import type { SceneElementDto } from "./scene-dto";
 
 export interface DeletedElementDto {
-  id: string;
+  id: ElementId;
   type: string;
   /** text, or a shape's label, as last seen */
   text?: unknown;
 }
 
 export interface PageChangesDto {
-  pageId: string;
+  pageId: PageId;
   name: string;
   added: SceneElementDto[];
   updated: SceneElementDto[];
@@ -64,7 +65,7 @@ export const toPageChanges = (
   for (const [pageIndex, page] of pages.entries()) {
     const own = touches.filter((t) => t.pageId === page.id);
     const byId = new Map(own.map((t) => [t.element.id, t]));
-    const containers = new Map<string, Entry>();
+    const containers = new Map<ElementId, Entry>();
     for (const touch of own) {
       const { element } = touch;
       const container =

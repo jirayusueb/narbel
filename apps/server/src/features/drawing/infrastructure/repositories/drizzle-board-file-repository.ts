@@ -2,6 +2,7 @@ import { and, eq } from "@narbel/db";
 import type { Database } from "@narbel/db";
 import { boardFile } from "@narbel/db/schema/drawing";
 
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type { BoardFileDto } from "../../application/dtos/board-file-dto";
 import type { IBoardFileRepository } from "../../application/ports/i-board-file-repository";
 
@@ -9,7 +10,7 @@ export class DrizzleBoardFileRepository implements IBoardFileRepository {
   constructor(private readonly db: Database) {}
 
   // A file the GC has claimed is gone for every reader, even while its bytes still exist.
-  async findById(boardId: string, fileId: string) {
+  async findById(boardId: BoardId, fileId: string) {
     const [row] = await this.db
       .select()
       .from(boardFile)
@@ -28,7 +29,7 @@ export class DrizzleBoardFileRepository implements IBoardFileRepository {
 
   // Registering touches the row, which also keeps the GC's compare-and-set claim from winning
   // against it. A `deleting` row is never written: it reports false and the caller retries later.
-  async save(boardId: string, file: BoardFileDto) {
+  async save(boardId: BoardId, file: BoardFileDto) {
     const written = await this.db
       .insert(boardFile)
       .values({

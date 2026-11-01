@@ -1,5 +1,6 @@
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Cursor } from "../../../../shared/kernel/types/cursor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 
@@ -40,19 +41,19 @@ const isWire = (value: unknown): value is Wire => {
 /** Where an agent last looked at one board: a scene version plus the last comment activity it was shown. */
 export class ChangeCursor {
   private constructor(
-    readonly boardId: string,
+    readonly boardId: BoardId,
     readonly scene: SceneVersion,
     /** keyset position over (activityAt, id) of comments already shown */
     readonly comments: Cursor
   ) {}
 
   /** First cursor of a watch: no comment activity shown yet, so comments start at `now`. */
-  static start(boardId: string, scene: SceneVersion, now: Date): ChangeCursor {
+  static start(boardId: BoardId, scene: SceneVersion, now: Date): ChangeCursor {
     return new ChangeCursor(boardId, scene, { at: now, id: "" });
   }
 
   /** Err for anything this server did not mint for `boardId`: garbage, another format, another board. */
-  static parse(raw: string, boardId: string): Result<ChangeCursor, AppError> {
+  static parse(raw: string, boardId: BoardId): Result<ChangeCursor, AppError> {
     try {
       const wire: unknown = JSON.parse(
         Buffer.from(raw, "base64url").toString("utf-8")

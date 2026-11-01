@@ -1,10 +1,11 @@
-import type { Element } from "../../domain/entities/element";
-import type { Page } from "../../domain/entities/page";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
+import type { Element, ElementId } from "../../domain/entities/element";
+import type { Page, PageId } from "../../domain/entities/page";
 import type { SceneVersion } from "../../domain/values/change-cursor";
 
 /** One element key a human wrote after the cursor, as the document holds it now. */
 export interface ElementTouch {
-  pageId: string;
+  pageId: PageId;
   /** current value; `isDeleted: true` when the human's last act was deleting it */
   element: Element;
   /** whether the key held a value at the cursor (false = created after it) */
@@ -20,8 +21,8 @@ export interface SceneChanges {
 /** What the MCP collaborator points at. */
 export interface AgentSelection {
   /** page of the first live selected element; undefined when nothing was found */
-  pageId: string | undefined;
-  ids: string[];
+  pageId: PageId | undefined;
+  ids: ElementId[];
   /** true for `focus`: connected viewers bring the selection into view once */
   reveal: boolean;
 }
@@ -30,15 +31,15 @@ export interface AgentSelection {
 export interface SceneAccess {
   pages(): Page[];
   addPage(page: Page): void;
-  renamePage(id: string, name: string): boolean;
+  renamePage(id: PageId, name: string): boolean;
   /** Removes the page together with every element on it. */
-  removePage(id: string): boolean;
-  get(pageId: string, id: string): Element | null;
-  all(pageId: string): Element[];
+  removePage(id: PageId): boolean;
+  get(pageId: PageId, id: ElementId): Element | null;
+  all(pageId: PageId): Element[];
   /** Finds an element on any page; element ids are unique per board. */
-  locate(id: string): { pageId: string; element: Element } | null;
+  locate(id: ElementId): { pageId: PageId; element: Element } | null;
   /** Writes the element if it wins the merge rule against the stored one. */
-  put(pageId: string, element: Element): void;
+  put(pageId: PageId, element: Element): void;
   ensureFile(file: { id: string; mimeType: string; created: number }): void;
   /**
    * Element keys at least one non-agent client wrote after `since` (null = now: no touches).
@@ -50,19 +51,19 @@ export interface SceneAccess {
 
 export interface IBoardScenes {
   /** Runs `fn` as one atomic CRDT transaction on the live document, loading it if needed. */
-  transact<T>(boardId: string, fn: (scene: SceneAccess) => T): Promise<T>;
+  transact<T>(boardId: BoardId, fn: (scene: SceneAccess) => T): Promise<T>;
   /**
    * Element ids selected by the client that changed its selection last, or null
    * when nobody is connected.
    */
-  getSelection(boardId: string): Promise<string[] | null>;
+  getSelection(boardId: BoardId): Promise<string[] | null>;
   /** Publishes the selection as the "MCP" collaborator on `pageId`, outlined in every browser on that page. */
-  setSelection(boardId: string, selection: AgentSelection): Promise<void>;
+  setSelection(boardId: BoardId, selection: AgentSelection): Promise<void>;
   /** Drops the live document and its connections without persisting (the board is gone). */
-  discard(boardId: string): Promise<void>;
+  discard(boardId: BoardId): Promise<void>;
   /**
    * Saves the live document, then disconnects every peer on every server instance and unloads it
    * (the board went to Trash). Unlike `discard`, unsaved edits survive.
    */
-  evict(boardId: string): Promise<void>;
+  evict(boardId: BoardId): Promise<void>;
 }

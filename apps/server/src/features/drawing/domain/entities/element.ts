@@ -1,14 +1,17 @@
+import type { Flavor } from "../../../../shared/kernel/types/flavor";
 import type { Versioned } from "../rules/merge-element";
+
+export type ElementId = Flavor<string, "ElementId">;
 
 /** A label or connector listed on the element it belongs to. */
 export interface BoundElement {
-  id: string;
+  id: ElementId;
   type: string;
 }
 
 /** What a connector end is attached to; Excalidraw's other binding fields stay on the object. */
 export interface Binding {
-  elementId: string;
+  elementId: ElementId;
 }
 
 export interface Roundness {
@@ -21,7 +24,7 @@ export interface Roundness {
  * Fields are `declare`d so an absent field stays absent, as it is in the stored element.
  */
 export class Element implements Versioned {
-  declare id: string;
+  declare id: ElementId;
   declare type: string;
   declare version: number;
   declare versionNonce: number;
@@ -35,10 +38,10 @@ export class Element implements Versioned {
   declare height?: number;
   declare angle?: number;
   declare groupIds?: string[];
-  declare frameId?: string | null;
+  declare frameId?: ElementId | null;
   declare locked?: boolean;
   /** a label's shape */
-  declare containerId?: string | null;
+  declare containerId?: ElementId | null;
   /** a shape's label and attached connectors */
   declare boundElements?: BoundElement[] | null;
   /** connector and freedraw points, relative to x/y */

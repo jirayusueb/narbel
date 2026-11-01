@@ -2,9 +2,11 @@ import type { ICache } from "../../../../shared/application/interfaces/i-cache";
 import type { IFileStorage } from "../../../../shared/application/interfaces/i-file-storage";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Page } from "../../domain/entities/page";
+import type { PageId } from "../../domain/entities/page";
 import { SceneSvgBuilder } from "../../domain/rendering/scene-svg";
 import type { Bounds } from "../../domain/rules/geometry";
 import { MAX_RENDER_BYTES, loadBoardImages } from "../board-images";
@@ -14,7 +16,7 @@ import type { IBoardRasterizer } from "../ports/i-board-rasterizer";
 import type { IBoardScenes } from "../ports/i-board-scenes";
 
 export interface BoardImage {
-  pageId: string;
+  pageId: PageId;
   pageName: string;
   /** null when the page has nothing to draw */
   image: {
@@ -48,8 +50,8 @@ export class RenderBoardImage {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
-    pageId?: string;
+    boardId: BoardId;
+    pageId?: PageId;
     maxSize?: number;
   }): Promise<Result<BoardImage, AppError>> {
     const granted = await this.policy.decide(
@@ -91,8 +93,8 @@ export class RenderBoardImage {
   }
 
   private async render(input: {
-    boardId: string;
-    pageId?: string;
+    boardId: BoardId;
+    pageId?: PageId;
     maxSize?: number;
   }): Promise<Result<BoardImage, AppError>> {
     const page = await this.scenes.transact(input.boardId, (s) => {

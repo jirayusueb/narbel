@@ -8,6 +8,7 @@ import {
 import type { ExcalidrawElement } from "../../application/dtos/excalidraw-element";
 import type { SceneAccess } from "../../application/ports/i-board-scenes";
 import { MAIN_PAGE, Page } from "../../domain/entities/page";
+import type { PageId } from "../../domain/entities/page";
 import { MergeElement } from "../../domain/rules/merge-element";
 import { touchesSince } from "./changes";
 
@@ -111,12 +112,12 @@ export const sceneAccess = (doc: Y.Doc): SceneAccess => {
   const pages = doc.getArray<Page>("pages");
   const elements = doc.getMap<ExcalidrawElement>("elements");
   const files = doc.getMap<unknown>("files");
-  const pageKeys = (pageId: string) =>
+  const pageKeys = (pageId: PageId) =>
     [...elements.entries()].flatMap(([key, element]) => {
       const order = orderKeyOf(element);
       return key.startsWith(`${pageId}:`) && order !== undefined ? [order] : [];
     });
-  const indexOf = (id: string) => pages.toArray().findIndex((p) => p.id === id);
+  const indexOf = (id: PageId) => pages.toArray().findIndex((p) => p.id === id);
   return {
     pages: () => pages.toArray().map((p) => Page.create(p.id, p.name)),
     // the document stores plain JSON, so a Page is copied out

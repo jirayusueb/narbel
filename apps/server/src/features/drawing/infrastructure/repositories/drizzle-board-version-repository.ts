@@ -2,6 +2,7 @@ import { and, desc, eq } from "@narbel/db";
 import type { Database } from "@narbel/db";
 import { boardVersion } from "@narbel/db/schema/drawing";
 
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type {
   IBoardVersions,
   NewVersion,
@@ -11,7 +12,7 @@ import { insertVersion } from "./board-versions";
 export class DrizzleBoardVersionRepository implements IBoardVersions {
   constructor(private readonly db: Database) {}
 
-  list(boardId: string) {
+  list(boardId: BoardId) {
     return this.db
       .select({
         id: boardVersion.id,
@@ -24,7 +25,7 @@ export class DrizzleBoardVersionRepository implements IBoardVersions {
       .orderBy(desc(boardVersion.createdAt));
   }
 
-  async findInBoard(boardId: string, id: string) {
+  async findInBoard(boardId: BoardId, id: string) {
     const [row] = await this.db
       .select({
         id: boardVersion.id,
@@ -39,7 +40,7 @@ export class DrizzleBoardVersionRepository implements IBoardVersions {
     return row ?? null;
   }
 
-  record(boardId: string, version: NewVersion) {
+  record(boardId: BoardId, version: NewVersion) {
     return this.db.transaction((tx) => insertVersion(tx, boardId, version));
   }
 }

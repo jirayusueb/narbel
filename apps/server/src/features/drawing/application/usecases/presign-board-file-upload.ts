@@ -1,6 +1,7 @@
 import type { IFileStorage } from "../../../../shared/application/interfaces/i-file-storage";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { UploadRules } from "../../domain/rules/upload-rules";
@@ -19,7 +20,7 @@ export class PresignBoardFileUpload {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
     fileId: string;
     mimeType: string;
     size: number;

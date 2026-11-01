@@ -1,6 +1,7 @@
 import type { IIdGenerator } from "../../../shared/application/interfaces/i-id-generator";
 import { Drawing } from "../domain/entities/drawing";
-import type { Element } from "../domain/entities/element";
+import type { Element, ElementId } from "../domain/entities/element";
+import type { PageId } from "../domain/entities/page";
 import { Bindings } from "../domain/rules/bindings";
 import type { ConnectorRefs } from "../domain/rules/bindings";
 import { Geometry } from "../domain/rules/geometry";
@@ -50,7 +51,7 @@ export const bumped = (element: Element, ids: IIdGenerator): Element => ({
   updated: Date.now(),
 });
 
-export const pageLookup = (scene: SceneAccess, pageId: string) =>
+export const pageLookup = (scene: SceneAccess, pageId: PageId) =>
   new Map(scene.all(pageId).map((element) => [element.id, element]));
 
 const GEOMETRY: Record<string, true> = {
@@ -70,8 +71,8 @@ export type PatchOutcome =
 
 /** `null` detaches that end; `undefined` keeps the current binding. */
 export interface RebindRefs {
-  startElementId?: string | null;
-  endElementId?: string | null;
+  startElementId?: ElementId | null;
+  endElementId?: ElementId | null;
 }
 
 const resolveRefs = (
@@ -91,7 +92,7 @@ const resolveRefs = (
 const rebindProblem = (
   local: Element,
   rebind: RebindRefs,
-  lookup: Map<string, Element>
+  lookup: Map<ElementId, Element>
 ): PatchOutcome | undefined => {
   const changed = [rebind.startElementId, rebind.endElementId].filter(
     (ref) => ref !== undefined
@@ -114,7 +115,7 @@ const rebindProblem = (
 const rebound = (
   next: Element,
   refs: ConnectorRefs,
-  lookup: Map<string, Element>,
+  lookup: Map<ElementId, Element>,
   ids: IIdGenerator
 ): Element[] => {
   const attached = Bindings.attachConnector(next, refs, lookup);
@@ -147,7 +148,7 @@ interface LabelChange {
 const relabel = (
   container: Element,
   { text, style, refit }: LabelChange,
-  lookup: Map<string, Element>,
+  lookup: Map<ElementId, Element>,
   ids: IIdGenerator
 ): { container: Element; writes: Element[] } => {
   const labelId = Drawing.labelIdOf(container);
@@ -224,7 +225,7 @@ const restyled = (
 
 const released = (
   child: Element,
-  lookup: Map<string, Element>,
+  lookup: Map<ElementId, Element>,
   moved: boolean
 ): Element => {
   const frame =
@@ -246,7 +247,7 @@ const isFree = (e: Element) => {
 };
 
 const childMoves = (
-  lookup: Map<string, Element>,
+  lookup: Map<ElementId, Element>,
   before: Element,
   after: Element
 ) => {
@@ -273,11 +274,11 @@ const childMoves = (
 export const patchElement = (
   scene: SceneAccess,
   ids: IIdGenerator,
-  id: string,
+  id: ElementId,
   fields: ElementPatch,
   rebind: RebindRefs = {},
   carried = false,
-  sharedLookup?: Map<string, Element>
+  sharedLookup?: Map<ElementId, Element>
 ): PatchOutcome => {
   const found = scene.locate(id);
   if (!found || found.element.isDeleted) {
@@ -355,7 +356,7 @@ export const patchElement = (
 export const deleteElement = (
   scene: SceneAccess,
   ids: IIdGenerator,
-  id: string
+  id: ElementId
 ): "ok" | "missing" | "locked" => {
   const found = scene.locate(id);
   if (!found || found.element.isDeleted) {

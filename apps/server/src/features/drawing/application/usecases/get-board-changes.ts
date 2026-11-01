@@ -1,5 +1,6 @@
 import type { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { ChangeCursor, badCursor } from "../../domain/values/change-cursor";
@@ -23,7 +24,7 @@ export class GetBoardChanges {
 
   async execute(input: {
     actor: Actor;
-    boardId: string;
+    boardId: BoardId;
     since?: string;
   }): Promise<Result<BoardChangesDto, AppError>> {
     const granted = await this.policy.decide(

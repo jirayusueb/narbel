@@ -4,6 +4,7 @@ import { and, desc, eq, inArray, lt } from "@narbel/db";
 import type { DbExecutor } from "@narbel/db";
 import { boardVersion } from "@narbel/db/schema/drawing";
 
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import type {
   NewVersion,
   VersionKind,
@@ -23,7 +24,7 @@ export const RETENTION_COUNT: Record<VersionKind, number> = {
 
 const prune = async (
   db: DbExecutor,
-  boardId: string,
+  boardId: BoardId,
   kind: VersionKind,
   now: Date
 ) => {
@@ -57,7 +58,7 @@ const prune = async (
 
 export const insertVersion = async (
   db: DbExecutor,
-  boardId: string,
+  boardId: BoardId,
   version: NewVersion,
   now = new Date()
 ) => {
@@ -76,7 +77,7 @@ export const insertVersion = async (
 /** Inserts an automatic checkpoint unless one was taken recently. Runs inside the document save's transaction. */
 export const checkpointIfDue = async (
   db: DbExecutor,
-  boardId: string,
+  boardId: BoardId,
   state: Uint8Array,
   fileIds: string[],
   now: Date

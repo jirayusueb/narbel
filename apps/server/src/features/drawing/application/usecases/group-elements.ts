@@ -1,9 +1,11 @@
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
 import type { Actor } from "../../../../shared/kernel/types/actor";
+import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Drawing } from "../../domain/entities/drawing";
+import type { ElementId } from "../../domain/entities/element";
 import { Groups } from "../../domain/rules/groups";
 import { bumped } from "../connectors";
 import { resolveOperands } from "../operands";
@@ -19,10 +21,10 @@ export class GroupElements {
 
   async group(input: {
     actor: Actor;
-    boardId: string;
-    ids: string[];
+    boardId: BoardId;
+    ids: ElementId[];
   }): Promise<
-    Result<{ groupId: string; ids: string[]; locked?: string[] }, AppError>
+    Result<{ groupId: string; ids: ElementId[]; locked?: string[] }, AppError>
   > {
     const granted = await this.policy.decide(
       input.boardId,
@@ -76,8 +78,8 @@ export class GroupElements {
 
   async ungroup(input: {
     actor: Actor;
-    boardId: string;
-    ids: string[];
+    boardId: BoardId;
+    ids: ElementId[];
   }): Promise<Result<{ groupIds: string[] }, AppError>> {
     const granted = await this.policy.decide(
       input.boardId,

@@ -1,7 +1,7 @@
 import { err, okEmpty } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
 import { Drawing } from "../entities/drawing";
-import type { Element } from "../entities/element";
+import type { Element, ElementId } from "../entities/element";
 import { ElementStyle } from "../shapes/element-style";
 import { ShapeRegistry } from "../shapes/shape-registry";
 import type { Shape } from "../shapes/shape-registry";
@@ -140,7 +140,7 @@ export class Placement {
 
   static checkReferences(
     batch: Built[],
-    known: Map<string, Element>
+    known: Map<ElementId, Element>
   ): Result<undefined, PlacementRefusal> {
     for (const { shape, strayEnds } of batch) {
       if (strayEnds) {
@@ -176,8 +176,8 @@ export class Placement {
 
   static attachAll(
     placed: Built[],
-    known: Map<string, Element>,
-    touched: Set<string>
+    known: Map<ElementId, Element>,
+    touched: Set<ElementId>
   ) {
     for (const { shape, element } of placed) {
       const ends = ShapeRegistry.endsOf(shape);
@@ -198,8 +198,8 @@ export class Placement {
 
   static fitFrames(
     batch: Built[],
-    known: Map<string, Element>,
-    touched: Set<string>
+    known: Map<ElementId, Element>,
+    touched: Set<ElementId>
   ) {
     const fitted = batch.filter(
       ({ shape }) => shape.type === "frame" && !isPlaced(shape)
@@ -229,7 +229,7 @@ export class Placement {
   }
 
   /** A placed child outside its sized frame would be clipped away in the browser, so it stays unframed. */
-  static unframeStrays(placed: Built[], known: Map<string, Element>) {
+  static unframeStrays(placed: Built[], known: Map<ElementId, Element>) {
     const unsized = new Set(
       placed
         .filter(({ shape }) => shape.type === "frame" && !isPlaced(shape))

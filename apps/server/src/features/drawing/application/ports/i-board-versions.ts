@@ -1,3 +1,5 @@
+import type { BoardId } from "../../../../shared/kernel/types/ids";
+
 export type VersionKind = "auto" | "pre_restore";
 
 export interface VersionInfo {
@@ -22,8 +24,8 @@ export interface NewVersion {
 
 export interface IBoardVersions {
   /** Newest first, without the state bytes. */
-  list(boardId: string): Promise<VersionInfo[]>;
+  list(boardId: BoardId): Promise<VersionInfo[]>;
   /** Scoped to the board: another board's version id finds nothing. */
-  findInBoard(boardId: string, id: string): Promise<StoredVersion | null>;
-  record(boardId: string, version: NewVersion): Promise<void>;
+  findInBoard(boardId: BoardId, id: string): Promise<StoredVersion | null>;
+  record(boardId: BoardId, version: NewVersion): Promise<void>;
 }
