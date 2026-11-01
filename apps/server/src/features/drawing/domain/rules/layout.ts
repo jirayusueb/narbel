@@ -1,5 +1,5 @@
 import { GAP as BINDING_GAP } from "./bindings";
-import { union } from "./geometry";
+import { Geometry } from "./geometry";
 import type { Bounds } from "./geometry";
 
 export const FRAME_PADDING = 40;
@@ -18,7 +18,7 @@ export const besideContent = (
       };
 
 export const wrapFrame = (children: Bounds[]): Bounds => {
-  const inner = union(children);
+  const inner = Geometry.union(children);
   return {
     x: inner.x - FRAME_PADDING,
     y: inner.y - FRAME_PADDING,

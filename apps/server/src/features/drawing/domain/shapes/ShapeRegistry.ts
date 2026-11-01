@@ -1,7 +1,7 @@
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import type { Element } from "../entities/Element";
-import { isLinear, polylineMidpoint } from "../rules/geometry";
+import { Geometry } from "../rules/geometry";
 import {
   STYLE,
   defaultsFor,
@@ -388,7 +388,7 @@ const definedFields = <K extends keyof Element>(
 };
 
 export const fitLabel = (label: Element, container: Element): Element => {
-  const onArrow = isLinear(container);
+  const onArrow = Geometry.isLinear(container);
   const fontSize = fontSizeOf(label);
   const text = onArrow
     ? wrapText(
@@ -399,7 +399,7 @@ export const fitLabel = (label: Element, container: Element): Element => {
     : (label.text ?? "");
   const size = measure(text, fontSize);
   const center = onArrow
-    ? polylineMidpoint(container)
+    ? Geometry.polylineMidpoint(container)
     : {
         x: Number(container.x) + Number(container.width) / 2,
         y: Number(container.y) + Number(container.height) / 2,

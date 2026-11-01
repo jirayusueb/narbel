@@ -3,7 +3,7 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
-import { elementBounds, overlaps } from "../../domain/rules/geometry";
+import { Geometry } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
 import { toSceneDtos } from "../dtos/SceneDto";
 import type { SceneDto } from "../dtos/SceneDto";
@@ -42,7 +42,8 @@ export class GetBoardScene {
         all,
         (e) =>
           (!input.types || input.types.includes(e.type)) &&
-          (!input.within || overlaps(elementBounds(e), input.within))
+          (!input.within ||
+            Geometry.overlaps(Geometry.elementBounds(e), input.within))
       );
       return {
         pageId: page.id,

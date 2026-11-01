@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 import type { IUnitOfWork } from "../../../../shared/application/interfaces/IUnitOfWork";
 import { FakeComments, ids, setupAccess } from "../../../../testing";
 import { Comment } from "../../domain/entities/Comment";
-import { excerptOf, extractMentions } from "../../domain/rules/mentions";
+import { Mentions } from "../../domain/rules/mentions";
 import { Reaction } from "../../domain/values/Reaction";
 import type { DiscussionTx } from "../ports/DiscussionTx";
 import { AddComment } from "./AddComment";
@@ -56,13 +56,15 @@ describe("comment validation", () => {
 describe("mentions and reactions", () => {
   it("finds distinct lowercase @usernames and ignores emails and short names", () => {
     expect(
-      extractMentions("hi @Bob and @bob, mail a@bob.io, @al, (@carol_9)!")
+      Mentions.extractMentions(
+        "hi @Bob and @bob, mail a@bob.io, @al, (@carol_9)!"
+      )
     ).toEqual(["bob", "carol_9"]);
   });
 
   it("turns markdown into plain-text excerpts and keeps @mentions and snake_case", () => {
     expect(
-      excerptOf(
+      Mentions.excerptOf(
         "## Plan\n- check the **API** and `cache`\n> see [the doc](https://x.y) @ada_l, ~~old~~ my_var"
       )
     ).toBe("Plan check the API and cache see the doc @ada_l, old my_var");

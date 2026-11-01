@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import type { Element } from "../entities/Element";
-import { buildSceneSvg } from "./sceneSvg";
+import { SceneSvgBuilder } from "./sceneSvg";
 
 const rect = (extra: Partial<Element> = {}): Element => ({
   id: "r1",
@@ -17,7 +17,7 @@ const rect = (extra: Partial<Element> = {}): Element => ({
 });
 
 const build = (elements: Element[], maxSize?: number) => {
-  const scene = buildSceneSvg(elements, new Map(), maxSize);
+  const scene = SceneSvgBuilder.buildSceneSvg(elements, new Map(), maxSize);
   if (!scene) {
     throw new Error("expected a scene");
   }
@@ -26,8 +26,10 @@ const build = (elements: Element[], maxSize?: number) => {
 
 describe("buildSceneSvg", () => {
   it("draws nothing for an empty or fully deleted page", () => {
-    expect(buildSceneSvg([], new Map())).toBeNull();
-    expect(buildSceneSvg([rect({ isDeleted: true })], new Map())).toBeNull();
+    expect(SceneSvgBuilder.buildSceneSvg([], new Map())).toBeNull();
+    expect(
+      SceneSvgBuilder.buildSceneSvg([rect({ isDeleted: true })], new Map())
+    ).toBeNull();
   });
 
   it("fits the content bounds plus padding and scales the long side to maxSize", () => {

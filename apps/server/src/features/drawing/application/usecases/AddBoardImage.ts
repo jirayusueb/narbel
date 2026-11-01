@@ -4,10 +4,10 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { isElementIdTaken } from "../../domain/entities/Drawing";
+import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
 import { resolvePage } from "../../domain/entities/Page";
-import { elementBounds, overlaps, union } from "../../domain/rules/geometry";
+import { Geometry } from "../../domain/rules/geometry";
 import { readImageHeader } from "../../domain/rules/imageHeader";
 import {
   CLEARANCE,
@@ -47,7 +47,7 @@ const FAILURES: Record<Refusal, () => AppError> = {
 const insideFrame = (frame: Element, live: Element[]) => {
   const right = live
     .filter((e) => e.frameId === frame.id)
-    .map((e) => elementBounds(e))
+    .map((e) => Geometry.elementBounds(e))
     .map((b) => b.x + b.width);
   return {
     x:
@@ -75,7 +75,7 @@ export class AddBoardImage {
       return "no-page";
     }
     const id = input.id ?? this.ids.generate();
-    if (isElementIdTaken(id, (key) => scene.locate(key))) {
+    if (Drawing.isElementIdTaken(id, (key) => scene.locate(key))) {
       return "id-taken";
     }
     const frame =
@@ -179,7 +179,10 @@ export class AddBoardImage {
         }
         const { page, id, frame } = resolved;
         const live = scene.all(page.id).filter((e) => !e.isDeleted);
-        const beside = besideContent(live.map(elementBounds), CLEARANCE);
+        const beside = besideContent(
+          live.map(Geometry.elementBounds),
+          CLEARANCE
+        );
         const spot = frame
           ? insideFrame(frame, live)
           : { x: beside.left, y: beside.top };
@@ -189,7 +192,11 @@ export class AddBoardImage {
         const grows = autoPlaced && frame?.locked !== true;
         const inFrame =
           frame !== undefined &&
-          (grows || overlaps({ ...size, x, y }, elementBounds(frame)));
+          (grows ||
+            Geometry.overlaps(
+              { ...size, x, y },
+              Geometry.elementBounds(frame)
+            ));
         scene.ensureFile({
           id: fileId,
           mimeType: header.mimeType,
@@ -203,8 +210,8 @@ export class AddBoardImage {
           )
         );
         if (frame && grows) {
-          const fitted = union([
-            elementBounds(frame),
+          const fitted = Geometry.union([
+            Geometry.elementBounds(frame),
             wrapFrame([{ ...size, x, y }]),
           ]);
           scene.put(page.id, bumped({ ...frame, ...fitted }, this.ids));

@@ -5,7 +5,7 @@ import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
 import { resolvePage } from "../../domain/entities/Page";
-import { buildSceneSvg } from "../../domain/rendering/sceneSvg";
+import { SceneSvgBuilder } from "../../domain/rendering/sceneSvg";
 import type { Bounds } from "../../domain/rules/geometry";
 import { MAX_RENDER_BYTES, loadBoardImages } from "../boardImages";
 import type { IBoardAccess } from "../ports/IBoardAccess";
@@ -114,7 +114,11 @@ export class RenderBoardImage {
       MAX_RENDER_BYTES,
       true
     );
-    const scene = buildSceneSvg(page.elements, images, input.maxSize);
+    const scene = SceneSvgBuilder.buildSceneSvg(
+      page.elements,
+      images,
+      input.maxSize
+    );
     const image = scene && {
       png: await this.rasterizer.rasterize(scene.svg),
       width: scene.width,

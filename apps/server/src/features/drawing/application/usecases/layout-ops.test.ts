@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { ids, setupAccess } from "../../../../testing";
-import { polylineMidpoint } from "../../domain/rules/geometry";
+import { Geometry } from "../../domain/rules/geometry";
 import { toElement } from "../dtos/ExcalidrawElement";
 import type { ExcalidrawElement } from "../dtos/ExcalidrawElement";
 import { AddBoardElements } from "./AddBoardElements";
@@ -82,7 +82,7 @@ describe("align_elements", () => {
     expect(t.el("a").y).toBe(5);
     expect(t.el("b").y).toBe(25);
     expect(Number(t.el("ab").version)).toBeGreaterThan(Number(before.version));
-    const mid = polylineMidpoint(toElement(t.el("ab")));
+    const mid = Geometry.polylineMidpoint(toElement(t.el("ab")));
     const label = t.labelOf("ab") as ExcalidrawElement;
     expect(Number(label.x) + Number(label.width) / 2).toBeCloseTo(mid.x);
     expect(Number(label.y) + Number(label.height) / 2).toBeCloseTo(mid.y);

@@ -3,19 +3,11 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import {
-  isElementIdTaken,
-  labelIdOf,
-  withLabel,
-} from "../../domain/entities/Drawing";
+import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
 import { resolvePage } from "../../domain/entities/Page";
-import {
-  attachConnector,
-  connectorCapable,
-  rerouteAround,
-} from "../../domain/rules/bindings";
-import { elementBounds, overlaps, union } from "../../domain/rules/geometry";
+import { Bindings } from "../../domain/rules/bindings";
+import { Geometry } from "../../domain/rules/geometry";
 import type { Bounds } from "../../domain/rules/geometry";
 import {
   CLEARANCE,
@@ -124,7 +116,7 @@ const arrange = (
     ({ shape, element }) =>
       !(
         isPlaced(shape) ||
-        connectorCapable(element) ||
+        Bindings.connectorCapable(element) ||
         element.type === "frame"
       )
   );
@@ -145,7 +137,7 @@ const arrange = (
   const fixed: Bounds[] = [
     ...existing.filter(live),
     ...batch.filter(({ shape }) => isPlaced(shape)).map((b) => b.element),
-  ].map(elementBounds);
+  ].map(Geometry.elementBounds);
   const groups = new Map<string | undefined, Built[]>();
   for (const built of loose) {
     groups.set(frameIdOf(built.shape), [
@@ -208,7 +200,7 @@ const arrange = (
       };
     });
     if (!inside) {
-      fixed.push(pad === 0 ? union(placed) : wrapFrame(placed));
+      fixed.push(pad === 0 ? Geometry.union(placed) : wrapFrame(placed));
     }
   }
   return batch.map((built) => {
@@ -275,7 +267,7 @@ const attachAll = (
       continue;
     }
     const latest = known.get(element.id) ?? element;
-    for (const write of attachConnector(latest, ends, known).writes) {
+    for (const write of Bindings.attachConnector(latest, ends, known).writes) {
       known.set(write.id, write);
       touched.add(write.id);
     }
@@ -301,7 +293,7 @@ const labelAll = (
       routeStyle(latest.type, pickStyle(shape)).label,
       newIdentity(ids, now)
     );
-    known.set(latest.id, withLabel(latest, label.id));
+    known.set(latest.id, Drawing.withLabel(latest, label.id));
     known.set(label.id, label);
     created.push(label.id);
   }
@@ -322,17 +314,17 @@ const fitFrames = (
     );
     known.set(element.id, {
       ...(known.get(element.id) ?? element),
-      ...wrapFrame(children.map(elementBounds)),
+      ...wrapFrame(children.map(Geometry.elementBounds)),
     });
   }
   for (const { element } of fitted) {
-    for (const arrow of rerouteAround(
+    for (const arrow of Bindings.rerouteAround(
       known.get(element.id) ?? element,
       known
     )) {
       known.set(arrow.id, arrow);
       touched.add(arrow.id);
-      const label = known.get(labelIdOf(arrow) ?? "");
+      const label = known.get(Drawing.labelIdOf(arrow) ?? "");
       if (label) {
         known.set(label.id, fitLabel(label, arrow));
       }
@@ -355,7 +347,10 @@ const unframeStrays = (placed: Built[], known: Map<string, Element>) => {
       isPlaced(shape) &&
       frame !== undefined &&
       !unsized.has(frame.id) &&
-      !overlaps(elementBounds(element), elementBounds(frame));
+      !Geometry.overlaps(
+        Geometry.elementBounds(element),
+        Geometry.elementBounds(frame)
+      );
     return stray ? { ...built, element: { ...element, frameId: null } } : built;
   });
 };
@@ -423,7 +418,13 @@ export class AddBoardElements {
         const fresh = new Set<string>();
         for (const { element } of batch) {
           // a caller-chosen id must not overwrite an existing element or a sibling
-          if (isElementIdTaken(element.id, (id) => scene.locate(id), fresh)) {
+          if (
+            Drawing.isElementIdTaken(
+              element.id,
+              (id) => scene.locate(id),
+              fresh
+            )
+          ) {
             return "id-taken";
           }
           fresh.add(element.id);

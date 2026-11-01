@@ -1,16 +1,9 @@
 import type { IIdGenerator } from "../../../shared/application/interfaces/IIdGenerator";
-import { labelIdOf, withLabel } from "../domain/entities/Drawing";
+import { Drawing } from "../domain/entities/Drawing";
 import type { Element } from "../domain/entities/Element";
-import {
-  attachConnector,
-  connectorCapable,
-  currentRefs,
-  detachDeleted,
-  forgetBound,
-  rerouteAround,
-} from "../domain/rules/bindings";
+import { Bindings } from "../domain/rules/bindings";
 import type { ConnectorRefs } from "../domain/rules/bindings";
-import { elementBounds, num, overlaps } from "../domain/rules/geometry";
+import { Geometry } from "../domain/rules/geometry";
 import {
   hasLabelSlot,
   routeStyle,
@@ -115,7 +108,7 @@ const rebindProblem = (
   if (changed.length === 0) {
     return;
   }
-  if (!connectorCapable(local)) {
+  if (!Bindings.connectorCapable(local)) {
     return "not-connector";
   }
   // null detaches; any id must name another live element on the same page
@@ -133,13 +126,13 @@ const rebound = (
   lookup: Map<string, Element>,
   ids: IIdGenerator
 ): Element[] => {
-  const attached = attachConnector(next, refs, lookup);
+  const attached = Bindings.attachConnector(next, refs, lookup);
   const forgotten = attached.unbinds
     .map((unbound) => lookup.get(unbound))
     .filter(
       (target): target is Element => target !== undefined && !target.isDeleted
     )
-    .map((target) => forgetBound(target, next.id));
+    .map((target) => Bindings.forgetBound(target, next.id));
   const [connector, ...targets] = attached.writes;
   return [
     connector ?? next,
@@ -166,20 +159,23 @@ const relabel = (
   lookup: Map<string, Element>,
   ids: IIdGenerator
 ): { container: Element; writes: Element[] } => {
-  const labelId = labelIdOf(container);
+  const labelId = Drawing.labelIdOf(container);
   const found = labelId === undefined ? undefined : lookup.get(labelId);
   const label = found?.isDeleted ? undefined : found;
   if (text === "") {
     return label
       ? {
-          container: forgetBound(container, label.id),
+          container: Bindings.forgetBound(container, label.id),
           writes: [bumped({ ...label, isDeleted: true }, ids)],
         }
       : { container, writes: [] };
   }
   if (text !== undefined && !label) {
     const created = buildLabel(container, text, style, newIdentity(ids));
-    return { container: withLabel(container, created.id), writes: [created] };
+    return {
+      container: Drawing.withLabel(container, created.id),
+      writes: [created],
+    };
   }
   const styled = Object.keys(style).length > 0;
   if (label && (text !== undefined || styled || refit)) {
@@ -239,12 +235,15 @@ const released = (
     moved &&
     frame !== undefined &&
     !frame.isDeleted &&
-    !overlaps(elementBounds(child), elementBounds(frame));
+    !Geometry.overlaps(
+      Geometry.elementBounds(child),
+      Geometry.elementBounds(frame)
+    );
   return outside ? { ...child, frameId: null } : child;
 };
 
 const isFree = (e: Element) => {
-  const { startElementId, endElementId } = currentRefs(e);
+  const { startElementId, endElementId } = Bindings.currentRefs(e);
   return startElementId === undefined && endElementId === undefined;
 };
 
@@ -253,8 +252,8 @@ const childMoves = (
   before: Element,
   after: Element
 ) => {
-  const dx = num(after.x) - num(before.x);
-  const dy = num(after.y) - num(before.y);
+  const dx = Geometry.num(after.x) - Geometry.num(before.x);
+  const dy = Geometry.num(after.y) - Geometry.num(before.y);
   const children =
     (dx === 0 && dy === 0) || before.type !== "frame"
       ? []
@@ -265,11 +264,11 @@ const childMoves = (
             typeof e.containerId !== "string"
         );
   return [
-    ...children.filter((e) => !connectorCapable(e)),
-    ...children.filter((e) => connectorCapable(e) && isFree(e)),
+    ...children.filter((e) => !Bindings.connectorCapable(e)),
+    ...children.filter((e) => Bindings.connectorCapable(e) && isFree(e)),
   ].map((e) => ({
     id: e.id,
-    fields: { x: num(e.x) + dx, y: num(e.y) + dy },
+    fields: { x: Geometry.num(e.x) + dx, y: Geometry.num(e.y) + dy },
   }));
 };
 
@@ -304,14 +303,19 @@ export const patchElement = (
     geometryChanged || wantsRebind || LABEL_FOLLOWS.some((key) => key in own);
   const grown = restyled(local, text, own, ids);
   const next = released(grown, lookup, geometryChanged);
-  const movesShape = !connectorCapable(local) && geometryChanged;
+  const movesShape = !Bindings.connectorCapable(local) && geometryChanged;
   lookup.set(next.id, next);
   const [head = next, ...others] = wantsRebind
-    ? rebound(next, resolveRefs(currentRefs(local), rebind), lookup, ids)
+    ? rebound(
+        next,
+        resolveRefs(Bindings.currentRefs(local), rebind),
+        lookup,
+        ids
+      )
     : [
         next,
         ...(movesShape
-          ? rerouteAround(next, lookup).map((c) => bumped(c, ids))
+          ? Bindings.rerouteAround(next, lookup).map((c) => bumped(c, ids))
           : []),
       ];
   const labelling = relabel(
@@ -329,7 +333,7 @@ export const patchElement = (
     w.containerId === id ? { ...w, frameId: next.frameId ?? null } : w
   );
   const following = others
-    .filter((c) => connectorCapable(c))
+    .filter((c) => Bindings.connectorCapable(c))
     .flatMap((c) => relabel(c, { style: {}, refit: true }, lookup, ids).writes);
   for (const write of [
     labelling.container,
@@ -360,7 +364,7 @@ export const deleteElement = (
   }
   // tombstone, so concurrent edits and late joiners converge on the deletion
   scene.put(found.pageId, bumped({ ...found.element, isDeleted: true }, ids));
-  for (const write of detachDeleted(
+  for (const write of Bindings.detachDeleted(
     found.element,
     pageLookup(scene, found.pageId)
   )) {

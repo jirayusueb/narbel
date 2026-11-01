@@ -4,7 +4,7 @@ import type {
 } from "../../../shared/application/events/DiscussionEvent";
 import type { Person } from "../../../shared/application/interfaces/IProfiles";
 import type { Comment } from "../domain/entities/Comment";
-import { excerptOf, extractMentions } from "../domain/rules/mentions";
+import { Mentions } from "../domain/rules/mentions";
 import type { DiscussionTx } from "./ports/DiscussionTx";
 
 const audience = (root: Comment) =>
@@ -67,7 +67,7 @@ export class DiscussionEvents {
     };
   }
 
-  private excerpt = () => excerptOf(this.comment.body);
+  private excerpt = () => Mentions.excerptOf(this.comment.body);
 
   private publish(event: DiscussionEvent) {
     return this.tx.outbox.publish(event);
@@ -94,7 +94,7 @@ export class DiscussionEvents {
     alreadyMentioned: string[] = []
   ): Promise<Set<string>> {
     const skip = new Set(alreadyMentioned);
-    const usernames = extractMentions(this.comment.body).filter(
+    const usernames = Mentions.extractMentions(this.comment.body).filter(
       (name) => !skip.has(name)
     );
     const named = await this.tx.profiles.findByUsernames(usernames);

@@ -3,15 +3,9 @@ import { AppError } from "../../../../shared/kernel/errors/AppError";
 import type { Actor } from "../../../../shared/kernel/types/Actor";
 import { err, ok } from "../../../../shared/kernel/types/Result";
 import type { Result } from "../../../../shared/kernel/types/Result";
-import { labelIdOf } from "../../domain/entities/Drawing";
+import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
-import {
-  existingGroup,
-  outermostGroups,
-  withGroup,
-  withGroupMates,
-  withoutGroup,
-} from "../../domain/rules/groups";
+import { Groups } from "../../domain/rules/groups";
 import { bumped } from "../connectors";
 import type { IBoardAccess } from "../ports/IBoardAccess";
 import type { IBoardScenes, SceneAccess } from "../ports/IBoardScenes";
@@ -88,24 +82,24 @@ export class GroupElements {
         );
       }
       const page = scene.all(pageId);
-      const expanded = withGroupMates(given, page);
+      const expanded = Groups.withGroupMates(given, page);
       const members = expanded.filter((e) => e.locked !== true);
       const locked = [
         ...elements.filter((e) => e.locked === true),
         ...expanded.filter((e) => e.locked === true),
       ].map((e) => e.id);
       const memberIds = members.map((m) => m.id);
-      const existing = existingGroup(members, page);
+      const existing = Groups.existingGroup(members, page);
       const groupId = existing ?? this.ids.generate();
       if (!existing) {
         for (const member of members) {
-          const labelId = labelIdOf(member);
+          const labelId = Drawing.labelIdOf(member);
           const label = labelId ? scene.get(pageId, labelId) : undefined;
           for (const e of [
             member,
             ...(label && !label.isDeleted ? [label] : []),
           ]) {
-            scene.put(pageId, bumped(withGroup(e, groupId), this.ids));
+            scene.put(pageId, bumped(Groups.withGroup(e, groupId), this.ids));
           }
         }
       }
@@ -136,7 +130,7 @@ export class GroupElements {
         return err(operands.error);
       }
       const { pageId, elements } = operands.value;
-      const groupIds = outermostGroups(elements);
+      const groupIds = Groups.outermostGroups(elements);
       for (const element of scene.all(pageId)) {
         for (const groupId of groupIds) {
           if (
@@ -146,7 +140,10 @@ export class GroupElements {
             scene.put(
               pageId,
               bumped(
-                withoutGroup(scene.get(pageId, element.id) ?? element, groupId),
+                Groups.withoutGroup(
+                  scene.get(pageId, element.id) ?? element,
+                  groupId
+                ),
                 this.ids
               )
             );

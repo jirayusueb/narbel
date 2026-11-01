@@ -1,4 +1,4 @@
-import { labelIdOf } from "../../domain/entities/Drawing";
+import { Drawing } from "../../domain/entities/Drawing";
 import type { Element } from "../../domain/entities/Element";
 import { styleDiff } from "../../domain/shapes/ElementStyle";
 import type { Style } from "../../domain/shapes/ElementStyle";
@@ -31,7 +31,7 @@ export interface SceneDto {
 const CONNECTOR_TYPES: Record<string, true> = { arrow: true, line: true };
 
 const liveLabel = (e: Element, get: (id: string) => Element | undefined) => {
-  const labelId = labelIdOf(e);
+  const labelId = Drawing.labelIdOf(e);
   const label = labelId === undefined ? undefined : get(labelId);
   return label && !label.isDeleted ? label : undefined;
 };
