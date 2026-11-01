@@ -628,7 +628,11 @@ export const HomePage = () => {
             variant="ghost"
             size="icon-xs"
             className="relative after:absolute after:-inset-2"
-            aria-label={paused ? "Play example boards" : "Pause example boards"}
+            aria-label={
+              paused || !bandVisible
+                ? "Play example boards"
+                : "Pause example boards"
+            }
             onPress={() => togglePaused()}
           >
             {paused ? <Play /> : <Pause />}

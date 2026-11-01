@@ -65,8 +65,9 @@ const CreateBoardDialog = ({ isOpen, close, unmount }: DialogControl) => {
           <DialogTitle className="font-display text-feature font-normal">
             New board
           </DialogTitle>
-          <DialogDescription>
-            Give your board a name. You can rename it later.
+          <DialogDescription id="create-board-title-hint">
+            Give your board a name, 1 to 120 characters. You can rename it
+            later.
           </DialogDescription>
         </DialogHeader>
         <FieldGroup>
@@ -76,6 +77,7 @@ const CreateBoardDialog = ({ isOpen, close, unmount }: DialogControl) => {
               id="create-board-title"
               autoFocus
               maxLength={120}
+              aria-describedby="create-board-title-hint"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
