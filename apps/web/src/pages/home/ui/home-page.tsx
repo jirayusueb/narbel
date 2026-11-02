@@ -513,7 +513,8 @@ const McpSnippet = () => (
       </code>
     </div>
     <pre className="bg-muted text-muted-foreground mx-2 mb-2 rounded-lg px-4 py-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap">
-      <span className="text-foreground">auth</span>: OAuth 2.1, or x-api-key{"\n"}
+      <span className="text-foreground">auth</span>: OAuth 2.1, or x-api-key
+      {"\n"}
       <span className="text-foreground">tools</span>: {MCP_TOOLS.join(", ")}
     </pre>
   </div>
