@@ -487,7 +487,7 @@ const FEATURES: {
   {
     id: "agents",
     title: "Agents draw with you.",
-    body: "Create an API key, point any MCP client at your narbel server, and the agent can list boards, read them, and add, update or delete elements. Its edits stream onto the board while you keep drawing.",
+    body: "Paste your narbel URL into any MCP client and approve it in your browser. The agent can then list boards, read them, and add, update or delete elements. Its edits stream onto the board while you keep drawing.",
     icon: chat,
   },
   {
@@ -513,7 +513,7 @@ const McpSnippet = () => (
       </code>
     </div>
     <pre className="bg-muted text-muted-foreground mx-2 mb-2 rounded-lg px-4 py-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap">
-      <span className="text-foreground">x-api-key</span>: your-key{"\n"}
+      <span className="text-foreground">auth</span>: OAuth 2.1, or x-api-key{"\n"}
       <span className="text-foreground">tools</span>: {MCP_TOOLS.join(", ")}
     </pre>
   </div>
