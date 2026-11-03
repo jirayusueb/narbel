@@ -154,7 +154,7 @@ export const NotFound = ({
       actions={
         signInRedirect ? (
           <Link
-            to="/login"
+            to="/sign-in"
             search={{ redirect: signInRedirect }}
             className={buttonVariants()}
           >

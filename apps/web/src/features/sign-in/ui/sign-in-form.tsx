@@ -15,15 +15,9 @@ import { z } from "zod";
 
 import { useSession } from "@/entities/session";
 import { authClient } from "@/shared/lib";
-import { Loader } from "@/shared/ui";
+import { AuthSwitchLink, Loader, PasswordInput } from "@/shared/ui";
 
-export const SignInForm = ({
-  onSwitchToSignUp,
-  redirectTo,
-}: {
-  onSwitchToSignUp: () => void;
-  redirectTo?: string;
-}) => {
+export const SignInForm = ({ redirectTo }: { redirectTo?: string }) => {
   const router = useRouter();
   const { isPending } = useSession();
   // Wrong credentials sit next to the form that caused them, not in a toast across the page.
@@ -90,6 +84,7 @@ export const SignInForm = ({
                       name={field.name}
                       type="email"
                       autoComplete="email"
+                      placeholder="you@team.com"
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -113,11 +108,11 @@ export const SignInForm = ({
                 return (
                   <Field data-invalid={invalid}>
                     <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                    <Input
+                    <PasswordInput
                       id={field.name}
                       name={field.name}
-                      type="password"
                       autoComplete="current-password"
+                      placeholder="Your password"
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -157,9 +152,7 @@ export const SignInForm = ({
       </div>
       <div className="flex flex-wrap items-center justify-center gap-1 text-sm">
         <span className="text-muted-foreground">Need an account?</span>
-        <Button variant="link" size="sm" onPress={onSwitchToSignUp}>
-          Sign up
-        </Button>
+        <AuthSwitchLink to="/sign-up">Create one</AuthSwitchLink>
       </div>
     </div>
   );

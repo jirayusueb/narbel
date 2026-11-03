@@ -44,7 +44,7 @@ export const UserMenu = ({
     return (
       <div className="flex items-center gap-1.5">
         <Link
-          to="/login"
+          to="/sign-in"
           search={{ redirect }}
           className={buttonVariants({
             variant: "ghost",
@@ -55,7 +55,7 @@ export const UserMenu = ({
           Sign in
         </Link>
         <Link
-          to="/login"
+          to="/sign-up"
           search={{ redirect }}
           className={buttonVariants({ variant: "citrus" })}
         >

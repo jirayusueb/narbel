@@ -295,6 +295,8 @@ Soft rectangles throughout. Radii step 8px (extra-small controls), 10px (small c
 - **Style:** 40px tall, 10px radius, sheet background, 1px input stroke (ink at 45% light, white at 36% dark: 3:1 against both the desk and a sheet), 14px text, subtle-ink placeholder.
 - **Focus:** 2px ring-colour outline offset 2px; no glow.
 - **Error / Disabled:** alert outline and 13px alert message, tied to its field with `aria-describedby`; disabled uses the recess fill. A refused submit (wrong password, email already taken) shows the server's message as a form-level alert above the submit button, never as a toast across the page.
+- **Password:** `PasswordInput` adds an eye button inside the field ("Show password", `aria-pressed`); a pointer press keeps the caret in the field. Placeholders give an example, never replace the label.
+- **Auth pages:** `/sign-in` and `/sign-up` are separate routes on one layout; sign-up splits first and last name (last optional) and joins them into the single account name. Switching between them carries the query verbatim, because a waiting OAuth request is signed over it; `/login` answers 307 to `/sign-in` with the query untouched.
 
 ### Navigation
 

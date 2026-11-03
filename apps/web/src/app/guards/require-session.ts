@@ -18,7 +18,7 @@ export const requireSession = async (from: Where) => {
   const session = await fetchSession();
   if (!session.data) {
     throw redirect({
-      to: "/login",
+      to: "/sign-in",
       search: { redirect: safeRedirect(from.href) },
     });
   }
