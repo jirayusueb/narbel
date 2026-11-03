@@ -4,8 +4,9 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@narbel/ui/components/input-group";
+import { useEventListener } from "@reactuses/core";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ComponentProps } from "react";
 
 import { TOUCH_ICON } from "./touch";
@@ -14,11 +15,20 @@ export const PasswordInput = (
   props: Omit<ComponentProps<typeof InputGroupInput>, "type">
 ) => {
   const [visible, setVisible] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+
+  // password managers offer to save only what they see submitted as a password
+  useEventListener(
+    "submit",
+    () => setVisible(false),
+    () => input.current?.form
+  );
 
   return (
     <InputGroup>
       <InputGroupInput
         {...props}
+        ref={input}
         type={visible ? "text" : "password"}
         // a revealed password is still a password: keep it out of spellcheck services
         spellCheck={false}

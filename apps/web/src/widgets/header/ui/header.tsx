@@ -30,7 +30,7 @@ export const Header = () => {
       style={{ viewTransitionName: "site-header" }}
       animate={{ y: tucked ? "-100%" : "0%" }}
       transition={{ duration: tucked ? 0.25 : 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className={`bg-background sticky top-0 z-40 grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 transition-shadow duration-300 md:px-[30px] ${
+      className={`bg-background sticky top-0 z-40 grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 transition-shadow duration-300 max-[19rem]:gap-2 max-[19rem]:px-3 md:px-[30px] ${
         elevated ? "shadow-[0_1px_0_var(--border)]" : ""
       }`}
     >

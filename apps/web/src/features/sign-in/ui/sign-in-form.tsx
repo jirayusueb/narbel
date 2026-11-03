@@ -9,17 +9,16 @@ import { Input } from "@narbel/ui/components/input";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { useSession } from "@/entities/session";
 import { authClient } from "@/shared/lib";
-import { AuthSwitchLink, Loader, PasswordInput } from "@/shared/ui";
+import { AuthSwitchLink, PasswordInput } from "@/shared/ui";
 
 export const SignInForm = ({ redirectTo }: { redirectTo?: string }) => {
   const router = useRouter();
-  const { isPending } = useSession();
+  const formRef = useRef<HTMLFormElement>(null);
   // Wrong credentials sit next to the form that caused them, not in a toast across the page.
   const [formError, setFormError] = useState<string>();
 
@@ -43,20 +42,26 @@ export const SignInForm = ({ redirectTo }: { redirectTo?: string }) => {
     },
     validators: {
       onSubmit: z.object({
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        email: z.email("Enter a valid email address"),
+        // the server judges the password; the form only checks one was typed
+        password: z.string().min(1, "Enter your password"),
       }),
     },
+    // a press always answers: it re-checks the fields and moves focus to the first problem
+    canSubmitWhenInvalid: true,
+    // the alerts announce every problem; the keyboard lands on the first one
+    onSubmitInvalid: () =>
+      requestAnimationFrame(() =>
+        formRef.current
+          ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus()
+      ),
   });
 
-  if (isPending) {
-    return <Loader />;
-  }
-
   return (
-    <div className="bg-card shadow-surface mx-auto flex w-full max-w-md flex-col gap-8 rounded-xl p-6 sm:p-8">
+    <div className="bg-card shadow-surface mx-auto flex w-full max-w-md flex-col gap-8 rounded-xl p-6 max-[19rem]:p-4 sm:p-8">
       <div className="flex flex-col gap-2">
-        <h1 className="font-display text-headline leading-tight font-normal">
+        <h1 className="font-display text-headline leading-tight font-normal hyphens-auto">
           Sign in
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -65,6 +70,9 @@ export const SignInForm = ({ redirectTo }: { redirectTo?: string }) => {
       </div>
       <div>
         <form
+          ref={formRef}
+          // before hydration a native submit must not put the password in the URL
+          method="post"
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -89,6 +97,7 @@ export const SignInForm = ({ redirectTo }: { redirectTo?: string }) => {
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-required
                       aria-describedby={invalid ? "email-error" : undefined}
                     />
                     {invalid ? (
@@ -117,6 +126,7 @@ export const SignInForm = ({ redirectTo }: { redirectTo?: string }) => {
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-required
                       aria-describedby={invalid ? "password-error" : undefined}
                     />
                     {invalid ? (
@@ -130,17 +140,12 @@ export const SignInForm = ({ redirectTo }: { redirectTo?: string }) => {
               }}
             </form.Field>
             {formError ? <FieldError>{formError}</FieldError> : null}
-            <form.Subscribe
-              selector={(state) => ({
-                canSubmit: state.canSubmit,
-                isSubmitting: state.isSubmitting,
-              })}
-            >
-              {({ canSubmit, isSubmitting }) => (
+            <form.Subscribe selector={(state) => state.isSubmitting}>
+              {(isSubmitting) => (
                 <Button
                   type="submit"
                   className="w-full"
-                  isDisabled={!canSubmit || isSubmitting}
+                  isDisabled={isSubmitting}
                 >
                   {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
                   Sign in
