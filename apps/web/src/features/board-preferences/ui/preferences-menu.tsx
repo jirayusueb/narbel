@@ -1,4 +1,4 @@
-import { MainMenu } from "@excalidraw/excalidraw";
+import { MainMenu } from "@narbel/ndraw";
 import { Button } from "@narbel/ui/components/button";
 import { Check } from "lucide-react";
 import { motion } from "motion/react";

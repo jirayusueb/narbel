@@ -11,6 +11,8 @@ COPY --from=builder /app/out/json/ .
 # Root postinstall codegens every app by path, and the prune drops some of them.
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile --ignore-scripts
 COPY --from=builder /app/out/full/ .
+# apps/web imports the ndraw fork from its gitignored dist
+RUN cd packages/ndraw && bun run build
 WORKDIR /app/apps/web
 
 # Public API origin, baked into the client bundle.

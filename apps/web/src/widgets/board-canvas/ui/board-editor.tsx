@@ -4,9 +4,9 @@ import {
   MainMenu,
   useDevice,
   useHandleLibrary,
-} from "@excalidraw/excalidraw";
+} from "@narbel/ndraw";
 
-import "@excalidraw/excalidraw/index.css";
+import "@narbel/ndraw/index.css";
 import "./excalidraw-theme.css";
 import { Button } from "@narbel/ui/components/button";
 import { useBoolean, useEventListener, useMediaQuery } from "@reactuses/core";

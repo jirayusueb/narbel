@@ -1,7 +1,4 @@
-import type {
-  AppState,
-  ExcalidrawImperativeAPI,
-} from "@excalidraw/excalidraw/types";
+import type { AppState, ExcalidrawImperativeAPI } from "@narbel/ndraw/types";
 import { useEventListener, useReducedMotion } from "@reactuses/core";
 import { useEffect, useRef, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";

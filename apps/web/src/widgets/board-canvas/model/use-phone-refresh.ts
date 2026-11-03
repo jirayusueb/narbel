@@ -1,4 +1,4 @@
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawImperativeAPI } from "@narbel/ndraw/types";
 import { useResizeObserver } from "@reactuses/core";
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";

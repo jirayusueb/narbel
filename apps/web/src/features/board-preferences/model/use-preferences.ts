@@ -1,7 +1,4 @@
-import type {
-  AppState,
-  ExcalidrawImperativeAPI,
-} from "@excalidraw/excalidraw/types";
+import type { AppState, ExcalidrawImperativeAPI } from "@narbel/ndraw/types";
 import { useLocalStorage } from "@reactuses/core";
 import { useCallback, useEffect } from "react";
 

@@ -1,11 +1,11 @@
-import { CaptureUpdateAction, restoreElements } from "@excalidraw/excalidraw";
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import { CaptureUpdateAction, restoreElements } from "@narbel/ndraw";
+import type { ExcalidrawElement } from "@narbel/ndraw/element/types";
 import type {
   AppState,
   Collaborator,
   ExcalidrawImperativeAPI,
   SocketId,
-} from "@excalidraw/excalidraw/types";
+} from "@narbel/ndraw/types";
 import { useEventListener } from "@reactuses/core";
 import { useQueryClient } from "@tanstack/react-query";
 import {

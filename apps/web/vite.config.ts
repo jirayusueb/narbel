@@ -12,6 +12,10 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  // the linked ndraw dist would otherwise share bare-id optimized deps with web (its clsx 1 shadowed clsx 2)
+  optimizeDeps: {
+    include: ["@narbel/ndraw"],
+  },
   plugins: [
     varlockVitePlugin({ ssrInjectMode: "auto-load" }),
     tailwindcss(),

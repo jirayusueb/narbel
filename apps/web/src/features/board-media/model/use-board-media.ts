@@ -1,9 +1,9 @@
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawElement } from "@narbel/ndraw/element/types";
 import type {
   BinaryFileData,
   BinaryFiles,
   ExcalidrawImperativeAPI,
-} from "@excalidraw/excalidraw/types";
+} from "@narbel/ndraw/types";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type * as Y from "yjs";

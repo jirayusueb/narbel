@@ -17,6 +17,14 @@
       "cache": false,
       "persistent": true
     },
+    "web#dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@narbel/ndraw#build"]
+    },
+    "web#check-types": {
+      "dependsOn": ["^check-types", "@narbel/ndraw#build"]
+    },
     "start": {
       "dependsOn": ["build"],
       "cache": false,

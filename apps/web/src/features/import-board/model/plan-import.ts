@@ -1,5 +1,5 @@
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFileData, BinaryFiles } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawElement } from "@narbel/ndraw/element/types";
+import type { BinaryFileData, BinaryFiles } from "@narbel/ndraw/types";
 
 const TITLE_MAX_LENGTH = 120;
 const FALLBACK_TITLE = "Imported board";

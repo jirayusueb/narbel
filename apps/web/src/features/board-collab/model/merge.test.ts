@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawElement } from "@narbel/ndraw/element/types";
 import * as Y from "yjs";
 
 import { byZOrder, incomingFor, outranking } from "./merge";

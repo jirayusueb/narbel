@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFileData } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawElement } from "@narbel/ndraw/element/types";
+import type { BinaryFileData } from "@narbel/ndraw/types";
 
 import { importTitle, planImport } from "./plan-import";
 
