@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { createClientOnlyFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +19,13 @@ interface ImportDeps {
   remove: (id: string) => Promise<unknown>;
   draftKey: { get: (content: string) => string; rotate: () => void };
 }
+
+// lazy, and client-only: Excalidraw reads `window` when its module loads, and a server
+// bundle that reaches it crashes every SSR route, not just this one
+const loadScene = createClientOnlyFn(async (file: File) => {
+  const { loadFromBlob } = await import("@excalidraw/excalidraw");
+  return loadFromBlob(file, null, null);
+});
 
 const UPLOAD_CONCURRENCY = 3;
 
@@ -61,9 +69,7 @@ const runImport = async (
 ): Promise<string | null> => {
   let boardId: string | null = null;
   try {
-    // lazy: the dashboard bundle does not carry Excalidraw
-    const { loadFromBlob } = await import("@excalidraw/excalidraw");
-    const plan = planImport(await loadFromBlob(file, null, null));
+    const plan = planImport(await loadScene(file));
     const board = await create({
       title: importTitle(file.name),
       key: draftKey.get(`${file.name}:${file.size}:${file.lastModified}`),
