@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "build": "rm -rf dist && bun scripts/build.cjs && tsc -p tsconfig.json"
+    "build": "rm -rf dist && tsdown && tsc -p tsconfig.json"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -62,6 +62,7 @@
     "tunnel-rat": "0.1.2"
   },
   "devDependencies": {
+    "@tsdown/css": "0.23.4",
     "@types/lodash.debounce": "4.0.9",
     "@types/lodash.throttle": "4.1.9",
     "@types/node": "22.20.5",
@@ -71,11 +72,11 @@
     "@types/react-dom": "^19.3.0",
     "@types/resize-observer-browser": "0.1.11",
     "csstype": "^3.2.2",
-    "esbuild": "0.19.12",
-    "esbuild-sass-plugin": "2.16.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "rolldown": "1.2.15",
     "sass": "1.85.1",
+    "tsdown": "0.23.4",
     "typescript": "5.9.3"
   }
 }
