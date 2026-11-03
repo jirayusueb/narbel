@@ -1,8 +1,8 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { Excalidraw } from "@narbel/ndraw";
 import type {
   BinaryFileData,
   ExcalidrawImperativeAPI,
-} from "@excalidraw/excalidraw/types";
+} from "@narbel/ndraw/types";
 import {
   AlertDialog,
   AlertDialogAction,

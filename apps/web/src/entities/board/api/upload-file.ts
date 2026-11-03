@@ -1,4 +1,4 @@
-import type { BinaryFileData } from "@excalidraw/excalidraw/types";
+import type { BinaryFileData } from "@narbel/ndraw/types";
 
 import { api as http, unwrap } from "@/shared/api";
 

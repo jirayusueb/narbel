@@ -1,4 +1,4 @@
-import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import type { ExcalidrawElement } from "@narbel/ndraw/element/types";
 import type * as Y from "yjs";
 
 import { elementKey } from "@/entities/drawing";

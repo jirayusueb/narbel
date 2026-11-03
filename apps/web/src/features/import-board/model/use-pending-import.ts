@@ -1,4 +1,4 @@
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawImperativeAPI } from "@narbel/ndraw/types";
 import { useEffect } from "react";
 import type * as Y from "yjs";
 
