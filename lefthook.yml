@@ -34,15 +34,23 @@ pre-commit:
         - "*.yml"
         - "*.graphql"
         - "*.gql"
+      exclude:
+        - "packages/ndraw/**"
       stage_fixed: true
     - name: oxlint
       glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
+      exclude:
+        - "packages/ndraw/**"
       run: bun oxlint --fix {staged_files}
       stage_fixed: true
     - name: oxfmt
       glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc}"
+      exclude:
+        - "packages/ndraw/**"
       run: bun oxfmt --write {staged_files}
       stage_fixed: true
     - name: react-doctor
       glob: "*.{js,jsx,ts,tsx}"
+      exclude:
+        - "packages/ndraw/**"
       run: bunx react-doctor --staged -y --no-telemetry --no-supply-chain
