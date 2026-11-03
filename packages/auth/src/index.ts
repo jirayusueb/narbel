@@ -86,7 +86,7 @@ export const createAuth = (
     plugins: [
       jwt(),
       mcp({
-        loginPage: `${env.CORS_ORIGIN}/login`,
+        loginPage: `${env.CORS_ORIGIN}/sign-in`,
         consentPage: `${env.CORS_ORIGIN}/consent`,
         resource: mcpResource(env.BETTER_AUTH_URL),
         allowDynamicClientRegistration: true,

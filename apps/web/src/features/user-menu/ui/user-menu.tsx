@@ -43,21 +43,29 @@ export const UserMenu = ({
   if (!session) {
     return (
       <div className="flex items-center gap-1.5">
+        {/* each link steps aside on its own page, where the form already offers the other */}
         <Link
-          to="/login"
+          to="/sign-in"
           search={{ redirect }}
+          activeOptions={{ includeSearch: false }}
           className={buttonVariants({
             variant: "ghost",
             size: "sm",
-            className: "max-sm:hidden",
+            className: "data-[status=active]:hidden max-sm:hidden",
           })}
         >
           Sign in
         </Link>
         <Link
-          to="/login"
+          to="/sign-up"
           search={{ redirect }}
-          className={buttonVariants({ variant: "citrus" })}
+          activeOptions={{ includeSearch: false }}
+          className={buttonVariants({
+            variant: "citrus",
+            // large text on a narrow screen: the label wraps instead of pushing the page sideways
+            className:
+              "data-[status=active]:hidden max-[19rem]:h-auto max-[19rem]:min-h-10 max-[19rem]:shrink max-[19rem]:py-1.5 max-[19rem]:text-center max-[19rem]:leading-tight max-[19rem]:whitespace-normal",
+          })}
         >
           Start drawing
         </Link>
@@ -79,7 +87,7 @@ export const UserMenu = ({
       <Button
         variant="secondary"
         aria-label={`Account menu for ${name}`}
-        className={`h-10 gap-2.5 rounded-full pl-1 ${compact ? "pr-1" : "pr-4"}`}
+        className={`h-10 gap-2.5 rounded-full pl-1 ${compact ? "pr-1" : "pr-4 max-sm:pr-1"}`}
       >
         <UserAvatar user={user} size={32} />
         {compact ? null : (

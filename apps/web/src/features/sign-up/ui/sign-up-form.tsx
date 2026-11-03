@@ -1,6 +1,7 @@
 import { Button } from "@narbel/ui/components/button";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -10,61 +11,68 @@ import { PasswordField } from "@narbel/ui/components/password-field";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { useSession } from "@/entities/session";
 import { authClient } from "@/shared/lib";
-import { Loader } from "@/shared/ui";
+import { AuthSwitchLink } from "@/shared/ui";
 
-export const SignUpForm = ({
-  onSwitchToSignIn,
-  redirectTo,
-}: {
-  onSwitchToSignIn: () => void;
-  redirectTo?: string;
-}) => {
+export const SignUpForm = ({ redirectTo }: { redirectTo?: string }) => {
   const router = useRouter();
-  const { isPending } = useSession();
+  const formRef = useRef<HTMLFormElement>(null);
   // A refused sign-up (e.g. the email is taken) sits next to the form, not in a toast across the page.
   const [formError, setFormError] = useState<string>();
 
   const form = useForm({
-    defaultValues: { name: "", email: "", password: "" },
-    onSubmit: async ({ value }) => {
+    defaultValues: { firstName: "", lastName: "", email: "", password: "" },
+    onSubmit: async ({ value: { firstName, lastName, email, password } }) => {
       setFormError(undefined);
-      await authClient.signUp.email(value, {
-        onSuccess: (ctx) => {
-          // an OAuth authorize request is waiting: the client follows `url` itself
-          if (ctx.data?.redirect) {
-            return;
-          }
-          router.history.push(redirectTo ?? "/dashboard");
-          toast.success("Account created");
-        },
-        onError: (error) => {
-          setFormError(error.error.message || error.error.statusText);
-        },
-      });
+      // Better Auth keeps one display name; a single-word name leaves the last name empty
+      const name = [firstName, lastName]
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(" ");
+      await authClient.signUp.email(
+        { name, email, password },
+        {
+          onSuccess: (ctx) => {
+            // an OAuth authorize request is waiting: the client follows `url` itself
+            if (ctx.data?.redirect) {
+              return;
+            }
+            router.history.push(redirectTo ?? "/dashboard");
+            toast.success("Account created");
+          },
+          onError: (error) => {
+            setFormError(error.error.message || error.error.statusText);
+          },
+        }
+      );
     },
     validators: {
       onSubmit: z.object({
-        name: z.string().min(2, "Name must be at least 2 characters"),
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        firstName: z.string().trim().min(1, "Enter your first name"),
+        lastName: z.string(),
+        email: z.email("Enter a valid email address"),
+        password: z.string().min(8, "That password is too short"),
       }),
     },
+    // a press always answers: it re-checks the fields and moves focus to the first problem
+    canSubmitWhenInvalid: true,
+    // the alerts announce every problem; the keyboard lands on the first one
+    onSubmitInvalid: () =>
+      requestAnimationFrame(() =>
+        formRef.current
+          ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus()
+      ),
   });
 
-  if (isPending) {
-    return <Loader />;
-  }
-
   return (
-    <div className="bg-card shadow-surface mx-auto flex w-full max-w-md flex-col gap-8 rounded-xl p-6 sm:p-8">
+    <div className="bg-card shadow-surface mx-auto flex w-full max-w-md flex-col gap-8 rounded-xl p-6 max-[19rem]:p-4 sm:p-8">
       <div className="flex flex-col gap-2">
-        <h1 className="font-display text-headline leading-tight font-normal">
+        <h1 className="font-display text-headline leading-tight font-normal hyphens-auto">
           Create account
         </h1>
         <p className="text-muted-foreground text-sm">
@@ -73,6 +81,9 @@ export const SignUpForm = ({
       </div>
       <div>
         <form
+          ref={formRef}
+          // before hydration a native submit must not put the password in the URL
+          method="post"
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -80,33 +91,60 @@ export const SignUpForm = ({
           }}
         >
           <FieldGroup>
-            <form.Field name="name">
-              {(field) => {
-                const invalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid;
-                return (
-                  <Field data-invalid={invalid}>
-                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+            <div className="grid gap-5 @[22rem]/field-group:grid-cols-2 @[22rem]/field-group:gap-3">
+              <form.Field name="firstName">
+                {(field) => {
+                  const invalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
+                  return (
+                    <Field data-invalid={invalid}>
+                      <FieldLabel htmlFor={field.name}>First name</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        autoComplete="given-name"
+                        placeholder="Ada"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        aria-invalid={invalid}
+                        aria-required
+                        aria-describedby={
+                          invalid ? "first-name-error" : undefined
+                        }
+                      />
+                      {invalid ? (
+                        <FieldError
+                          id="first-name-error"
+                          errors={field.state.meta.errors}
+                        />
+                      ) : null}
+                    </Field>
+                  );
+                }}
+              </form.Field>
+              <form.Field name="lastName">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>
+                      Last name{" "}
+                      <span className="text-muted-foreground font-normal">
+                        (optional)
+                      </span>
+                    </FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
-                      autoComplete="name"
+                      autoComplete="family-name"
+                      placeholder="Lovelace"
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      aria-invalid={invalid}
-                      aria-describedby={invalid ? "name-error" : undefined}
                     />
-                    {invalid ? (
-                      <FieldError
-                        id="name-error"
-                        errors={field.state.meta.errors}
-                      />
-                    ) : null}
                   </Field>
-                );
-              }}
-            </form.Field>
+                )}
+              </form.Field>
+            </div>
             <form.Field name="email">
               {(field) => {
                 const invalid =
@@ -119,10 +157,12 @@ export const SignUpForm = ({
                       name={field.name}
                       type="email"
                       autoComplete="email"
+                      placeholder="you@team.com"
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
+                      aria-required
                       aria-describedby={invalid ? "email-error" : undefined}
                     />
                     {invalid ? (
@@ -146,12 +186,21 @@ export const SignUpForm = ({
                       id={field.name}
                       name={field.name}
                       autoComplete="new-password"
+                      placeholder="Choose a password"
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={invalid}
-                      aria-describedby={invalid ? "password-error" : undefined}
+                      aria-required
+                      aria-describedby={
+                        invalid
+                          ? "password-hint password-error"
+                          : "password-hint"
+                      }
                     />
+                    <FieldDescription id="password-hint">
+                      At least 8 characters.
+                    </FieldDescription>
                     {invalid ? (
                       <FieldError
                         id="password-error"
@@ -163,20 +212,15 @@ export const SignUpForm = ({
               }}
             </form.Field>
             {formError ? <FieldError>{formError}</FieldError> : null}
-            <form.Subscribe
-              selector={(state) => ({
-                canSubmit: state.canSubmit,
-                isSubmitting: state.isSubmitting,
-              })}
-            >
-              {({ canSubmit, isSubmitting }) => (
+            <form.Subscribe selector={(state) => state.isSubmitting}>
+              {(isSubmitting) => (
                 <Button
                   type="submit"
                   className="w-full"
-                  isDisabled={!canSubmit || isSubmitting}
+                  isDisabled={isSubmitting}
                 >
                   {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
-                  Sign up
+                  Create account
                 </Button>
               )}
             </form.Subscribe>
@@ -185,9 +229,7 @@ export const SignUpForm = ({
       </div>
       <div className="flex flex-wrap items-center justify-center gap-1 text-sm">
         <span className="text-muted-foreground">Already have an account?</span>
-        <Button variant="link" size="sm" onPress={onSwitchToSignIn}>
-          Sign in
-        </Button>
+        <AuthSwitchLink to="/sign-in">Sign in</AuthSwitchLink>
       </div>
     </div>
   );

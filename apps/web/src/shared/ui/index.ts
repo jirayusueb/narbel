@@ -1,3 +1,4 @@
+export { AuthSwitchLink } from "./auth-switch-link";
 export { BrandMark, Wordmark } from "./brand";
 export { Loader, LoaderMark } from "./loader";
 export { ErrorState, NotFound } from "./status-page";

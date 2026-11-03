@@ -523,7 +523,7 @@ const McpSnippet = () => (
 const Cta = ({ signedIn }: { signedIn: boolean }) => (
   <div className="flex flex-wrap items-center justify-center gap-2.5">
     <Link
-      to={signedIn ? "/dashboard" : "/login"}
+      to={signedIn ? "/dashboard" : "/sign-up"}
       className={buttonVariants({
         size: "lg",
         className: "active:scale-[0.98]",
@@ -693,7 +693,10 @@ export const HomePage = () => {
           aria-label="Footer"
           className="mb-16 flex flex-col items-center text-sm md:mb-24"
         >
-          <Link to={signedIn ? "/dashboard" : "/login"} className={FOOTER_LINK}>
+          <Link
+            to={signedIn ? "/dashboard" : "/sign-in"}
+            className={FOOTER_LINK}
+          >
             {signedIn ? "Boards" : "Sign in"}
           </Link>
           <Link to="/" hash="agents" className={FOOTER_LINK}>
