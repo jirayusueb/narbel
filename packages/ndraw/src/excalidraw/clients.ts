@@ -5,7 +5,7 @@ import {
   THEME,
   UserIdleState,
 } from "./constants";
-import { roundRect } from "./renderer/roundRect";
+import { roundRect } from "./renderer/round-rect";
 import type { InteractiveCanvasRenderConfig } from "./scene/types";
 import type {
   Collaborator,

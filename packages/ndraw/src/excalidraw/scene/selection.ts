@@ -6,14 +6,14 @@ import type {
 } from "../element/types";
 import { getElementAbsoluteCoords, getElementBounds } from "../element";
 import type { AppState, InteractiveCanvasAppState } from "../types";
-import { isBoundToContainer, isFrameLikeElement } from "../element/typeChecks";
+import { isBoundToContainer, isFrameLikeElement } from "../element/type-checks";
 import {
   elementOverlapsWithFrame,
   getContainingFrame,
   getFrameChildren,
 } from "../frame";
 import { isShallowEqual } from "../utils";
-import { isElementInViewport } from "../element/sizeHelpers";
+import { isElementInViewport } from "../element/size-helpers";
 
 /**
  * Frames and their containing elements are not to be selected at the same time.

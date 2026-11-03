@@ -1,8 +1,8 @@
-import { getDefaultAppState } from "./appState";
+import { getDefaultAppState } from "./app-state";
 import { AppStateChange, ElementsChange } from "./change";
 import { ENV } from "./constants";
-import { newElementWith } from "./element/mutateElement";
-import { deepCopyElement } from "./element/newElement";
+import { newElementWith } from "./element/mutate-element";
+import { deepCopyElement } from "./element/new-element";
 import type { OrderedExcalidrawElement } from "./element/types";
 import { Emitter } from "./emitter";
 import type { AppState, ObservedAppState } from "./types";

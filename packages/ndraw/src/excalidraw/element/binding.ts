@@ -35,18 +35,18 @@ import {
   isLinearElement,
   isRectanguloidElement,
   isTextElement,
-} from "./typeChecks";
-import type { ElementUpdate } from "./mutateElement";
-import { mutateElement } from "./mutateElement";
-import type Scene from "../scene/Scene";
-import { LinearElementEditor } from "./linearElementEditor";
+} from "./type-checks";
+import type { ElementUpdate } from "./mutate-element";
+import { mutateElement } from "./mutate-element";
+import type Scene from "../scene/scene";
+import { LinearElementEditor } from "./linear-element-editor";
 import {
   arrayToMap,
   isBindingFallthroughEnabled,
   tupleToCoors,
 } from "../utils";
 import { KEYS } from "../keys";
-import { getBoundTextElement, handleBindTextResize } from "./textElement";
+import { getBoundTextElement, handleBindTextResize } from "./text-element";
 import { aabbForElement, getElementShape, pointInsideBounds } from "../shapes";
 import {
   compareHeading,

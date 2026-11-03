@@ -1,4 +1,4 @@
-import { newElementWith } from "./element/mutateElement";
+import { newElementWith } from "./element/mutate-element";
 import { getMaximumGroups } from "./groups";
 import { getCommonBoundingBox } from "./element/bounds";
 import type { ElementsMap, ExcalidrawElement } from "./element/types";

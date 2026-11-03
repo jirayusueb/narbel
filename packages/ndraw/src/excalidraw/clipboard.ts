@@ -13,9 +13,9 @@ import {
 import {
   isFrameLikeElement,
   isInitializedImageElement,
-} from "./element/typeChecks";
-import { deepCopyElement } from "./element/newElement";
-import { mutateElement } from "./element/mutateElement";
+} from "./element/type-checks";
+import { deepCopyElement } from "./element/new-element";
+import { mutateElement } from "./element/mutate-element";
 import { getContainingFrame } from "./frame";
 import { arrayToMap, isMemberOf, isPromiseLike } from "./utils";
 import { createFile, isSupportedImageFileType } from "./data/blob";

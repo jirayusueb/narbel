@@ -5,7 +5,7 @@ import type {
   LibraryItems,
   LibraryItems_anyVersion,
 } from "../types";
-import type { cleanAppStateForExport } from "../appState";
+import type { cleanAppStateForExport } from "../app-state";
 import type { VERSIONS } from "../constants";
 
 export interface ExportedDataState {

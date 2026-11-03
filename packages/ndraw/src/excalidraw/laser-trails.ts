@@ -2,7 +2,7 @@ import type { LaserPointerOptions } from "@excalidraw/laser-pointer";
 import type { Trail } from "./animated-trail";
 import { AnimatedTrail } from "./animated-trail";
 import type { AnimationFrameHandler } from "./animation-frame-handler";
-import type App from "./components/App";
+import type App from "./components/app";
 import type { SocketId } from "./types";
 import { easeOut } from "./utils";
 import { getClientColor } from "./clients";

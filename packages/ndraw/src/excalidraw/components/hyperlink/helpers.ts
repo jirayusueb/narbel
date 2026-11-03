@@ -8,7 +8,7 @@ import type {
   ElementsMap,
   NonDeletedExcalidrawElement,
 } from "../../element/types";
-import { DEFAULT_LINK_SIZE } from "../../renderer/renderElement";
+import { DEFAULT_LINK_SIZE } from "../../renderer/render-element";
 import type { AppState, UIAppState } from "../../types";
 
 export const EXTERNAL_LINK_IMG = document.createElement("img");

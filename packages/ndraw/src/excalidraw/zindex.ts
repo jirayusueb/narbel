@@ -1,12 +1,12 @@
-import { isFrameLikeElement } from "./element/typeChecks";
+import { isFrameLikeElement } from "./element/type-checks";
 import type {
   ExcalidrawElement,
   ExcalidrawFrameLikeElement,
 } from "./element/types";
-import { syncMovedIndices } from "./fractionalIndex";
+import { syncMovedIndices } from "./fractional-index";
 import { getElementsInGroup } from "./groups";
 import { getSelectedElements } from "./scene";
-import Scene from "./scene/Scene";
+import Scene from "./scene/scene";
 import type { AppState } from "./types";
 import { arrayToMap, findIndex, findLastIndex } from "./utils";
 

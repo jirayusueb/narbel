@@ -4,7 +4,7 @@
 
 import { MIME_TYPES, SVG_NS } from "../constants";
 import type { AppClassProperties, DataURL, BinaryFiles } from "../types";
-import { isInitializedImageElement } from "./typeChecks";
+import { isInitializedImageElement } from "./type-checks";
 import type {
   ExcalidrawElement,
   FileId,

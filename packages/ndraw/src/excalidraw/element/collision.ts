@@ -17,7 +17,7 @@ import {
   isIframeLikeElement,
   isImageElement,
   isTextElement,
-} from "./typeChecks";
+} from "./type-checks";
 import { getBoundTextShape, isPathALoop } from "../shapes";
 import type {
   GlobalPoint,

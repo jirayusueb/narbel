@@ -3,9 +3,9 @@ import { FONT_FAMILY, VERTICAL_ALIGN } from "../constants";
 import type { ExcalidrawProps } from "../types";
 import { escapeDoubleQuotes, getFontString, updateActiveTool } from "../utils";
 import { setCursorForShape } from "../cursor";
-import { newTextElement } from "./newElement";
-import { wrapText } from "./textWrapping";
-import { isIframeElement } from "./typeChecks";
+import { newTextElement } from "./new-element";
+import { wrapText } from "./text-wrapping";
+import { isIframeElement } from "./type-checks";
 import type {
   ExcalidrawElement,
   ExcalidrawIframeLikeElement,

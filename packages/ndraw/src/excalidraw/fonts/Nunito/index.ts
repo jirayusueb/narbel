@@ -4,9 +4,9 @@ import Cyrilic from "./Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTA3j6zbXW
 import CyrilicExt from "./Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTk3j6zbXWjgevT5.woff2";
 import Vietnamese from "./Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTs3j6zbXWjgevT5.woff2";
 
-import { GOOGLE_FONTS_RANGES } from "../FontMetadata";
+import { GOOGLE_FONTS_RANGES } from "../font-metadata";
 
-import { type ExcalidrawFontFaceDescriptor } from "../Fonts";
+import { type ExcalidrawFontFaceDescriptor } from "../fonts";
 
 export const NunitoFontFaces: ExcalidrawFontFaceDescriptor[] = [
   {

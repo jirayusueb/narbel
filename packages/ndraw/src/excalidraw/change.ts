@@ -6,20 +6,20 @@ import {
   bindingProperties,
   updateBoundElements,
 } from "./element/binding";
-import { LinearElementEditor } from "./element/linearElementEditor";
-import type { ElementUpdate } from "./element/mutateElement";
-import { mutateElement, newElementWith } from "./element/mutateElement";
+import { LinearElementEditor } from "./element/linear-element-editor";
+import type { ElementUpdate } from "./element/mutate-element";
+import { mutateElement, newElementWith } from "./element/mutate-element";
 import {
   getBoundTextElementId,
   redrawTextBoundingBox,
-} from "./element/textElement";
+} from "./element/text-element";
 import {
   hasBoundTextElement,
   isBindableElement,
   isBoundToContainer,
   isImageElement,
   isTextElement,
-} from "./element/typeChecks";
+} from "./element/type-checks";
 import type {
   ExcalidrawElement,
   ExcalidrawImageElement,
@@ -30,7 +30,7 @@ import type {
   OrderedExcalidrawElement,
   SceneElementsMap,
 } from "./element/types";
-import { orderByFractionalIndex, syncMovedIndices } from "./fractionalIndex";
+import { orderByFractionalIndex, syncMovedIndices } from "./fractional-index";
 import { getNonDeletedGroupIds } from "./groups";
 import { getObservedAppState } from "./store";
 import type {

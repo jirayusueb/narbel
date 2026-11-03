@@ -1,5 +1,5 @@
 import { fileOpen, fileSave } from "./filesystem";
-import { cleanAppStateForExport, clearAppStateForDatabase } from "../appState";
+import { cleanAppStateForExport, clearAppStateForDatabase } from "../app-state";
 import {
   DEFAULT_FILENAME,
   EXPORT_DATA_TYPES,

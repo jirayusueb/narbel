@@ -12,7 +12,7 @@ import type {
   InteractiveCanvasAppState,
 } from "./types";
 import { getSelectedElements } from "./scene";
-import { getBoundTextElement } from "./element/textElement";
+import { getBoundTextElement } from "./element/text-element";
 import { makeNextSelectedElementIds } from "./scene/selection";
 import type { Mutable } from "./utility-types";
 
