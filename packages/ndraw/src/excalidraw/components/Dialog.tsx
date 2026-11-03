@@ -7,7 +7,7 @@ import {
   useExcalidrawSetAppState,
 } from "./App";
 import { KEYS } from "../keys";
-import "./Dialog.scss";
+import "./Dialog.css";
 import { Island } from "./Island";
 import { Modal } from "./Modal";
 import { queryFocusableElements } from "../utils";

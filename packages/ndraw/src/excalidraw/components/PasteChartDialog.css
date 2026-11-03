@@ -1,0 +1,52 @@
+.excalidraw--mobile.excalidraw .PasteChartDialog .Island {
+  display: flex;
+  flex-direction: column;
+}
+
+.excalidraw {
+  .PasteChartDialog {
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      flex-wrap: wrap;
+    }
+  }
+}
+
+.excalidraw--mobile.excalidraw .PasteChartDialog .container {
+  flex-direction: column;
+  justify-content: center;
+}
+
+.excalidraw {
+  .PasteChartDialog {
+    .ChartPreview {
+      margin: 8px;
+      text-align: center;
+      width: 192px;
+      height: 128px;
+      border-radius: 2px;
+      padding: 1px;
+      border: 1px solid #ced4da;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+
+      div {
+        display: inline-block;
+      }
+
+      svg {
+        max-height: 120px;
+        max-width: 186px;
+      }
+
+      &:hover {
+        padding: 0;
+        border: 2px solid #339af0;
+      }
+    }
+  }
+}

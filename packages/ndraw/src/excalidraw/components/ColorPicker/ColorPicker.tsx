@@ -19,7 +19,7 @@ import { ColorInput } from "./ColorInput";
 import { activeEyeDropperAtom } from "../EyeDropper";
 import { PropertiesPopover } from "../PropertiesPopover";
 
-import "./ColorPicker.scss";
+import "./ColorPicker.css";
 
 const isValidColor = (color: string) => {
   const style = new Option().style;

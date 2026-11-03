@@ -25,7 +25,7 @@ import { SidebarTab } from "./SidebarTab";
 import { useUIAppState } from "../../context/ui-appState";
 import { useOutsideClick } from "../../hooks/useOutsideClick";
 
-import "./Sidebar.scss";
+import "./Sidebar.css";
 
 /**
  * Flags whether the currently rendered Sidebar is docked or not, for use

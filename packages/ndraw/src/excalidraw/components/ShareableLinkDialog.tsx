@@ -9,7 +9,7 @@ import { FilledButton } from "./FilledButton";
 import { useCopyStatus } from "../hooks/useCopiedIndicator";
 import { copyIcon } from "./icons";
 
-import "./ShareableLinkDialog.scss";
+import "./ShareableLinkDialog.css";
 
 export type ShareableLinkDialogProps = {
   link: string;

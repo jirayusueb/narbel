@@ -3,7 +3,7 @@ import { t } from "../i18n";
 import type { DialogProps } from "./Dialog";
 import { Dialog } from "./Dialog";
 
-import "./ConfirmDialog.scss";
+import "./ConfirmDialog.css";
 import DialogActionButton from "./DialogActionButton";
 import { isLibraryMenuOpenAtom } from "./LibraryMenu";
 import { useExcalidrawContainer, useExcalidrawSetAppState } from "./App";

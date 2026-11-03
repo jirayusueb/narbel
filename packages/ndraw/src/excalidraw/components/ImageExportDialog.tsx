@@ -31,7 +31,7 @@ import { RadioGroup } from "./RadioGroup";
 import { Switch } from "./Switch";
 import { Tooltip } from "./Tooltip";
 
-import "./ImageExportDialog.scss";
+import "./ImageExportDialog.css";
 import { FilledButton } from "./FilledButton";
 import { cloneJSON } from "../utils";
 import { prepareElementsForExport } from "../data";

@@ -3,7 +3,7 @@ import { Popover } from "./Popover";
 import type { TranslationKeys } from "../i18n";
 import { t } from "../i18n";
 
-import "./ContextMenu.scss";
+import "./ContextMenu.css";
 import type { ShortcutName } from "../actions/shortcuts";
 import { getShortcutFromShortcutName } from "../actions/shortcuts";
 import type { Action } from "../actions/types";

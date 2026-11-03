@@ -1,9 +1,9 @@
-import "./TextInput.scss";
+import "./TextInput.css";
 
 import React, { useState } from "react";
 import { focusNearestParent } from "../utils";
 
-import "./ProjectName.scss";
+import "./ProjectName.css";
 import { useExcalidrawContainer } from "./App";
 import { KEYS } from "../keys";
 

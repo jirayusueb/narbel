@@ -1,4 +1,4 @@
-import "./ExcalidrawLogo.scss";
+import "./ExcalidrawLogo.css";
 
 const LogoIcon = () => (
   <svg

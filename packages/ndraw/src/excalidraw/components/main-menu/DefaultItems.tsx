@@ -41,7 +41,7 @@ import DropdownMenuItemContentRadio from "../dropdownMenu/DropdownMenuItemConten
 import { THEME } from "../../constants";
 import type { Theme } from "../../element/types";
 import { trackEvent } from "../../analytics";
-import "./DefaultItems.scss";
+import "./DefaultItems.css";
 
 export const LoadScene = () => {
   const { t } = useI18n();

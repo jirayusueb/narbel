@@ -1,0 +1,89 @@
+.excalidraw {
+  .Checkbox {
+    margin: 4px 0.3em;
+    display: flex;
+    align-items: center;
+
+    cursor: pointer;
+    user-select: none;
+
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover:not(.is-checked) .Checkbox-box:not(:focus) {
+      box-shadow: 0 0 0 2px #4dabf7;
+    }
+
+    &:hover:not(.is-checked) .Checkbox-box:not(:focus) {
+      svg {
+        display: block;
+        opacity: 0.3;
+      }
+    }
+
+    &:active {
+      .Checkbox-box {
+        box-shadow: 0 0 2px 1px inset #1c7ed6 !important;
+      }
+    }
+
+    &:hover {
+      .Checkbox-box {
+        background-color: rgba(208, 235, 255, 0.2);
+      }
+    }
+
+    &.is-checked {
+      .Checkbox-box {
+        background-color: #d0ebff;
+        svg {
+          display: block;
+        }
+      }
+      &:hover .Checkbox-box {
+        background-color: #a5d8ff;
+      }
+    }
+
+    .Checkbox-box {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      flex: 0 0 auto;
+
+      margin: 0 1em;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      box-shadow: 0 0 0 2px #1c7ed6;
+      background-color: transparent;
+      border-radius: 4px;
+
+      color: #1c7ed6;
+
+      border: 0;
+
+      &:focus {
+        box-shadow: 0 0 0 3px #1c7ed6;
+      }
+
+      svg {
+        display: none;
+        width: 16px;
+        height: 16px;
+        stroke-width: 3px;
+      }
+    }
+
+    .Checkbox-label {
+      display: flex;
+      align-items: center;
+    }
+
+    .excalidraw-tooltip-icon {
+      width: 1em;
+      height: 1em;
+    }
+  }
+}

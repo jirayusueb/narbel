@@ -11,7 +11,7 @@ import { SMALLEST_DELTA } from "./utils";
 import { CaptureUpdateAction } from "../../store";
 import type Scene from "../../scene/Scene";
 
-import "./DragInput.scss";
+import "./DragInput.css";
 import type { AppState } from "../../types";
 import { cloneJSON } from "../../utils";
 

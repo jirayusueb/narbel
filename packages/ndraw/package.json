@@ -72,10 +72,10 @@
     "@types/react-dom": "^19.3.0",
     "@types/resize-observer-browser": "0.1.11",
     "csstype": "^3.2.2",
+    "lightningcss": "1.33.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "rolldown": "1.2.15",
-    "sass": "1.85.1",
     "tsdown": "0.23.4",
     "typescript": "5.9.3"
   }

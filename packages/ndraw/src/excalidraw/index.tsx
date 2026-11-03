@@ -4,8 +4,8 @@ import App from "./components/App";
 import { isShallowEqual } from "./utils";
 import polyfill from "./polyfill";
 
-import "./css/app.scss";
-import "./css/styles.scss";
+import "./css/app.css";
+import "./css/styles.css";
 import "./fonts/fonts.css";
 
 import type { AppProps, ExcalidrawProps } from "./types";

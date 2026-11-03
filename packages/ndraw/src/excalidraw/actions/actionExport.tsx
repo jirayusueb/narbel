@@ -18,7 +18,7 @@ import { isImageFileHandle } from "../data/blob";
 import { nativeFileSystemSupported } from "../data/filesystem";
 import type { Theme } from "../element/types";
 
-import "../components/ToolIcon.scss";
+import "../components/ToolIcon.css";
 import { CaptureUpdateAction } from "../store";
 
 export const actionChangeProjectName = register({

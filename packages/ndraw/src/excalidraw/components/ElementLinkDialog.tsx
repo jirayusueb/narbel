@@ -14,7 +14,7 @@ import { ToolButton } from "./ToolButton";
 import { TrashIcon } from "./icons";
 import { KEYS } from "../keys";
 
-import "./ElementLinkDialog.scss";
+import "./ElementLinkDialog.css";
 import { normalizeLink } from "../data/url";
 
 const ElementLinkDialog = ({

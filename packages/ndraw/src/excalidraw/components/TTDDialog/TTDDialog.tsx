@@ -24,7 +24,7 @@ import type { NonDeletedExcalidrawElement } from "../../element/types";
 import type { BinaryFiles } from "../../types";
 import { ArrowRightIcon } from "../icons";
 
-import "./TTDDialog.scss";
+import "./TTDDialog.css";
 import { atom, useAtom } from "../../editor-jotai";
 import { trackEvent } from "../../analytics";
 import { InlineIcon } from "../InlineIcon";

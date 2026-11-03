@@ -1,4 +1,4 @@
-import "./UserList.scss";
+import "./UserList.css";
 
 import React, { useLayoutEffect } from "react";
 import clsx from "clsx";

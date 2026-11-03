@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { memo, useEffect, useRef, useState } from "react";
 import { useDevice } from "./App";
 import type { LibraryItem } from "../types";
-import "./LibraryUnit.scss";
+import "./LibraryUnit.css";
 import { CheckboxItem } from "./CheckboxItem";
 import { PlusIcon } from "./icons";
 import type { SvgCache } from "../hooks/useLibraryItemSvg";

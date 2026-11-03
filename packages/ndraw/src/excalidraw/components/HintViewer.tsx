@@ -10,7 +10,7 @@ import {
 import { getShortcutKey } from "../utils";
 import { isEraserActive } from "../appState";
 
-import "./HintViewer.scss";
+import "./HintViewer.css";
 import { isNodeInFlowchart } from "../element/flowchart";
 import { isGridModeEnabled } from "../snapping";
 import { CANVAS_SEARCH_TAB, DEFAULT_SIDEBAR } from "../constants";

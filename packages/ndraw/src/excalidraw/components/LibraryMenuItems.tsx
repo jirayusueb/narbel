@@ -27,7 +27,7 @@ import {
 import { useScrollPosition } from "../hooks/useScrollPosition";
 import { useLibraryCache } from "../hooks/useLibraryItemSvg";
 
-import "./LibraryMenuItems.scss";
+import "./LibraryMenuItems.css";
 
 // using an odd number of items per batch so the rendering creates an irregular
 // pattern which looks more organic

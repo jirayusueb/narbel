@@ -4,7 +4,7 @@ import type { ElementsMap, NonDeletedExcalidrawElement } from "./types";
 import { getElementAbsoluteCoords } from ".";
 import { useExcalidrawAppState } from "../components/App";
 
-import "./ElementCanvasButtons.scss";
+import "./ElementCanvasButtons.css";
 
 const CONTAINER_PADDING = 5;
 

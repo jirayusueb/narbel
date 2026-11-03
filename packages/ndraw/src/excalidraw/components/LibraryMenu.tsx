@@ -33,7 +33,7 @@ import {
 import { getSelectedElements } from "../scene";
 import { useUIAppState } from "../context/ui-appState";
 
-import "./LibraryMenu.scss";
+import "./LibraryMenu.css";
 import { LibraryMenuControlButtons } from "./LibraryMenuControlButtons";
 import type {
   ExcalidrawElement,

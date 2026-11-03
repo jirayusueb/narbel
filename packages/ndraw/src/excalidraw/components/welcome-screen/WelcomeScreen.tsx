@@ -1,7 +1,7 @@
 import { Center } from "./WelcomeScreen.Center";
 import { MenuHint, ToolbarHint, HelpHint } from "./WelcomeScreen.Hints";
 
-import "./WelcomeScreen.scss";
+import "./WelcomeScreen.css";
 
 const WelcomeScreen = (props: { children?: React.ReactNode }) => {
   return (

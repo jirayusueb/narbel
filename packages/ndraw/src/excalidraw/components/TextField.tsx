@@ -8,7 +8,7 @@ import {
 } from "react";
 import clsx from "clsx";
 
-import "./TextField.scss";
+import "./TextField.css";
 import { Button } from "./Button";
 import { eyeIcon, eyeClosedIcon } from "./icons";
 

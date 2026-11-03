@@ -10,7 +10,7 @@ import { getSelectedElements } from "../scene";
 import { useApp, useExcalidrawContainer, useExcalidrawElements } from "./App";
 import { useStable } from "../hooks/useStable";
 
-import "./EyeDropper.scss";
+import "./EyeDropper.css";
 import type { ColorPickerType } from "./ColorPicker/colorPickerUtils";
 import type { ExcalidrawElement } from "../element/types";
 import { atom } from "../editor-jotai";

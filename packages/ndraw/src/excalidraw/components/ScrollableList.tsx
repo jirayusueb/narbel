@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { Children } from "react";
 
-import "./ScrollableList.scss";
+import "./ScrollableList.css";
 
 interface ScrollableListProps {
   className?: string;

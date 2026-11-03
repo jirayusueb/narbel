@@ -17,7 +17,7 @@ import { randomInteger } from "../random";
 import { CLASSES, EVENT } from "../constants";
 import { useStable } from "../hooks/useStable";
 
-import "./SearchMenu.scss";
+import "./SearchMenu.css";
 import { round } from "@excalidraw/math";
 import { measureText } from "../element/textMeasurements";
 

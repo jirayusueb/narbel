@@ -3,7 +3,7 @@ import type { BinaryFiles } from "../../types";
 import { useApp } from "../App";
 import type { NonDeletedExcalidrawElement } from "../../element/types";
 import { ArrowRightIcon } from "../icons";
-import "./MermaidToExcalidraw.scss";
+import "./MermaidToExcalidraw.css";
 import { t } from "../../i18n";
 import Trans from "../Trans";
 import type { MermaidToExcalidrawLibProps } from "./common";

@@ -56,8 +56,8 @@ import { Stats } from "./Stats";
 import { actionToggleStats } from "../actions";
 import ElementLinkDialog from "./ElementLinkDialog";
 
-import "./LayerUI.scss";
-import "./Toolbar.scss";
+import "./LayerUI.css";
+import "./Toolbar.css";
 
 interface LayerUIProps {
   actionManager: ActionManager;

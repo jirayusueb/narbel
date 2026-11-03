@@ -27,7 +27,7 @@ import { isElbowArrow, isImageElement } from "../../element/typeChecks";
 import CanvasGrid from "./CanvasGrid";
 import clsx from "clsx";
 
-import "./Stats.scss";
+import "./Stats.css";
 import { isGridModeEnabled } from "../../snapping";
 import { getUncroppedWidthAndHeight } from "../../element/cropElement";
 import { round } from "@excalidraw/math";

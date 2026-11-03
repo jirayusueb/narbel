@@ -13,7 +13,7 @@ import { withInternalFallback } from "./hoc/withInternalFallback";
 import { LibraryMenu } from "./LibraryMenu";
 import type { SidebarProps, SidebarTriggerProps } from "./Sidebar/common";
 import { Sidebar } from "./Sidebar/Sidebar";
-import "../components/dropdownMenu/DropdownMenu.scss";
+import "../components/dropdownMenu/DropdownMenu.css";
 import { SearchMenu } from "./SearchMenu";
 import { LibraryIcon, searchIcon } from "./icons";
 

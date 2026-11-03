@@ -56,7 +56,7 @@ interface Blob {
   name?: string;
 }
 
-declare module "*.scss";
+declare module "*.css";
 
 // --------------------------------------------------------------------------—
 // ensure Uint8Array isn't assignable to ArrayBuffer

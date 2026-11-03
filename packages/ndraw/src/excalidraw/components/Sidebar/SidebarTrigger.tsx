@@ -3,7 +3,7 @@ import type { SidebarTriggerProps } from "./common";
 import { useUIAppState } from "../../context/ui-appState";
 import clsx from "clsx";
 
-import "./SidebarTrigger.scss";
+import "./SidebarTrigger.css";
 
 export const SidebarTrigger = ({
   name,

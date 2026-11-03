@@ -4,7 +4,7 @@ import { Button } from "../Button";
 
 import clsx from "clsx";
 
-import "./LiveCollaborationTrigger.scss";
+import "./LiveCollaborationTrigger.css";
 import { useUIAppState } from "../../context/ui-appState";
 
 const LiveCollaborationTrigger = ({

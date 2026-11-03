@@ -14,7 +14,7 @@ import type { FontFamilyValues } from "../../element/types";
 import { FONT_FAMILY } from "../../constants";
 import { t } from "../../i18n";
 
-import "./FontPicker.scss";
+import "./FontPicker.css";
 
 export const DEFAULT_FONTS = [
   {

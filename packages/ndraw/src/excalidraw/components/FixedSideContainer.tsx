@@ -1,4 +1,4 @@
-import "./FixedSideContainer.scss";
+import "./FixedSideContainer.css";
 
 import React from "react";
 import clsx from "clsx";

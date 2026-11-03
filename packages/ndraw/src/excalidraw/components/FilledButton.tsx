@@ -1,7 +1,7 @@
 import React, { forwardRef, useState } from "react";
 import clsx from "clsx";
 
-import "./FilledButton.scss";
+import "./FilledButton.css";
 import { AbortError } from "../errors";
 import Spinner from "./Spinner";
 import { isPromiseLike } from "../utils";
