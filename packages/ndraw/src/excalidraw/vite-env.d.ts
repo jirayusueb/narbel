@@ -1,7 +1,3 @@
-/// <reference types="vite/client" />
-/// <reference types="vite-plugin-pwa/vanillajs" />
-/// <reference types="vite-plugin-pwa/info" />
-/// <reference types="vite-plugin-svgr/client" />
 interface ImportMetaEnv {
   // The port to run the dev server
   VITE_APP_PORT: string;
@@ -51,10 +47,15 @@ interface ImportMetaEnv {
 
   VITE_WORKER_ID: string;
   MODE: string;
-  DEV: string;
-  PROD: string;
+  DEV: boolean;
+  PROD: boolean;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+declare module "*.woff2" {
+  const url: string;
+  export default url;
 }

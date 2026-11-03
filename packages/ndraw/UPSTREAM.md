@@ -22,17 +22,23 @@ At that tag the npm package `@excalidraw/excalidraw` bundles three upstream fold
   - `csstype` lets `src/excalidraw/css.d.ts` augment the same `csstype` that `@types/react` uses.
   - `@types/node` (`22.13.10` in upstream `yarn.lock`) is there because upstream got it from the repo root.
   - `@types/react` and `@types/react-dom` follow `apps/web`, so there is a single React type identity.
-- `tsconfig.json` is upstream `packages/excalidraw/tsconfig.json`, re-rooted at `src/`, so the types land in `dist/types/{excalidraw,math,utils}` as in npm. `typeRoots` keeps the repo root's `@types/bun` out of TypeScript 4.9.
+  - `typescript` is `5.9.3`, the version upstream master moved to in `d080833f4`. TypeScript 7 is not used because it removed `moduleResolution: "node"`, and `"bundler"` breaks `browser-fs-access`'s untyped `exports` and the `.d.ts` emit of `editor-jotai.ts`.
+  - `vite`, `vite-plugin-pwa` and `vite-plugin-svgr` are left out. Upstream only needed them for `/// <reference types>` lines; `src/excalidraw/vite-env.d.ts` now declares what the library reads.
+- `tsconfig.json` is upstream `packages/excalidraw/tsconfig.json`, re-rooted at `src/`, so the types land in `dist/types/{excalidraw,math,utils}` as in npm. `typeRoots` keeps the repo root's `@types/bun` out of the build.
 - `scripts/build.cjs` comes from upstream `scripts/buildPackage.js` and `env.cjs`. The differences:
   - `import.meta.env` is reduced to the keys the library reads.
   - `PKG_NAME` and `PKG_VERSION` are pinned to `@excalidraw/excalidraw` and `0.18.1`. Fonts load from `https://esm.sh/${PKG_NAME}@${PKG_VERSION}/dist/prod/`, so that URL stays the one in use today.
   - A Sass load path under `src/excalidraw` replaces the yarn-created `packages/excalidraw/node_modules`. Upstream resolved `UserList.scss`'s extensionless `@import "../css/variables.module"` against that folder.
 
-The built `.d.ts` files match npm except for two things. The first is React type spellings from the newer `@types/react`. The second is 23 inline imports that tsc synthesizes: npm emits `import("@excalidraw/math")`, which never resolved for consumers, and the fork emits a relative `import("../../math")` into its own `dist/types/math`.
+The built `.d.ts` files match npm except for three things. The first is React type spellings from the newer `@types/react`. The second is 23 inline imports that tsc synthesizes: npm emits `import("@excalidraw/math")`, which never resolved for consumers, and the fork emits a relative `import("../../math")` into its own `dist/types/math`. The third is how TypeScript 5.9 prints inferred types.
 
 ## Files changed under src/ versus upstream
 
-None yet. Every edit to `src/` appends its path and the reason here.
+- `src/excalidraw/data/encode.ts`, `data/encryption.ts`, `global.d.ts`, `hooks/useOutsideClick.ts`, `subset/harfbuzz/harfbuzz-loader.ts`, `subset/woff2/woff2-loader.ts`: upstream `d080833f4`, `Uint8Array<ArrayBuffer>` annotations for TypeScript 5.9.
+- `src/excalidraw/components/Actions.tsx`: dropped `appState.activeTool.type !== "image"`, which `hasStrokeColor` already excludes and TypeScript 5.5+ flags as TS2367.
+- `src/excalidraw/vite-env.d.ts`: removed the vite `/// <reference types>` lines, typed `DEV`/`PROD` as `boolean` (`scripts/build.cjs` defines them as `true`), declared `*.woff2` modules.
+- `src/excalidraw/react-app-env.d.ts`: deleted; it only referenced `react-scripts` types.
+- `src/math/global.d.ts`, `src/utils/global.d.ts`: removed the `vite/client` reference.
 
 ## Policy
 

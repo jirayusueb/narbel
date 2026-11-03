@@ -69,7 +69,6 @@ export const canChangeStrokeColor = (
 
   return (
     (hasStrokeColor(appState.activeTool.type) &&
-      appState.activeTool.type !== "image" &&
       commonSelectedType !== "image" &&
       commonSelectedType !== "frame" &&
       commonSelectedType !== "magicframe") ||
