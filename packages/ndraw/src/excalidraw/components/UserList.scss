@@ -1,9 +1,13 @@
-@import "../css/variables.module";
+@use "../css/variables.module.scss";
 
 .excalidraw {
   --avatar-size: 1.75rem;
   --avatarList-gap: 0.625rem;
   --userList-padding: var(--space-factor);
+  --userlist-hint-bg-color: var(--color-gray-10);
+  --userlist-hint-heading-color: var(--color-gray-80);
+  --userlist-hint-text-color: var(--color-gray-60);
+  --userlist-collaborators-border-color: var(--color-gray-20);
 
   .UserList__wrapper {
     display: flex;
@@ -49,14 +53,16 @@
   }
 
   .UserList__more {
-    @include avatarStyles;
-    background-color: var(--color-gray-20);
-    border: 0 !important;
-    font-size: 0.625rem;
-    font-weight: 400;
-    flex-shrink: 0;
-    color: var(--color-gray-100);
-    font-weight: bold;
+    @include variables.avatarStyles;
+    & {
+      background-color: var(--color-gray-20);
+      border: 0 !important;
+      font-size: 0.625rem;
+      font-weight: 400;
+      flex-shrink: 0;
+      color: var(--color-gray-100);
+      font-weight: bold;
+    }
   }
 
   .UserList__collaborator-name {
@@ -140,11 +146,6 @@
       transform: scaleY(2);
     }
   }
-
-  --userlist-hint-bg-color: var(--color-gray-10);
-  --userlist-hint-heading-color: var(--color-gray-80);
-  --userlist-hint-text-color: var(--color-gray-60);
-  --userlist-collaborators-border-color: var(--color-gray-20);
 
   &.theme--dark {
     --userlist-hint-bg-color: var(--color-gray-90);

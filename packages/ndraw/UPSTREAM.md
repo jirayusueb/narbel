@@ -28,7 +28,7 @@ At that tag the npm package `@excalidraw/excalidraw` bundles three upstream fold
 - `scripts/build.cjs` comes from upstream `scripts/buildPackage.js` and `env.cjs`. The differences:
   - `import.meta.env` is reduced to the keys the library reads.
   - `PKG_NAME` and `PKG_VERSION` are pinned to `@excalidraw/excalidraw` and `0.18.1`. Fonts load from `https://esm.sh/${PKG_NAME}@${PKG_VERSION}/dist/prod/`, so that URL stays the one in use today.
-  - A Sass load path under `src/excalidraw` replaces the yarn-created `packages/excalidraw/node_modules`. Upstream resolved `UserList.scss`'s extensionless `@import "../css/variables.module"` against that folder.
+  - Sass runs with `quietDeps`, which mutes the global built-in warnings from `open-color` in `node_modules`. The fork's own Sass must build with no warnings.
 
 The built `.d.ts` files match npm except for three things. The first is React type spellings from the newer `@types/react`. The second is 23 inline imports that tsc synthesizes: npm emits `import("@excalidraw/math")`, which never resolved for consumers, and the fork emits a relative `import("../../math")` into its own `dist/types/math`. The third is how TypeScript 5.9 prints inferred types.
 
@@ -39,6 +39,59 @@ The built `.d.ts` files match npm except for three things. The first is React ty
 - `src/excalidraw/vite-env.d.ts`: removed the vite `/// <reference types>` lines, typed `DEV`/`PROD` as `boolean` (`scripts/build.cjs` defines them as `true`), declared `*.woff2` modules.
 - `src/excalidraw/react-app-env.d.ts`: deleted; it only referenced `react-scripts` types.
 - `src/math/global.d.ts`, `src/utils/global.d.ts`: removed the `vite/client` reference.
+- These `.scss` files under `src/excalidraw/`: Sass module system, no deprecation warnings. `sass-migrator module` turned `@import` into `@use` and `transparentize`/`fade-out` into `color.adjust`; every `variables.module` path ends in `.scss` because esbuild-sass-plugin reads `.module` as an extension; declarations written after nested rules moved above them (same CSS), except `UserList.scss`'s `.UserList__more`, whose declarations are wrapped in `& {}` as upstream `b9a255407` does, so they still override `avatarStyles`.
+  - `components/Avatar.scss`
+  - `components/Button.scss`
+  - `components/ButtonIcon.scss`
+  - `components/Card.scss`
+  - `components/CheckboxItem.scss`
+  - `components/ColorPicker/ColorPicker.scss`
+  - `components/CommandPalette/CommandPalette.scss`
+  - `components/ConfirmDialog.scss`
+  - `components/ContextMenu.scss`
+  - `components/Dialog.scss`
+  - `components/ElementLinkDialog.scss`
+  - `components/ExportDialog.scss`
+  - `components/FilledButton.scss`
+  - `components/FixedSideContainer.scss`
+  - `components/FontPicker/FontPicker.scss`
+  - `components/HelpDialog.scss`
+  - `components/HintViewer.scss`
+  - `components/IconPicker.scss`
+  - `components/ImageExportDialog.scss`
+  - `components/LayerUI.scss`
+  - `components/LibraryMenu.scss`
+  - `components/LibraryMenuItems.scss`
+  - `components/LibraryUnit.scss`
+  - `components/Modal.scss`
+  - `components/OverwriteConfirm/OverwriteConfirm.scss`
+  - `components/PasteChartDialog.scss`
+  - `components/PublishLibrary.scss`
+  - `components/RadioGroup.scss`
+  - `components/Range.scss`
+  - `components/SVGLayer.scss`
+  - `components/SearchMenu.scss`
+  - `components/ShareableLinkDialog.scss`
+  - `components/Sidebar/Sidebar.scss`
+  - `components/Sidebar/SidebarTrigger.scss`
+  - `components/Spinner.scss`
+  - `components/Switch.scss`
+  - `components/TTDDialog/TTDDialog.scss`
+  - `components/TextField.scss`
+  - `components/TextInput.scss`
+  - `components/Toast.scss`
+  - `components/ToolIcon.scss`
+  - `components/Toolbar.scss`
+  - `components/Tooltip.scss`
+  - `components/UserList.scss`
+  - `components/dropdownMenu/DropdownMenu.scss`
+  - `components/footer/FooterCenter.scss`
+  - `components/hyperlink/Hyperlink.scss`
+  - `components/live-collaboration/LiveCollaborationTrigger.scss`
+  - `css/app.scss`
+  - `css/styles.scss`
+  - `css/theme.scss`
+  - `css/variables.module.scss`
 
 ## Policy
 

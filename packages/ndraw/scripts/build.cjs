@@ -33,15 +33,6 @@ const ENV_VARS = {
   },
 };
 
-// components/UserList.scss imports "../css/variables.module" without an extension. esbuild-sass-plugin cannot
-// resolve that, and upstream only built because Sass retried it against the load path packages/excalidraw/node_modules,
-// which yarn created. Any folder one level under src/excalidraw gives Sass the same fallback.
-const SASS_LOAD_PATHS = [
-  path.join(src, "excalidraw", "css"),
-  path.join(root, "node_modules"),
-  path.resolve(root, "../../node_modules"),
-];
-
 const config = (outdir) => ({
   absWorkingDir: path.join(src, "excalidraw"),
   entryPoints: ["index.tsx", "**/*.chunk.ts"],
@@ -51,7 +42,13 @@ const config = (outdir) => ({
   splitting: true,
   format: "esm",
   packages: "external",
-  plugins: [sassPlugin({ loadPaths: SASS_LOAD_PATHS })],
+  // quietDeps mutes open-color, which still uses global built-ins; our own sources must stay warning-free
+  plugins: [
+    sassPlugin({
+      loadPaths: [path.join(root, "node_modules")],
+      quietDeps: true,
+    }),
+  ],
   target: "es2020",
   assetNames: "[dir]/[name]",
   chunkNames: "[dir]/[name]-[hash]",
