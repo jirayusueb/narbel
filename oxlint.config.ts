@@ -9,6 +9,9 @@ export default defineConfig({
   ignorePatterns: [
     ...core.ignorePatterns,
     "packages/ui/src/components/**",
+    "packages/ui/src/hooks/use-mobile.ts",
+    "packages/ui/src/hooks/use-highlighted-code.ts",
+    "packages/ui/src/lib/highlighter.tsx",
     "apps/web/src/shared/ui/stickers/**",
     "packages/ndraw/**",
     ".agents/**",
