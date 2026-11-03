@@ -25,6 +25,7 @@ At that tag the npm package `@excalidraw/excalidraw` bundles three upstream fold
   - `@types/react` and `@types/react-dom` follow `apps/web`, so there is a single React type identity.
   - `typescript` is `5.9.3`, the version upstream master moved to in `d080833f4`. TypeScript 7 is not used because it removed `moduleResolution: "node"`, and `"bundler"` breaks `browser-fs-access`'s untyped `exports` and the `.d.ts` emit of `editor-jotai.ts`.
   - `vite`, `vite-plugin-pwa` and `vite-plugin-svgr` are left out. Upstream only needed them for `/// <reference types>` lines; `src/excalidraw/vite-env.d.ts` now declares what the library reads.
+  - `lucide-react` `1.56.0` (the version `apps/web` uses) provides the editor's icon set; see the icons note under src changes. `clsx` stays: switching to `cn` from `@narbel/ui/lib/utils` was tried and reverted, because `moduleResolution: "node"` cannot read `@narbel/ui`'s `exports` map and a tsconfig path breaks `rootDir` for the `.d.ts` emit. The narbel token bridge stays where DESIGN.md puts it, in `apps/web`'s `excalidraw-theme.css`, so ndraw keeps Excalidraw's own canvas themes.
 - `tsconfig.json` is upstream `packages/excalidraw/tsconfig.json`, re-rooted at `src/`, so the types land in `dist/types/{excalidraw,math,utils}` as in npm. `typeRoots` keeps the repo root's `@types/bun` out of the build.
 - `tsdown.config.ts` replaces upstream `scripts/buildPackage.js` and `env.cjs`. It writes ESM to `dist/dev` (sourcemaps) and `dist/prod` (minified JS and CSS). The differences:
   - `import.meta.env` is reduced to the keys the library reads.
@@ -51,6 +52,9 @@ The built `.d.ts` files match npm except for three things. The first is React ty
   - Earlier steps, now folded in: the `@import` → `@use` migration, 22 hoisted mixed declarations, and `UserList`'s `.UserList__more`, whose own declarations come in a later `.UserList__more` rule so they still override the avatar styles (upstream `b9a255407`'s `& {}` fix).
   - Upstream fixes to a `.scss` file have to be ported by hand into the matching `.css` file.
   - Check used: each file's Sass 1.85.1 output equals its Lightning CSS bundle with nesting lowered, token for token. After the switch, `dist/prod/index.css` is byte-identical to the last Sass build.
+
+- Every source file and folder is kebab-case (`Button.tsx` → `button.tsx`, `components/TTDDialog/` → `components/ttd-dialog/`), except `fonts/<Family>/` (the woff2 paths are baked into the runtime font URL), `locales/` (loaded by name through the import glob) and the `.sfd` font sources. `scripts/kebab-rename.mjs` did the rename and rewrote every relative and `@excalidraw/*` import; a case-strict import check (`/tmp/casecheck.mjs` shape) guards what the case-insensitive macOS filesystem would mask. Upstream fixes now arrive at renamed paths.
+- `components/icons.tsx`: 102 of the 179 icon exports are lucide components re-exported under their historical names (a table-driven codemod; memo-signature icons like `GroupIcon` keep their `({ theme })` props). The 77 that stay hand-drawn are preview glyphs lucide cannot express (fill, stroke style and width, sloppiness, edges, arrowheads, font sizes, welcome-screen arrows) and brand marks (Discord, GitHub, X, YouTube). `iconFillColor` and `createIcon` remain exported.
 
 ## Policy
 
