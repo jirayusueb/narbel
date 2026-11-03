@@ -30,7 +30,9 @@ export const Header = () => {
       style={{ viewTransitionName: "site-header" }}
       animate={{ y: tucked ? "-100%" : "0%" }}
       transition={{ duration: tucked ? 0.25 : 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className={`bg-background sticky top-0 z-40 grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 transition-shadow duration-300 max-[19rem]:gap-2 max-[19rem]:px-3 md:px-[30px] ${
+      // Below 19rem (a narrow phone with enlarged text) gaps, padding and the mark tighten so
+      // the signed-in row (Boards, mark, bell, account) still fits without sideways scrolling.
+      className={`bg-background sticky top-0 z-40 grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 transition-shadow duration-300 max-[19rem]:gap-1 max-[19rem]:px-2 md:px-[30px] ${
         elevated ? "shadow-[0_1px_0_var(--border)]" : ""
       }`}
     >
@@ -59,10 +61,10 @@ export const Header = () => {
           whileHover={{ rotate: -8 }}
           transition={{ duration: 0.5, ease: [0.6, 0, 0.1, 1] }}
         >
-          <BrandMark className="size-8" />
+          <BrandMark className="size-8 max-[19rem]:size-6" />
         </motion.span>
       </Link>
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="flex items-center justify-end gap-1.5 max-[19rem]:gap-0.5">
         {session ? <NotificationsBell /> : null}
         <UserMenu />
       </div>

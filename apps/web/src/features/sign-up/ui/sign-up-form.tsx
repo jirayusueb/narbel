@@ -126,7 +126,7 @@ export const SignUpForm = ({ redirectTo }: { redirectTo?: string }) => {
                 {(field) => (
                   <Field>
                     <FieldLabel htmlFor={field.name}>
-                      Last name
+                      Last name{" "}
                       <span className="text-muted-foreground font-normal">
                         (optional)
                       </span>

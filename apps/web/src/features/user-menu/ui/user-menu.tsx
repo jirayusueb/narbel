@@ -87,7 +87,7 @@ export const UserMenu = ({
       <Button
         variant="secondary"
         aria-label={`Account menu for ${name}`}
-        className={`h-10 gap-2.5 rounded-full pl-1 ${compact ? "pr-1" : "pr-4"}`}
+        className={`h-10 gap-2.5 rounded-full pl-1 ${compact ? "pr-1" : "pr-4 max-sm:pr-1"}`}
       >
         <UserAvatar user={user} size={32} />
         {compact ? null : (
