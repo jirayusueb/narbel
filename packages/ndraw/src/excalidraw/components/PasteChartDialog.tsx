@@ -10,7 +10,7 @@ import type { UIAppState } from "../types";
 import { useApp } from "./App";
 import { Dialog } from "./Dialog";
 
-import "./PasteChartDialog.scss";
+import "./PasteChartDialog.css";
 
 type OnInsertChart = (chartType: ChartType, elements: ChartElements) => void;
 

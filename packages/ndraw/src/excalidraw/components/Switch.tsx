@@ -1,6 +1,6 @@
 import clsx from "clsx";
 
-import "./Switch.scss";
+import "./Switch.css";
 
 export type SwitchProps = {
   name: string;

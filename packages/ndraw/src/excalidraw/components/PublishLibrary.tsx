@@ -23,7 +23,7 @@ import { CloseIcon } from "./icons";
 import { ToolButton } from "./ToolButton";
 import { EditorLocalStorage } from "../data/EditorLocalStorage";
 
-import "./PublishLibrary.scss";
+import "./PublishLibrary.css";
 
 interface PublishLibraryDataParams {
   authorName: string;

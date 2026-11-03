@@ -38,7 +38,7 @@ import {
   suppportsHorizontalAlign,
 } from "../element/textElement";
 
-import "./Actions.scss";
+import "./Actions.css";
 import DropdownMenu from "./dropdownMenu/DropdownMenu";
 import {
   EmbedIcon,

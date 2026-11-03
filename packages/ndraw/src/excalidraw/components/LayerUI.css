@@ -1,0 +1,120 @@
+.excalidraw {
+  .layer-ui__wrapper.animate {
+    transition: width 0.1s ease-in-out;
+  }
+  .layer-ui__wrapper {
+    /* when the rightside sidebar is docked, we need to resize the UI by its
+       width, making the nested UI content shift to the left. To do this,
+       we need the UI container to actually have dimensions set, but
+       then we also need to disable pointer events else the canvas below
+       wouldn't be interactive. */
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: var(--zIndex-layerUI);
+  }
+
+  .layer-ui__wrapper__top-right {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    pointer-events: none !important;
+
+    & > * {
+      pointer-events: var(--ui-pointerEvents);
+    }
+  }
+
+  .layer-ui__wrapper__footer {
+    width: 100%;
+  }
+
+  .layer-ui__wrapper__footer-right {
+    z-index: 100;
+    display: flex;
+  }
+
+  .layer-ui__wrapper .zen-mode-transition {
+    transition: transform 0.5s ease-in-out;
+  }
+}
+
+:root[dir="ltr"] .excalidraw .layer-ui__wrapper .zen-mode-transition.transition-left {
+  transform: translate(-999px, 0);
+}
+
+:root[dir="ltr"] .excalidraw .layer-ui__wrapper .zen-mode-transition.transition-right {
+  transform: translate(999px, 0);
+}
+
+:root[dir="rtl"] .excalidraw .layer-ui__wrapper .zen-mode-transition.transition-left {
+  transform: translate(999px, 0);
+}
+
+:root[dir="rtl"] .excalidraw .layer-ui__wrapper .zen-mode-transition.transition-right {
+  transform: translate(-999px, 0);
+}
+
+.excalidraw {
+  .layer-ui__wrapper .zen-mode-transition.layer-ui__wrapper__footer-left--transition-bottom {
+    transform: translate(0, 92px);
+  }
+
+  .layer-ui__wrapper .disable-zen-mode {
+    padding: 10px;
+    position: absolute;
+    bottom: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: visibility 0s linear 0s, opacity 0.5s;
+
+    font-family: var(--ui-font);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--default-border-color);
+    background-color: var(--island-bg-color);
+    color: var(--text-primary-color);
+  }
+}
+
+[dir="ltr"] .excalidraw .layer-ui__wrapper .disable-zen-mode {
+  right: 1rem;
+}
+
+[dir="rtl"] .excalidraw .layer-ui__wrapper .disable-zen-mode {
+  left: 1rem;
+}
+
+.excalidraw {
+  .layer-ui__wrapper .disable-zen-mode:hover {
+    background-color: var(--button-hover-bg);
+  }
+  .layer-ui__wrapper .disable-zen-mode:active {
+    border-color: var(--color-primary);
+  }
+
+  .layer-ui__wrapper .disable-zen-mode--visible {
+    opacity: 1;
+    visibility: visible;
+    transition: visibility 0s linear 300ms, opacity 0.5s;
+    transition-delay: 0.8s;
+
+    pointer-events: var(--ui-pointerEvents);
+  }
+
+  .layer-ui__wrapper .layer-ui__wrapper__footer-left > *,
+  .layer-ui__wrapper .footer-center > *,
+  .layer-ui__wrapper .layer-ui__wrapper__footer-right > * {
+    pointer-events: var(--ui-pointerEvents);
+  }
+
+  .layer-ui__wrapper .layer-ui__wrapper__footer-right {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+}

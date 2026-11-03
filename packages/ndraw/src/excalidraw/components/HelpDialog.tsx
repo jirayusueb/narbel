@@ -4,7 +4,7 @@ import { t } from "../i18n";
 import { KEYS } from "../keys";
 import { Dialog } from "./Dialog";
 import { getShortcutKey } from "../utils";
-import "./HelpDialog.scss";
+import "./HelpDialog.css";
 import { ExternalLinkIcon, GithubIcon, youtubeIcon } from "./icons";
 import { probablySupportsClipboardBlob } from "../clipboard";
 import { isDarwin, isFirefox, isWindows } from "../constants";

@@ -1,4 +1,4 @@
-import "./ToolIcon.scss";
+import "./ToolIcon.css";
 
 import { t } from "../i18n";
 import { ToolButton } from "./ToolButton";

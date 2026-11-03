@@ -1,4 +1,4 @@
-import "./Modal.scss";
+import "./Modal.css";
 
 import { createPortal } from "react-dom";
 import clsx from "clsx";

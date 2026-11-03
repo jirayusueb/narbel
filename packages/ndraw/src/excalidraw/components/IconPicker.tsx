@@ -8,7 +8,7 @@ import Collapsible from "./Stats/Collapsible";
 import { atom, useAtom } from "../editor-jotai";
 import { useDevice } from "./App";
 
-import "./IconPicker.scss";
+import "./IconPicker.css";
 
 const moreOptionsAtom = atom(false);
 

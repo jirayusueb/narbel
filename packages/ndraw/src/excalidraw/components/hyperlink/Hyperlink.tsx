@@ -37,7 +37,7 @@ import { getLinkHandleFromCoords } from "./helpers";
 import { pointFrom, type GlobalPoint } from "@excalidraw/math";
 import { isElementLink } from "../../element/elementLink";
 
-import "./Hyperlink.scss";
+import "./Hyperlink.css";
 
 const POPUP_WIDTH = 380;
 const POPUP_HEIGHT = 42;

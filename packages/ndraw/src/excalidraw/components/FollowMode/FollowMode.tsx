@@ -1,6 +1,6 @@
 import type { UserToFollow } from "../../types";
 import { CloseIcon } from "../icons";
-import "./FollowMode.scss";
+import "./FollowMode.css";
 
 interface FollowModeProps {
   width: number;

@@ -1,0 +1,170 @@
+.excalidraw {
+  .publish-library__fields {
+    display: flex;
+    flex-direction: column;
+
+    label {
+      padding: 1em 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      span {
+        font-weight: 500;
+        font-size: 1rem;
+        color: #868e96;
+      }
+      input,
+      textarea {
+        width: 70%;
+        padding: 0.6em;
+        font-family: var(--ui-font);
+      }
+
+      .required {
+        color: #e03131;
+        margin: 0.2rem;
+      }
+    }
+  }
+
+  .publish-library__buttons {
+    display: flex;
+    padding: 0.2rem 0;
+    justify-content: flex-end;
+    gap: 0.5rem;
+
+    .ToolIcon__icon {
+      min-width: 2.5rem;
+      width: auto;
+      font-size: 1rem;
+    }
+
+    .ToolIcon_type_button {
+      margin-left: 1rem;
+      padding: 0 0.5rem;
+    }
+  }
+
+  .publish-library__buttons--confirm.ToolIcon_type_button {
+    background-color: #228be6;
+
+    &:hover {
+      background-color: #1971c2;
+    }
+  }
+
+  .publish-library__buttons--cancel.ToolIcon_type_button {
+    background-color: #adb5bd;
+    &:hover {
+      background-color: #868e96;
+    }
+  }
+
+  .publish-library__buttons .ToolIcon__icon {
+    color: #ffffff;
+    .Spinner {
+      --spinner-color: #fff;
+      svg {
+        padding: 0.5rem;
+      }
+    }
+  }
+
+  .publish-library .selected-library-items {
+    display: flex;
+    flex-wrap: wrap;
+
+    .single-library-item-wrapper {
+      width: 9rem;
+    }
+  }
+
+  .publish-library-warning {
+    color: #fa5252;
+  }
+
+  .publish-library-note {
+    padding: 1em 0;
+    font-style: italic;
+    font-size: 14px;
+    display: block;
+  }
+
+  .single-library-item {
+    position: relative;
+  }
+
+  .single-library-item-status {
+    position: absolute;
+    top: 0.3rem;
+    left: 0.3rem;
+    font-size: 0.7rem;
+    color: #f03e3e;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0.1rem 0.2rem;
+    border-radius: 0.2rem;
+  }
+
+  .single-library-item__svg {
+    background-color: #ffffff;
+    padding: 0.3rem;
+    width: 7.5rem;
+    height: 7.5rem;
+    border: 1px solid var(--button-gray-2);
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .single-library-item {
+    .ToolIcon__icon {
+      background-color: #ffffff;
+      width: auto;
+      height: auto;
+      margin: 0 0.5rem;
+    }
+    .ToolIcon,
+    .ToolIcon_type_button:hover {
+      background-color: white;
+    }
+    .required,
+    .error {
+      color: #e03131;
+      font-weight: 700;
+      font-size: 1rem;
+      margin: 0.2rem;
+    }
+    .error {
+      font-weight: 500;
+      margin: 0;
+      padding: 0.3em 0;
+    }
+  }
+
+  .single-library-item--remove {
+    position: absolute;
+    top: 0.2rem;
+    right: 1rem;
+
+    .ToolIcon__icon {
+      margin: 0;
+    }
+    .ToolIcon__icon {
+      background-color: #fa5252;
+      &:hover {
+        background-color: #f03e3e;
+      }
+      &:active {
+        background-color: #e03131;
+      }
+    }
+    svg {
+      color: #ffffff;
+      padding: 0.26rem;
+      border-radius: 0.3em;
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+}

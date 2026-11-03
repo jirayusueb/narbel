@@ -1,4 +1,4 @@
-import "./Island.scss";
+import "./Island.css";
 
 import React from "react";
 import clsx from "clsx";

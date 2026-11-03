@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import "./RadioGroup.scss";
+import "./RadioGroup.css";
 
 export type RadioGroupChoice<T> = {
   value: T;

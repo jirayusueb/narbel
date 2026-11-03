@@ -54,7 +54,7 @@ import * as defaultItems from "./defaultCommandPaletteItems";
 import { trackEvent } from "../../analytics";
 import { useStable } from "../../hooks/useStable";
 
-import "./CommandPalette.scss";
+import "./CommandPalette.css";
 import {
   actionCopyElementLink,
   actionLinkToElement,

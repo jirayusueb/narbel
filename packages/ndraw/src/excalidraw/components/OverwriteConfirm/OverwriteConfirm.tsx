@@ -9,7 +9,7 @@ import { overwriteConfirmStateAtom } from "./OverwriteConfirmState";
 import { FilledButton } from "../FilledButton";
 import { alertTriangleIcon } from "../icons";
 import { Actions, Action } from "./OverwriteConfirmActions";
-import "./OverwriteConfirm.scss";
+import "./OverwriteConfirm.css";
 
 export type OverwriteConfirmDialogProps = {
   children: React.ReactNode;

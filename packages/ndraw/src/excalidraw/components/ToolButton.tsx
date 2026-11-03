@@ -1,4 +1,4 @@
-import "./ToolIcon.scss";
+import "./ToolIcon.css";
 
 import type { CSSProperties } from "react";
 import React, { useEffect, useRef, useState } from "react";
