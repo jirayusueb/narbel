@@ -7,6 +7,7 @@ import {
   FieldLabel,
 } from "@narbel/ui/components/field";
 import { Input } from "@narbel/ui/components/input";
+import { PasswordField } from "@narbel/ui/components/password-field";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { authClient } from "@/shared/lib";
-import { AuthSwitchLink, PasswordInput } from "@/shared/ui";
+import { AuthSwitchLink } from "@/shared/ui";
 
 export const SignUpForm = ({ redirectTo }: { redirectTo?: string }) => {
   const router = useRouter();
@@ -181,7 +182,7 @@ export const SignUpForm = ({ redirectTo }: { redirectTo?: string }) => {
                 return (
                   <Field data-invalid={invalid}>
                     <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                    <PasswordInput
+                    <PasswordField
                       id={field.name}
                       name={field.name}
                       autoComplete="new-password"

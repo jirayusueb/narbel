@@ -1,5 +1,5 @@
 import { Button } from "@narbel/ui/components/button";
-import { Input } from "@narbel/ui/components/input";
+import { PasswordField } from "@narbel/ui/components/password-field";
 import { Spinner } from "@narbel/ui/components/spinner";
 import { Lock } from "lucide-react";
 import { useRef, useState } from "react";
@@ -52,14 +52,12 @@ export const UnlockBoardForm = ({ boardId }: { boardId: string }) => {
             });
           }}
         >
-          <Input
-            type="password"
+          <PasswordField
             ref={input}
             autoFocus
             aria-label="Board password"
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "unlock-error" : undefined}
-            className="w-full"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
