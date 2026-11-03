@@ -1,5 +1,5 @@
-import type { LibraryPersistenceAdapter } from "@excalidraw/excalidraw/data/library";
-import type { LibraryItems_anyVersion } from "@excalidraw/excalidraw/types";
+import type { LibraryPersistenceAdapter } from "@narbel/ndraw/data/library";
+import type { LibraryItems_anyVersion } from "@narbel/ndraw/types";
 
 import { api, unwrap } from "@/shared/api";
 

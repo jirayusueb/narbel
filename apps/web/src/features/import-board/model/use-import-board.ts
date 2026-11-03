@@ -23,7 +23,7 @@ interface ImportDeps {
 // lazy, and client-only: Excalidraw reads `window` when its module loads, and a server
 // bundle that reaches it crashes every SSR route, not just this one
 const loadScene = createClientOnlyFn(async (file: File) => {
-  const { loadFromBlob } = await import("@excalidraw/excalidraw");
+  const { loadFromBlob } = await import("@narbel/ndraw");
   return loadFromBlob(file, null, null);
 });
 

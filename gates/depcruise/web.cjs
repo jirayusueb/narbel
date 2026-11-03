@@ -57,7 +57,7 @@ module.exports = {
   options: {
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "gates/depcruise/tsconfig.web.json" },
-    doNotFollow: { path: "node_modules" },
+    doNotFollow: { path: "(node_modules|packages/ndraw/)" },
     exclude: { path: "(routeTree\\.gen\\.ts|\\.test\\.tsx?)$" },
   },
 };

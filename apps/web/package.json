@@ -14,7 +14,7 @@
     "@better-auth/api-key": "1.7.14",
     "@better-auth/oauth-provider": "1.7.14",
     "@elysia/eden": "^2.0.0-rc.1",
-    "@excalidraw/excalidraw": "0.18.1",
+    "@narbel/ndraw": "workspace:*",
     "@narbel/ui": "workspace:*",
     "@reactuses/core": "^6.6.1",
     "@tailwindcss/vite": "^4.3.3",

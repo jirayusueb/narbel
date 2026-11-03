@@ -1,4 +1,4 @@
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawImperativeAPI } from "@narbel/ndraw/types";
 
 export interface Reveal {
   clientId: number;

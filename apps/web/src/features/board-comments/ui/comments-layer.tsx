@@ -1,4 +1,4 @@
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawImperativeAPI } from "@narbel/ndraw/types";
 import { useEvent, useEventListener, useResizeObserver } from "@reactuses/core";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
