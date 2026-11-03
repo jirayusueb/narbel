@@ -17,11 +17,11 @@ At that tag the npm package `@excalidraw/excalidraw` bundles three upstream fold
 
 ## Narbel-owned files
 
-- `package.json` is derived from upstream `packages/excalidraw/package.json`. `exports`, `types`, `main` and `module` are verbatim, and `dependencies` are the upstream pins minus `sass` and `cross-env`. The build tools sit in `devDependencies`. They follow upstream with a few exceptions:
+- `package.json` is derived from upstream `packages/excalidraw/package.json`. `exports`, `types`, `main` and `module` are verbatim, and `dependencies` are the upstream pins minus `sass` and `cross-env`, each moved to the newest release within its major: `@excalidraw/laser-pointer` `1.3.2`, `@excalidraw/random-username` `1.2.0`, `@radix-ui/react-popover` `1.3.1`, `@radix-ui/react-tabs` `1.2.1`, `perfect-freehand` `1.2.3` and `roughjs` `4.6.6`. `0.x` packages and packages whose newest release is a new major keep the upstream pin. The build tools sit in `devDependencies`. They follow upstream, with the same-major policy for the `@types/*` pins, with a few exceptions:
   - `sass` is `1.85.1`. That is the version upstream's `esbuild-sass-plugin` resolved `sass@^1.7.3` to in `yarn.lock`, and the one that actually compiled the npm build. The `1.51.0` pin was only used by the upstream app.
   - `esbuild` is `0.19.12`, the last 0.19 release (upstream pins `0.19.10`). `esbuild-sass-plugin` stays at upstream's `2.16.0`. Every 3.x needs esbuild `>=0.20.1`, and 3.7.0 bundles `sass ^1.97.3`: that Sass emits declarations written after an `@include` of a mixin with nested rules as a separate later rule, which changed 28 rules of `dist/dev/index.css` without any deprecation warning from 1.85.1. Moving past 2.16.0 needs those sites rewritten first.
   - `csstype` lets `src/excalidraw/css.d.ts` augment the same `csstype` that `@types/react` uses.
-  - `@types/node` (`22.13.10` in upstream `yarn.lock`) is there because upstream got it from the repo root.
+  - `@types/node` (`22.13.10` in upstream `yarn.lock`, now the newest 22.x) is there because upstream got it from the repo root.
   - `@types/react` and `@types/react-dom` follow `apps/web`, so there is a single React type identity.
   - `typescript` is `5.9.3`, the version upstream master moved to in `d080833f4`. TypeScript 7 is not used because it removed `moduleResolution: "node"`, and `"bundler"` breaks `browser-fs-access`'s untyped `exports` and the `.d.ts` emit of `editor-jotai.ts`.
   - `vite`, `vite-plugin-pwa` and `vite-plugin-svgr` are left out. Upstream only needed them for `/// <reference types>` lines; `src/excalidraw/vite-env.d.ts` now declares what the library reads.
