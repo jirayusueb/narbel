@@ -74,7 +74,7 @@ export const PresenceBar = ({
               onClick={() =>
                 onFollow(peer.clientId === followId ? null : peer.clientId)
               }
-              className={`outline-ring block cursor-pointer rounded-full ring-2 transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid motion-reduce:hover:translate-y-0 ${
+              className={`outline-ring flex cursor-pointer rounded-full ring-2 transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid motion-reduce:hover:translate-y-0 ${
                 peer.clientId === followId
                   ? "ring-foreground dark:ring-citrus"
                   : "ring-card"

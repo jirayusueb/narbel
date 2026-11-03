@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@narbel/ui/components/dialog";
 import { Input } from "@narbel/ui/components/input";
+import { PasswordField } from "@narbel/ui/components/password-field";
 import { Skeleton } from "@narbel/ui/components/skeleton";
 import { Check, Copy, Globe, KeyRound, Lock, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -163,8 +164,7 @@ const VisibilitySection = ({
             );
           }}
         >
-          <Input
-            type="password"
+          <PasswordField
             autoComplete="new-password"
             aria-label="Board password"
             aria-describedby={
