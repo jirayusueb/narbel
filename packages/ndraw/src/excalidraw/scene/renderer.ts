@@ -189,6 +189,10 @@ export class Renderer {
   }
 }
 
+// Culling stays linear on purpose: at 10k clustered elements a pan viewport
+// covers ~20% of the scene and an index query returns most of it, measured
+// ~3x slower than this loop (PR4 A/B, 15 pairs). The index accelerates the
+// point/box hit-test, selection and binding sites instead.
 const getVisibleCanvasElements = (
   elementsMap: NonDeletedElementsMap,
   { zoom, offsetLeft, offsetTop, scrollX, scrollY, height, width }: RendererCamera,

@@ -7,6 +7,7 @@ import type {
 import { getElementAbsoluteCoords, getElementBounds } from "../element";
 import type { AppState, InteractiveCanvasAppState } from "../types";
 import { isBoundToContainer, isFrameLikeElement } from "../element/type-checks";
+import { indexCandidates } from "./spatial-index";
 import {
   elementOverlapsWithFrame,
   getContainingFrame,
@@ -53,7 +54,11 @@ export const getElementsWithinSelection = (
   const [selectionX1, selectionY1, selectionX2, selectionY2] =
     getElementAbsoluteCoords(selection, elementsMap);
 
-  let elementsInSelection = elements.filter((element) => {
+  let elementsInSelection = indexCandidates(
+    elements,
+    { x1: selectionX1, y1: selectionY1, x2: selectionX2, y2: selectionY2 },
+    0,
+  ).filter((element) => {
     let [elementX1, elementY1, elementX2, elementY2] = getElementBounds(
       element,
       elementsMap,

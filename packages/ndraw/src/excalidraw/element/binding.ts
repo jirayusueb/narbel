@@ -78,6 +78,7 @@ import {
 } from "@excalidraw/math";
 import { intersectElementWithLineSegment } from "./collision";
 import { distanceToBindableElement } from "./distance";
+import { indexCandidates } from "../scene/spatial-index";
 import { perf } from "../perf/performance-manager";
 
 export type SuggestedBinding =
@@ -604,10 +605,21 @@ const findHoveredElementForBinding = (
   fullShape?: boolean,
   considerAllElements?: boolean,
 ): NonDeleted<ExcalidrawBindableElement> | null => {
+  // candidates from the spatial index (fallback: the passed array); the pad
+  // covers maxBindingGap's terms — min(0.25*minDim, 32) ≤ 32 and
+  // BINDING_HIGHLIGHT_THICKNESS/zoom + BINDING_HIGHLIGHT_OFFSET — with headroom
+  const candidates = indexCandidates(
+    elements,
+    pointerCoords,
+    (BINDING_HIGHLIGHT_THICKNESS + 32) /
+      (zoom?.value && zoom.value < 1 ? zoom.value : 1) +
+      4,
+  ) as NonDeletedExcalidrawElement[];
+
   if (considerAllElements) {
     let cullRest = false;
     const candidateElements = getAllElementsAtPositionForBinding(
-      elements,
+      candidates,
       (element) =>
         isBindableElement(element, false) &&
         bindingBorderTest(
@@ -661,7 +673,7 @@ const findHoveredElementForBinding = (
   }
 
   const hoveredElement = getElementAtPositionForBinding(
-    elements,
+    candidates,
     (element) =>
       isBindableElement(element, false) &&
       bindingBorderTest(
