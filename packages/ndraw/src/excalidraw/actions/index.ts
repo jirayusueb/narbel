@@ -1,12 +1,12 @@
-export { actionDeleteSelected } from "./actionDeleteSelected";
+export { actionDeleteSelected } from "./action-delete-selected";
 export {
   actionBringForward,
   actionBringToFront,
   actionSendBackward,
   actionSendToBack,
-} from "./actionZindex";
-export { actionSelectAll } from "./actionSelectAll";
-export { actionDuplicateSelection } from "./actionDuplicateSelection";
+} from "./action-zindex";
+export { actionSelectAll } from "./action-select-all";
+export { actionDuplicateSelection } from "./action-duplicate-selection";
 export {
   actionChangeStrokeColor,
   actionChangeBackgroundColor,
@@ -18,7 +18,7 @@ export {
   actionChangeFontFamily,
   actionChangeTextAlign,
   actionChangeVerticalAlign,
-} from "./actionProperties";
+} from "./action-properties";
 
 export {
   actionChangeViewBackgroundColor,
@@ -28,9 +28,9 @@ export {
   actionResetZoom,
   actionZoomToFit,
   actionToggleTheme,
-} from "./actionCanvas";
+} from "./action-canvas";
 
-export { actionFinalize } from "./actionFinalize";
+export { actionFinalize } from "./action-finalize";
 
 export {
   actionChangeProjectName,
@@ -38,20 +38,20 @@ export {
   actionSaveToActiveFile,
   actionSaveFileToDisk,
   actionLoadScene,
-} from "./actionExport";
+} from "./action-export";
 
-export { actionCopyStyles, actionPasteStyles } from "./actionStyles";
+export { actionCopyStyles, actionPasteStyles } from "./action-styles";
 export {
   actionToggleCanvasMenu,
   actionToggleEditMenu,
   actionShortcuts,
-} from "./actionMenu";
+} from "./action-menu";
 
-export { actionGroup, actionUngroup } from "./actionGroup";
+export { actionGroup, actionUngroup } from "./action-group";
 
-export { actionGoToCollaborator } from "./actionNavigate";
+export { actionGoToCollaborator } from "./action-navigate";
 
-export { actionAddToLibrary } from "./actionAddToLibrary";
+export { actionAddToLibrary } from "./action-add-to-library";
 
 export {
   actionAlignTop,
@@ -60,14 +60,14 @@ export {
   actionAlignRight,
   actionAlignVerticallyCentered,
   actionAlignHorizontallyCentered,
-} from "./actionAlign";
+} from "./action-align";
 
 export {
   distributeHorizontally,
   distributeVertically,
-} from "./actionDistribute";
+} from "./action-distribute";
 
-export { actionFlipHorizontal, actionFlipVertical } from "./actionFlip";
+export { actionFlipHorizontal, actionFlipVertical } from "./action-flip";
 
 export {
   actionCopy,
@@ -75,18 +75,18 @@ export {
   actionCopyAsPng,
   actionCopyAsSvg,
   copyText,
-} from "./actionClipboard";
+} from "./action-clipboard";
 
-export { actionToggleGridMode } from "./actionToggleGridMode";
-export { actionToggleZenMode } from "./actionToggleZenMode";
-export { actionToggleObjectsSnapMode } from "./actionToggleObjectsSnapMode";
+export { actionToggleGridMode } from "./action-toggle-grid-mode";
+export { actionToggleZenMode } from "./action-toggle-zen-mode";
+export { actionToggleObjectsSnapMode } from "./action-toggle-objects-snap-mode";
 
-export { actionToggleStats } from "./actionToggleStats";
-export { actionUnbindText, actionBindText } from "./actionBoundText";
-export { actionLink } from "./actionLink";
-export { actionToggleElementLock } from "./actionElementLock";
-export { actionToggleLinearEditor } from "./actionLinearEditor";
+export { actionToggleStats } from "./action-toggle-stats";
+export { actionUnbindText, actionBindText } from "./action-bound-text";
+export { actionLink } from "./action-link";
+export { actionToggleElementLock } from "./action-element-lock";
+export { actionToggleLinearEditor } from "./action-linear-editor";
 
-export { actionToggleSearchMenu } from "./actionToggleSearchMenu";
+export { actionToggleSearchMenu } from "./action-toggle-search-menu";
 
-export { actionToggleCropEditor } from "./actionCropEditor";
+export { actionToggleCropEditor } from "./action-crop-editor";

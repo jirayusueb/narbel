@@ -11,14 +11,14 @@ import {
   redrawTextBoundingBox,
 } from "../element";
 import { bindLinearElement } from "../element/binding";
-import type { ElementConstructorOpts } from "../element/newElement";
+import type { ElementConstructorOpts } from "../element/new-element";
 import {
   newArrowElement,
   newFrameElement,
   newImageElement,
   newMagicFrameElement,
   newTextElement,
-} from "../element/newElement";
+} from "../element/new-element";
 import type {
   ElementsMap,
   ExcalidrawArrowElement,
@@ -50,11 +50,11 @@ import {
 } from "../utils";
 import { getSizeFromPoints } from "../points";
 import { randomId } from "../random";
-import { syncInvalidIndices } from "../fractionalIndex";
+import { syncInvalidIndices } from "../fractional-index";
 import { getLineHeight } from "../fonts";
-import { isArrowElement } from "../element/typeChecks";
+import { isArrowElement } from "../element/type-checks";
 import { pointFrom, type LocalPoint } from "@excalidraw/math";
-import { measureText, normalizeText } from "../element/textMeasurements";
+import { measureText, normalizeText } from "../element/text-measurements";
 
 export type ValidLinearElement = {
   type: "arrow" | "line";

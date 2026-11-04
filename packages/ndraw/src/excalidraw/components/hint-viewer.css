@@ -1,0 +1,35 @@
+.excalidraw {
+  .HintViewer {
+    pointer-events: none;
+    box-sizing: border-box;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    left: 0;
+    top: 100%;
+    max-width: 100%;
+    width: 100%;
+    margin-top: 0.5rem;
+    text-align: center;
+    color: var(--color-gray-40);
+    font-size: 0.75rem;
+  }
+}
+
+.excalidraw--mobile.excalidraw .HintViewer {
+  position: static;
+  padding-right: 2rem;
+}
+
+.excalidraw {
+  .HintViewer > span {
+    padding: 0.25rem;
+  }
+
+  &.theme--dark {
+    .HintViewer {
+      color: var(--color-gray-60);
+    }
+  }
+}

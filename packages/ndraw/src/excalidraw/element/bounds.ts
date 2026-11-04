@@ -11,18 +11,18 @@ import rough from "roughjs/bin/rough";
 import type { Point as RoughPoint } from "roughjs/bin/geometry";
 import type { Drawable, Op } from "roughjs/bin/core";
 import type { AppState } from "../types";
-import { generateRoughOptions } from "../scene/Shape";
+import { generateRoughOptions } from "../scene/shape";
 import {
   isArrowElement,
   isBoundToContainer,
   isFreeDrawElement,
   isLinearElement,
   isTextElement,
-} from "./typeChecks";
+} from "./type-checks";
 import { rescalePoints } from "../points";
-import { getBoundTextElement, getContainerElement } from "./textElement";
-import { LinearElementEditor } from "./linearElementEditor";
-import { ShapeCache } from "../scene/ShapeCache";
+import { getBoundTextElement, getContainerElement } from "./text-element";
+import { LinearElementEditor } from "./linear-element-editor";
+import { ShapeCache } from "../scene/shape-cache";
 import { arrayToMap, invariant } from "../utils";
 import type {
   Degrees,

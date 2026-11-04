@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Plugin } from "rolldown";
+import { Features } from "lightningcss";
 import { viteDynamicImportVarsPlugin, viteImportGlobPlugin } from "rolldown/experimental";
 import { defineConfig, type UserConfig } from "tsdown";
 
@@ -80,11 +81,9 @@ const shared = {
 
 const css = {
   fileName: "index.css",
-  preprocessorOptions: {
-    // quietDeps mutes open-color, which still uses global built-ins; our own sources must stay warning-free
-    scss: { loadPaths: [path.join(root, "node_modules")], quietDeps: true },
-  },
   lightningcss: {
+    // the sources use native nesting; dist stays flat, as the npm build was
+    include: Features.Nesting,
     visitor: {
       Url: (url: { url: string }) =>
         url.url.startsWith("../fonts/") ? { ...url, url: url.url.slice(1) } : url,

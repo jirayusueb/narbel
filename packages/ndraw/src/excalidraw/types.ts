@@ -25,20 +25,20 @@ import type {
   ExcalidrawNonSelectionElement,
 } from "./element/types";
 import type { Action } from "./actions/types";
-import type { LinearElementEditor } from "./element/linearElementEditor";
+import type { LinearElementEditor } from "./element/linear-element-editor";
 import type { SuggestedBinding } from "./element/binding";
 import type { ImportedDataState } from "./data/types";
-import type App from "./components/App";
+import type App from "./components/app";
 import type { throttleRAF } from "./utils";
 import type { Spreadsheet } from "./charts";
 import type { Language } from "./i18n";
 import type { ClipboardData } from "./clipboard";
 import type { isOverScrollBars } from "./scene/scrollbars";
-import type { MaybeTransformHandleType } from "./element/transformHandles";
+import type { MaybeTransformHandleType } from "./element/transform-handles";
 import type Library from "./data/library";
 import type { FileSystemHandle } from "./data/filesystem";
 import type { IMAGE_MIME_TYPES, MIME_TYPES } from "./constants";
-import type { ContextMenuItems } from "./components/ContextMenu";
+import type { ContextMenuItems } from "./components/context-menu";
 import type { SnapLine } from "./snapping";
 import type { Merge, MaybePromise, ValueOf, MakeBrand } from "./utility-types";
 import type { CaptureUpdateActionType } from "./store";

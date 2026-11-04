@@ -1,0 +1,321 @@
+@keyframes successStatusAnimation {
+  0% {
+    transform: scale(0.35);
+  }
+
+  50% {
+    transform: scale(1.25);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.excalidraw {
+  .ExcButton {
+    --text-color: transparent;
+    --border-color: transparent;
+    --back-color: transparent;
+
+    color: var(--text-color);
+    background-color: var(--back-color);
+    border-color: var(--border-color);
+
+    border-radius: 0.5rem;
+    border-width: 1px;
+    border-style: solid;
+
+    font-family: var(--font-family);
+
+    user-select: none;
+
+    &:hover {
+      transition: all 150ms ease-out;
+    }
+
+    .Spinner {
+      --spinner-color: var(--color-surface-lowest);
+    }
+
+    .ExcButton__statusIcon {
+      visibility: visible;
+      position: absolute;
+
+      width: 1.2rem;
+      height: 1.2rem;
+
+      animation: successStatusAnimation 0.5s cubic-bezier(0.3, 1, 0.6, 1);
+    }
+  }
+
+  .ExcButton.ExcButton--status-loading,
+  .ExcButton.ExcButton--status-success {
+    pointer-events: none;
+  }
+
+  .ExcButton.ExcButton--status-loading .ExcButton__contents,
+  .ExcButton.ExcButton--status-success .ExcButton__contents {
+    visibility: hidden;
+  }
+
+  .ExcButton[disabled] {
+    pointer-events: none;
+  }
+
+  .ExcButton,
+  .ExcButton__contents {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    /* needed because of .Spinner */
+    position: relative;
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-filled {
+    --text-color: var(--color-surface-lowest);
+    --back-color: var(--color-primary);
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-filled .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-filled:hover {
+    --back-color: var(--color-brand-hover);
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-filled:active {
+    --back-color: var(--color-brand-active);
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-outlined,
+  .ExcButton--color-primary.ExcButton--variant-icon {
+    --text-color: var(--color-primary);
+    --border-color: var(--color-primary);
+    --back-color: transparent;
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-outlined .Spinner,
+  .ExcButton--color-primary.ExcButton--variant-icon .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-outlined:hover,
+  .ExcButton--color-primary.ExcButton--variant-icon:hover {
+    --text-color: var(--color-brand-hover);
+    --border-color: var(--color-brand-hover);
+  }
+
+  .ExcButton--color-primary.ExcButton--variant-outlined:active,
+  .ExcButton--color-primary.ExcButton--variant-icon:active {
+    --text-color: var(--color-brand-active);
+    --border-color: var(--color-brand-active);
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-filled {
+    --text-color: var(--color-danger-text);
+    --back-color: var(--color-danger-dark);
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-filled .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-filled:hover {
+    --back-color: var(--color-danger-darker);
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-filled:active {
+    --back-color: var(--color-danger-darkest);
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-outlined,
+  .ExcButton--color-danger.ExcButton--variant-icon {
+    --text-color: var(--color-danger);
+    --border-color: var(--color-danger);
+    --back-color: transparent;
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-outlined .Spinner,
+  .ExcButton--color-danger.ExcButton--variant-icon .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-outlined:hover,
+  .ExcButton--color-danger.ExcButton--variant-icon:hover {
+    --text-color: var(--color-danger-darkest);
+    --border-color: var(--color-danger-darkest);
+  }
+
+  .ExcButton--color-danger.ExcButton--variant-outlined:active,
+  .ExcButton--color-danger.ExcButton--variant-icon:active {
+    --text-color: var(--color-danger-darker);
+    --border-color: var(--color-danger-darker);
+  }
+
+  .ExcButton--color-success.ExcButton--variant-filled {
+    --text-color: var(--color-success-text);
+    --back-color: var(--color-success);
+  }
+
+  .ExcButton--color-success.ExcButton--variant-filled .Spinner {
+    --spinner-color: var(--color-success);
+  }
+
+  .ExcButton--color-success.ExcButton--variant-filled:hover {
+    --back-color: var(--color-success-darker);
+  }
+
+  .ExcButton--color-success.ExcButton--variant-filled:active {
+    --back-color: var(--color-success-darkest);
+  }
+
+  .ExcButton--color-success.ExcButton--variant-outlined,
+  .ExcButton--color-success.ExcButton--variant-icon {
+    --text-color: var(--color-success-contrast);
+    --border-color: var(--color-success-contrast);
+    --back-color: transparent;
+  }
+
+  .ExcButton--color-success.ExcButton--variant-outlined .Spinner,
+  .ExcButton--color-success.ExcButton--variant-icon .Spinner {
+    --spinner-color: var(--color-success-contrast);
+  }
+
+  .ExcButton--color-success.ExcButton--variant-outlined:hover,
+  .ExcButton--color-success.ExcButton--variant-icon:hover {
+    --text-color: var(--color-success-contrast-hover);
+    --border-color: var(--color-success-contrast-hover);
+  }
+
+  .ExcButton--color-success.ExcButton--variant-outlined:active,
+  .ExcButton--color-success.ExcButton--variant-icon:active {
+    --text-color: var(--color-success-contrast-active);
+    --border-color: var(--color-success-contrast-active);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-filled {
+    --text-color: var(--island-bg-color);
+    --back-color: var(--color-gray-50);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-filled .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-filled:hover {
+    --back-color: var(--color-gray-60);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-filled:active {
+    --back-color: var(--color-gray-80);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-outlined,
+  .ExcButton--color-muted.ExcButton--variant-icon {
+    --text-color: var(--color-muted-background);
+    --border-color: var(--color-muted);
+    --back-color: var(--island-bg-color);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-outlined .Spinner,
+  .ExcButton--color-muted.ExcButton--variant-icon .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-outlined:hover,
+  .ExcButton--color-muted.ExcButton--variant-icon:hover {
+    --text-color: var(--color-muted-background-darker);
+    --border-color: var(--color-muted-darker);
+  }
+
+  .ExcButton--color-muted.ExcButton--variant-outlined:active,
+  .ExcButton--color-muted.ExcButton--variant-icon:active {
+    --text-color: var(--color-muted-background-darker);
+    --border-color: var(--color-muted-darkest);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-filled {
+    --text-color: black;
+    --back-color: var(--color-warning-dark);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-filled .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-filled:hover {
+    --back-color: var(--color-warning-darker);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-filled:active {
+    --back-color: var(--color-warning-darkest);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-outlined,
+  .ExcButton--color-warning.ExcButton--variant-icon {
+    --text-color: var(--color-warning-dark);
+    --border-color: var(--color-warning-dark);
+    --back-color: var(--input-bg-color);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-outlined .Spinner,
+  .ExcButton--color-warning.ExcButton--variant-icon .Spinner {
+    --spinner-color: var(--text-color);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-outlined:hover,
+  .ExcButton--color-warning.ExcButton--variant-icon:hover {
+    --text-color: var(--color-warning-darker);
+    --border-color: var(--color-warning-darker);
+  }
+
+  .ExcButton--color-warning.ExcButton--variant-outlined:active,
+  .ExcButton--color-warning.ExcButton--variant-icon:active {
+    --text-color: var(--color-warning-darkest);
+    --border-color: var(--color-warning-darkest);
+  }
+
+  .ExcButton--size-large {
+    font-weight: 600;
+    font-size: 0.875rem;
+    min-height: 3rem;
+    padding: 0.5rem 1.5rem;
+
+    letter-spacing: 0.4px;
+
+    .ExcButton__contents {
+      gap: 0.75rem;
+    }
+  }
+
+  .ExcButton--size-medium {
+    font-weight: 600;
+    font-size: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+
+    letter-spacing: normal;
+
+    .ExcButton__contents {
+      gap: 0.5rem;
+    }
+  }
+
+  .ExcButton--variant-icon {
+    padding: 0.5rem 0.75rem;
+    width: 3rem;
+  }
+
+  .ExcButton--fullWidth {
+    width: 100%;
+  }
+
+  .ExcButton__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}

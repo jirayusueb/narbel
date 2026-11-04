@@ -1,10 +1,10 @@
 import type { ElementsMap, ExcalidrawElement } from "./element/types";
-import { mutateElement } from "./element/mutateElement";
+import { mutateElement } from "./element/mutate-element";
 import type { BoundingBox } from "./element/bounds";
 import { getCommonBoundingBox } from "./element/bounds";
 import { getMaximumGroups } from "./groups";
 import { updateBoundElements } from "./element/binding";
-import type Scene from "./scene/Scene";
+import type Scene from "./scene/scene";
 
 export interface Alignment {
   position: "start" | "center" | "end";

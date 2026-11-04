@@ -3,8 +3,8 @@ import type {
   NonDeletedExcalidrawElement,
   NonDeleted,
 } from "./types";
-import { isInvisiblySmallElement } from "./sizeHelpers";
-import { isLinearElementType } from "./typeChecks";
+import { isInvisiblySmallElement } from "./size-helpers";
+import { isLinearElementType } from "./type-checks";
 
 export {
   newElement,
@@ -14,7 +14,7 @@ export {
   newArrowElement,
   newImageElement,
   duplicateElement,
-} from "./newElement";
+} from "./new-element";
 export {
   getElementAbsoluteCoords,
   getElementBounds,
@@ -28,33 +28,33 @@ export {
   OMIT_SIDES_FOR_MULTIPLE_ELEMENTS,
   getTransformHandlesFromCoords,
   getTransformHandles,
-} from "./transformHandles";
+} from "./transform-handles";
 export {
   resizeTest,
   getCursorForResizingElement,
   getElementWithTransformHandleType,
   getTransformHandleTypeFromCoords,
-} from "./resizeTest";
+} from "./resize-test";
 export {
   transformElements,
   getResizeOffsetXY,
   getResizeArrowDirection,
-} from "./resizeElements";
+} from "./resize-elements";
 export {
   dragSelectedElements,
   getDragOffsetXY,
   dragNewElement,
-} from "./dragElements";
-export { isTextElement, isExcalidrawElement } from "./typeChecks";
-export { redrawTextBoundingBox, getTextFromElements } from "./textElement";
+} from "./drag-elements";
+export { isTextElement, isExcalidrawElement } from "./type-checks";
+export { redrawTextBoundingBox, getTextFromElements } from "./text-element";
 export {
   getPerfectElementSize,
   getLockedLinearCursorAlignSize,
   isInvisiblySmallElement,
   resizePerfectLineForNWHandler,
   getNormalizedDimensions,
-} from "./sizeHelpers";
-export { showSelectedShapeActions } from "./showSelectedShapeActions";
+} from "./size-helpers";
+export { showSelectedShapeActions } from "./show-selected-shape-actions";
 
 /**
  * @deprecated unsafe, use hashElementsVersion instead

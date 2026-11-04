@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { cleanAppStateForExport } from "../appState";
+import { cleanAppStateForExport } from "../app-state";
 import { IMAGE_MIME_TYPES, MIME_TYPES } from "../constants";
 import { clearElementsForExport } from "../element";
 import type { ExcalidrawElement, FileId } from "../element/types";

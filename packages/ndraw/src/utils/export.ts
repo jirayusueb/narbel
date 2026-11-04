@@ -2,7 +2,7 @@ import {
   exportToCanvas as _exportToCanvas,
   exportToSvg as _exportToSvg,
 } from "@excalidraw/excalidraw/scene/export";
-import { getDefaultAppState } from "@excalidraw/excalidraw/appState";
+import { getDefaultAppState } from "@excalidraw/excalidraw/app-state";
 import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
 import type {
   ExcalidrawElement,

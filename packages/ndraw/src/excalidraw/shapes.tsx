@@ -38,8 +38,8 @@ import {
 import { getElementAbsoluteCoords } from "./element";
 import type { Bounds } from "./element/bounds";
 import { shouldTestInside } from "./element/collision";
-import { LinearElementEditor } from "./element/linearElementEditor";
-import { getBoundTextElement } from "./element/textElement";
+import { LinearElementEditor } from "./element/linear-element-editor";
+import { getBoundTextElement } from "./element/text-element";
 import type {
   ElementsMap,
   ExcalidrawElement,
@@ -47,7 +47,7 @@ import type {
   NonDeleted,
 } from "./element/types";
 import { KEYS } from "./keys";
-import { ShapeCache } from "./scene/ShapeCache";
+import { ShapeCache } from "./scene/shape-cache";
 import type { NormalizedZoomValue, Zoom } from "./types";
 import { invariant } from "./utils";
 

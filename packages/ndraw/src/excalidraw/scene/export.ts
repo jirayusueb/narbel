@@ -8,7 +8,7 @@ import type {
 } from "../element/types";
 import type { Bounds } from "../element/bounds";
 import { getCommonBounds, getElementAbsoluteCoords } from "../element/bounds";
-import { renderSceneToSvg } from "../renderer/staticSvgScene";
+import { renderSceneToSvg } from "../renderer/static-svg-scene";
 import { arrayToMap, distance, getFontString, toBrandedType } from "../utils";
 import type { AppState, BinaryFiles } from "../types";
 import {
@@ -21,7 +21,7 @@ import {
   MIME_TYPES,
   EXPORT_DATA_TYPES,
 } from "../constants";
-import { getDefaultAppState } from "../appState";
+import { getDefaultAppState } from "../app-state";
 import { serializeAsJSON } from "../data/json";
 import {
   getInitializedImageElements,
@@ -35,11 +35,11 @@ import {
 } from "../frame";
 import { newTextElement } from "../element";
 import { type Mutable } from "../utility-types";
-import { newElementWith } from "../element/mutateElement";
-import { isFrameLikeElement } from "../element/typeChecks";
+import { newElementWith } from "../element/mutate-element";
+import { isFrameLikeElement } from "../element/type-checks";
 import type { RenderableElementsMap } from "./types";
-import { syncInvalidIndices } from "../fractionalIndex";
-import { renderStaticScene } from "../renderer/staticScene";
+import { syncInvalidIndices } from "../fractional-index";
+import { renderStaticScene } from "../renderer/static-scene";
 import { Fonts } from "../fonts";
 import { base64ToString, decode, encode, stringToBase64 } from "../data/encode";
 

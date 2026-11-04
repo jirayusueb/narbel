@@ -5,7 +5,7 @@ import {
   orderByFractionalIndex,
   syncInvalidIndices,
   validateFractionalIndices,
-} from "../fractionalIndex";
+} from "../fractional-index";
 import type { AppState } from "../types";
 import type { MakeBrand } from "../utility-types";
 import { arrayToMap } from "../utils";

@@ -28,7 +28,7 @@ import {
   isLinearElement,
   isTextElement,
   isUsingAdaptiveRadius,
-} from "../element/typeChecks";
+} from "../element/type-checks";
 import { randomId } from "../random";
 import {
   DEFAULT_FONT_FAMILY,
@@ -41,15 +41,15 @@ import {
   DEFAULT_GRID_SIZE,
   DEFAULT_GRID_STEP,
 } from "../constants";
-import { getDefaultAppState } from "../appState";
-import { LinearElementEditor } from "../element/linearElementEditor";
-import { bumpVersion } from "../element/mutateElement";
+import { getDefaultAppState } from "../app-state";
+import { LinearElementEditor } from "../element/linear-element-editor";
+import { bumpVersion } from "../element/mutate-element";
 import { getUpdatedTimestamp, updateActiveTool } from "../utils";
 import { arrayToMap } from "../utils";
 import type { MarkOptional, Mutable } from "../utility-types";
-import { getContainerElement } from "../element/textElement";
+import { getContainerElement } from "../element/text-element";
 import { normalizeLink } from "./url";
-import { syncInvalidIndices } from "../fractionalIndex";
+import { syncInvalidIndices } from "../fractional-index";
 import { getSizeFromPoints } from "../points";
 import { getLineHeight } from "../fonts";
 import { normalizeFixedPoint } from "../element/binding";
@@ -60,11 +60,11 @@ import {
 } from "../scene";
 import type { LocalPoint, Radians } from "@excalidraw/math";
 import { isFiniteNumber, pointFrom } from "@excalidraw/math";
-import { detectLineHeight } from "../element/textMeasurements";
+import { detectLineHeight } from "../element/text-measurements";
 import {
   updateElbowArrowPoints,
   validateElbowPoints,
-} from "../element/elbowArrow";
+} from "../element/elbow-arrow";
 
 type RestoredAppState = Omit<
   AppState,

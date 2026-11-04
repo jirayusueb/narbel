@@ -10,7 +10,7 @@ import {
   MIME_TYPES,
 } from "../constants";
 import { getNonDeletedElements } from "../element";
-import { isFrameLikeElement } from "../element/typeChecks";
+import { isFrameLikeElement } from "../element/type-checks";
 import type {
   ExcalidrawElement,
   ExcalidrawFrameLikeElement,

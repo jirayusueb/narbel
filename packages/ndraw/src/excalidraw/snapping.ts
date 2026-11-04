@@ -14,8 +14,8 @@ import {
   getDraggedElementsBounds,
   getElementAbsoluteCoords,
 } from "./element/bounds";
-import type { MaybeTransformHandleType } from "./element/transformHandles";
-import { isBoundToContainer, isFrameLikeElement } from "./element/typeChecks";
+import type { MaybeTransformHandleType } from "./element/transform-handles";
+import { isBoundToContainer, isFrameLikeElement } from "./element/type-checks";
 import type {
   ElementsMap,
   ExcalidrawElement,

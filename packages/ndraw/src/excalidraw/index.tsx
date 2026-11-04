@@ -1,21 +1,21 @@
 import React, { useEffect } from "react";
-import { InitializeApp } from "./components/InitializeApp";
-import App from "./components/App";
+import { InitializeApp } from "./components/initialize-app";
+import App from "./components/app";
 import { isShallowEqual } from "./utils";
 import polyfill from "./polyfill";
 
-import "./css/app.scss";
-import "./css/styles.scss";
+import "./css/app.css";
+import "./css/styles.css";
 import "./fonts/fonts.css";
 
 import type { AppProps, ExcalidrawProps } from "./types";
 import { defaultLang } from "./i18n";
 import { DEFAULT_UI_OPTIONS } from "./constants";
 import { EditorJotaiProvider, editorJotaiStore } from "./editor-jotai";
-import Footer from "./components/footer/FooterCenter";
-import MainMenu from "./components/main-menu/MainMenu";
-import WelcomeScreen from "./components/welcome-screen/WelcomeScreen";
-import LiveCollaborationTrigger from "./components/live-collaboration/LiveCollaborationTrigger";
+import Footer from "./components/footer/footer-center";
+import MainMenu from "./components/main-menu/main-menu";
+import WelcomeScreen from "./components/welcome-screen/welcome-screen";
+import LiveCollaborationTrigger from "./components/live-collaboration/live-collaboration-trigger";
 
 polyfill();
 
@@ -241,11 +241,11 @@ export {
   loadSceneOrLibraryFromBlob,
   loadLibraryFromBlob,
 } from "./data/blob";
-export { getFreeDrawSvgPath } from "./renderer/renderElement";
+export { getFreeDrawSvgPath } from "./renderer/render-element";
 export { mergeLibraryItems, getLibraryItemsHash } from "./data/library";
-export { isLinearElement, isTextElement } from "./element/typeChecks";
-export { refreshTextDimensions } from "./element/newElement";
-export { getContainerElement } from "./element/textElement";
+export { isLinearElement, isTextElement } from "./element/type-checks";
+export { refreshTextDimensions } from "./element/new-element";
+export { getContainerElement } from "./element/text-element";
 
 export {
   FONT_FAMILY,
@@ -260,7 +260,7 @@ export {
   mutateElement,
   newElementWith,
   bumpVersion,
-} from "./element/mutateElement";
+} from "./element/mutate-element";
 
 export { CaptureUpdateAction } from "./store";
 
@@ -271,21 +271,21 @@ export {
   viewportCoordsToSceneCoords,
 } from "./utils";
 
-export { Sidebar } from "./components/Sidebar/Sidebar";
-export { Button } from "./components/Button";
+export { Sidebar } from "./components/sidebar/sidebar";
+export { Button } from "./components/button";
 export { Footer };
 export { MainMenu };
-export { useDevice } from "./components/App";
+export { useDevice } from "./components/app";
 export { WelcomeScreen };
 export { LiveCollaborationTrigger };
-export { Stats } from "./components/Stats";
+export { Stats } from "./components/stats";
 
-export { DefaultSidebar } from "./components/DefaultSidebar";
-export { TTDDialog } from "./components/TTDDialog/TTDDialog";
-export { TTDDialogTrigger } from "./components/TTDDialog/TTDDialogTrigger";
+export { DefaultSidebar } from "./components/default-sidebar";
+export { TTDDialog } from "./components/ttd-dialog/ttd-dialog";
+export { TTDDialogTrigger } from "./components/ttd-dialog/ttd-dialog-trigger";
 
 export { normalizeLink } from "./data/url";
-export { zoomToFitBounds } from "./actions/actionCanvas";
+export { zoomToFitBounds } from "./actions/action-canvas";
 export { convertToExcalidrawElements } from "./data/transform";
 export { getCommonBounds, getVisibleSceneBounds } from "./element/bounds";
 
@@ -293,10 +293,10 @@ export {
   elementsOverlappingBBox,
   isElementInsideBBox,
   elementPartiallyOverlapsWithOrContainsBBox,
-} from "@excalidraw/utils/withinBounds";
+} from "@excalidraw/utils/within-bounds";
 
-export { DiagramToCodePlugin } from "./components/DiagramToCodePlugin/DiagramToCodePlugin";
+export { DiagramToCodePlugin } from "./components/diagram-to-code-plugin/diagram-to-code-plugin";
 export { getDataURL } from "./data/blob";
-export { isElementLink } from "./element/elementLink";
+export { isElementLink } from "./element/element-link";
 
-export { setCustomTextMetricsProvider } from "./element/textMeasurements";
+export { setCustomTextMetricsProvider } from "./element/text-measurements";

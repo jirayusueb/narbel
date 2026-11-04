@@ -8,7 +8,7 @@ import {
 } from "@excalidraw/math";
 import type { LineSegment } from "@excalidraw/utils";
 import type { Bounds } from "./element/bounds";
-import { isBounds } from "./element/typeChecks";
+import { isBounds } from "./element/type-checks";
 
 // The global data holder to collect the debug operations
 declare global {

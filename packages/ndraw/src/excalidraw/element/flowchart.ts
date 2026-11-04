@@ -8,8 +8,8 @@ import {
   type Heading,
 } from "./heading";
 import { bindLinearElement } from "./binding";
-import { LinearElementEditor } from "./linearElementEditor";
-import { newArrowElement, newElement } from "./newElement";
+import { LinearElementEditor } from "./linear-element-editor";
+import { newArrowElement, newElement } from "./new-element";
 import {
   type ElementsMap,
   type ExcalidrawBindableElement,
@@ -21,18 +21,18 @@ import {
 } from "./types";
 import { KEYS } from "../keys";
 import type { AppState, PendingExcalidrawElements } from "../types";
-import { mutateElement } from "./mutateElement";
+import { mutateElement } from "./mutate-element";
 import { elementOverlapsWithFrame, elementsAreInFrameBounds } from "../frame";
 import {
   isBindableElement,
   isElbowArrow,
   isFrameElement,
   isFlowchartNodeElement,
-} from "./typeChecks";
+} from "./type-checks";
 import { invariant, toBrandedType } from "../utils";
 import { pointFrom, type LocalPoint } from "@excalidraw/math";
 import { aabbForElement } from "../shapes";
-import { updateElbowArrowPoints } from "./elbowArrow";
+import { updateElbowArrowPoints } from "./elbow-arrow";
 
 type LinkDirection = "up" | "right" | "down" | "left";
 

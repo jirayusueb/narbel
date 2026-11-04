@@ -3,7 +3,7 @@ import { LaserPointer } from "@excalidraw/laser-pointer";
 import type { AnimationFrameHandler } from "./animation-frame-handler";
 import type { AppState } from "./types";
 import { getSvgPathFromStroke, sceneCoordsToViewportCoords } from "./utils";
-import type App from "./components/App";
+import type App from "./components/app";
 import { SVG_NS } from "./constants";
 
 export interface Trail {

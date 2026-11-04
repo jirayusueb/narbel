@@ -7,7 +7,7 @@ import type {
   LibraryItems_anyVersion,
 } from "../types";
 import { restoreLibraryItems } from "./restore";
-import type App from "../components/App";
+import type App from "../components/app";
 import { atom, editorJotaiStore } from "../editor-jotai";
 import type { ExcalidrawElement } from "../element/types";
 import { getCommonBoundingBox } from "../element/bounds";
@@ -22,7 +22,7 @@ import {
   DEFAULT_SIDEBAR,
   LIBRARY_SIDEBAR_TAB,
 } from "../constants";
-import { libraryItemSvgsCache } from "../hooks/useLibraryItemSvg";
+import { libraryItemSvgsCache } from "../hooks/use-library-item-svg";
 import {
   arrayToMap,
   cloneJSON,
