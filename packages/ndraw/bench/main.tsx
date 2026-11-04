@@ -188,21 +188,25 @@ const bench: Bench = {
         x: c.x + 300 * Math.sin((2 * Math.PI * t) / 1500),
         y: c.y + 200 * Math.sin((2 * Math.PI * 1.7 * t) / 1500),
       });
-      const half = ms / 2;
+      // Fixed positions and minimum duration keep 60/120Hz runs comparable; overload may take longer.
+      const samples = Math.ceil(ms / (1000 / 60));
+      const half = Math.floor(samples / 2);
+      const startedAt = performance.now();
       // phase 1: plain hover (hit testing); phase 2: arrow drag over the same path (binding search)
       const sweep = async (from: number, to: number, pressed: boolean) => {
-        const start = performance.now();
-        for (let t = from; t < to; t = from + performance.now() - start) {
-          const p = at(t);
+        for (let i = from; i < to; i++) {
+          const p = at((i * ms) / samples);
           pointer("pointermove", p.x, p.y, pressed);
-          await nextFrame();
+          do {
+            await nextFrame();
+          } while (performance.now() < startedAt + ((i + 1) * ms) / samples);
         }
       };
       await sweep(0, half, false);
       api.setActiveTool({ type: "arrow" });
-      const first = at(half);
+      const first = at((half * ms) / samples);
       pointer("pointerdown", first.x, first.y, true);
-      await sweep(half, ms, true);
+      await sweep(half, samples, true);
       const last = at(ms);
       pointer("pointerup", last.x, last.y, false);
       api.setActiveTool({ type: "selection" });

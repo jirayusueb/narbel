@@ -398,7 +398,7 @@ import { convertToExcalidrawElements } from "../data/transform";
 import type { ValueOf } from "../utility-types";
 import { isSidebarDockedAtom } from "./sidebar/sidebar";
 import { StaticCanvas, InteractiveCanvas } from "./canvases";
-import { Renderer } from "../scene/renderer";
+import { Renderer, toRendererCamera } from "../scene/renderer";
 import { ShapeCache } from "../scene/shape-cache";
 import { SVGLayer } from "./svg-layer";
 import {
@@ -574,7 +574,13 @@ class App extends React.Component<AppProps, AppState> {
   public scene: Scene;
   public fonts: Fonts;
   public renderer: Renderer;
-  public visibleElements: readonly NonDeletedExcalidrawElement[];
+  /**
+   * Culled elements as of the last canvas render (the camera is applied to the
+   * renderer from the canvas effects, not during React render).
+   */
+  public get visibleElements(): readonly NonDeletedExcalidrawElement[] {
+    return this.renderer.getRenderableElements().visibleElements;
+  }
   private resizeObserver: ResizeObserver | undefined;
   private nearestScrollableContainer: HTMLElement | Document | undefined;
   public library: AppClassProperties["library"];
@@ -710,7 +716,6 @@ class App extends React.Component<AppProps, AppState> {
     this.canvas = document.createElement("canvas");
     this.rc = rough.canvas(this.canvas);
     this.renderer = new Renderer(this.scene);
-    this.visibleElements = [];
 
     this.store = new Store();
     this.history = new History();
@@ -1506,21 +1511,8 @@ class App extends React.Component<AppProps, AppState> {
     const { renderTopRightUI, renderCustomStats } = this.props;
 
     const sceneNonce = this.scene.getSceneNonce();
-    const { elementsMap, visibleElements } =
-      this.renderer.getRenderableElements({
-        sceneNonce,
-        zoom: this.state.zoom,
-        offsetLeft: this.state.offsetLeft,
-        offsetTop: this.state.offsetTop,
-        scrollX: this.state.scrollX,
-        scrollY: this.state.scrollY,
-        height: this.state.height,
-        width: this.state.width,
-        editingTextElement: this.state.editingTextElement,
-        newElementId: this.state.newElement?.id,
-        pendingImageElementId: this.state.pendingImageElementId,
-      });
-    this.visibleElements = visibleElements;
+    // pure derivation; the canvases apply it to the renderer in their effects
+    const rendererCamera = toRendererCamera(this.state);
 
     const allElementsMap = this.scene.getNonDeletedElementsMap();
 
@@ -1638,7 +1630,7 @@ class App extends React.Component<AppProps, AppState> {
                           isMagicFrameElement(firstSelectedElement) && (
                             <ElementCanvasButtons
                               element={firstSelectedElement}
-                              elementsMap={elementsMap}
+                              elementsMap={allElementsMap}
                             >
                               <ElementCanvasButton
                                 title={t("labels.convertToCode")}
@@ -1659,7 +1651,7 @@ class App extends React.Component<AppProps, AppState> {
                             ?.status === "done" && (
                             <ElementCanvasButtons
                               element={firstSelectedElement}
-                              elementsMap={elementsMap}
+                              elementsMap={allElementsMap}
                             >
                               <ElementCanvasButton
                                 title={t("labels.copySource")}
@@ -1729,9 +1721,9 @@ class App extends React.Component<AppProps, AppState> {
                         <StaticCanvas
                           canvas={this.canvas}
                           rc={this.rc}
-                          elementsMap={elementsMap}
                           allElementsMap={allElementsMap}
-                          visibleElements={visibleElements}
+                          renderer={this.renderer}
+                          camera={rendererCamera}
                           sceneNonce={sceneNonce}
                           selectionNonce={
                             this.state.selectionElement?.versionNonce
@@ -1755,7 +1747,8 @@ class App extends React.Component<AppProps, AppState> {
                             appState={this.state}
                             scale={window.devicePixelRatio}
                             rc={this.rc}
-                            elementsMap={elementsMap}
+                            renderer={this.renderer}
+                            camera={rendererCamera}
                             allElementsMap={allElementsMap}
                             renderConfig={{
                               imageCache: this.imageCache,
@@ -1774,8 +1767,8 @@ class App extends React.Component<AppProps, AppState> {
                         <InteractiveCanvas
                           containerRef={this.excalidrawContainerRef}
                           canvas={this.interactiveCanvas}
-                          elementsMap={elementsMap}
-                          visibleElements={visibleElements}
+                          renderer={this.renderer}
+                          camera={rendererCamera}
                           allElementsMap={allElementsMap}
                           selectedElements={selectedElements}
                           sceneNonce={sceneNonce}

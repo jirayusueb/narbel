@@ -94,11 +94,23 @@ Run `bun run build` in `packages/ndraw`. It writes `dist/{dev,prod,types}`. `dis
 Build first, then run from `packages/ndraw`:
 
 ```sh
-bun scripts/bench.ts --fixture 10000 --scenario all --runs 3 --out /tmp/head.json
-bun scripts/bench.ts --fixture 10000 --scenario all --runs 3 --against /path/to/base-worktree --out /tmp/head.json --base-out /tmp/base.json
+bun scripts/bench.ts --fixture 10000 --scenario all --runs 15 --out /tmp/head.json
+bun scripts/bench.ts --fixture 10000 --scenario all --runs 15 --against /path/to/base-worktree --out /tmp/head.json --base-out /tmp/base.json
 bun scripts/bench-compare.ts /tmp/base.json /tmp/head.json --pr 3
 ```
 
-The runner bundles the shipped `dist/prod` through the root import, not the editor sources. Both worktrees must be installed and built. It alternates base/head in one Chrome session, resets metrics for each scenario, and compares medians from three runs. The required fixture is 10k; 1k and 50k are trend points. Reference baselines under `bench/baselines/` are machine-specific, anchored to PR1's renderer with PR2's measurement-only instrumentation; never use them instead of remeasuring a comparison.
+The runner bundles the shipped `dist/prod` through the root import, not the editor sources. Both worktrees must be installed and built. It alternates base/head in one Chrome session, resets metrics for each scenario, and compares medians from fifteen paired runs. The required fixture is 10k; 1k and 50k are trend points. Before judging an engine change, calibrate the same protocol against an identical build (A/A); it must pass the unchanged 5% rule. The owner increased sampling from three pairs after identical builds exceeded 5% in the original protocol. Reference baselines under `bench/baselines/` retain their original three-run, coarse-clock measurements: they are machine-specific, anchored to PR1's renderer with PR2's measurement-only instrumentation, and never replace a fresh comparison.
 
 Scenarios: a five-second pan, wheel zoom 0.2→2→0.2, dense hover plus arrow binding search, a quarter-viewport box selection, and twenty 200-element remote batches. The seeded fixture includes Thai/English text, shapes, bound arrows, lines and 64-point freedraw paths; it intentionally excludes images. Fonts are served from the built distribution. `CHROME_PATH` overrides Chrome Canary; `--profile` isolates the browser profile and `--screenshot` records rendered results. Page errors fail the run.
+
+The comparison harness serves cross-origin isolation headers for high-resolution timing (5µs steps on the reference Chrome, versus 100µs without isolation). Each scenario runs once unmeasured to warm the JIT, reloads the same seeded fixture, then measures; neither warmup nor fixture load counts toward the report. Hover uses fixed sample positions, paced for at least the requested duration even on a high-refresh display. An overloaded page can take longer to replay that same workload. Thresholds remain unchanged: every required improvement must pass and other measured work may not regress more than 5%.
+
+## Signals and scene diffs
+
+`signals/signals.ts` implements explicit-dependency `Atom` / lazy `Computed`, synchronous transaction-batched effects, and a 32-change diff ring. An `Object.is`-equal update leaves the epoch unchanged. `getDiffSince(epoch)` returns ordered diffs or `null` when history is incomplete; callers must rebuild on `null`. `unsafeCaptureWithoutSync` deliberately permits stale reads of an initialized computed within its callback; normal reads synchronize dependencies.
+
+Scene mutations publish `SceneDiff` through `diffAtom`; `nonceAtom` retains the existing renderer nonce contract. Silent mutations are tracked until the next notification, and deletion/revival refreshes live-element membership before publishing. Diff elements are scene references, not immutable historical element copies. Diff cursors use `diffAtom.changedEpoch`, not the scene-local `SceneDiff.epoch`.
+
+The renderer caches the viewport-independent map separately from viewport culling, and reuses the scene's existing live-element map when no editing/new/pending-image exclusion applies. Visibility also depends directly on the scene diff, so moving an element in place cannot leave culling stale just because the map identity is unchanged.
+
+Camera writes occur in the existing static, interactive and new-element canvas effects, immediately before drawing. App render constructs only a camera value; it does not write an atom. Internal canvas props carry the renderer and camera instead of a prematurely culled snapshot, and memo comparisons include the camera/filter fields. There is no second React commit per pan. `bun test` covers signal propagation, diff history, mutation/deletion/revival, and visibility across in-place changes and camera/exclusion changes; CI runs it after the ndraw build.

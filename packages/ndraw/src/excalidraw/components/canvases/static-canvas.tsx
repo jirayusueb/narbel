@@ -3,22 +3,18 @@ import type { RoughCanvas } from "roughjs/bin/canvas";
 import { renderStaticScene } from "../../renderer/static-scene";
 import { isShallowEqual } from "../../utils";
 import type { AppState, StaticCanvasAppState } from "../../types";
-import type {
-  RenderableElementsMap,
-  StaticCanvasRenderConfig,
-} from "../../scene/types";
-import type {
-  NonDeletedExcalidrawElement,
-  NonDeletedSceneElementsMap,
-} from "../../element/types";
+import type { StaticCanvasRenderConfig } from "../../scene/types";
+import type { NonDeletedSceneElementsMap } from "../../element/types";
+import { isSameCamera } from "../../scene/renderer";
+import type { Renderer, RendererCamera } from "../../scene/renderer";
 import { isRenderThrottlingEnabled } from "../../react-utils";
 
 type StaticCanvasProps = {
   canvas: HTMLCanvasElement;
   rc: RoughCanvas;
-  elementsMap: RenderableElementsMap;
+  renderer: Renderer;
+  camera: RendererCamera;
   allElementsMap: NonDeletedSceneElementsMap;
-  visibleElements: readonly NonDeletedExcalidrawElement[];
   sceneNonce: number | undefined;
   selectionNonce: number | undefined;
   scale: number;
@@ -65,14 +61,20 @@ const StaticCanvas = (props: StaticCanvasProps) => {
       canvas.height = scaledHeight;
     }
 
+    // the one place the camera reaches the renderer; the interactive canvas
+    // reads the same memoized snapshot afterwards
+    props.renderer.setCamera(props.camera);
+    const { elementsMap, visibleElements } =
+      props.renderer.getRenderableElements();
+
     renderStaticScene(
       {
         canvas,
         rc: props.rc,
         scale: props.scale,
-        elementsMap: props.elementsMap,
+        elementsMap,
         allElementsMap: props.allElementsMap,
-        visibleElements: props.visibleElements,
+        visibleElements,
         appState: props.appState,
         renderConfig: props.renderConfig,
       },
@@ -119,11 +121,9 @@ const areEqual = (
   if (
     prevProps.sceneNonce !== nextProps.sceneNonce ||
     prevProps.scale !== nextProps.scale ||
-    // we need to memoize on elementsMap because they may have renewed
-    // even if sceneNonce didn't change (e.g. we filter elements out based
-    // on appState)
-    prevProps.elementsMap !== nextProps.elementsMap ||
-    prevProps.visibleElements !== nextProps.visibleElements
+    // the culling inputs (viewport, editing/new/pending element)
+    prevProps.renderer !== nextProps.renderer ||
+    !isSameCamera(prevProps.camera, nextProps.camera)
   ) {
     return false;
   }

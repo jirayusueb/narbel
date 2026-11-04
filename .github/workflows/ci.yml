@@ -38,6 +38,8 @@ jobs:
       # apps/web imports the ndraw fork from its gitignored dist
       - run: bun run build
         working-directory: packages/ndraw
+      - run: bun test
+        working-directory: packages/ndraw
       # routeTree.gen.ts is generated and gitignored; the build creates it and proves the web build
       - run: bun run build
         working-directory: apps/web
