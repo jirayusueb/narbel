@@ -10,6 +10,7 @@ import { renderStaticSceneThrottled } from "../renderer/static-scene";
 
 import type { AppState } from "../types";
 import { memoize, toBrandedType } from "../utils";
+import { perf } from "../perf/performance-manager";
 import type Scene from "./scene";
 import type { RenderableElementsMap } from "./types";
 
@@ -132,6 +133,7 @@ export class Renderer {
         pendingImageElementId: AppState["pendingImageElementId"];
         sceneNonce: ReturnType<InstanceType<typeof Scene>["getSceneNonce"]>;
       }) => {
+        const startedAt = perf.start();
         const elements = this.scene.getNonDeletedElements();
 
         const elementsMap = getRenderableElements({
@@ -152,6 +154,7 @@ export class Renderer {
           width,
         });
 
+        perf.end("cull", startedAt);
         return { elementsMap, visibleElements };
       },
     );

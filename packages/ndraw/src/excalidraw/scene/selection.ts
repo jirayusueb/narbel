@@ -14,6 +14,7 @@ import {
 } from "../frame";
 import { isShallowEqual } from "../utils";
 import { isElementInViewport } from "../element/size-helpers";
+import { perf } from "../perf/performance-manager";
 
 /**
  * Frames and their containing elements are not to be selected at the same time.
@@ -48,6 +49,7 @@ export const getElementsWithinSelection = (
   elementsMap: ElementsMap,
   excludeElementsInFrames: boolean = true,
 ) => {
+  const startedAt = perf.start();
   const [selectionX1, selectionY1, selectionX2, selectionY2] =
     getElementAbsoluteCoords(selection, elementsMap);
 
@@ -95,6 +97,7 @@ export const getElementsWithinSelection = (
     return true;
   });
 
+  perf.end("hitTestBox", startedAt);
   return elementsInSelection;
 };
 

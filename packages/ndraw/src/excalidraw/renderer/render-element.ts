@@ -64,6 +64,7 @@ import { isRightAngleRads } from "@excalidraw/math";
 import { getCornerRadius } from "../shapes";
 import { getUncroppedImageElement } from "../element/crop-element";
 import { getLineHeightInPx } from "../element/text-measurements";
+import { perf } from "../perf/performance-manager";
 
 // using a stronger invert (100% vs our regular 93%) and saturate
 // as a temp hack to make images in dark theme look closer to original
@@ -561,6 +562,7 @@ const generateElementWithCanvas = (
       boundTextElement &&
       element.angle !== prevElementWithCanvas.angle)
   ) {
+    perf.count("elementCanvasRegen");
     const elementWithCanvas = generateElementCanvas(
       element,
       elementsMap,

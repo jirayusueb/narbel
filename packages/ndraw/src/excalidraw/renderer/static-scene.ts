@@ -32,6 +32,7 @@ import { bootstrapCanvas, getNormalizedCanvasDimensions } from "./helpers";
 import { throttleRAF } from "../utils";
 import { getBoundTextElement } from "../element/text-element";
 import { isElementLink } from "../element/element-link";
+import { perf } from "../perf/performance-manager";
 
 const GridLineColor = {
   Bold: "#dddddd",
@@ -456,10 +457,16 @@ const _renderStaticScene = ({
   });
 };
 
+const renderStaticSceneTimed = (config: StaticSceneRenderConfig) => {
+  const startedAt = perf.start();
+  _renderStaticScene(config);
+  perf.end("staticRender", startedAt);
+};
+
 /** throttled to animation framerate */
 export const renderStaticSceneThrottled = throttleRAF(
   (config: StaticSceneRenderConfig) => {
-    _renderStaticScene(config);
+    renderStaticSceneTimed(config);
   },
   { trailing: true },
 );
@@ -476,5 +483,5 @@ export const renderStaticScene = (
     return;
   }
 
-  _renderStaticScene(renderConfig);
+  renderStaticSceneTimed(renderConfig);
 };

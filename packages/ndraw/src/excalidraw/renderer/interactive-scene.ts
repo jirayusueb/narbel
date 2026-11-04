@@ -6,6 +6,7 @@ import {
 } from "../element";
 
 import { roundRect } from "./round-rect";
+import { perf } from "../perf/performance-manager";
 
 import {
   getScrollBars,
@@ -1202,10 +1203,17 @@ const _renderInteractiveScene = ({
   };
 };
 
+const renderInteractiveSceneTimed = (config: InteractiveSceneRenderConfig) => {
+  const startedAt = perf.start();
+  const ret = _renderInteractiveScene(config);
+  perf.end("interactiveRender", startedAt);
+  return ret;
+};
+
 /** throttled to animation framerate */
 export const renderInteractiveSceneThrottled = throttleRAF(
   (config: InteractiveSceneRenderConfig) => {
-    const ret = _renderInteractiveScene(config);
+    const ret = renderInteractiveSceneTimed(config);
     config.callback?.(ret);
   },
   { trailing: true },
@@ -1226,7 +1234,7 @@ export const renderInteractiveScene = <
     renderInteractiveSceneThrottled(renderConfig);
     return undefined as T extends true ? void : ReturnType<U>;
   }
-  const ret = _renderInteractiveScene(renderConfig);
+  const ret = renderInteractiveSceneTimed(renderConfig);
   renderConfig.callback(ret);
   return ret as T extends true ? void : ReturnType<U>;
 };
