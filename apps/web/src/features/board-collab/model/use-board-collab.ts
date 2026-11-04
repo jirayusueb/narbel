@@ -37,6 +37,7 @@ import {
   WS_TRASHED_CODE,
 } from "./collab-status";
 import type { CollabStatus } from "./collab-status";
+import { measureText } from "./measure-text";
 import { byZOrder, incomingFor, outranking } from "./merge";
 import { writeChangedElements } from "./write-changed-elements";
 
@@ -99,6 +100,29 @@ export const useBoardCollab = ({
       }
     },
     document
+  );
+
+  // A cold load measures agent-written text before Excalifont arrives, with the fallback font's metrics.
+  useEventListener(
+    "loadingdone",
+    () => {
+      const live = sceneReady ? api : null;
+      if (!live) {
+        return;
+      }
+      const current = live.getSceneElementsIncludingDeleted();
+      const measured = measureText(
+        current,
+        new Set(current.map((el) => el.id))
+      );
+      if (measured.some((el, i) => el !== current[i])) {
+        live.updateScene({
+          elements: measured,
+          captureUpdate: CaptureUpdateAction.NEVER,
+        });
+      }
+    },
+    document.fonts
   );
 
   useEffect(() => {
@@ -281,7 +305,8 @@ export const useBoardCollab = ({
         }
       }
       found.sort(byZOrder);
-      return restoreElements(found, null);
+      const restored = restoreElements(found, null);
+      return measureText(restored, new Set(restored.map((el) => el.id)));
     };
 
     // Switching page swaps the whole scene; undo history from another page must not leak in.
@@ -337,8 +362,10 @@ export const useBoardCollab = ({
         local.set(el.id, el);
       }
       // a remote reorder only changes `index`; the array position must follow it
-      const next = [...local.values()];
-      next.sort(byZOrder);
+      const next = measureText(
+        [...local.values()].toSorted(byZOrder),
+        new Set(restored.map((el) => el.id))
+      );
       api.updateScene({
         elements: next,
         captureUpdate: CaptureUpdateAction.NEVER,

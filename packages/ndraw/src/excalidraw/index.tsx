@@ -243,7 +243,9 @@ export {
 } from "./data/blob";
 export { getFreeDrawSvgPath } from "./renderer/render-element";
 export { mergeLibraryItems, getLibraryItemsHash } from "./data/library";
-export { isLinearElement } from "./element/type-checks";
+export { isLinearElement, isTextElement } from "./element/type-checks";
+export { refreshTextDimensions } from "./element/new-element";
+export { getContainerElement } from "./element/text-element";
 
 export {
   FONT_FAMILY,
