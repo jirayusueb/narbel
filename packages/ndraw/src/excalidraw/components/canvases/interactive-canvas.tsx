@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { isShallowEqual, sceneCoordsToViewportCoords } from "../../utils";
 import { CURSOR_TYPE } from "../../constants";
-import { t } from "../../i18n";
+import { RemotePointerSmoother } from "../../remote-pointer-smoothing";
+import type { SocketId } from "../../types";
 import type { DOMAttributes } from "react";
 import type { AppState, Device, InteractiveCanvasAppState } from "../../types";
 import type {
@@ -15,6 +16,7 @@ import type {
 import { isSameCamera } from "../../scene/renderer";
 import type { Renderer, RendererCamera } from "../../scene/renderer";
 import { isRenderThrottlingEnabled } from "../../react-utils";
+import { t } from "../../i18n";
 import { renderInteractiveScene } from "../../renderer/interactive-scene";
 
 type InteractiveCanvasProps = {
@@ -65,6 +67,10 @@ type InteractiveCanvasProps = {
 
 const InteractiveCanvas = (props: InteractiveCanvasProps) => {
   const isComponentMounted = useRef(false);
+  const smootherRef = useRef<RemotePointerSmoother | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const drawRef = useRef<((throttle: boolean) => void) | null>(null);
+  const latestZoomRef = useRef(1);
 
   useEffect(() => {
     if (!isComponentMounted.current) {
@@ -74,14 +80,16 @@ const InteractiveCanvas = (props: InteractiveCanvasProps) => {
 
     const remotePointerButton: InteractiveCanvasRenderConfig["remotePointerButton"] =
       new Map();
-    const remotePointerViewportCoords: InteractiveCanvasRenderConfig["remotePointerViewportCoords"] =
-      new Map();
     const remoteSelectedElementIds: InteractiveCanvasRenderConfig["remoteSelectedElementIds"] =
       new Map();
     const remotePointerUsernames: InteractiveCanvasRenderConfig["remotePointerUsernames"] =
       new Map();
     const remotePointerUserStates: InteractiveCanvasRenderConfig["remotePointerUserStates"] =
       new Map();
+    const scenePointers = new Map<SocketId, { x: number; y: number }>();
+    smootherRef.current ??= new RemotePointerSmoother();
+    const smoother = smootherRef.current;
+    latestZoomRef.current = props.appState.zoom.value;
 
     props.appState.collaborators.forEach((user, socketId) => {
       if (user.selectedElementIds) {
@@ -101,18 +109,12 @@ const InteractiveCanvas = (props: InteractiveCanvasProps) => {
       if (user.userState) {
         remotePointerUserStates.set(socketId, user.userState);
       }
-      remotePointerViewportCoords.set(
-        socketId,
-        sceneCoordsToViewportCoords(
-          {
-            sceneX: user.pointer.x,
-            sceneY: user.pointer.y,
-          },
-          props.appState,
-        ),
-      );
       remotePointerButton.set(socketId, user.button);
+      scenePointers.set(socketId, { x: user.pointer.x, y: user.pointer.y });
     });
+
+    const now = performance.now();
+    smoother.setTargets(scenePointers, now);
 
     const selectionColor =
       (props.containerRef?.current &&
@@ -126,30 +128,66 @@ const InteractiveCanvas = (props: InteractiveCanvasProps) => {
     const { elementsMap, visibleElements } =
       props.renderer.getRenderableElements();
 
-    renderInteractiveScene(
-      {
-        canvas: props.canvas,
-        elementsMap,
-        visibleElements,
-        selectedElements: props.selectedElements,
-        allElementsMap: props.allElementsMap,
-        scale: window.devicePixelRatio,
-        appState: props.appState,
-        renderConfig: {
-          remotePointerViewportCoords,
-          remotePointerButton,
-          remoteSelectedElementIds,
-          remotePointerUsernames,
-          remotePointerUserStates,
-          selectionColor,
-          renderScrollbars: false,
+    const draw = (throttle: boolean) => {
+      const remotePointerViewportCoords: InteractiveCanvasRenderConfig["remotePointerViewportCoords"] =
+        new Map();
+      for (const socketId of scenePointers.keys()) {
+        const shown = smoother.get(socketId)!;
+        remotePointerViewportCoords.set(
+          socketId,
+          sceneCoordsToViewportCoords(
+            { sceneX: shown.x, sceneY: shown.y },
+            props.appState,
+          ),
+        );
+      }
+      renderInteractiveScene(
+        {
+          canvas: props.canvas,
+          elementsMap,
+          visibleElements,
+          selectedElements: props.selectedElements,
+          allElementsMap: props.allElementsMap,
+          scale: window.devicePixelRatio,
+          appState: props.appState,
+          renderConfig: {
+            remotePointerViewportCoords,
+            remotePointerButton,
+            remoteSelectedElementIds,
+            remotePointerUsernames,
+            remotePointerUserStates,
+            selectionColor,
+            renderScrollbars: false,
+          },
+          device: props.device,
+          callback: props.renderInteractiveSceneCallback,
         },
-        device: props.device,
-        callback: props.renderInteractiveSceneCallback,
-      },
-      isRenderThrottlingEnabled(),
-    );
+        throttle,
+      );
+    };
+    drawRef.current = draw;
+    draw(isRenderThrottlingEnabled());
+
+    // Pointer easing runs outside React: the loop redraws the interactive canvas directly until the cursors settle.
+    if (rafRef.current === null && smoother.advanceTo(now, props.appState.zoom.value)) {
+      const tick = (time: number) => {
+        const more = smoother.advanceTo(time, latestZoomRef.current);
+        drawRef.current?.(true);
+        rafRef.current = more ? requestAnimationFrame(tick) : null;
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    }
   });
+
+  useEffect(
+    () => () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    },
+    [],
+  );
 
   return (
     <canvas

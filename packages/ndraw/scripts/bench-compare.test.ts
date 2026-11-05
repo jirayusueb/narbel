@@ -164,8 +164,8 @@ describe("paired evidence and safety assertions", () => {
   });
 
   test("does not hide one drag deviation behind a zero median", () => {
-    const base = file({ contendedDrag: { pointerJumps: total(0), maxDragDeviation: timing(0) } });
-    const head = file({ contendedDrag: { pointerJumps: total(0), maxDragDeviation: timing(0) } });
+    const base = file({ contendedDrag: { maxPointerStep: timing(20), maxDragDeviation: timing(0) } });
+    const head = file({ contendedDrag: { maxPointerStep: timing(20), maxDragDeviation: timing(0) } });
     const { runs } = head.scenarios.contendedDrag;
     Reflect.set(head.scenarios.contendedDrag, "runs", runs.map((run, index) =>
       index === 7 ? { ...run, maxDragDeviation: timing(0.25) } : run,
@@ -173,6 +173,17 @@ describe("paired evidence and safety assertions", () => {
     const result = compare(base, head, { pr: 8 });
     expect(result.failed).toBe(true);
     expect(result.gates.find((entry) => entry.gate.metric === "maxDragDeviation")?.ok).toBe(false);
+  });
+
+  test("one run with a cursor teleport beyond 60px fails the smoothing gate", () => {
+    const base = file({ contendedDrag: { maxPointerStep: timing(400), maxDragDeviation: timing(0) } });
+    const head = file({ contendedDrag: { maxPointerStep: timing(40), maxDragDeviation: timing(0) } });
+    expect(compare(base, head, { pr: 8 }).gates.every((entry) => entry.ok)).toBe(true);
+    const { runs } = head.scenarios.contendedDrag;
+    Reflect.set(head.scenarios.contendedDrag, "runs", runs.map((run, index) =>
+      index === 3 ? { ...run, maxPointerStep: timing(61) } : run,
+    ));
+    expect(compare(base, head, { pr: 8 }).gates.find((entry) => entry.gate.metric === "maxPointerStep")?.ok).toBe(false);
   });
 
   test("rejects summary-only data instead of silently falling back to point estimates", () => {
