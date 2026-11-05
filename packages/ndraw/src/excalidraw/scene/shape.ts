@@ -57,7 +57,21 @@ function adjustRoughness(element: ExcalidrawElement): number {
 export const generateRoughOptions = (
   element: ExcalidrawElement,
   continuousPath = false,
+  lodScale = 1,
 ): Options => {
+  // low-zoom simplification: hatch fills and sketch jitter are invisible
+  // when the element renders tiny, but cost the same to rasterize
+  const simplifyForLod =
+    lodScale <= 0.5 && (element.width > 400 || element.height > 400);
+  const lodFillStyle =
+    simplifyForLod &&
+    "fillStyle" in element &&
+    (element.fillStyle === "hachure" || element.fillStyle === "cross-hatch")
+      ? ("solid" as const)
+      : "fillStyle" in element
+        ? element.fillStyle
+        : undefined;
+  const lodRoughness = simplifyForLod ? 0 : adjustRoughness(element);
   const options: Options = {
     seed: element.seed,
     strokeLineDash:
@@ -69,7 +83,7 @@ export const generateRoughOptions = (
     // for non-solid strokes, disable multiStroke because it tends to make
     // dashes/dots overlay each other
     disableMultiStroke: element.strokeStyle !== "solid",
-    // for non-solid strokes, increase the width a bit to make it visually
+    // for non-solid strokes, increase the width a bit to make them visually
     // similar to solid strokes, because we're also disabling multiStroke
     strokeWidth:
       element.strokeStyle !== "solid"
@@ -77,13 +91,13 @@ export const generateRoughOptions = (
         : element.strokeWidth,
     // when increasing strokeWidth, we must explicitly set fillWeight and
     // hachureGap because if not specified, roughjs uses strokeWidth to
-    // calculate them (and we don't want the fills to be modified)
+    // calculate them (we don't want the fills to be modified)
     fillWeight: element.strokeWidth / 2,
     hachureGap: element.strokeWidth * 4,
-    roughness: adjustRoughness(element),
+    roughness: lodRoughness,
     stroke: element.strokeColor,
     preserveVertices:
-      continuousPath || element.roughness < ROUGHNESS.cartoonist,
+      continuousPath || lodRoughness < ROUGHNESS.cartoonist,
   };
 
   switch (element.type) {
@@ -92,7 +106,7 @@ export const generateRoughOptions = (
     case "embeddable":
     case "diamond":
     case "ellipse": {
-      options.fillStyle = element.fillStyle;
+      options.fillStyle = lodFillStyle;
       options.fill = isTransparent(element.backgroundColor)
         ? undefined
         : element.backgroundColor;
@@ -104,7 +118,7 @@ export const generateRoughOptions = (
     case "line":
     case "freedraw": {
       if (isPathALoop(element.points)) {
-        options.fillStyle = element.fillStyle;
+        options.fillStyle = lodFillStyle;
         options.fill =
           element.backgroundColor === "transparent"
             ? undefined
@@ -315,6 +329,7 @@ export const _generateElementShape = (
     canvasBackgroundColor: string;
     embedsValidationStatus: EmbedsValidationStatus | null;
   },
+  lodScale = 1,
 ): Drawable | Drawable[] | null => {
   switch (element.type) {
     case "rectangle":
@@ -341,6 +356,7 @@ export const _generateElementShape = (
               embedsValidationStatus,
             ),
             true,
+            lodScale,
           ),
         );
       } else {
@@ -356,6 +372,7 @@ export const _generateElementShape = (
               embedsValidationStatus,
             ),
             false,
+            lodScale,
           ),
         );
       }
@@ -393,7 +410,7 @@ export const _generateElementShape = (
             C ${topX} ${topY}, ${topX} ${topY}, ${topX + verticalRadius} ${
             topY + horizontalRadius
           }`,
-          generateRoughOptions(element, true),
+          generateRoughOptions(element, true, lodScale),
         );
       } else {
         shape = generator.polygon(
@@ -403,7 +420,7 @@ export const _generateElementShape = (
             [bottomX, bottomY],
             [leftX, leftY],
           ],
-          generateRoughOptions(element),
+          generateRoughOptions(element, false, lodScale),
         );
       }
       return shape;
@@ -414,14 +431,14 @@ export const _generateElementShape = (
         element.height / 2,
         element.width,
         element.height,
-        generateRoughOptions(element),
+        generateRoughOptions(element, false, lodScale),
       );
       return shape;
     }
     case "line":
     case "arrow": {
       let shape: ElementShapes[typeof element.type];
-      const options = generateRoughOptions(element);
+      const options = generateRoughOptions(element, false, lodScale);
 
       // points array can be empty in the beginning, so it is important to add
       // initial position to it
@@ -446,7 +463,7 @@ export const _generateElementShape = (
           shape = [
             generator.path(
               generateElbowArrowShape(points, 16),
-              generateRoughOptions(element, true),
+              generateRoughOptions(element, true, lodScale),
             ),
           ];
         }
@@ -510,7 +527,7 @@ export const _generateElementShape = (
         // generate rough polygon to fill freedraw shape
         const simplifiedPoints = simplify(element.points, 0.75);
         shape = generator.curve(simplifiedPoints as [number, number][], {
-          ...generateRoughOptions(element),
+          ...generateRoughOptions(element, false, lodScale),
           stroke: "none",
         });
       } else {
