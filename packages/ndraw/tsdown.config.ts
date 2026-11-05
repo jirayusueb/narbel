@@ -54,6 +54,8 @@ const shared = {
     index: path.join(app, "index.tsx"),
     "subset-shared.chunk": path.join(app, "subset/subset-shared.chunk.ts"),
     "subset-worker.chunk": path.join(app, "subset/subset-worker.chunk.ts"),
+    "tile-worker.chunk": path.join(app, "renderer/tile-worker.chunk.ts"),
+    "tile-worker-boot.chunk": path.join(app, "renderer/tile-worker-boot.chunk.ts"),
   },
   format: "esm",
   platform: "browser",

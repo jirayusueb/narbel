@@ -123,6 +123,11 @@ export class SpatialIndex {
     }
   }
 
+  // shortcut: the flatbush rebuild stays on the main thread. search() must be
+  // answerable synchronously inside the same input event, the dominant cost is
+  // getElementBounds (needs the live scene map, cannot leave main) and the
+  // sort+pack of N boxes is a few ms at 10k; an async rebuild would only add a
+  // stale-index window. Revisit if rebuild shows up in longTask at 50k+.
   private rebuild() {
     const elements = this.scene.getNonDeletedElements();
     const elementsMap = this.scene.getNonDeletedElementsMap();

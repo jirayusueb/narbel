@@ -97,7 +97,10 @@ for (const t of targets) {
     outdir,
     target: "browser",
     minify: true,
-    naming: "[name].[ext]",
+    // keep the engine's dynamic-import chunks (subset + tile workers) as
+    // separate files, as an app bundler does; one file defeats worker URLs
+    splitting: true,
+    naming: { entry: "[name].[ext]", chunk: "[name]-[hash].[ext]" },
     define: { "process.env.NODE_ENV": '"production"' },
     plugins: [
       {
@@ -114,6 +117,29 @@ for (const t of targets) {
     throw new Error(`bundling the bench against ${t.root} failed:\n${build.logs.join("\n")}`);
   }
   await Bun.write(path.join(outdir, "index.html"), Bun.file(path.join(benchDir, "index.html")));
+  // Bun hoists its dynamic-import helper from main.js into split chunks, so a
+  // worker started from the page bundle's boot chunk would evaluate the whole
+  // app before the boot file installs its globals. Ship the tile worker as its
+  // own self-contained bundle under the boot chunk's file name instead, the
+  // shape tsdown/vite produce for real consumers.
+  const bootEntry = path.join(t.root, "dist/prod/tile-worker-boot.chunk.js");
+  if (await Bun.file(bootEntry).exists()) {
+    const worker = await Bun.build({
+      entrypoints: [bootEntry],
+      outdir: path.join(outdir, "worker"),
+      target: "browser",
+      minify: true,
+      naming: "[name].[ext]",
+      define: { "process.env.NODE_ENV": '"production"' },
+    });
+    if (!worker.success) {
+      throw new Error(`bundling the tile worker of ${t.root} failed:\n${worker.logs.join("\n")}`);
+    }
+    await Bun.write(
+      path.join(outdir, "tile-worker-boot.chunk.js"),
+      Bun.file(path.join(outdir, "worker", "tile-worker-boot.chunk.js")),
+    );
+  }
 }
 
 const server = Bun.serve({
@@ -122,7 +148,9 @@ const server = Bun.serve({
   fetch(req) {
     const [, label, ...rest] = new URL(req.url).pathname.split("/");
     const target = targets.find((t) => t.label === label);
-    const rel = rest.join("/") || "index.html";
+    const requested = rest.join("/") || "index.html";
+    // the page bundle's (hashed) boot chunk is served from the standalone worker bundle
+    const rel = /^tile-worker-boot\.chunk[-.]/.test(requested) ? "tile-worker-boot.chunk.js" : requested;
     if (!target || rel.split("/").includes("..")) {
       return new Response("not found", { status: 404 });
     }

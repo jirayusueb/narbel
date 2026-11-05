@@ -12,10 +12,12 @@ import {
   isIframeLikeElement,
   isTextElement,
 } from "../element/type-checks";
-import { lodScaleOf, renderElement } from "./render-element";
+import { hasFreshElementCanvas, lodScaleOf, renderElement } from "./render-element";
 import Scene from "../scene/scene";
 import {
   getTileBudget,
+  requestWorkerTile,
+  setTileReadyListener,
   tileCache,
   tilesSuppressed,
   tickTileFrame,
@@ -40,7 +42,11 @@ import {
   ELEMENT_LINK_IMG,
   getLinkHandleFromCoords,
 } from "../components/hyperlink/helpers";
-import { bootstrapCanvas, getNormalizedCanvasDimensions } from "./helpers";
+import {
+  bootstrapCanvas,
+  createCanvas,
+  getNormalizedCanvasDimensions,
+} from "./helpers";
 import { throttleRAF } from "../utils";
 import { getBoundTextElement } from "../element/text-element";
 import { isElementLink } from "../element/element-link";
@@ -186,7 +192,7 @@ const renderLinkIcon = (
     let linkCanvas = linkIconCanvasCache[canvasKey];
 
     if (!linkCanvas || linkCanvas.zoom !== appState.zoom.value) {
-      linkCanvas = Object.assign(document.createElement("canvas"), {
+      linkCanvas = Object.assign(createCanvas(), {
         zoom: appState.zoom.value,
       });
       linkCanvas.width = width * window.devicePixelRatio * appState.zoom.value;
@@ -417,6 +423,14 @@ const _renderStaticScene = ({
 
     const overflow: ExcalidrawElement[] = [];
     let freshTiles = 0;
+    // states whose raster the worker cannot reproduce stay on the main thread
+    const workerUsable =
+      !appState.shouldCacheIgnoreZoom &&
+      !appState.frameToHighlight &&
+      !appState.croppingElementId &&
+      appState.openDialog?.name !== "elementLinkSelector" &&
+      renderConfig.elementsPendingErasure.size === 0 &&
+      !renderConfig.pendingFlowchartNodes?.length;
 
     if (index) {
       for (let ty = ty0; ty <= ty1; ty++) {
@@ -440,12 +454,45 @@ const _renderStaticScene = ({
             x2: (tx + 1) * tileSceneSize,
             y2: (ty + 1) * tileSceneSize,
           };
-          if (freshTiles >= MAX_FRESH_TILES_PER_FRAME) {
-            // over budget: draw this tile's elements directly this frame
-            for (const element of index.search(tileRect, 0)) {
-              if (isTileable(element)) {
+          const tileElements: ExcalidrawElement[] = [];
+          for (const element of index.search(tileRect, 0)) {
+            if (isTileable(element)) {
+              tileElements.push(element);
+            }
+          }
+          // main rasters up to the per-frame budget (immediate blit, PR6
+          // behaviour); only tiles beyond it go to the worker, so the worker
+          // absorbs the bursts that used to become overflow long tasks
+          if (
+            freshTiles >= MAX_FRESH_TILES_PER_FRAME &&
+            workerUsable &&
+            requestWorkerTile({
+              key,
+              level,
+              tx,
+              ty,
+              x1: tileRect.x1,
+              y1: tileRect.y1,
+              scale,
+              theme: appState.theme,
+              background: renderConfig.canvasBackgroundColor,
+              elements: tileElements,
+              elementsMap,
+            })
+          ) {
+            // the worker owns this tile until its bitmap lands: blit only
+            // element rasters we already have, never pay a regen for it here
+            for (const element of tileElements) {
+              if (hasFreshElementCanvas(element, appState)) {
                 overflow.push(element);
               }
+            }
+            continue;
+          }
+          if (freshTiles >= MAX_FRESH_TILES_PER_FRAME) {
+            // over budget: draw this tile's elements directly this frame
+            for (const element of tileElements) {
+              overflow.push(element);
             }
             continue;
           }
@@ -460,13 +507,11 @@ const _renderStaticScene = ({
             scrollX: -tileRect.x1,
             scrollY: -tileRect.y1,
           };
-          const tileElements: ExcalidrawElement[] = [];
-          for (const element of index.search(tileRect, 0)) {
-            if (isTileable(element)) {
-              tileElements.push(element);
-            }
-          }
+          const rasterStart = perf.start();
           paintElements(tileElements, tileContext, tileAppState, false);
+          if (rasterStart) {
+            perf.count("tileRasterMainMs", performance.now() - rasterStart);
+          }
           tileCache.put(key, tileCanvas, level, tx, ty);
           context.drawImage(
             tileCanvas,
@@ -491,7 +536,11 @@ const _renderStaticScene = ({
       appState,
       true,
     );
+    const overflowStart = perf.start();
     paintElements(overflow, context, appState, false);
+    if (overflowStart) {
+      perf.count("tileRasterMainMs", performance.now() - overflowStart);
+    }
     // link icons of tile-resident elements stay on the main canvas
     if (!isExporting) {
       for (const element of visibleElements) {
@@ -612,7 +661,13 @@ const _renderStaticScene = ({
   });
 };
 
+// the last non-export render, replayed when a worker tile lands
+let lastTileConfig: StaticSceneRenderConfig | null = null;
+
 const renderStaticSceneTimed = (config: StaticSceneRenderConfig) => {
+  if (!config.renderConfig.isExporting) {
+    lastTileConfig = config;
+  }
   const startedAt = perf.start();
   _renderStaticScene(config);
   perf.end("staticRender", startedAt);
@@ -625,6 +680,12 @@ export const renderStaticSceneThrottled = throttleRAF(
   },
   { trailing: true },
 );
+
+setTileReadyListener(() => {
+  if (lastTileConfig) {
+    renderStaticSceneThrottled(lastTileConfig);
+  }
+});
 
 /**
  * Static scene is the non-ui canvas where we render elements.

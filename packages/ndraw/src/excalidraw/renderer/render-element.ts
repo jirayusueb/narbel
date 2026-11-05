@@ -66,6 +66,7 @@ import { getCornerRadius } from "../shapes";
 import { getUncroppedImageElement } from "../element/crop-element";
 import { getLineHeightInPx } from "../element/text-measurements";
 import { perf } from "../perf/performance-manager";
+import { createCanvas } from "./helpers";
 
 // using a stronger invert (100% vs our regular 93%) and saturate
 // as a temp hack to make images in dark theme look closer to original
@@ -158,6 +159,7 @@ const cappedElementCanvasSize = (
   element: NonDeletedExcalidrawElement,
   elementsMap: ElementsMap,
   zoom: Zoom,
+  dpr: number,
 ): {
   width: number;
   height: number;
@@ -185,8 +187,8 @@ const cappedElementCanvasSize = (
       ? distance(y1, y2)
       : element.height;
 
-  let width = elementWidth * window.devicePixelRatio + padding * 2;
-  let height = elementHeight * window.devicePixelRatio + padding * 2;
+  let width = elementWidth * dpr + padding * 2;
+  let height = elementHeight * dpr + padding * 2;
 
   let scale: number = zoom.value;
 
@@ -215,8 +217,9 @@ const generateElementCanvas = (
   zoom: Zoom,
   renderConfig: StaticCanvasRenderConfig,
   appState: StaticCanvasAppState,
+  dpr: number,
 ): ExcalidrawElementWithCanvas | null => {
-  const canvas = document.createElement("canvas");
+  const canvas = createCanvas();
   const context = canvas.getContext("2d")!;
   const padding = getCanvasPadding(element);
   const lodScale = lodScaleOf(zoom.value);
@@ -225,6 +228,7 @@ const generateElementCanvas = (
     element,
     elementsMap,
     { ...zoom, value: lodScale },
+    dpr,
   );
 
   if (!width || !height) {
@@ -242,12 +246,12 @@ const generateElementCanvas = (
 
     canvasOffsetX =
       element.x > x1
-        ? distance(element.x, x1) * window.devicePixelRatio * scale
+        ? distance(element.x, x1) * dpr * scale
         : 0;
 
     canvasOffsetY =
       element.y > y1
-        ? distance(element.y, y1) * window.devicePixelRatio * scale
+        ? distance(element.y, y1) * dpr * scale
         : 0;
 
     context.translate(canvasOffsetX, canvasOffsetY);
@@ -256,8 +260,8 @@ const generateElementCanvas = (
   context.save();
   context.translate(padding * scale, padding * scale);
   context.scale(
-    window.devicePixelRatio * scale,
-    window.devicePixelRatio * scale,
+    dpr * scale,
+    dpr * scale,
   );
 
   const rc = rough.canvas(canvas);
@@ -272,7 +276,7 @@ const generateElementCanvas = (
   context.restore();
 
   const boundTextElement = getBoundTextElement(element, elementsMap);
-  const boundTextCanvas = document.createElement("canvas");
+  const boundTextCanvas = createCanvas();
   const boundTextCanvasContext = boundTextCanvas.getContext("2d")!;
 
   if (isArrowElement(element) && boundTextElement) {
@@ -281,9 +285,9 @@ const generateElementCanvas = (
     // the arrow doesn't get clipped
     const maxDim = Math.max(distance(x1, x2), distance(y1, y2));
     boundTextCanvas.width =
-      maxDim * window.devicePixelRatio * scale + padding * scale * 10;
+      maxDim * dpr * scale + padding * scale * 10;
     boundTextCanvas.height =
-      maxDim * window.devicePixelRatio * scale + padding * scale * 10;
+      maxDim * dpr * scale + padding * scale * 10;
     boundTextCanvasContext.translate(
       boundTextCanvas.width / 2,
       boundTextCanvas.height / 2,
@@ -307,29 +311,29 @@ const generateElementCanvas = (
     const offsetY = (boundTextCanvas.height - canvas!.height) / 2;
     const shiftX =
       boundTextCanvas.width / 2 -
-      (boundTextCx - x1) * window.devicePixelRatio * scale -
+      (boundTextCx - x1) * dpr * scale -
       offsetX -
       padding * scale;
 
     const shiftY =
       boundTextCanvas.height / 2 -
-      (boundTextCy - y1) * window.devicePixelRatio * scale -
+      (boundTextCy - y1) * dpr * scale -
       offsetY -
       padding * scale;
     boundTextCanvasContext.translate(-shiftX, -shiftY);
     // Clear the bound text area
     boundTextCanvasContext.clearRect(
       -(boundTextElement.width / 2 + BOUND_TEXT_PADDING) *
-        window.devicePixelRatio *
+        dpr *
         scale,
       -(boundTextElement.height / 2 + BOUND_TEXT_PADDING) *
-        window.devicePixelRatio *
+        dpr *
         scale,
       (boundTextElement.width + BOUND_TEXT_PADDING * 2) *
-        window.devicePixelRatio *
+        dpr *
         scale,
       (boundTextElement.height + BOUND_TEXT_PADDING * 2) *
-        window.devicePixelRatio *
+        dpr *
         scale,
     );
   }
@@ -355,15 +359,27 @@ const generateElementCanvas = (
 
 export const DEFAULT_LINK_SIZE = 14;
 
-const IMAGE_PLACEHOLDER_IMG = document.createElement("img");
-IMAGE_PLACEHOLDER_IMG.src = `data:${MIME_TYPES.svg},${encodeURIComponent(
+// null where there is no DOM (tile worker): image elements never reach it
+const createPlaceholderImg = (src: string): HTMLImageElement | null => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+  const img = document.createElement("img");
+  img.src = src;
+  return img;
+};
+
+const IMAGE_PLACEHOLDER_SRC = `data:${MIME_TYPES.svg},${encodeURIComponent(
   `<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="image" class="svg-inline--fa fa-image fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="#888" d="M464 448H48c-26.51 0-48-21.49-48-48V112c0-26.51 21.49-48 48-48h416c26.51 0 48 21.49 48 48v288c0 26.51-21.49 48-48 48zM112 120c-30.928 0-56 25.072-56 56s25.072 56 56 56 56-25.072 56-56-25.072-56-56-56zM64 384h384V272l-87.515-87.515c-4.686-4.686-12.284-4.686-16.971 0L208 320l-55.515-55.515c-4.686-4.686-12.284-4.686-16.971 0L64 336v48z"></path></svg>`,
 )}`;
+const IMAGE_PLACEHOLDER_IMG = createPlaceholderImg(IMAGE_PLACEHOLDER_SRC);
 
-const IMAGE_ERROR_PLACEHOLDER_IMG = document.createElement("img");
-IMAGE_ERROR_PLACEHOLDER_IMG.src = `data:${MIME_TYPES.svg},${encodeURIComponent(
+const IMAGE_ERROR_PLACEHOLDER_SRC = `data:${MIME_TYPES.svg},${encodeURIComponent(
   `<svg viewBox="0 0 668 668" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2"><path d="M464 448H48c-26.51 0-48-21.49-48-48V112c0-26.51 21.49-48 48-48h416c26.51 0 48 21.49 48 48v288c0 26.51-21.49 48-48 48ZM112 120c-30.928 0-56 25.072-56 56s25.072 56 56 56 56-25.072 56-56-25.072-56-56-56ZM64 384h384V272l-87.515-87.515c-4.686-4.686-12.284-4.686-16.971 0L208 320l-55.515-55.515c-4.686-4.686-12.284-4.686-16.971 0L64 336v48Z" style="fill:#888;fill-rule:nonzero" transform="matrix(.81709 0 0 .81709 124.825 145.825)"/><path d="M256 8C119.034 8 8 119.033 8 256c0 136.967 111.034 248 248 248s248-111.034 248-248S392.967 8 256 8Zm130.108 117.892c65.448 65.448 70 165.481 20.677 235.637L150.47 105.216c70.204-49.356 170.226-44.735 235.638 20.676ZM125.892 386.108c-65.448-65.448-70-165.481-20.677-235.637L361.53 406.784c-70.203 49.356-170.226 44.736-235.638-20.676Z" style="fill:#888;fill-rule:nonzero" transform="matrix(.30366 0 0 .30366 506.822 60.065)"/></svg>`,
 )}`;
+const IMAGE_ERROR_PLACEHOLDER_IMG = createPlaceholderImg(
+  IMAGE_ERROR_PLACEHOLDER_SRC,
+);
 
 const drawImagePlaceholder = (
   element: ExcalidrawImageElement,
@@ -379,10 +395,15 @@ const drawImagePlaceholder = (
     Math.min(imageMinWidthOrHeight * 0.4, 100),
   );
 
-  context.drawImage(
+  const placeholder =
     element.status === "error"
       ? IMAGE_ERROR_PLACEHOLDER_IMG
-      : IMAGE_PLACEHOLDER_IMG,
+      : IMAGE_PLACEHOLDER_IMG;
+  if (!placeholder) {
+    return;
+  }
+  context.drawImage(
+    placeholder,
     element.width / 2 - size / 2,
     element.height / 2 - size / 2,
     size,
@@ -482,13 +503,16 @@ const drawElementOnCanvas = (
     default: {
       if (isTextElement(element)) {
         const rtl = isRTL(element.text);
-        const shouldTemporarilyAttach = rtl && !context.canvas.isConnected;
+        const shouldTemporarilyAttach =
+          rtl && "isConnected" in context.canvas && !context.canvas.isConnected;
         if (shouldTemporarilyAttach) {
           // to correctly render RTL text mixed with LTR, we have to append it
           // to the DOM
           document.body.appendChild(context.canvas);
         }
-        context.canvas.setAttribute("dir", rtl ? "rtl" : "ltr");
+        if ("setAttribute" in context.canvas) {
+          context.canvas.setAttribute("dir", rtl ? "rtl" : "ltr");
+        }
         context.save();
         context.font = getFontString(element);
         context.fillStyle = element.strokeColor;
@@ -538,11 +562,28 @@ export const elementWithCanvasCache = new WeakMap<
   ExcalidrawElementWithCanvas
 >();
 
+/**
+ * True when drawing `element` right now only blits a cached raster (no regen).
+ * Used while a tile is in the worker: draw what is free, never pay a regen.
+ */
+export const hasFreshElementCanvas = (
+  element: ExcalidrawElement,
+  appState: StaticCanvasAppState,
+) => {
+  const cached = elementWithCanvasCache.get(element);
+  return (
+    !!cached &&
+    cached.lodScale === lodScaleOf(appState.zoom.value) &&
+    cached.theme === appState.theme
+  );
+};
+
 const generateElementWithCanvas = (
   element: NonDeletedExcalidrawElement,
   elementsMap: NonDeletedSceneElementsMap,
   renderConfig: StaticCanvasRenderConfig,
   appState: StaticCanvasAppState,
+  dpr: number,
 ) => {
   const zoom: Zoom = renderConfig ? appState.zoom : defaultAppState.zoom;
   const prevElementWithCanvas = elementWithCanvasCache.get(element);
@@ -579,6 +620,7 @@ const generateElementWithCanvas = (
       zoom,
       renderConfig,
       appState,
+      dpr,
     );
 
     if (!elementWithCanvas) {
@@ -598,6 +640,7 @@ const drawElementFromCanvas = (
   renderConfig: StaticCanvasRenderConfig,
   appState: StaticCanvasAppState,
   allElementsMap: NonDeletedSceneElementsMap,
+  dpr: number,
 ) => {
   const element = elementWithCanvas.element;
   const padding = getCanvasPadding(element);
@@ -605,11 +648,11 @@ const drawElementFromCanvas = (
   // raster is at lodScale; display at actual zoom → scale about element center
   const drawScale = appState.zoom.value / elementWithCanvas.lodScale;
   const [x1, y1, x2, y2] = getElementAbsoluteCoords(element, allElementsMap);
-  const cx = ((x1 + x2) / 2 + appState.scrollX) * window.devicePixelRatio;
-  const cy = ((y1 + y2) / 2 + appState.scrollY) * window.devicePixelRatio;
+  const cx = ((x1 + x2) / 2 + appState.scrollX) * dpr;
+  const cy = ((y1 + y2) / 2 + appState.scrollY) * dpr;
 
   context.save();
-  context.scale(1 / window.devicePixelRatio, 1 / window.devicePixelRatio);
+  context.scale(1 / dpr, 1 / dpr);
 
   const boundTextElement = getBoundTextElement(element, allElementsMap);
 
@@ -645,10 +688,10 @@ const drawElementFromCanvas = (
     context.drawImage(
       elementWithCanvas.canvas!,
       cx -
-        (cx - ((x1 + appState.scrollX) * window.devicePixelRatio - padding)) *
+        (cx - ((x1 + appState.scrollX) * dpr - padding)) *
           drawScale,
       cy -
-        (cy - ((y1 + appState.scrollY) * window.devicePixelRatio - padding)) *
+        (cy - ((y1 + appState.scrollY) * dpr - padding)) *
           drawScale,
       (elementWithCanvas.canvas!.width / elementWithCanvas.scale) * drawScale,
       (elementWithCanvas.canvas!.height / elementWithCanvas.scale) * drawScale,
@@ -667,10 +710,10 @@ const drawElementFromCanvas = (
       context.strokeStyle = "#c92a2a";
       context.lineWidth = 3;
       context.strokeRect(
-        (coords.x + appState.scrollX) * window.devicePixelRatio,
-        (coords.y + appState.scrollY) * window.devicePixelRatio,
-        getBoundTextMaxWidth(element, textElement) * window.devicePixelRatio,
-        getBoundTextMaxHeight(element, textElement) * window.devicePixelRatio,
+        (coords.x + appState.scrollX) * dpr,
+        (coords.y + appState.scrollY) * dpr,
+        getBoundTextMaxWidth(element, textElement) * dpr,
+        getBoundTextMaxHeight(element, textElement) * dpr,
       );
     }
   }
@@ -711,6 +754,7 @@ export const renderElement = (
   context: CanvasRenderingContext2D,
   renderConfig: StaticCanvasRenderConfig,
   appState: StaticCanvasAppState,
+  dpr: number = window.devicePixelRatio,
 ) => {
   const reduceAlphaForSelection =
     appState.openDialog?.name === "elementLinkSelector" &&
@@ -792,6 +836,7 @@ export const renderElement = (
           allElementsMap,
           renderConfig,
           appState,
+          dpr,
         );
         if (!elementWithCanvas) {
           return;
@@ -803,6 +848,7 @@ export const renderElement = (
           renderConfig,
           appState,
           allElementsMap,
+          dpr,
         );
       }
 
@@ -853,7 +899,7 @@ export const renderElement = (
         const boundTextElement = getBoundTextElement(element, elementsMap);
 
         if (isArrowElement(element) && boundTextElement) {
-          const tempCanvas = document.createElement("canvas");
+          const tempCanvas = createCanvas();
 
           const tempCanvasContext = tempCanvas.getContext("2d")!;
 
@@ -942,6 +988,7 @@ export const renderElement = (
           allElementsMap,
           renderConfig,
           appState,
+          dpr,
         );
 
         if (!elementWithCanvas) {
@@ -985,6 +1032,7 @@ export const renderElement = (
             appState.zoom,
             renderConfig,
             appState,
+            dpr,
           );
 
           if (uncroppedElementCanvas) {
@@ -994,6 +1042,7 @@ export const renderElement = (
               renderConfig,
               appState,
               allElementsMap,
+              dpr,
             );
           }
 
@@ -1006,6 +1055,7 @@ export const renderElement = (
           renderConfig,
           appState,
           allElementsMap,
+          dpr,
         );
 
         // reset

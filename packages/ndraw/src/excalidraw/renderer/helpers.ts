@@ -4,6 +4,24 @@ import type { StaticCanvasRenderConfig } from "../scene/types";
 
 import { THEME, THEME_FILTER } from "../constants";
 
+/**
+ * Canvas creation seam for the draw path. Defaults to `document.createElement`;
+ * the tile worker installs an OffscreenCanvas factory. The return type stays
+ * HTMLCanvasElement because every caller only needs the 2d-context surface
+ * both canvas kinds share.
+ */
+type CanvasFactory = (width: number, height: number) => HTMLCanvasElement | OffscreenCanvas;
+let canvasFactory: CanvasFactory | null = null;
+
+export const setCanvasFactory = (factory: CanvasFactory | null) => {
+  canvasFactory = factory;
+};
+
+export const createCanvas = (): HTMLCanvasElement =>
+  (canvasFactory
+    ? canvasFactory(1, 1)
+    : document.createElement("canvas")) as HTMLCanvasElement;
+
 export const fillCircle = (
   context: CanvasRenderingContext2D,
   cx: number,
