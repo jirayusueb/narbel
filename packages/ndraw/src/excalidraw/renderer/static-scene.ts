@@ -17,6 +17,8 @@ import Scene from "../scene/scene";
 import {
   getTileBudget,
   tileCache,
+  tilesSuppressed,
+  tickTileFrame,
   tileKey,
   TILE,
   TILE_MIN_ELEMENTS,
@@ -228,6 +230,7 @@ const _renderStaticScene = ({
   appState,
   renderConfig,
 }: StaticSceneRenderConfig) => {
+  tickTileFrame();
   if (canvas === null) {
     return;
   }
@@ -384,6 +387,7 @@ const _renderStaticScene = ({
   const tileMode =
     !isExporting &&
     getTileBudget() > 0 &&
+    !tilesSuppressed() &&
     visibleElements.length >= TILE_MIN_ELEMENTS;
 
   if (tileMode) {

@@ -6,6 +6,10 @@ import { effect } from "../signals/signals";
 export const TILE = 512;
 /** visible elements needed before the static scene switches to tile compositing */
 export const TILE_MIN_ELEMENTS = 1500;
+/** a single diff touching more elements than this is an edit storm: tile
+ * rasterization would thrash, so the static scene draws directly for a while */
+const CHURN_DIFF_SIZE = 100;
+const CHURN_SUPPRESS_FRAMES = 4;
 const DEFAULT_TILE_BUDGET = 256;
 
 type TileEntry = {
@@ -28,6 +32,16 @@ export const getTileBudget = (): number => {
   return typeof value === "number" ? value : DEFAULT_TILE_BUDGET;
 };
 
+let frameCounter = 0;
+let churnSuppressUntil = 0;
+
+/** call once per static-scene render */
+export const tickTileFrame = () => {
+  frameCounter++;
+};
+
+/** true while a recent large diff makes tile rasterization counterproductive */
+export const tilesSuppressed = () => frameCounter < churnSuppressUntil;
 const cache = new Map<string, TileEntry>();
 
 export const tileCache = {
@@ -96,6 +110,14 @@ export const attachTileInvalidator = (scene: Scene) => {
       tileCache.clear();
       lastEpoch = epoch;
       return;
+    }
+    // an edit storm makes tile rasterization thrash: draw directly for a while
+    let changed = 0;
+    for (const diff of diffs) {
+      changed += diff.upserted.length + diff.removed.length;
+    }
+    if (changed > CHURN_DIFF_SIZE) {
+      churnSuppressUntil = frameCounter + CHURN_SUPPRESS_FRAMES;
     }
     if (tileCache.size() === 0) {
       lastEpoch = epoch;
