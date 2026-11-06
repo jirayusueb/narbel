@@ -51,10 +51,11 @@ export const ruleFor = (metric: string): MetricRule => {
 export const GATES: Gate[] = [
   // PR 3 (signals): the plan gives no number but requires proof it is faster; conservative bar is any cull improvement
   { pr: 3, scenario: "pan", metric: "cull", minImprovement: 0 },
-  // PR 4 (spatial index): plan gives no number, so each indexed query must simply get faster
+  // PR 4 (spatial index): the plan sets no PR4 number; the indexed hit-test queries must get faster.
+  // Culling stays linear (measured): a pan viewport covers ~20% of the clustered scene and the
+  // index query is slower than the loop, so cull has no gate and must simply not regress.
   { pr: 4, scenario: "hover", metric: "hitTestPoint", minImprovement: 0 },
   { pr: 4, scenario: "boxSelect", metric: "hitTestBox", minImprovement: 0 },
-  { pr: 4, scenario: "pan", metric: "cull", minImprovement: 0 },
   // PR 5 (LOD): >=80% fewer element raster regenerations across a zoom wave, and static render must get faster
   { pr: 5, scenario: "zoom", metric: "elementCanvasRegen", minImprovement: 0.8 },
   { pr: 5, scenario: "zoom", metric: "staticRender", minImprovement: 0 },

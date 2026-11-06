@@ -28,6 +28,7 @@ import { ENV } from "../constants";
 import { getElementsInGroup } from "../groups";
 
 import { Atom, transact } from "../signals/signals";
+import { SpatialIndex } from "./spatial-index";
 
 type ElementIdKey = InstanceType<typeof LinearElementEditor>["elementId"];
 type ElementKey = ExcalidrawElement | ElementIdKey;
@@ -201,6 +202,16 @@ class Scene {
    */
   markMutated(element: ExcalidrawElement) {
     this.pendingDiffIds.add(element.id);
+  }
+
+  private _spatialIndex: SpatialIndex | null = null;
+
+  /**
+   * Spatial index over the non-deleted elements, kept in sync with emitted
+   * scene diffs. Created on first use; queries apply pending diffs lazily.
+   */
+  get spatialIndex(): SpatialIndex {
+    return (this._spatialIndex ??= new SpatialIndex(this));
   }
 
   getSceneNonce() {

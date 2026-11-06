@@ -472,6 +472,15 @@ import {
 const AppContext = React.createContext<AppClassProperties>(null!);
 const AppPropsContext = React.createContext<AppProps>(null!);
 
+// frame names render above the frame's top edge (div bottom = frameTop -
+// nameOffsetY, height = nameFontSize * nameLineHeight, + edit padding), so a
+// point hit test needs this many viewport px of headroom beyond the threshold
+const FRAME_NAME_HIT_PAD =
+  FRAME_STYLE.nameFontSize * FRAME_STYLE.nameLineHeight +
+  FRAME_STYLE.nameOffsetY +
+  2 * 6 +
+  4;
+
 const deviceContextInitialValue = {
   viewport: {
     isMobile: false,
@@ -5040,17 +5049,17 @@ class App extends React.Component<AppProps, AppState> {
     const elementsMap = this.scene.getNonDeletedElementsMap();
 
     const elements = (
-      includeBoundTextElement && includeLockedElements
-        ? this.scene.getNonDeletedElements()
-        : this.scene
-            .getNonDeletedElements()
-            .filter(
-              (element) =>
-                (includeLockedElements || !element.locked) &&
-                (includeBoundTextElement ||
-                  !(isTextElement(element) && element.containerId)),
-            )
+      this.scene.spatialIndex.search(
+        { x, y },
+        this.getElementHitThreshold() + FRAME_NAME_HIT_PAD / this.state.zoom.value,
+      ) as NonDeleted<ExcalidrawElement>[]
     )
+      .filter(
+        (element) =>
+          (includeLockedElements || !element.locked) &&
+          (includeBoundTextElement ||
+            !(isTextElement(element) && element.containerId)),
+      )
       .filter((el) => this.hitElement(x, y, el))
       .filter((element) => {
         // hitting a frame's element from outside the frame is not considered a hit
@@ -5067,7 +5076,7 @@ class App extends React.Component<AppProps, AppState> {
         // Exception being embeddables which should be on top of everything else in
         // terms of hit testing.
         if (isIframeElement(el)) {
-          iframeLikes.push(el);
+          iframeLikes.push(el as Ordered<ExcalidrawIframeElement>);
           return false;
         }
         return true;
@@ -5130,7 +5139,6 @@ class App extends React.Component<AppProps, AppState> {
   }
 
   private getTextBindableContainerAtPosition(x: number, y: number) {
-    const elements = this.scene.getNonDeletedElements();
     const selectedElements = this.scene.getSelectedElements(this.state);
     if (selectedElements.length === 1) {
       return isTextBindableContainer(selectedElements[0], false)
@@ -5138,7 +5146,12 @@ class App extends React.Component<AppProps, AppState> {
         : null;
     }
     let hitElement = null;
-    // We need to do hit testing from front (end of the array) to back (beginning of the array)
+    // index candidates (z-ascending); the loop below walks them from front
+    // (highest z) to back like before, first hit wins
+    const elements = this.scene.spatialIndex.search(
+      { x, y },
+      this.getElementHitThreshold() + FRAME_NAME_HIT_PAD / this.state.zoom.value,
+    );
     for (let index = elements.length - 1; index >= 0; --index) {
       if (elements[index].isDeleted) {
         continue;
