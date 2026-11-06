@@ -224,6 +224,7 @@ import {
   isSomeElementSelected,
 } from "../scene";
 import Scene from "../scene/scene";
+import { perf } from "../perf/performance-manager";
 import type {
   RenderInteractiveSceneCallback,
   ScrollBars,
@@ -5040,6 +5041,7 @@ class App extends React.Component<AppProps, AppState> {
     includeBoundTextElement: boolean = false,
     includeLockedElements: boolean = false,
   ): NonDeleted<ExcalidrawElement>[] {
+    const startedAt = perf.start();
     const iframeLikes: Ordered<ExcalidrawIframeElement>[] = [];
 
     const elementsMap = this.scene.getNonDeletedElementsMap();
@@ -5079,6 +5081,7 @@ class App extends React.Component<AppProps, AppState> {
       })
       .concat(iframeLikes) as NonDeleted<ExcalidrawElement>[];
 
+    perf.end("hitTestPoint", startedAt);
     return elements;
   }
 

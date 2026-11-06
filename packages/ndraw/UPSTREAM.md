@@ -84,3 +84,21 @@ for p in excalidraw math utils; do diff -r -x tests -x __snapshots__ -x '*.test.
 ## Build
 
 Run `bun run build` in `packages/ndraw`. It writes `dist/{dev,prod,types}`. `dist/` is gitignored, and turbo builds it before `web`.
+
+## Performance measurements
+
+`perf` is exported from the package root (the existing build has one editor entry, not a separate perf bundle). It is inactive unless the page has `?ndraw-perf` or sets `window.__NDRAW_PERF = true` before importing the editor. Inactive instrumentation schedules no frames or observers. Active timings retain the last 512 samples per metric; `count` is the total observations since reset. Counters report their total in all four summary fields.
+
+`perf.mark(name)` / `perf.measureEnd(metric, name)` and the hot-path `start()` / `end(metric, start)` pair measure milliseconds. `perf.count(metric, n)` records totals. `report()` returns `{ [metric]: { p50, p95, p99, count } }`; `reset()` clears collected data. Metrics cover static/interactive rendering, culling, point/box hit tests, binding hover, element-canvas regeneration, frame rate (`fps`) and long tasks (`longTask`, including zero events).
+
+Build first, then run from `packages/ndraw`:
+
+```sh
+bun scripts/bench.ts --fixture 10000 --scenario all --runs 3 --out /tmp/head.json
+bun scripts/bench.ts --fixture 10000 --scenario all --runs 3 --against /path/to/base-worktree --out /tmp/head.json --base-out /tmp/base.json
+bun scripts/bench-compare.ts /tmp/base.json /tmp/head.json --pr 3
+```
+
+The runner bundles the shipped `dist/prod` through the root import, not the editor sources. Both worktrees must be installed and built. It alternates base/head in one Chrome session, resets metrics for each scenario, and compares medians from three runs. The required fixture is 10k; 1k and 50k are trend points. Reference baselines under `bench/baselines/` are machine-specific, anchored to PR1's renderer with PR2's measurement-only instrumentation; never use them instead of remeasuring a comparison.
+
+Scenarios: a five-second pan, wheel zoom 0.2→2→0.2, dense hover plus arrow binding search, a quarter-viewport box selection, and twenty 200-element remote batches. The seeded fixture includes Thai/English text, shapes, bound arrows, lines and 64-point freedraw paths; it intentionally excludes images. Fonts are served from the built distribution. `CHROME_PATH` overrides Chrome Canary; `--profile` isolates the browser profile and `--screenshot` records rendered results. Page errors fail the run.

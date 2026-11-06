@@ -78,6 +78,7 @@ import {
 } from "@excalidraw/math";
 import { intersectElementWithLineSegment } from "./collision";
 import { distanceToBindableElement } from "./distance";
+import { perf } from "../perf/performance-manager";
 
 export type SuggestedBinding =
   | NonDeleted<ExcalidrawBindableElement>
@@ -569,6 +570,30 @@ const unbindLinearElement = (
 };
 
 export const getHoveredElementForBinding = (
+  pointerCoords: {
+    x: number;
+    y: number;
+  },
+  elements: readonly NonDeletedExcalidrawElement[],
+  elementsMap: NonDeletedSceneElementsMap,
+  zoom?: AppState["zoom"],
+  fullShape?: boolean,
+  considerAllElements?: boolean,
+): NonDeleted<ExcalidrawBindableElement> | null => {
+  const startedAt = perf.start();
+  const hovered = findHoveredElementForBinding(
+    pointerCoords,
+    elements,
+    elementsMap,
+    zoom,
+    fullShape,
+    considerAllElements,
+  );
+  perf.end("bindingHover", startedAt);
+  return hovered;
+};
+
+const findHoveredElementForBinding = (
   pointerCoords: {
     x: number;
     y: number;
