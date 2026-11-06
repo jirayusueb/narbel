@@ -8,14 +8,26 @@ import {
 } from "../frame";
 import {
   isEmbeddableElement,
+  isFrameLikeElement,
   isIframeLikeElement,
   isTextElement,
 } from "../element/type-checks";
-import { renderElement } from "./render-element";
+import { lodScaleOf, renderElement } from "./render-element";
+import Scene from "../scene/scene";
+import {
+  getTileBudget,
+  tileCache,
+  tilesSuppressed,
+  tickTileFrame,
+  tileKey,
+  TILE,
+  TILE_MIN_ELEMENTS,
+} from "./tiles";
 import { createPlaceholderEmbeddableLabel } from "../element/embeddable";
 import type { StaticCanvasAppState, Zoom } from "../types";
 import type {
   ElementsMap,
+  ExcalidrawElement,
   ExcalidrawFrameLikeElement,
   NonDeletedExcalidrawElement,
 } from "../element/types";
@@ -34,6 +46,8 @@ import { getBoundTextElement } from "../element/text-element";
 import { isElementLink } from "../element/element-link";
 import { perf } from "../perf/performance-manager";
 
+// shortcut: 4 fresh tile rasters per frame; raise if tiles pop during fast pans
+const MAX_FRESH_TILES_PER_FRAME = 4;
 const GridLineColor = {
   Bold: "#dddddd",
   Regular: "#e5e5e5",
@@ -216,6 +230,7 @@ const _renderStaticScene = ({
   appState,
   renderConfig,
 }: StaticSceneRenderConfig) => {
+  tickTileFrame();
   if (canvas === null) {
     return;
   }
@@ -276,12 +291,17 @@ const _renderStaticScene = ({
 
   const inFrameGroupsMap = new Map<string, boolean>();
 
-  // Paint visible elements
-  visibleElements
-    .filter((el) => !isIframeLikeElement(el))
-    .forEach((element) => {
+  // shared per-element paint (direct pass, overflow fallback and tile
+  // rasterization; tile passes give a derived appState/scroll offset)
+  const paintElements = (
+    elements: readonly ExcalidrawElement[],
+    context: CanvasRenderingContext2D,
+    state: StaticCanvasAppState,
+    drawLinkIcons: boolean,
+  ) => {
+    elements.forEach((element) => {
       try {
-        const frameId = element.frameId || appState.frameToHighlight?.id;
+        const frameId = element.frameId || state.frameToHighlight?.id;
 
         if (
           isTextElement(element) &&
@@ -296,21 +316,21 @@ const _renderStaticScene = ({
 
         if (
           frameId &&
-          appState.frameRendering.enabled &&
-          appState.frameRendering.clip
+          state.frameRendering.enabled &&
+          state.frameRendering.clip
         ) {
-          const frame = getTargetFrame(element, elementsMap, appState);
+          const frame = getTargetFrame(element, elementsMap, state);
           if (
             frame &&
             shouldApplyFrameClip(
               element,
               frame,
-              appState,
+              state,
               elementsMap,
               inFrameGroupsMap,
             )
           ) {
-            frameClip(frame, context, renderConfig, appState);
+            frameClip(frame, context, renderConfig, state);
           }
           renderElement(
             element,
@@ -319,7 +339,7 @@ const _renderStaticScene = ({
             rc,
             context,
             renderConfig,
-            appState,
+            state,
           );
         } else {
           renderElement(
@@ -329,7 +349,7 @@ const _renderStaticScene = ({
             rc,
             context,
             renderConfig,
-            appState,
+            state,
           );
         }
 
@@ -342,16 +362,16 @@ const _renderStaticScene = ({
             rc,
             context,
             renderConfig,
-            appState,
+            state,
           );
         }
 
         context.restore();
 
-        if (!isExporting) {
-          renderLinkIcon(element, context, appState, elementsMap);
+        if (!isExporting && drawLinkIcons) {
+          renderLinkIcon(element, context, state, elementsMap);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(
           error,
           element.id,
@@ -362,6 +382,141 @@ const _renderStaticScene = ({
         );
       }
     });
+  };
+
+  const tileMode =
+    !isExporting &&
+    getTileBudget() > 0 &&
+    !tilesSuppressed() &&
+    visibleElements.length >= TILE_MIN_ELEMENTS;
+
+  if (tileMode) {
+    // Tile compositing: each 512px tile (at its own level) is rasterized once
+    // through the same paintElements path with a scroll/zoom-derived appState,
+    // then blitted per frame until a scene diff invalidates it.
+    const zoomValue = appState.zoom.value;
+    const level = lodScaleOf(zoomValue);
+    const tileSceneSize = TILE / level;
+    const scene = Scene.getScene(visibleElements[0]);
+    const index = scene ? scene.spatialIndex : null;
+    // elements never baked into tiles: not renderable right now, iframe-like,
+    // selected (must redraw immediately while interacted with), or frame-like
+    // (borders/names stay crisp on the main canvas)
+    const isTileable = (element: ExcalidrawElement) =>
+      elementsMap.has(element.id) &&
+      !isIframeLikeElement(element) &&
+      !isFrameLikeElement(element) &&
+      !appState.selectedElementIds[element.id];
+
+    const left = -appState.scrollX;
+    const top = -appState.scrollY;
+    const tx0 = Math.floor(left / tileSceneSize);
+    const ty0 = Math.floor(top / tileSceneSize);
+    const tx1 = Math.floor((left + appState.width / zoomValue) / tileSceneSize);
+    const ty1 = Math.floor((top + appState.height / zoomValue) / tileSceneSize);
+
+    const overflow: ExcalidrawElement[] = [];
+    let freshTiles = 0;
+
+    if (index) {
+      for (let ty = ty0; ty <= ty1; ty++) {
+        for (let tx = tx0; tx <= tx1; tx++) {
+          const key = tileKey(level, tx, ty);
+          const cached = tileCache.get(key);
+          if (cached) {
+            context.drawImage(
+              cached.canvas,
+              tx * tileSceneSize,
+              ty * tileSceneSize,
+              tileSceneSize,
+              tileSceneSize,
+            );
+            perf.count("tileComposite");
+            continue;
+          }
+          const tileRect = {
+            x1: tx * tileSceneSize,
+            y1: ty * tileSceneSize,
+            x2: (tx + 1) * tileSceneSize,
+            y2: (ty + 1) * tileSceneSize,
+          };
+          if (freshTiles >= MAX_FRESH_TILES_PER_FRAME) {
+            // over budget: draw this tile's elements directly this frame
+            for (const element of index.search(tileRect, 0)) {
+              if (isTileable(element)) {
+                overflow.push(element);
+              }
+            }
+            continue;
+          }
+          freshTiles++;
+          const tileCanvas = document.createElement("canvas");
+          tileCanvas.width = tileCanvas.height = Math.round(TILE * scale);
+          const tileContext = tileCanvas.getContext("2d")!;
+          tileContext.scale(scale * level, scale * level);
+          const tileAppState = {
+            ...appState,
+            zoom: { value: level },
+            scrollX: -tileRect.x1,
+            scrollY: -tileRect.y1,
+          };
+          const tileElements: ExcalidrawElement[] = [];
+          for (const element of index.search(tileRect, 0)) {
+            if (isTileable(element)) {
+              tileElements.push(element);
+            }
+          }
+          paintElements(tileElements, tileContext, tileAppState, false);
+          tileCache.put(key, tileCanvas, level, tx, ty);
+          context.drawImage(
+            tileCanvas,
+            tileRect.x1,
+            tileRect.y1,
+            tileSceneSize,
+            tileSceneSize,
+          );
+          perf.count("tileComposite");
+        }
+      }
+    }
+
+    // direct draws above the tiles: selected + frame-like + over-budget tiles
+    paintElements(
+      visibleElements.filter(
+        (element) =>
+          !isIframeLikeElement(element) &&
+          (appState.selectedElementIds[element.id] || isFrameLikeElement(element)),
+      ),
+      context,
+      appState,
+      true,
+    );
+    paintElements(overflow, context, appState, false);
+    // link icons of tile-resident elements stay on the main canvas
+    if (!isExporting) {
+      for (const element of visibleElements) {
+        if (
+          !isIframeLikeElement(element) &&
+          !appState.selectedElementIds[element.id] &&
+          !(
+            isTextElement(element) &&
+            element.containerId &&
+            elementsMap.has(element.containerId)
+          )
+        ) {
+          renderLinkIcon(element, context, appState, elementsMap);
+        }
+      }
+    }
+  } else {
+    // Paint visible elements
+    paintElements(
+      visibleElements.filter((el) => !isIframeLikeElement(el)),
+      context,
+      appState,
+      true,
+    );
+  }
 
   // render embeddables on top
   visibleElements

@@ -27,6 +27,7 @@ import { toBrandedType } from "../utils";
 import { ENV } from "../constants";
 import { getElementsInGroup } from "../groups";
 
+import { attachTileInvalidator } from "../renderer/tiles";
 import { Atom, transact } from "../signals/signals";
 import { SpatialIndex } from "./spatial-index";
 
@@ -213,6 +214,8 @@ class Scene {
   get spatialIndex(): SpatialIndex {
     return (this._spatialIndex ??= new SpatialIndex(this));
   }
+  /** invalidates the static-scene tile cache on every emitted diff */
+  private readonly tileInvalidator = attachTileInvalidator(this);
 
   getSceneNonce() {
     return this.sceneNonce;
