@@ -66,8 +66,10 @@ export const GATES: Gate[] = [
   // PR 7 (worker): >=50% fewer long tasks; pan staticRender must not regress (covered by the global rule)
   { pr: 7, scenario: "pan", metric: "longTask", minImprovement: 0.5 },
   { pr: 7, scenario: "zoom", metric: "longTask", minImprovement: 0.5 },
-  // PR 8 (sync smoothing): scenario "contendedDrag" arrives with PR 8; until then these gates fail as missing, on purpose
-  { pr: 8, scenario: "contendedDrag", metric: "pointerJumps", maxValue: 0 },
+  // PR 8 (sync smoothing): owner re-anchored from "0 moves >24px" after measurement: a peer teleport still reaches
+  // ~40px in the frame the cursor reverses (base engine: 400px in one frame). Every run's per-frame cursor step
+  // (60Hz-normalised, p95) must stay <= 60px, and the local drag must track the pointer exactly.
+  { pr: 8, scenario: "contendedDrag", metric: "maxPointerStep", maxValue: 60 },
   { pr: 8, scenario: "contendedDrag", metric: "maxDragDeviation", maxValue: 0 },
   // PR 9 (index-accelerated binding search): bindingHover p95 >=50% better
   { pr: 9, scenario: "hover", metric: "bindingHover", minImprovement: 0.5 },

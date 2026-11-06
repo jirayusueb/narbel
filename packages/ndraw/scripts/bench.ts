@@ -7,7 +7,7 @@
 // base on odd runs), each in a fresh tab, so machine drift hits both sides equally. Base writes to --base-out
 // (default: --out with ".base" before the extension). Feed the two files to bench-compare.ts.
 //
-// Flags: --fixture N (default 10000)  --scenario pan|zoom|hover|boxSelect|remoteBatch|all|a,b (default pan)
+// Flags: --fixture N (default 10000)  --scenario pan|zoom|hover|boxSelect|remoteBatch|contendedDrag|all|a,b (default pan)
 //        --runs N (15)  --out path  --base-out path  --against dir  --profile dir (/tmp/ndraw-bench-chrome)
 //        --screenshot dir (one PNG per run, after the scenario)  --headed  CHROME_PATH env for the browser
 import { cpus, totalmem } from "node:os";
@@ -31,6 +31,7 @@ const SCENARIOS = {
   hover: { fn: "hoverPath", arg: 3000 },
   boxSelect: { fn: "boxSelect", arg: undefined },
   remoteBatch: { fn: "remoteBatch", arg: 200 },
+  contendedDrag: { fn: "contendedDrag", arg: undefined },
 } as const;
 type ScenarioName = keyof typeof SCENARIOS;
 

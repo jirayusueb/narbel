@@ -19,7 +19,12 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
-import { boardCacheName, deleteBoardCache, isOnPage } from "@/entities/drawing";
+import {
+  boardCacheName,
+  deleteBoardCache,
+  elementKey,
+  isOnPage,
+} from "@/entities/drawing";
 import type { UserRef } from "@/entities/person";
 import { api as serverApi } from "@/shared/api";
 import { SYNC_URL } from "@/shared/config";
@@ -39,6 +44,7 @@ import {
 import type { CollabStatus } from "./collab-status";
 import { measureText } from "./measure-text";
 import { byZOrder, incomingFor, outranking } from "./merge";
+import { interactedIds, RemoteMotion } from "./remote-motion";
 import { writeChangedElements } from "./write-changed-elements";
 
 export type { CollabStatus } from "./collab-status";
@@ -89,6 +95,7 @@ export const useBoardCollab = ({
   // Local edits are written to this page; it only changes in the same step that swaps the scene.
   const activePage = useRef<string | null>(null);
   const lastSelection = useRef("");
+  const motion = useRef<RemoteMotion | null>(null);
 
   // A closing tab never runs effect cleanups, so the pending write goes out as the page hides.
   useEventListener("pagehide", () => session?.writeElements.flush());
@@ -323,6 +330,14 @@ export const useBoardCollab = ({
     api.history.clear();
 
     const meta = doc.getMap("meta");
+    // applyRemote below needs remoteMotion, and releasing needs applyRemote
+    const release: { run: ((ids: string[]) => void) | null } = { run: null };
+    const remoteMotion = new RemoteMotion(
+      api,
+      (ids) => release.run?.(ids),
+      CaptureUpdateAction.NEVER
+    );
+    motion.current = remoteMotion;
     const applyRemote = (keys: Iterable<string>, isRestore: boolean) => {
       const changedKeys = [...keys];
       const local = new Map(
@@ -357,20 +372,35 @@ export const useBoardCollab = ({
       }
       incoming.sort(byZOrder);
       const restored = restoreElements(incoming, null);
-      for (const el of restored) {
+      const { apply, moving } = remoteMotion.route(
+        restored,
+        local,
+        interactedIds(api.getAppState(), [...local.values()])
+      );
+      for (const el of [...apply, ...moving]) {
         sentVersions.current.set(el.id, el.version);
+      }
+      if (apply.length === 0) {
+        return;
+      }
+      for (const el of apply) {
         local.set(el.id, el);
       }
       // a remote reorder only changes `index`; the array position must follow it
       const next = measureText(
         [...local.values()].toSorted(byZOrder),
-        new Set(restored.map((el) => el.id))
+        new Set(apply.map((el) => el.id))
       );
       api.updateScene({
         elements: next,
         captureUpdate: CaptureUpdateAction.NEVER,
       });
     };
+    release.run = (ids) =>
+      applyRemote(
+        ids.map((id) => elementKey(pageId, id)),
+        false
+      );
 
     const onElements = (event: Y.YMapEvent<ExcalidrawElement>) => {
       if (event.transaction.origin !== LOCAL_ORIGIN) {
@@ -432,6 +462,8 @@ export const useBoardCollab = ({
     onAwareness(null, "init");
 
     return () => {
+      remoteMotion.dispose();
+      motion.current = null;
       session.writeElements.flush();
       elements.unobserve(onElements);
       meta.unobserve(onMeta);
@@ -449,6 +481,7 @@ export const useBoardCollab = ({
         return;
       }
       const selection = Object.keys(appState.selectedElementIds);
+      motion.current?.settle(appState, scene);
       const selectionKey = selection.join(",");
       if (selectionKey !== lastSelection.current) {
         lastSelection.current = selectionKey;

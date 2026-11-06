@@ -35,6 +35,7 @@ interface Bench {
   hoverPath(ms?: number): Promise<Report>;
   boxSelect(): Promise<Report>;
   remoteBatch(size?: number): Promise<Report>;
+  contendedDrag(): Promise<Report>;
 }
 
 // fonts come from the built dist next to this page, so the run needs no network
@@ -286,6 +287,129 @@ const bench: Bench = {
         api.updateScene({ elements, captureUpdate: CaptureUpdateAction.NEVER });
         await frames(3);
       }
+    });
+  },
+
+  // Engine-level guarantee only: the local drag follows the pointer exactly while remote pointers and element batches
+  // arrive. Parking of remote versions of locally dragged elements lives in apps/web and cannot run here, so the
+  // remote batches below never touch the dragged element. Both measurements read
+  // rendered/scene output from outside the engine, so base and head are measured
+  // the same way (an engine-side counter would not exist in the base build).
+  contendedDrag() {
+    const random = mulberry32(SEED + 2);
+    const DRAG_ID = "bench-contended-drag";
+    const PEER_ID = "bench-peer-0";
+    const FRAMES = 120;
+    const STEP_PX = 3;
+    const REMOTE_EVERY = 4;
+    // a peer teleporting across the screen (well above the 24px jump threshold);
+    // smoothing must glide it regardless of distance, not just small hops
+    const POINTER_JUMP = 200;
+    const JUMP_PX = 24;
+    // clients.ts getClientColor: hsl(hue, 100%, 83%) with hue from a hash of the id
+    let hash = 0;
+    for (let i = 0; i < PEER_ID.length; i += 1) {
+      hash = (hash << 5) - hash + PEER_ID.charCodeAt(i);
+    }
+    const probe = document.createElement("canvas").getContext("2d")!;
+    probe.fillStyle = `hsl(${(Math.abs(hash) % 37) * 10}, 100%, 83%)`;
+    probe.fillRect(0, 0, 1, 1);
+    const [cr, cg, cb] = probe.getImageData(0, 0, 1, 1).data;
+    // the arrow tip is the top-most pixel of the peer colour (clients.ts draws
+    // the 11x14 arrow at the pointer, the name label below it); tracking the tip
+    // keeps label width/clamping out of the measurement
+    const cursorCentroid = () => {
+      const c = canvas();
+      const { data, width } = c.getContext("2d")!.getImageData(0, 0, c.width, c.height);
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] > 200 && Math.abs(data[i] - cr) < 3 && Math.abs(data[i + 1] - cg) < 3 && Math.abs(data[i + 2] - cb) < 3) {
+          const p = i / 4;
+          return { x: (p % width) / devicePixelRatio, y: Math.floor(p / width) / devicePixelRatio };
+        }
+      }
+      return null;
+    };
+    return measure(async () => {
+      api.setActiveTool({ type: "selection" });
+      setView(densest, 1);
+      await frames(3);
+      const template = (api.getSceneElements() as readonly ExcalidrawElement[]).find((e) => e.type === "rectangle");
+      if (!template) {
+        throw new Error("fixture has no rectangle to clone");
+      }
+      const dragged = {
+        ...template,
+        id: DRAG_ID,
+        x: densest.x - 100,
+        y: densest.y - 100,
+        width: 200,
+        height: 200,
+        angle: 0,
+        fillStyle: "solid",
+        backgroundColor: "#ffc9c9",
+        isDeleted: false,
+        groupIds: [],
+        frameId: null,
+        boundElements: null,
+        locked: false,
+        version: 1,
+      } as ExcalidrawElement;
+      api.updateScene({
+        elements: [...api.getSceneElementsIncludingDeleted(), dragged],
+        appState: { selectedElementIds: { [DRAG_ID]: true } },
+        captureUpdate: CaptureUpdateAction.NEVER,
+      });
+      await frames(3);
+      perf.count("pointerJumps", 0);
+
+      const down = toClient(densest.x, densest.y);
+      const startX = dragged.x;
+      pointer("pointerdown", down.x, down.y, true);
+      // a jump is cursor travel faster than 24px per 60Hz frame; reads can span
+      // more than one engine frame, so compare against the elapsed time
+      let lastCursor: { x: number; y: number; t: number } | null = null;
+      for (let f = 1; f <= FRAMES; f++) {
+        pointer("pointermove", down.x + f * STEP_PX, down.y, true);
+        if (f % REMOTE_EVERY === 0) {
+          const sign = (f / REMOTE_EVERY) % 2 === 0 ? 1 : -1;
+          const collaborators = new Map([
+            [PEER_ID, { id: PEER_ID, pointer: { x: densest.x + sign * POINTER_JUMP, y: densest.y - 150, tool: "pointer" }, button: "up", username: "peer" }],
+          ]);
+          // the live dragged element is kept as is: the local gesture owns it
+          const next = (api.getSceneElementsIncludingDeleted() as readonly ExcalidrawElement[]).slice();
+          for (let n = 0; n < 50; n++) {
+            const i = Math.floor(random() * next.length);
+            const el = next[i];
+            if (el.id !== DRAG_ID) {
+              next[i] = { ...el, x: el.x + sign * 4, version: el.version + 1, versionNonce: Math.floor(random() * 2 ** 31) };
+            }
+          }
+          api.updateScene({ elements: next, collaborators, captureUpdate: CaptureUpdateAction.NEVER } as never);
+        }
+        await nextFrame();
+        const cursor = cursorCentroid();
+        const now = performance.now();
+        if (cursor && lastCursor) {
+          const moved = Math.hypot(cursor.x - lastCursor.x, cursor.y - lastCursor.y);
+          if (moved > 0) {
+            // measured against when the cursor last moved: a frame the canvas did
+            // not repaint (a long main-thread task) is a dropped frame, not a jump
+            const frames60 = Math.max(1, (now - lastCursor.t) / (1000 / 60));
+            const step = moved / frames60;
+            perf.sample("maxPointerStep", step);
+            if (step > JUMP_PX) {
+              perf.count("pointerJumps");
+            }
+            lastCursor = { x: cursor.x, y: cursor.y, t: now };
+          }
+        } else {
+          lastCursor = cursor ? { x: cursor.x, y: cursor.y, t: now } : null;
+        }
+        const shown = (api.getSceneElements() as readonly ExcalidrawElement[]).find((e) => e.id === DRAG_ID)!;
+        perf.sample("maxDragDeviation", Math.abs(shown.x - (startX + f * STEP_PX)));
+      }
+      pointer("pointerup", down.x + FRAMES * STEP_PX, down.y, false);
+      api.updateScene({ collaborators: new Map(), captureUpdate: CaptureUpdateAction.NEVER });
     });
   },
 };
