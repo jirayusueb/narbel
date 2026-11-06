@@ -44,6 +44,8 @@ export class SpatialIndex {
   /** immutable snapshot of the scene at the last rebuild */
   private base: Flatbush | null = null;
   private baseItems: IndexItem[] = [];
+  /** element per base entry, valid until the next mutation (any change leaves the fast path) */
+  private baseElements: ExcalidrawElement[] = [];
   private baseIds = new Set<string>();
   /** base entries whose element changed after the rebuild (bounds are stale) */
   private staleBaseIds = new Set<string>();
@@ -128,6 +130,7 @@ export class SpatialIndex {
     const elementsMap = this.scene.getNonDeletedElementsMap();
     this.base = elements.length ? new Flatbush(elements.length) : null;
     this.baseItems = [];
+    this.baseElements = [];
     this.baseIds = new Set();
     this.delta.clear();
     this.deltaItems.clear();
@@ -141,6 +144,7 @@ export class SpatialIndex {
       const b = getElementBounds(element, elementsMap);
       this.base.add(b[0], b[1], b[2], b[3]);
       this.baseItems.push(itemOf(element.id, b));
+      this.baseElements.push(element);
       this.baseIds.add(element.id);
       this.lastBounds.set(element.id, b);
     }
@@ -161,12 +165,31 @@ export class SpatialIndex {
 
     const elementsMap = this.scene.getNonDeletedElementsMap();
     const out: ExcalidrawElement[] = [];
-    const seen = new Set<string>();
-    if (this.base) {
+    // after a rebuild the delta is empty and every live element is in the base:
+    // skip the delta tree and the dedupe set entirely
+    if (this.deltaCount === 0 && this.staleBaseIds.size === 0 && this.base) {
       const indices = this.base.search(minX, minY, maxX, maxY);
-      for (const index of indices) {
-        const item = this.baseItems[index];
-        if (!item || this.staleBaseIds.has(item.id) || seen.has(item.id)) {
+      for (let i = 0; i < indices.length; i++) {
+        out.push(this.baseElements[indices[i]]);
+      }
+    } else {
+      const seen = new Set<string>();
+      if (this.base) {
+        const indices = this.base.search(minX, minY, maxX, maxY);
+        for (const index of indices) {
+          const item = this.baseItems[index];
+          if (!item || this.staleBaseIds.has(item.id) || seen.has(item.id)) {
+            continue;
+          }
+          const element = elementsMap.get(item.id);
+          if (element) {
+            seen.add(item.id);
+            out.push(element);
+          }
+        }
+      }
+      for (const item of this.delta.search({ minX, minY, maxX, maxY })) {
+        if (seen.has(item.id)) {
           continue;
         }
         const element = elementsMap.get(item.id);
@@ -176,20 +199,17 @@ export class SpatialIndex {
         }
       }
     }
-    for (const item of this.delta.search({ minX, minY, maxX, maxY })) {
-      if (seen.has(item.id)) {
-        continue;
-      }
-      const element = elementsMap.get(item.id);
-      if (element) {
-        seen.add(item.id);
-        out.push(element);
-      }
-    }
 
     if (out.length > 1) {
+      // decorate once instead of two map lookups per comparison
       const z = this.getZOrder();
-      out.sort((a, b) => (z.get(a.id) ?? 0) - (z.get(b.id) ?? 0));
+      const decorated = out.map(
+        (element) => [z.get(element.id) ?? 0, element] as const
+      );
+      decorated.sort((a, b) => a[0] - b[0]);
+      for (let i = 0; i < decorated.length; i++) {
+        out[i] = decorated[i][1];
+      }
     }
     return out;
   }

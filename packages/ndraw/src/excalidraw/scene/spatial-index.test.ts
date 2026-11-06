@@ -21,6 +21,7 @@ let mutateElement: typeof MutateModule.mutateElement;
 let restoreElements: typeof RestoreModule.restoreElements;
 let isElementInViewport: typeof SizeHelpersModule.isElementInViewport;
 let maxBindingGap: typeof BindingModule.maxBindingGap;
+let bindingSearchPad: typeof BindingModule.bindingSearchPad;
 
 beforeAll(async () => {
   for (const key of shimmed) {
@@ -52,7 +53,7 @@ beforeAll(async () => {
     { mutateElement },
     { restoreElements },
     { isElementInViewport },
-    { maxBindingGap },
+    { maxBindingGap, bindingSearchPad },
   ] = await Promise.all([
     import("./scene"),
     import("../element/bounds"),
@@ -212,8 +213,8 @@ describe("SpatialIndex", () => {
       zoom,
       // app.tsx point-hit pad: collision threshold + frame-name headroom
       pad: 8 / zoom + 37.5 / zoom,
-      // binding.ts pad formula
-      bindingPad: (10 + 32) / Math.min(zoom, 1) + 4,
+      // binding.ts search pad
+      bindingPad: bindingSearchPad({ value: zoom } as never),
     }));
 
     for (let q = 0; q < 200; q++) {
@@ -236,23 +237,32 @@ describe("SpatialIndex", () => {
     }
   });
 
-  it("covers maxBindingGap at zoom 0.1, 1 and 2", () => {
+  it("covers maxBindingGap at zoom 0.1, 0.5, 1 and 2, on every side and corner", () => {
     const scene = setup();
     const index = scene.spatialIndex;
     const elementsMap = scene.getNonDeletedElementsMap();
 
-    for (const zoomValue of [0.1, 1, 2]) {
+    for (const zoomValue of [0.1, 0.5, 1, 2]) {
       const zoom = { value: zoomValue } as never;
-      const pad = (10 + 32) / Math.min(zoomValue, 1) + 4;
+      const pad = bindingSearchPad(zoom);
       for (const element of scene.getNonDeletedElements()) {
-        const [x1, , , y2] = getElementBounds(element, elementsMap);
+        const [x1, y1, x2, y2] = getElementBounds(element, elementsMap);
         const gap =
           maxBindingGap(element, element.width, element.height, zoom) - 0.001;
-        // a point just inside the binding distance from the left edge
-        const candidates = idsOf(
-          index.search({ x: x1 - gap, y: y2 / 2 + element.y / 2 }, pad),
-        );
-        expect(candidates).toContain(element.id);
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        // points just inside the binding distance outside each edge and corner
+        const probes = [
+          { x: x1 - gap, y: midY },
+          { x: x2 + gap, y: midY },
+          { x: midX, y: y1 - gap },
+          { x: midX, y: y2 + gap },
+          { x: x1 - gap, y: y1 - gap },
+          { x: x2 + gap, y: y2 + gap },
+        ];
+        for (const probe of probes) {
+          expect(idsOf(index.search(probe, pad))).toContain(element.id);
+        }
       }
     }
   });

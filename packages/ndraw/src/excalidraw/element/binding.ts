@@ -37,7 +37,7 @@ import {
   isTextElement,
 } from "./type-checks";
 import type { ElementUpdate } from "./mutate-element";
-import { mutateElement } from "./mutate-element";
+import { mutateElement, newElementWith } from "./mutate-element";
 import type Scene from "../scene/scene";
 import { LinearElementEditor } from "./linear-element-editor";
 import {
@@ -605,15 +605,11 @@ const findHoveredElementForBinding = (
   fullShape?: boolean,
   considerAllElements?: boolean,
 ): NonDeleted<ExcalidrawBindableElement> | null => {
-  // candidates from the spatial index (fallback: the passed array); the pad
-  // covers maxBindingGap's terms — min(0.25*minDim, 32) ≤ 32 and
-  // BINDING_HIGHLIGHT_THICKNESS/zoom + BINDING_HIGHLIGHT_OFFSET — with headroom
+  // candidates from the spatial index (fallback: the passed array)
   const candidates = indexCandidates(
     elements,
     pointerCoords,
-    (BINDING_HIGHLIGHT_THICKNESS + 32) /
-      (zoom?.value && zoom.value < 1 ? zoom.value : 1) +
-      4,
+    bindingSearchPad(zoom),
   ) as NonDeletedExcalidrawElement[];
 
   if (considerAllElements) {
@@ -886,6 +882,53 @@ export const updateBoundElements = (
       handleBindTextResize(element, elementsMap, false);
     }
   });
+};
+
+/** a remote arrow's stored geometry can be a server-side approximation of its bindings */
+const RESOLVE_EPSILON = 0.01;
+
+/**
+ * The geometry a bound arrow takes once its endpoints are re-attached to the shapes they bind to,
+ * computed the way `updateBoundElements` does when a target moves. Pure: works on a clone, bumps no
+ * version and writes nothing. Returns null for elbow arrows (their own router owns the path), for
+ * arrows without a live target, and when nothing moves by more than 0.01 scene units.
+ */
+export const resolveArrowBindings = (
+  arrow: ExcalidrawLinearElement,
+  elementsMap: ElementsMap,
+): Pick<ExcalidrawLinearElement, "points" | "x" | "y" | "width" | "height"> | null => {
+  if (arrow.isDeleted || isElbowArrow(arrow)) {
+    return null;
+  }
+  // force: with no updates newElementWith hands back the same object, and movePoints would mutate it
+  const clone = newElementWith(arrow, {}, true) as NonDeleted<ExcalidrawLinearElement>;
+  const updates: { index: number; point: LocalPoint }[] = [];
+  for (const bindingProp of ["startBinding", "endBinding"] as const) {
+    const binding = clone[bindingProp];
+    const target = binding ? elementsMap.get(binding.elementId) : null;
+    if (!(binding && target && !target.isDeleted && isBindableElement(target))) {
+      continue;
+    }
+    const point = updateBoundPoint(clone, bindingProp, binding, target, elementsMap);
+    if (point) {
+      updates.push({ index: bindingProp === "startBinding" ? 0 : clone.points.length - 1, point });
+    }
+  }
+  if (updates.length === 0) {
+    return null;
+  }
+  LinearElementEditor.movePoints(clone, updates);
+  const moved =
+    Math.abs(clone.x - arrow.x) > RESOLVE_EPSILON ||
+    Math.abs(clone.y - arrow.y) > RESOLVE_EPSILON ||
+    clone.points.some(
+      (p, i) =>
+        Math.abs(p[0] - arrow.points[i][0]) > RESOLVE_EPSILON ||
+        Math.abs(p[1] - arrow.points[i][1]) > RESOLVE_EPSILON,
+    );
+  return moved
+    ? { points: clone.points, x: clone.x, y: clone.y, width: clone.width, height: clone.height }
+    : null;
 };
 
 const doesNeedUpdate = (
@@ -1607,6 +1650,27 @@ export const bindingBorderTest = (
   );
 };
 
+/** max size-dependent term of maxBindingGap: min(0.25 * smallerDimension, 32) */
+const MAX_SIZE_BINDING_GAP = 32;
+// float slack between the index's bounds and isPointOnShape's distance
+const BINDING_SEARCH_SLACK = 1;
+
+/**
+ * How far outside an element's bounds a pointer can still bind to it: the largest maxBindingGap
+ * any element can have at this zoom. A shape's outline lies within its bounds, so bounds padded by
+ * this cover every point bindingBorderTest accepts.
+ */
+export const bindingSearchPad = (zoom?: AppState["zoom"]): number => {
+  const zoomValue = zoom?.value && zoom.value < 1 ? zoom.value : 1;
+  return (
+    Math.max(
+      16,
+      MAX_SIZE_BINDING_GAP,
+      BINDING_HIGHLIGHT_THICKNESS / zoomValue + BINDING_HIGHLIGHT_OFFSET,
+    ) + BINDING_SEARCH_SLACK
+  );
+};
+
 export const maxBindingGap = (
   element: ExcalidrawElement,
   elementWidth: number,
@@ -1622,7 +1686,7 @@ export const maxBindingGap = (
   return Math.max(
     16,
     // bigger bindable boundary for bigger elements
-    Math.min(0.25 * smallerDimension, 32),
+    Math.min(0.25 * smallerDimension, MAX_SIZE_BINDING_GAP),
     // keep in sync with the zoomed highlight
     BINDING_HIGHLIGHT_THICKNESS / zoomValue + BINDING_HIGHLIGHT_OFFSET,
   );

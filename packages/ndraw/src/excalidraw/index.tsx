@@ -246,6 +246,7 @@ export { mergeLibraryItems, getLibraryItemsHash } from "./data/library";
 export { isLinearElement, isTextElement } from "./element/type-checks";
 export { refreshTextDimensions } from "./element/new-element";
 export { getContainerElement } from "./element/text-element";
+export { resolveArrowBindings } from "./element/binding";
 export { perf } from "./perf/performance-manager";
 export type { PerfReport, MetricSummary } from "./perf/performance-manager";
 
