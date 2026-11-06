@@ -147,7 +147,9 @@ const animateZoomAroundCenter = (
     zoom: target.zoom.value,
   });
   return {
-    appState: { ...appState, userToFollow: null },
+    // partial on purpose: a full snapshot would overwrite the camera that
+    // animateCameraTo may have already applied (reduced motion)
+    appState: { userToFollow: null },
     captureUpdate: CaptureUpdateAction.EVENTUALLY,
   };
 };
@@ -389,7 +391,7 @@ export const actionZoomToFitSelectionInViewport = register({
       zoom: final.zoom.value,
     });
     return {
-      appState: { ...appState, userToFollow: null },
+      appState: { userToFollow: null },
       captureUpdate: CaptureUpdateAction.EVENTUALLY,
     };
   },
@@ -424,7 +426,7 @@ export const actionZoomToFitSelection = register({
       zoom: final.zoom.value,
     });
     return {
-      appState: { ...appState, userToFollow: null },
+      appState: { userToFollow: null },
       captureUpdate: CaptureUpdateAction.EVENTUALLY,
     };
   },
@@ -458,7 +460,7 @@ export const actionZoomToFit = register({
       zoom: final.zoom.value,
     });
     return {
-      appState: { ...appState, userToFollow: null },
+      appState: { userToFollow: null },
       captureUpdate: CaptureUpdateAction.EVENTUALLY,
     };
   },
