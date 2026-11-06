@@ -120,3 +120,11 @@ Camera writes occur in the existing static, interactive and new-element canvas e
 ## Remote pointer smoothing
 
 `remote-pointer-smoothing.ts` eases each collaborator's drawn cursor toward the latest received position (τ = 80ms) and caps travel at 20 viewport px per 60Hz frame, so a peer that teleports glides instead of jumping. The interactive canvas drives it from its own `requestAnimationFrame` loop that redraws only the interactive layer and stops once every cursor has settled; with no peer moving, no loop runs. The smoother keeps one monotonic clock for both callers (the canvas effect and the loop), because a rAF frame-start timestamp can precede a `performance.now()` taken earlier in the same frame. Unit tests cover the cap, zoom scaling, the shared clock and settling.
+
+## Arrow binding resolution
+
+`element/binding.ts` exports `resolveArrowBindings(arrow, elementsMap)`: the geometry a bound arrow takes once its endpoints are re-attached to its targets, computed exactly as `updateBoundElements` does when a target moves (same `updateBoundPoint` path). It is pure — it works on a forced clone (`newElementWith(arrow, {}, true)`; without `force` the clone is the same object and `movePoints` would mutate the input), bumps no version and writes nothing. It returns null for elbow arrows, deleted arrows, missing targets, and arrows already sitting on their targets. The web collab layer folds it into the same `updateScene` pass as text re-measurement, so MCP-written arrows (bbox-edge approximations) land on their shapes' outlines on first paint.
+
+`bindingSearchPad(zoom)` is the single source of truth for how far outside an element's bounds a pointer can still bind: the largest `maxBindingGap` any element can have at that zoom, derived from the same constants, plus float slack. The spatial-index coverage test probes every side and corner at zoom 0.1–2.
+
+The index `search` has a fast path for the common steady state (no mutation since the last rebuild): the delta tree and dedupe set are skipped and results come from a `baseElements` array parallel to the flatbush entries, valid because any scene change makes the delta or stale set non-empty and leaves the fast path. Z-ordering decorates items once instead of two map lookups per comparison.

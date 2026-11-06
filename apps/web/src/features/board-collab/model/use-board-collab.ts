@@ -45,6 +45,7 @@ import type { CollabStatus } from "./collab-status";
 import { measureText } from "./measure-text";
 import { byZOrder, incomingFor, outranking } from "./merge";
 import { interactedIds, RemoteMotion } from "./remote-motion";
+import { resolveBindings } from "./resolve-bindings";
 import { writeChangedElements } from "./write-changed-elements";
 
 export type { CollabStatus } from "./collab-status";
@@ -313,7 +314,8 @@ export const useBoardCollab = ({
       }
       found.sort(byZOrder);
       const restored = restoreElements(found, null);
-      return measureText(restored, new Set(restored.map((el) => el.id)));
+      const all = new Set(restored.map((el) => el.id));
+      return resolveBindings(measureText(restored, all), all);
     };
 
     // Switching page swaps the whole scene; undo history from another page must not leak in.
@@ -387,9 +389,10 @@ export const useBoardCollab = ({
         local.set(el.id, el);
       }
       // a remote reorder only changes `index`; the array position must follow it
-      const next = measureText(
-        [...local.values()].toSorted(byZOrder),
-        new Set(apply.map((el) => el.id))
+      const applied = new Set(apply.map((el) => el.id));
+      const next = resolveBindings(
+        measureText([...local.values()].toSorted(byZOrder), applied),
+        applied
       );
       api.updateScene({
         elements: next,
