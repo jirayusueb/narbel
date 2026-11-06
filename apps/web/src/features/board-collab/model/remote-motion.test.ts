@@ -28,10 +28,15 @@ const rect = (over: Record<string, unknown> = {}) =>
     ...over,
   }) as unknown as ExcalidrawElement;
 
-test("only the next version that moved the element counts as motion", () => {
+test("a newer version that only moved the element counts as motion", () => {
   const shown = rect();
   expect(isMotionOnly(shown, rect({ version: 2, x: 5, angle: 1 }))).toBe(true);
-  expect(isMotionOnly(shown, rect({ version: 3, x: 5 }))).toBe(false);
+  // the sender throttles writes, so a drag arrives with skipped versions
+  expect(isMotionOnly(shown, rect({ version: 4, x: 5 }))).toBe(true);
+  expect(isMotionOnly(shown, rect({ version: 1, x: 5 }))).toBe(false);
+  expect(isMotionOnly(shown, rect({ version: 4, strokeColor: "#f00" }))).toBe(
+    false
+  );
   expect(isMotionOnly(shown, rect({ version: 2, strokeColor: "#f00" }))).toBe(
     false
   );
