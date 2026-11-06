@@ -1,4 +1,4 @@
-// bun scripts/bench.ts --fixture 10000 --scenario pan --runs 3 --out head.json [--against <base ndraw dir or worktree>]
+// bun scripts/bench.ts --fixture 10000 --scenario pan --runs 15 --out head.json [--against <base ndraw dir or worktree>]
 //
 // Needs `bun run build` in packages/ndraw (and in the --against checkout) first: the page bundles the shipped
 // dist/prod through the "@narbel/ndraw" root import, never the sources.
@@ -8,18 +8,20 @@
 // (default: --out with ".base" before the extension). Feed the two files to bench-compare.ts.
 //
 // Flags: --fixture N (default 10000)  --scenario pan|zoom|hover|boxSelect|remoteBatch|all|a,b (default pan)
-//        --runs N (3)  --out path  --base-out path  --against dir  --profile dir (/tmp/ndraw-bench-chrome)
+//        --runs N (15)  --out path  --base-out path  --against dir  --profile dir (/tmp/ndraw-bench-chrome)
 //        --screenshot dir (one PNG per run, after the scenario)  --headed  CHROME_PATH env for the browser
 import { cpus, totalmem } from "node:os";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { chromium, type BrowserContext } from "playwright-core";
 import type { BenchFile, MetricSummary, Report } from "./bench-compare";
+import { GATE_RUNS } from "./bench-gates";
 
 const SEED = 42; // keep equal to bench/fixture.ts
 const STATS = ["p50", "p95", "p99", "count"] as const;
 const DEFAULT_CHROME = "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary";
 const LOAD_TIMEOUT_MS = 300_000;
+const WARMUP_RUNS = 1; // runOnce performs exactly one discarded pass per measured pass
 const SCENARIO_TIMEOUT_MS = 120_000;
 
 /** scenario name -> page driver call */
@@ -54,7 +56,7 @@ const option = (name: string) => {
   return at === -1 ? undefined : args[at + 1];
 };
 const fixture = Number(option("--fixture") ?? 10_000);
-const runs = Number(option("--runs") ?? 3);
+const runs = Number(option("--runs") ?? GATE_RUNS);
 const wanted = option("--scenario") ?? "pan";
 const scenarios = (wanted === "all" ? Object.keys(SCENARIOS) : wanted.split(",")) as ScenarioName[];
 const unknown = scenarios.filter((s) => !(s in SCENARIOS));
@@ -128,7 +130,12 @@ const server = Bun.serve({
       ? Bun.file(path.join(target.root, "dist/prod", rel.slice("dist/".length)))
       : Bun.file(path.join(buildRoot, label, rel));
     return file.size > 0 || rel === "index.html"
-      ? new Response(file, { headers: { "cache-control": "no-store" } })
+      ? new Response(file, { headers: {
+          "cache-control": "no-store",
+          // Non-isolated Chrome rounds timings to 0.1ms, swamping sub-ms 5% gates.
+          "cross-origin-opener-policy": "same-origin",
+          "cross-origin-embedder-policy": "require-corp",
+        } })
       : new Response("not found", { status: 404 });
   },
 });
@@ -189,9 +196,20 @@ const runOnce = async (target: Target, scenario: ScenarioName, run: number) => {
   try {
     await page.goto(`http://127.0.0.1:${server.port}/${target.label}/?ndraw-perf`, { waitUntil: "load" });
     chromeVersion = await page.evaluate(() => navigator.userAgent);
+    if (!(await page.evaluate(() => crossOriginIsolated))) {
+      throw new Error("benchmark requires cross-origin isolation for high-resolution timings");
+    }
     await withTimeout(page.evaluate(() => (window as unknown as BenchPage).__benchReady), 30_000, "editor start");
     const loaded = await withTimeout(page.evaluate((n) => (window as unknown as BenchPage).__bench.load(n), fixture), LOAD_TIMEOUT_MS, "fixture load");
     log(`${target.label} ${scenario} run ${run + 1}/${runs}: loaded ${JSON.stringify(loaded)}`);
+    // unmeasured warmup (JIT, shape/raster caches, font and layout work): same driver, result discarded, then the
+    // same seeded fixture is loaded again so the measured pass starts from identical scene and interaction state
+    await withTimeout(
+      page.evaluate(([name, a]) => (window as unknown as BenchPage).__bench[name](a), [fn, arg] as const),
+      SCENARIO_TIMEOUT_MS,
+      `${scenario} warmup`,
+    );
+    await withTimeout(page.evaluate((n) => (window as unknown as BenchPage).__bench.load(n), fixture), LOAD_TIMEOUT_MS, "fixture reload after warmup");
     const report = (await withTimeout(
       page.evaluate(([name, a]) => (window as unknown as BenchPage).__bench[name](a), [fn, arg] as const),
       SCENARIO_TIMEOUT_MS,
@@ -218,7 +236,7 @@ const fileFor = (target: Target): BenchFile & Record<string, unknown> => {
   for (const scenario of scenarios) {
     const reports = results.get(target.label)!.get(scenario)!;
     const { median: med, partial } = medianReport(reports);
-    scenarioData[scenario] = { median: med, runs: reports, partial } as BenchFile["scenarios"][string];
+    scenarioData[scenario] = { median: med, runs: reports, partial };
   }
   return {
     schema: 1,
@@ -228,6 +246,8 @@ const fileFor = (target: Target): BenchFile & Record<string, unknown> => {
     createdAt: new Date().toISOString(),
     fixture: { count: fixture, seed: SEED },
     runs,
+    warmupRuns: WARMUP_RUNS,
+    crossOriginIsolated: true,
     machine: {
       cpu: cpus()[0]?.model ?? "unknown",
       cores: cpus().length,

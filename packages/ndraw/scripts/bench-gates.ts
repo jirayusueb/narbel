@@ -1,5 +1,6 @@
-// Perf gates, one list per PR of the ndraw engine plan. Every gate is evaluated at the 10k fixture
-// from medians over the interleaved runs, and on top of them every other metric may regress by at most 5%.
+// Perf gates, one list per PR of the ndraw engine plan. Every gate is evaluated at the 10k fixture over the interleaved
+// runs: a target must be proven by its paired bootstrap interval (bench-compare.ts), a maxValue must hold in every head
+// run, and every other metric fails only when a regression beyond 5% is statistically established.
 
 export type Stat = "p50" | "p95" | "p99" | "count";
 
@@ -15,6 +16,7 @@ export interface Gate {
 }
 
 export const GATE_FIXTURE = 10_000;
+export const GATE_RUNS = 15;
 export const MAX_REGRESSION = 0.05;
 
 /** metrics that are event/work totals: compared on `count`, which the perf report fills with the total */

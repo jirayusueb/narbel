@@ -1,17 +1,16 @@
 import { useEffect, useRef } from "react";
 import type { NonDeletedSceneElementsMap } from "../../element/types";
 import type { AppState } from "../../types";
-import type {
-  RenderableElementsMap,
-  StaticCanvasRenderConfig,
-} from "../../scene/types";
+import type { StaticCanvasRenderConfig } from "../../scene/types";
+import type { Renderer, RendererCamera } from "../../scene/renderer";
 import type { RoughCanvas } from "roughjs/bin/canvas";
 import { renderNewElementScene } from "../../renderer/render-new-element-scene";
 import { isRenderThrottlingEnabled } from "../../react-utils";
 
 interface NewElementCanvasProps {
   appState: AppState;
-  elementsMap: RenderableElementsMap;
+  renderer: Renderer;
+  camera: RendererCamera;
   allElementsMap: NonDeletedSceneElementsMap;
   scale: number;
   rc: RoughCanvas;
@@ -24,12 +23,13 @@ const NewElementCanvas = (props: NewElementCanvasProps) => {
     if (!canvasRef.current) {
       return;
     }
+    props.renderer.setCamera(props.camera);
     renderNewElementScene(
       {
         canvas: canvasRef.current,
         scale: props.scale,
         newElement: props.appState.newElement,
-        elementsMap: props.elementsMap,
+        elementsMap: props.renderer.getRenderableElements().elementsMap,
         allElementsMap: props.allElementsMap,
         rc: props.rc,
         renderConfig: props.renderConfig,

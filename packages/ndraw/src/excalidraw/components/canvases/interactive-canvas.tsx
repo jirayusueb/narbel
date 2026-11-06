@@ -6,21 +6,22 @@ import type { DOMAttributes } from "react";
 import type { AppState, Device, InteractiveCanvasAppState } from "../../types";
 import type {
   InteractiveCanvasRenderConfig,
-  RenderableElementsMap,
   RenderInteractiveSceneCallback,
 } from "../../scene/types";
 import type {
   NonDeletedExcalidrawElement,
   NonDeletedSceneElementsMap,
 } from "../../element/types";
+import { isSameCamera } from "../../scene/renderer";
+import type { Renderer, RendererCamera } from "../../scene/renderer";
 import { isRenderThrottlingEnabled } from "../../react-utils";
 import { renderInteractiveScene } from "../../renderer/interactive-scene";
 
 type InteractiveCanvasProps = {
   containerRef: React.RefObject<HTMLDivElement | null>;
   canvas: HTMLCanvasElement | null;
-  elementsMap: RenderableElementsMap;
-  visibleElements: readonly NonDeletedExcalidrawElement[];
+  renderer: Renderer;
+  camera: RendererCamera;
   selectedElements: readonly NonDeletedExcalidrawElement[];
   allElementsMap: NonDeletedSceneElementsMap;
   sceneNonce: number | undefined;
@@ -120,11 +121,16 @@ const InteractiveCanvas = (props: InteractiveCanvasProps) => {
         )) ||
       "#6965db";
 
+    // same camera the static canvas applied; setCamera is a no-op then
+    props.renderer.setCamera(props.camera);
+    const { elementsMap, visibleElements } =
+      props.renderer.getRenderableElements();
+
     renderInteractiveScene(
       {
         canvas: props.canvas,
-        elementsMap: props.elementsMap,
-        visibleElements: props.visibleElements,
+        elementsMap,
+        visibleElements,
         selectedElements: props.selectedElements,
         allElementsMap: props.allElementsMap,
         scale: window.devicePixelRatio,
@@ -218,11 +224,9 @@ const areEqual = (
     prevProps.selectionNonce !== nextProps.selectionNonce ||
     prevProps.sceneNonce !== nextProps.sceneNonce ||
     prevProps.scale !== nextProps.scale ||
-    // we need to memoize on elementsMap because they may have renewed
-    // even if sceneNonce didn't change (e.g. we filter elements out based
-    // on appState)
-    prevProps.elementsMap !== nextProps.elementsMap ||
-    prevProps.visibleElements !== nextProps.visibleElements ||
+    // the culling inputs (viewport, editing/new/pending element)
+    prevProps.renderer !== nextProps.renderer ||
+    !isSameCamera(prevProps.camera, nextProps.camera) ||
     prevProps.selectedElements !== nextProps.selectedElements
   ) {
     return false;

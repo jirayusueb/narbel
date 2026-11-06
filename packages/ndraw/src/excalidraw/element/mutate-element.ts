@@ -139,8 +139,11 @@ export const mutateElement = <TElement extends Mutable<ExcalidrawElement>>(
   element.versionNonce = randomInteger();
   element.updated = getUpdatedTimestamp();
 
+  const scene = Scene.getScene(element);
+  // recorded even when silent, so a later batched trigger reports the change
+  scene?.markMutated(element);
   if (informMutation) {
-    Scene.getScene(element)?.triggerUpdate();
+    scene?.triggerUpdate();
   }
 
   return element;

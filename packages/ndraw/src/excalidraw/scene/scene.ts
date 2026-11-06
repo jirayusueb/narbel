@@ -27,11 +27,22 @@ import { toBrandedType } from "../utils";
 import { ENV } from "../constants";
 import { getElementsInGroup } from "../groups";
 
+import { Atom, transact } from "../signals/signals";
+
 type ElementIdKey = InstanceType<typeof LinearElementEditor>["elementId"];
 type ElementKey = ExcalidrawElement | ElementIdKey;
 
 type SceneStateCallback = () => void;
 type SceneStateCallbackRemover = () => void;
+
+export type SceneDiff = {
+  /** scene-local monotonic sequence number of this diff */
+  epoch: number;
+  /** non-deleted elements added, replaced or mutated since the previous diff */
+  upserted: readonly ExcalidrawElement[];
+  /** ids that are no longer non-deleted elements of the scene */
+  removed: readonly string[];
+};
 
 type SelectionHash = string & { __brand: "selectionHash" };
 
@@ -169,6 +180,29 @@ class Scene {
    */
   private sceneNonce: number | undefined;
 
+  /** ids mutated in place or replaced since the last emitted diff */
+  private pendingDiffIds = new Set<string>();
+  private diffEpoch = 0;
+  /** mirrors `sceneNonce`; changes on every `triggerUpdate` */
+  readonly nonceAtom = new Atom<number>(0);
+  /**
+   * Emitted on every `triggerUpdate`. Always set with its diff so that lazy
+   * consumers can replay `getDiffSince` (and must rebuild when it's `null`).
+   */
+  readonly diffAtom = new Atom<SceneDiff, SceneDiff>({
+    epoch: 0,
+    upserted: [],
+    removed: [],
+  });
+
+  /**
+   * Records an element changed in place, regardless of whether the mutation
+   * is announced; the next `triggerUpdate` flushes it into the diff.
+   */
+  markMutated(element: ExcalidrawElement) {
+    this.pendingDiffIds.add(element.id);
+  }
+
   getSceneNonce() {
     return this.sceneNonce;
   }
@@ -296,6 +330,30 @@ class Scene {
 
     validateIndicesThrottled(_nextElements);
 
+    // diff against the previous state before it's overwritten
+    const prevMap = this.elementsMap;
+    let kept = 0;
+    for (const element of _nextElements) {
+      const prev = prevMap.get(element.id);
+      if (prev) {
+        kept++;
+      }
+      if (prev !== element) {
+        this.pendingDiffIds.add(element.id);
+      }
+    }
+    if (kept !== prevMap.size) {
+      const nextIds = new Set<string>();
+      for (const element of _nextElements) {
+        nextIds.add(element.id);
+      }
+      for (const id of prevMap.keys()) {
+        if (!nextIds.has(id)) {
+          this.pendingDiffIds.add(id);
+        }
+      }
+    }
+
     this.elements = syncInvalidIndices(_nextElements);
     this.elementsMap.clear();
     this.elements.forEach((element) => {
@@ -316,7 +374,36 @@ class Scene {
   }
 
   triggerUpdate() {
-    this.sceneNonce = randomInteger();
+    const upserted: ExcalidrawElement[] = [];
+    const removed: string[] = [];
+    let membershipChanged = false;
+    for (const id of this.pendingDiffIds) {
+      const element = this.elementsMap.get(id);
+      if (element && this.nonDeletedElementsMap.has(id) === element.isDeleted) {
+        membershipChanged = true;
+      }
+      if (!element || element.isDeleted) {
+        removed.push(id);
+      } else {
+        upserted.push(element);
+      }
+    }
+    // cleared before notifying so changes made by listeners go to the next diff
+    this.pendingDiffIds.clear();
+    if (membershipChanged) {
+      const live = getNonDeletedElements(this.elements);
+      this.nonDeletedElements = live.elements;
+      this.nonDeletedElementsMap = live.elementsMap;
+      this.nonDeletedFramesLikes = getNonDeletedElements(this.frames).elements;
+    }
+
+    const nonce = randomInteger();
+    this.sceneNonce = nonce;
+    const diff: SceneDiff = { epoch: ++this.diffEpoch, upserted, removed };
+    transact(() => {
+      this.nonceAtom.set(nonce);
+      this.diffAtom.set(diff, diff);
+    });
 
     for (const callback of Array.from(this.callbacks)) {
       callback();
@@ -357,6 +444,7 @@ class Scene {
     // done not for memory leaks, but to guard against possible late fires
     // (I guess?)
     this.callbacks.clear();
+    this.pendingDiffIds.clear();
   }
 
   insertElementAtIndex(element: ExcalidrawElement, index: number) {

@@ -24,7 +24,8 @@
     }
   },
   "scripts": {
-    "build": "rm -rf dist && tsdown && tsc -p tsconfig.json"
+    "build": "rm -rf dist && tsdown && tsc -p tsconfig.json",
+    "test": "bun test"
   },
   "peerDependencies": {
     "react": "^19.0.0",
