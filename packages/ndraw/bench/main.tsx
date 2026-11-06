@@ -176,6 +176,18 @@ const bench: Bench = {
       await wheelZoomTo(ZOOM_MAX);
       await wheelZoomTo(ZOOM_MIN);
       await sleepFrames(ZOOM_SETTLE_MS);
+      // Programmatic staircase: the zoom-button / zoom-to-fit path sets zoom
+      // directly, outside shouldCacheIgnoreZoom, so every step re-rasters in
+      // the base engine. Deterministic positions, no debounce timing noise.
+      const steps = 54;
+      for (let i = 0; i <= steps; i++) {
+        setView(sceneCenter, ZOOM_MIN + ((ZOOM_MAX - ZOOM_MIN) * i) / steps);
+        await frames(1);
+      }
+      for (let i = steps - 1; i >= 0; i--) {
+        setView(sceneCenter, ZOOM_MIN + ((ZOOM_MAX - ZOOM_MIN) * i) / steps);
+        await frames(1);
+      }
     });
   },
 

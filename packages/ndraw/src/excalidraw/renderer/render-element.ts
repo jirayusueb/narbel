@@ -34,6 +34,7 @@ import type {
   StaticCanvasAppState,
   Zoom,
   InteractiveCanvasAppState,
+  NormalizedZoomValue,
   ElementsPendingErasure,
   PendingExcalidrawElements,
 } from "../types";
@@ -132,6 +133,11 @@ export const getRenderOpacity = (
   return opacity;
 };
 
+// Quantize zoom to powers of two so cached element rasters stay valid across
+// a zoom band instead of regenerating on every zoom tick.
+export const lodScaleOf = (zoom: number): NormalizedZoomValue =>
+  Math.min(8, Math.max(0.0625, 2 ** Math.round(Math.log2(zoom)))) as NormalizedZoomValue;
+
 export interface ExcalidrawElementWithCanvas {
   element: ExcalidrawElement | ExcalidrawTextElement;
   canvas: HTMLCanvasElement;
@@ -139,6 +145,7 @@ export interface ExcalidrawElementWithCanvas {
   scale: number;
   angle: number;
   zoomValue: AppState["zoom"]["value"];
+  lodScale: number;
   canvasOffsetX: number;
   canvasOffsetY: number;
   boundTextElementVersion: number | null;
@@ -212,11 +219,12 @@ const generateElementCanvas = (
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d")!;
   const padding = getCanvasPadding(element);
+  const lodScale = lodScaleOf(zoom.value);
 
   const { width, height, scale } = cappedElementCanvasSize(
     element,
     elementsMap,
-    zoom,
+    { ...zoom, value: lodScale },
   );
 
   if (!width || !height) {
@@ -259,7 +267,7 @@ const generateElementCanvas = (
     context.filter = IMAGE_INVERT_FILTER;
   }
 
-  drawElementOnCanvas(element, rc, context, renderConfig, appState);
+  drawElementOnCanvas(element, rc, context, renderConfig, appState, lodScale);
 
   context.restore();
 
@@ -332,6 +340,7 @@ const generateElementCanvas = (
     theme: appState.theme,
     scale,
     zoomValue: zoom.value,
+    lodScale,
     canvasOffsetX,
     canvasOffsetY,
     boundTextElementVersion:
@@ -387,6 +396,7 @@ const drawElementOnCanvas = (
   context: CanvasRenderingContext2D,
   renderConfig: StaticCanvasRenderConfig,
   appState: StaticCanvasAppState,
+  lodScale = 1,
 ) => {
   switch (element.type) {
     case "rectangle":
@@ -396,7 +406,7 @@ const drawElementOnCanvas = (
     case "ellipse": {
       context.lineJoin = "round";
       context.lineCap = "round";
-      rc.draw(ShapeCache.get(element)!);
+      rc.draw(ShapeCache.get(element, lodScale)!);
       break;
     }
     case "arrow":
@@ -404,7 +414,7 @@ const drawElementOnCanvas = (
       context.lineJoin = "round";
       context.lineCap = "round";
 
-      ShapeCache.get(element)!.forEach((shape) => {
+      ShapeCache.get(element, lodScale)!.forEach((shape) => {
         rc.draw(shape);
       });
       break;
@@ -415,7 +425,7 @@ const drawElementOnCanvas = (
       context.fillStyle = element.strokeColor;
 
       const path = getFreeDrawPath2D(element) as Path2D;
-      const fillShape = ShapeCache.get(element);
+      const fillShape = ShapeCache.get(element, lodScale);
 
       if (fillShape) {
         rc.draw(fillShape);
@@ -538,7 +548,7 @@ const generateElementWithCanvas = (
   const prevElementWithCanvas = elementWithCanvasCache.get(element);
   const shouldRegenerateBecauseZoom =
     prevElementWithCanvas &&
-    prevElementWithCanvas.zoomValue !== zoom.value &&
+    prevElementWithCanvas.lodScale !== lodScaleOf(zoom.value) &&
     !appState?.shouldCacheIgnoreZoom;
   const boundTextElement = getBoundTextElement(element, elementsMap);
   const boundTextElementVersion = boundTextElement?.version || null;
@@ -592,6 +602,8 @@ const drawElementFromCanvas = (
   const element = elementWithCanvas.element;
   const padding = getCanvasPadding(element);
   const zoom = elementWithCanvas.scale;
+  // raster is at lodScale; display at actual zoom → scale about element center
+  const drawScale = appState.zoom.value / elementWithCanvas.lodScale;
   const [x1, y1, x2, y2] = getElementAbsoluteCoords(element, allElementsMap);
   const cx = ((x1 + x2) / 2 + appState.scrollX) * window.devicePixelRatio;
   const cy = ((y1 + y2) / 2 + appState.scrollY) * window.devicePixelRatio;
@@ -602,21 +614,13 @@ const drawElementFromCanvas = (
   const boundTextElement = getBoundTextElement(element, allElementsMap);
 
   if (isArrowElement(element) && boundTextElement) {
-    const offsetX =
-      (elementWithCanvas.boundTextCanvas.width -
-        elementWithCanvas.canvas!.width) /
-      2;
-    const offsetY =
-      (elementWithCanvas.boundTextCanvas.height -
-        elementWithCanvas.canvas!.height) /
-      2;
     context.translate(cx, cy);
     context.drawImage(
       elementWithCanvas.boundTextCanvas,
-      (-(x2 - x1) / 2) * window.devicePixelRatio - offsetX / zoom - padding,
-      (-(y2 - y1) / 2) * window.devicePixelRatio - offsetY / zoom - padding,
-      elementWithCanvas.boundTextCanvas.width / zoom,
-      elementWithCanvas.boundTextCanvas.height / zoom,
+      -(elementWithCanvas.boundTextCanvas.width / zoom / 2) * drawScale,
+      -(elementWithCanvas.boundTextCanvas.height / zoom / 2) * drawScale,
+      (elementWithCanvas.boundTextCanvas.width / zoom) * drawScale,
+      (elementWithCanvas.boundTextCanvas.height / zoom) * drawScale,
     );
   } else {
     // we translate context to element center so that rotation and scale
@@ -640,12 +644,14 @@ const drawElementFromCanvas = (
 
     context.drawImage(
       elementWithCanvas.canvas!,
-      (x1 + appState.scrollX) * window.devicePixelRatio -
-        (padding * elementWithCanvas.scale) / elementWithCanvas.scale,
-      (y1 + appState.scrollY) * window.devicePixelRatio -
-        (padding * elementWithCanvas.scale) / elementWithCanvas.scale,
-      elementWithCanvas.canvas!.width / elementWithCanvas.scale,
-      elementWithCanvas.canvas!.height / elementWithCanvas.scale,
+      cx -
+        (cx - ((x1 + appState.scrollX) * window.devicePixelRatio - padding)) *
+          drawScale,
+      cy -
+        (cy - ((y1 + appState.scrollY) * window.devicePixelRatio - padding)) *
+          drawScale,
+      (elementWithCanvas.canvas!.width / elementWithCanvas.scale) * drawScale,
+      (elementWithCanvas.canvas!.height / elementWithCanvas.scale) * drawScale,
     );
 
     if (
@@ -762,7 +768,11 @@ export const renderElement = (
       // TODO investigate if we can do this in situ. Right now we need to call
       // beforehand because math helpers (such as getElementAbsoluteCoords)
       // rely on existing shapes
-      ShapeCache.generateElementShape(element, null);
+      ShapeCache.generateElementShape(
+        element,
+        null,
+        renderConfig.isExporting ? 1 : lodScaleOf(appState.zoom.value),
+      );
 
       if (renderConfig.isExporting) {
         const [x1, y1, x2, y2] = getElementAbsoluteCoords(element, elementsMap);
@@ -810,7 +820,11 @@ export const renderElement = (
       // TODO investigate if we can do this in situ. Right now we need to call
       // beforehand because math helpers (such as getElementAbsoluteCoords)
       // rely on existing shapes
-      ShapeCache.generateElementShape(element, renderConfig);
+      ShapeCache.generateElementShape(
+        element,
+        renderConfig,
+        renderConfig.isExporting ? 1 : lodScaleOf(appState.zoom.value),
+      );
       if (renderConfig.isExporting) {
         const [x1, y1, x2, y2] = getElementAbsoluteCoords(element, elementsMap);
         const cx = (x1 + x2) / 2 + appState.scrollX;
@@ -919,6 +933,10 @@ export const renderElement = (
         // not exporting → optimized rendering (cache & render from element
         // canvases)
       } else {
+        // text below this size is unreadable and a rasterization cost sink
+        if (isTextElement(element) && element.height * appState.zoom.value < 8) {
+          return;
+        }
         const elementWithCanvas = generateElementWithCanvas(
           element,
           allElementsMap,

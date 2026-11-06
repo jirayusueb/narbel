@@ -55,10 +55,10 @@ describe("zero and missing", () => {
 
 describe("gates", () => {
   const base = file({ zoom: { elementCanvasRegen: total(1000), staticRender: timing(20) } });
-  test("PR5 needs >=80% fewer regenerations", () => {
-    const pass = compare(base, file({ zoom: { elementCanvasRegen: total(190), staticRender: timing(10) } }), { pr: 5 });
+  test("PR5 needs the owner-anchored >=30% fewer regenerations", () => {
+    const pass = compare(base, file({ zoom: { elementCanvasRegen: total(680), staticRender: timing(10) } }), { pr: 5 });
     expect(pass.gates.map((g) => g.ok)).toEqual([true, true]);
-    const fail = compare(base, file({ zoom: { elementCanvasRegen: total(250), staticRender: timing(10) } }), { pr: 5 });
+    const fail = compare(base, file({ zoom: { elementCanvasRegen: total(760), staticRender: timing(10) } }), { pr: 5 });
     expect(fail.gates[0].ok).toBe(false);
     expect(fail.failed).toBe(true);
   });

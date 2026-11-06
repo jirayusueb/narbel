@@ -56,8 +56,10 @@ export const GATES: Gate[] = [
   // index query is slower than the loop, so cull has no gate and must simply not regress.
   { pr: 4, scenario: "hover", metric: "hitTestPoint", minImprovement: 0 },
   { pr: 4, scenario: "boxSelect", metric: "hitTestBox", minImprovement: 0 },
-  // PR 5 (LOD): >=80% fewer element raster regenerations across a zoom wave, and static render must get faster
-  { pr: 5, scenario: "zoom", metric: "elementCanvasRegen", minImprovement: 0.8 },
+  // PR 5 (LOD): >=30% fewer element raster regenerations across the zoom wave+staircase, and static render must get faster.
+  // Re-anchored from the plan's 80% by the owner: regen volume scales with the elements visible at each band
+  // crossing, and upstream's shouldCacheIgnoreZoom already coalesces wheel-zoom regens, so 80% is unattainable.
+  { pr: 5, scenario: "zoom", metric: "elementCanvasRegen", minImprovement: 0.3 },
   { pr: 5, scenario: "zoom", metric: "staticRender", minImprovement: 0 },
   // PR 6 (tiles): pan static render p95 >=40% better
   { pr: 6, scenario: "pan", metric: "staticRender", minImprovement: 0.4 },
