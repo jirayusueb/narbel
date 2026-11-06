@@ -592,7 +592,7 @@ const generateElementWithCanvas = (
   return prevElementWithCanvas;
 };
 
-const drawElementFromCanvas = (
+export const drawElementFromCanvas = (
   elementWithCanvas: ExcalidrawElementWithCanvas,
   context: CanvasRenderingContext2D,
   renderConfig: StaticCanvasRenderConfig,
@@ -601,9 +601,9 @@ const drawElementFromCanvas = (
 ) => {
   const element = elementWithCanvas.element;
   const padding = getCanvasPadding(element);
+  // the raster's own scale (dpr × lodScale) converts it back to scene px; the static scene's
+  // context already carries the actual zoom, so a LOD raster must not be rescaled here
   const zoom = elementWithCanvas.scale;
-  // raster is at lodScale; display at actual zoom → scale about element center
-  const drawScale = appState.zoom.value / elementWithCanvas.lodScale;
   const [x1, y1, x2, y2] = getElementAbsoluteCoords(element, allElementsMap);
   const cx = ((x1 + x2) / 2 + appState.scrollX) * window.devicePixelRatio;
   const cy = ((y1 + y2) / 2 + appState.scrollY) * window.devicePixelRatio;
@@ -614,13 +614,21 @@ const drawElementFromCanvas = (
   const boundTextElement = getBoundTextElement(element, allElementsMap);
 
   if (isArrowElement(element) && boundTextElement) {
+    const offsetX =
+      (elementWithCanvas.boundTextCanvas.width -
+        elementWithCanvas.canvas!.width) /
+      2;
+    const offsetY =
+      (elementWithCanvas.boundTextCanvas.height -
+        elementWithCanvas.canvas!.height) /
+      2;
     context.translate(cx, cy);
     context.drawImage(
       elementWithCanvas.boundTextCanvas,
-      -(elementWithCanvas.boundTextCanvas.width / zoom / 2) * drawScale,
-      -(elementWithCanvas.boundTextCanvas.height / zoom / 2) * drawScale,
-      (elementWithCanvas.boundTextCanvas.width / zoom) * drawScale,
-      (elementWithCanvas.boundTextCanvas.height / zoom) * drawScale,
+      (-(x2 - x1) / 2) * window.devicePixelRatio - offsetX / zoom - padding,
+      (-(y2 - y1) / 2) * window.devicePixelRatio - offsetY / zoom - padding,
+      elementWithCanvas.boundTextCanvas.width / zoom,
+      elementWithCanvas.boundTextCanvas.height / zoom,
     );
   } else {
     // we translate context to element center so that rotation and scale
@@ -644,14 +652,12 @@ const drawElementFromCanvas = (
 
     context.drawImage(
       elementWithCanvas.canvas!,
-      cx -
-        (cx - ((x1 + appState.scrollX) * window.devicePixelRatio - padding)) *
-          drawScale,
-      cy -
-        (cy - ((y1 + appState.scrollY) * window.devicePixelRatio - padding)) *
-          drawScale,
-      (elementWithCanvas.canvas!.width / elementWithCanvas.scale) * drawScale,
-      (elementWithCanvas.canvas!.height / elementWithCanvas.scale) * drawScale,
+      (x1 + appState.scrollX) * window.devicePixelRatio -
+        (padding * elementWithCanvas.scale) / elementWithCanvas.scale,
+      (y1 + appState.scrollY) * window.devicePixelRatio -
+        (padding * elementWithCanvas.scale) / elementWithCanvas.scale,
+      elementWithCanvas.canvas!.width / elementWithCanvas.scale,
+      elementWithCanvas.canvas!.height / elementWithCanvas.scale,
     );
 
     if (
