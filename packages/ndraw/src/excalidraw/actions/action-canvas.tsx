@@ -24,7 +24,7 @@ import { CODES, KEYS } from "../keys";
 import { getNormalizedZoom } from "../scene";
 import { centerScrollOn } from "../scene/scroll";
 import { getStateForZoom } from "../scene/zoom";
-import type { AppState, Offsets } from "../types";
+import type { AppClassProperties, AppState, Offsets } from "../types";
 import { getShortcutKey, updateActiveTool } from "../utils";
 import { register } from "./register";
 import { Tooltip } from "../components/tooltip";
@@ -120,29 +120,48 @@ export const actionClearCanvas = register({
   },
 });
 
+/** zoom around the viewport center, compounding on the camera's in-flight
+ * target so repeated presses never lose a step to an unfinished tween */
+const animateZoomAroundCenter = (
+  appState: Readonly<AppState>,
+  app: AppClassProperties,
+  nextZoom: (zoom: number) => number,
+) => {
+  const camera = app.getCameraTarget();
+  const target = getStateForZoom(
+    {
+      viewportX: appState.width / 2 + appState.offsetLeft,
+      viewportY: appState.height / 2 + appState.offsetTop,
+      nextZoom: getNormalizedZoom(nextZoom(camera.zoom)),
+    },
+    {
+      ...appState,
+      scrollX: camera.scrollX,
+      scrollY: camera.scrollY,
+      zoom: { value: camera.zoom },
+    },
+  );
+  app.animateCameraTo({
+    scrollX: target.scrollX,
+    scrollY: target.scrollY,
+    zoom: target.zoom.value,
+  });
+  return {
+    // partial on purpose: a full snapshot would overwrite the camera that
+    // animateCameraTo may have already applied (reduced motion)
+    appState: { userToFollow: null },
+    captureUpdate: CaptureUpdateAction.EVENTUALLY,
+  };
+};
+
 export const actionZoomIn = register({
   name: "zoomIn",
   label: "buttons.zoomIn",
   viewMode: true,
   icon: ZoomInIcon,
   trackEvent: { category: "canvas" },
-  perform: (_elements, appState, _, app) => {
-    return {
-      appState: {
-        ...appState,
-        ...getStateForZoom(
-          {
-            viewportX: appState.width / 2 + appState.offsetLeft,
-            viewportY: appState.height / 2 + appState.offsetTop,
-            nextZoom: getNormalizedZoom(appState.zoom.value + ZOOM_STEP),
-          },
-          appState,
-        ),
-        userToFollow: null,
-      },
-      captureUpdate: CaptureUpdateAction.EVENTUALLY,
-    };
-  },
+  perform: (_elements, appState, _, app) =>
+    animateZoomAroundCenter(appState, app, (zoom) => zoom + ZOOM_STEP),
   PanelComponent: ({ updateData, appState }) => (
     <ToolButton
       type="button"
@@ -167,23 +186,8 @@ export const actionZoomOut = register({
   icon: ZoomOutIcon,
   viewMode: true,
   trackEvent: { category: "canvas" },
-  perform: (_elements, appState, _, app) => {
-    return {
-      appState: {
-        ...appState,
-        ...getStateForZoom(
-          {
-            viewportX: appState.width / 2 + appState.offsetLeft,
-            viewportY: appState.height / 2 + appState.offsetTop,
-            nextZoom: getNormalizedZoom(appState.zoom.value - ZOOM_STEP),
-          },
-          appState,
-        ),
-        userToFollow: null,
-      },
-      captureUpdate: CaptureUpdateAction.EVENTUALLY,
-    };
-  },
+  perform: (_elements, appState, _, app) =>
+    animateZoomAroundCenter(appState, app, (zoom) => zoom - ZOOM_STEP),
   PanelComponent: ({ updateData, appState }) => (
     <ToolButton
       type="button"
@@ -208,23 +212,8 @@ export const actionResetZoom = register({
   icon: ZoomResetIcon,
   viewMode: true,
   trackEvent: { category: "canvas" },
-  perform: (_elements, appState, _, app) => {
-    return {
-      appState: {
-        ...appState,
-        ...getStateForZoom(
-          {
-            viewportX: appState.width / 2 + appState.offsetLeft,
-            viewportY: appState.height / 2 + appState.offsetTop,
-            nextZoom: getNormalizedZoom(1),
-          },
-          appState,
-        ),
-        userToFollow: null,
-      },
-      captureUpdate: CaptureUpdateAction.EVENTUALLY,
-    };
-  },
+  perform: (_elements, appState, _, app) =>
+    animateZoomAroundCenter(appState, app, () => 1),
   PanelComponent: ({ updateData, appState }) => (
     <Tooltip label={t("buttons.resetZoom")} style={{ height: "100%" }}>
       <ToolButton
@@ -387,7 +376,7 @@ export const actionZoomToFitSelectionInViewport = register({
   trackEvent: { category: "canvas" },
   perform: (elements, appState, _, app) => {
     const selectedElements = app.scene.getSelectedElements(appState);
-    return zoomToFit({
+    const { appState: final } = zoomToFit({
       targetElements: selectedElements.length ? selectedElements : elements,
       appState: {
         ...appState,
@@ -396,6 +385,15 @@ export const actionZoomToFitSelectionInViewport = register({
       fitToViewport: false,
       canvasOffsets: app.getEditorUIOffsets(),
     });
+    app.animateCameraTo({
+      scrollX: final.scrollX,
+      scrollY: final.scrollY,
+      zoom: final.zoom.value,
+    });
+    return {
+      appState: { userToFollow: null },
+      captureUpdate: CaptureUpdateAction.EVENTUALLY,
+    };
   },
   // NOTE shift-2 should have been assigned actionZoomToFitSelection.
   // TBD on how proceed
@@ -413,7 +411,7 @@ export const actionZoomToFitSelection = register({
   trackEvent: { category: "canvas" },
   perform: (elements, appState, _, app) => {
     const selectedElements = app.scene.getSelectedElements(appState);
-    return zoomToFit({
+    const { appState: final } = zoomToFit({
       targetElements: selectedElements.length ? selectedElements : elements,
       appState: {
         ...appState,
@@ -422,6 +420,15 @@ export const actionZoomToFitSelection = register({
       fitToViewport: true,
       canvasOffsets: app.getEditorUIOffsets(),
     });
+    app.animateCameraTo({
+      scrollX: final.scrollX,
+      scrollY: final.scrollY,
+      zoom: final.zoom.value,
+    });
+    return {
+      appState: { userToFollow: null },
+      captureUpdate: CaptureUpdateAction.EVENTUALLY,
+    };
   },
   // NOTE this action should use shift-2 per figma, alas
   keyTest: (event) =>
@@ -437,8 +444,8 @@ export const actionZoomToFit = register({
   icon: zoomAreaIcon,
   viewMode: true,
   trackEvent: { category: "canvas" },
-  perform: (elements, appState, _, app) =>
-    zoomToFit({
+  perform: (elements, appState, _, app) => {
+    const { appState: final } = zoomToFit({
       targetElements: elements,
       appState: {
         ...appState,
@@ -446,7 +453,17 @@ export const actionZoomToFit = register({
       },
       fitToViewport: false,
       canvasOffsets: app.getEditorUIOffsets(),
-    }),
+    });
+    app.animateCameraTo({
+      scrollX: final.scrollX,
+      scrollY: final.scrollY,
+      zoom: final.zoom.value,
+    });
+    return {
+      appState: { userToFollow: null },
+      captureUpdate: CaptureUpdateAction.EVENTUALLY,
+    };
+  },
   keyTest: (event) =>
     event.code === CODES.ONE &&
     event.shiftKey &&
