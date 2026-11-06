@@ -33,3 +33,16 @@ export const getStateForZoom = (
     },
   };
 };
+
+export const interpolateCamera = (
+  from: { scrollX: number; scrollY: number; zoom: number },
+  to: { scrollX: number; scrollY: number; zoom: number },
+  t: number,
+) => ({
+  scrollX: from.scrollX + (to.scrollX - from.scrollX) * t,
+  scrollY: from.scrollY + (to.scrollY - from.scrollY) * t,
+  // zoom interpolates in log space so multipliers feel linear at any scale
+  zoom: Math.exp(
+    Math.log(from.zoom) + (Math.log(to.zoom) - Math.log(from.zoom)) * t,
+  ),
+});

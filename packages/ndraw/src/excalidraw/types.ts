@@ -676,6 +676,8 @@ export type AppClassProperties = {
   onExportImage: App["onExportImage"];
   lastViewportPosition: App["lastViewportPosition"];
   scrollToContent: App["scrollToContent"];
+  animateCameraTo: App["animateCameraTo"];
+  getCameraTarget: App["getCameraTarget"];
   addFiles: App["addFiles"];
   addElementsFromPasteOrLibrary: App["addElementsFromPasteOrLibrary"];
   togglePenMode: App["togglePenMode"];

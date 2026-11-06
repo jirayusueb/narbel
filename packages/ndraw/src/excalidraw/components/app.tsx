@@ -81,6 +81,7 @@ import {
   VERTICAL_ALIGN,
   YOUTUBE_STATES,
   ZOOM_STEP,
+  CAMERA_TWEEN_MS,
   POINTER_EVENTS,
   TOOL_TYPE,
   isIOS,
@@ -229,7 +230,7 @@ import type {
   RenderInteractiveSceneCallback,
   ScrollBars,
 } from "../scene/types";
-import { getStateForZoom } from "../scene/zoom";
+import { getStateForZoom, interpolateCamera } from "../scene/zoom";
 import {
   findShapeByKey,
   getBoundTextShape,
@@ -266,6 +267,7 @@ import type {
   GenerateDiagramToCode,
   NullableGridSize,
   Offsets,
+  NormalizedZoomValue,
 } from "../types";
 import {
   debounce,
@@ -3647,6 +3649,14 @@ class App extends React.Component<AppProps, AppState> {
 
   private cancelInProgressAnimation: (() => void) | null = null;
 
+  /** camera target an in-flight tween is heading to, so consecutive wheel
+   * events compound (matches the previous queued-updater semantics) */
+  private cameraTweenTarget: {
+    scrollX: number;
+    scrollY: number;
+    zoom: NormalizedZoomValue;
+  } | null = null;
+
   scrollToContent = (
     /**
      * target to scroll to
@@ -3787,6 +3797,90 @@ class App extends React.Component<AppProps, AppState> {
     } else {
       this.setState({ scrollX, scrollY, zoom });
     }
+  };
+
+  /** where the camera is heading: the in-flight tween target, else the live
+   * camera. Relative zoom steps compound on this so rapid input never loses
+   * a step to a half-finished tween. */
+  getCameraTarget = () =>
+    this.cameraTweenTarget ?? {
+      scrollX: this.state.scrollX,
+      scrollY: this.state.scrollY,
+      zoom: this.state.zoom.value,
+    };
+
+  /** animate the camera (scrollX/scrollY/zoom) to `target` over
+   * CAMERA_TWEEN_MS; interrupted by any new camera motion. Zoom interpolates
+   * in log space (same math as scrollToContent). */
+  animateCameraTo = (target: {
+    scrollX: number;
+    scrollY: number;
+    zoom: NormalizedZoomValue;
+  }) => {
+    this.cancelInProgressAnimation?.();
+    this.maybeUnfollowRemoteUser();
+
+    this.cameraTweenTarget = target;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      this.setState({
+        scrollX: target.scrollX,
+        scrollY: target.scrollY,
+        zoom: { value: target.zoom },
+      });
+      this.cameraTweenTarget = null;
+      return;
+    }
+
+    const from = {
+      scrollX: this.state.scrollX,
+      scrollY: this.state.scrollY,
+      zoom: this.state.zoom.value,
+    };
+    let frameId = 0;
+    let canceled = false;
+    let startTime: number | undefined;
+
+    const finish = () => {
+      this.cameraTweenTarget = null;
+      this.cancelInProgressAnimation = null;
+      if (!this.unmounted) {
+        this.setState({ shouldCacheIgnoreZoom: false });
+      }
+    };
+
+    const step = (timestamp: number) => {
+      if (canceled || this.unmounted) {
+        return;
+      }
+      startTime ??= timestamp;
+      const t = Math.min((timestamp - startTime) / CAMERA_TWEEN_MS, 1);
+      const { scrollX, scrollY, zoom } = interpolateCamera(
+        from,
+        target,
+        easeOut(t),
+      );
+      this.setState({
+        scrollX,
+        scrollY,
+        // log-space interpolation between two normalized zooms stays normalized
+        zoom: { value: zoom as NormalizedZoomValue },
+        shouldCacheIgnoreZoom: true,
+      });
+      if (t < 1) {
+        frameId = requestAnimationFrame(step);
+      } else {
+        finish();
+      }
+    };
+
+    frameId = requestAnimationFrame(step);
+
+    this.cancelInProgressAnimation = () => {
+      canceled = true;
+      cancelAnimationFrame(frameId);
+      finish();
+    };
   };
 
   private maybeUnfollowRemoteUser = () => {
@@ -4791,6 +4885,7 @@ class App extends React.Component<AppProps, AppState> {
         activeEmbeddable: null,
       });
     }
+    this.cancelInProgressAnimation?.();
     gesture.initialScale = this.state.zoom.value;
   });
 
@@ -10966,26 +11061,35 @@ class App extends React.Component<AppProps, AppState> {
           delta = MAX_STEP * sign;
         }
 
-        let newZoom = this.state.zoom.value - delta / 100;
+        const base = this.getCameraTarget();
+
+        let newZoom = base.zoom - delta / 100;
         // increase zoom steps the more zoomed-in we are (applies to >100% only)
         newZoom +=
-          Math.log10(Math.max(1, this.state.zoom.value)) *
+          Math.log10(Math.max(1, base.zoom)) *
           -sign *
           // reduced amplification for small deltas (small movements on a trackpad)
           Math.min(1, absDelta / 20);
 
-        this.translateCanvas((state) => ({
-          ...getStateForZoom(
-            {
-              viewportX: this.lastViewportPosition.x,
-              viewportY: this.lastViewportPosition.y,
-              nextZoom: getNormalizedZoom(newZoom),
-            },
-            state,
-          ),
-          shouldCacheIgnoreZoom: true,
-        }));
-        this.resetShouldCacheIgnoreZoomDebounced();
+        const target = getStateForZoom(
+          {
+            viewportX: this.lastViewportPosition.x,
+            viewportY: this.lastViewportPosition.y,
+            nextZoom: getNormalizedZoom(newZoom),
+          },
+          {
+            ...this.state,
+            scrollX: base.scrollX,
+            scrollY: base.scrollY,
+            zoom: { value: base.zoom },
+          },
+        );
+
+        this.animateCameraTo({
+          scrollX: target.scrollX,
+          scrollY: target.scrollY,
+          zoom: target.zoom.value,
+        });
         return;
       }
 
