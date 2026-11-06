@@ -21,12 +21,15 @@ const sameValue = (a: unknown, b: unknown) =>
     typeof b === "object" &&
     JSON.stringify(a) === JSON.stringify(b));
 
-/** True when `incoming` is the very next version of `shown` and only moved/resized/rotated it. */
+/**
+ * True when `incoming` is newer than `shown` and only moved/resized/rotated it. Versions may skip:
+ * the sender throttles writes, so one update can carry several local edits.
+ */
 export const isMotionOnly = (
   shown: ExcalidrawElement,
   incoming: ExcalidrawElement
 ) => {
-  if (incoming.version !== shown.version + 1) {
+  if (incoming.version <= shown.version) {
     return false;
   }
   const a = shown as unknown as Loose;
