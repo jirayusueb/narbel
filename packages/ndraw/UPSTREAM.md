@@ -89,7 +89,7 @@ Run `bun run build` in `packages/ndraw`. It writes `dist/{dev,prod,types}`. `dis
 
 `perf` is exported from the package root (the existing build has one editor entry, not a separate perf bundle). It is inactive unless the page has `?ndraw-perf` or sets `window.__NDRAW_PERF = true` before importing the editor. Inactive instrumentation schedules no frames or observers. Active timings retain the last 512 samples per metric; `count` is the total observations since reset. Counters report their total in all four summary fields.
 
-`perf.mark(name)` / `perf.measureEnd(metric, name)` and the hot-path `start()` / `end(metric, start)` pair measure milliseconds. `perf.count(metric, n)` records totals. `report()` returns `{ [metric]: { p50, p95, p99, count } }`; `reset()` clears collected data. Metrics cover static/interactive rendering, culling, point/box hit tests, binding hover, element-canvas regeneration, frame rate (`fps`) and long tasks (`longTask`, including zero events).
+`perf.mark(name)` / `perf.measureEnd(metric, name)` and the hot-path `start()` / `end(metric, start)` pair measure milliseconds. `perf.count(metric, n)` records totals. `report()` returns `{ [metric]: { p50, p95, p99, count } }`; `reset()` clears collected data. Metrics cover static/interactive/new-element rendering (`staticRender`, `interactiveRender`, `newElementRender`), grid stroking inside the static render (`gridRender`), culling, point/box hit tests, binding hover, element-canvas regeneration, frame rate (`fps`) and long tasks (`longTask`, including zero events).
 
 Build first, then run from `packages/ndraw`:
 
@@ -132,3 +132,39 @@ The index `search` has a fast path for the common steady state (no mutation sinc
 ## Animated camera zoom
 
 `App.animateCameraTo({ scrollX, scrollY, zoom })` tweens the camera over `CAMERA_TWEEN_MS` (200ms) with `easeOut`; `interpolateCamera` in `scene/zoom.ts` interpolates scroll linearly and zoom in log space, matching `scrollToContent`. Ctrl/cmd+wheel and pinch, zoom in/out/reset (buttons and shortcuts) and the three zoom-to-fit actions use it; plain wheel and trackpad pan, touch pinch and Safari gesture zoom stay instant. Any new camera input cancels the tween through the existing `cancelInProgressAnimation`. Relative steps compound on `getCameraTarget()` (the in-flight target, else the live camera), so a wheel burst or key repeat lands exactly where the instant version did. `prefers-reduced-motion: reduce` applies the target in one write. The zoom actions return only `{ userToFollow: null }`: a full appState snapshot would overwrite the camera `animateCameraTo` already applied.
+
+## Repaint-cost pass (measurement only)
+
+Measured on 2026-11-06, before deciding on any change to the layered renderer. Setup: the narbel dev board, 768 rectangles and ellipses (below the 1,500-element tile-cache threshold, so every static render takes the full path), 1512×982 at DPR 2, Chrome Canary on an M-series Mac, `window.__NDRAW_PERF = true`. Pointer moves were paced 16ms apart. Each cell gives the median of three runs; the timer has 0.1ms resolution.
+
+The decision rules were fixed before measuring:
+
+- (a) Drag: if the static canvas repaints on more than 50% of pointer-move frames and its median paint exceeds 8ms, move in-flight elements to an overlay canvas.
+- (b) Zoom tween: if the grid takes more than 30% of the static paint, render it from a cached pattern tile.
+
+| Scenario (grid off unless stated) | Static renders / median ms | New-element renders / median ms | Grid median ms |
+|---|---|---|---|
+| Pen stroke, 61 moves (head) | 2 / 4.7 | 62 / 0.2 | – |
+| Pen stroke (trunk before the camera tween) | 2 / 3.1 | 62 / 0.2 | – |
+| Drag one element, 61 move frames (head) | 62 / 2.1 | 0 | – |
+| Drag (trunk) | 63 / 1.8 | 0 | – |
+| Drag, grid on (head) | 40 / 2.3 | 0 | <0.1 |
+| One ctrl+wheel step (head, 200ms tween) | 13 / 2.1 | 0 | – |
+| One ctrl+wheel step, grid on (head) | 13 / 2.3 | 0 | <0.1, p99 ≤0.2 |
+| One ctrl+wheel step (trunk, instant) | 2 / 2.0 | 0 | – |
+
+Neither rule fires.
+
+- (a) During a drag the static canvas repaints on every move frame, but at 1.8–2.4ms, well under 8ms.
+- (b) The grid costs at most 0.2ms of a roughly 2.3ms static paint, under 10%.
+- The pen stroke already runs only on the new-element canvas.
+
+A CDP trace of the same scenarios gives these p95 main-thread busy times per frame window:
+
+| Scenario | Head p95 | Trunk p95 |
+|---|---|---|
+| Pen stroke | 2.3ms | 2.5ms |
+| Drag | 4.5–7.0ms | 4.1–6.4ms |
+| Zoom | 8.7ms | 0.3ms (a single frame) |
+
+Isolated long tasks of 18–61ms (the drag's pointerdown hit test and selection-panel render, React renders, MajorGC) appear in both builds at similar sizes. Re-measure with this protocol before changing the renderer split.

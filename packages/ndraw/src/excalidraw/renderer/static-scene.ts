@@ -257,6 +257,7 @@ const _renderStaticScene = ({
 
   // Grid
   if (renderGrid) {
+    const gridStartedAt = perf.start();
     strokeGrid(
       context,
       appState.gridSize,
@@ -267,6 +268,7 @@ const _renderStaticScene = ({
       normalizedWidth / appState.zoom.value,
       normalizedHeight / appState.zoom.value,
     );
+    perf.end("gridRender", gridStartedAt);
   }
 
   const groupsToBeAddedToFrame = new Set<string>();

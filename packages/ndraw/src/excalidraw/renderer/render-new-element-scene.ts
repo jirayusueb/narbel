@@ -1,3 +1,4 @@
+import { perf } from "../perf/performance-manager";
 import type { NewElementSceneRenderConfig } from "../scene/types";
 import { throttleRAF } from "../utils";
 import { bootstrapCanvas, getNormalizedCanvasDimensions } from "./helpers";
@@ -14,6 +15,7 @@ const _renderNewElementScene = ({
   renderConfig,
 }: NewElementSceneRenderConfig) => {
   if (canvas) {
+    const startedAt = perf.start();
     const [normalizedWidth, normalizedHeight] = getNormalizedCanvasDimensions(
       canvas,
       scale,
@@ -43,6 +45,7 @@ const _renderNewElementScene = ({
     } else {
       context.clearRect(0, 0, normalizedWidth, normalizedHeight);
     }
+    perf.end("newElementRender", startedAt);
   }
 };
 
