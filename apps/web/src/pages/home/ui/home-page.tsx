@@ -523,7 +523,7 @@ const McpSnippet = () => (
 const Cta = ({ signedIn }: { signedIn: boolean }) => (
   <div className="flex flex-wrap items-center justify-center gap-2.5">
     <Link
-      to={signedIn ? "/dashboard" : "/sign-up"}
+      to={signedIn ? "/dashboard" : "/scratch"}
       className={buttonVariants({
         size: "lg",
         className: "active:scale-[0.98]",

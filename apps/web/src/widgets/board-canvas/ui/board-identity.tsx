@@ -14,6 +14,7 @@ const STATUS_LABEL: Record<CollabStatus, string> = {
   live: "Live",
   offline: "Offline",
   "no-access": "No access",
+  local: "Saved on this device",
 };
 
 const STATUS_DOT: Record<CollabStatus, string> = {
@@ -23,6 +24,7 @@ const STATUS_DOT: Record<CollabStatus, string> = {
   live: "bg-citrus outline outline-foreground ring-3 ring-citrus/35",
   offline: "bg-destructive",
   "no-access": "bg-destructive",
+  local: "bg-subtle-foreground",
 };
 
 const PROBLEM_ANNOUNCEMENT: Partial<Record<CollabStatus, string>> = {
@@ -58,7 +60,7 @@ export const StatusAnnouncer = ({ status }: { status: CollabStatus }) => {
   );
 };
 
-// compact: dot only while live (problems and sync progress always keep their label).
+// compact: dot only in a steady state, live or local (problems and sync progress always keep their label).
 export const BoardStatus = ({
   status,
   canWrite,
@@ -77,7 +79,7 @@ export const BoardStatus = ({
       <span
         className={[
           status === "connecting" || status === "syncing" ? "text-shimmer" : "",
-          compact && status === "live" ? "sr-only" : "",
+          compact && (status === "live" || status === "local") ? "sr-only" : "",
         ].join(" ")}
       >
         {STATUS_LABEL[status]}
