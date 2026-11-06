@@ -3,7 +3,9 @@ export type CollabStatus =
   | "syncing"
   | "live"
   | "offline"
-  | "no-access";
+  | "no-access"
+  // device-only board: loaded from IndexedDB, never talks to the server
+  | "local";
 
 export interface ConnectionFacts {
   wsconnected: boolean;

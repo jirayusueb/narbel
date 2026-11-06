@@ -17,12 +17,15 @@ import { THEME_COLOR } from "../providers/theme-color";
 export const RootDocument = () => {
   // The board is a full-viewport canvas with its own chrome; every other page scrolls the document.
   const onBoard = useRouterState({
-    select: (state) => state.location.pathname.startsWith("/boards/"),
+    select: ({ location }) =>
+      location.pathname.startsWith("/boards/") ||
+      location.pathname === "/scratch",
   });
   // Onboarding has no app to navigate yet, so it hides the header too.
   const bare = useRouterState({
     select: ({ location }) =>
       location.pathname.startsWith("/boards/") ||
+      location.pathname === "/scratch" ||
       location.pathname === "/onboarding",
   });
 

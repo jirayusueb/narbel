@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
+import { Awareness } from "y-protocols/awareness";
 import { WebsocketProvider } from "y-websocket";
 import * as Y from "yjs";
 
@@ -24,6 +25,7 @@ import {
   deleteBoardCache,
   elementKey,
   isOnPage,
+  localBoardCacheName,
 } from "@/entities/drawing";
 import type { UserRef } from "@/entities/person";
 import { api as serverApi } from "@/shared/api";
@@ -52,7 +54,9 @@ export type { CollabStatus } from "./collab-status";
 
 interface Session {
   doc: Y.Doc;
-  provider: WebsocketProvider;
+  // null for a device-only board, which never opens a socket
+  provider: WebsocketProvider | null;
+  awareness: Awareness;
   writeElements: ThrottleLatest<PendingScene>;
 }
 
@@ -74,12 +78,15 @@ export const useBoardCollab = ({
   pageId,
   canWrite,
   shareToken,
+  deviceOnly = false,
 }: {
   boardId: string;
   user: UserRef;
   pageId: string | null;
   canWrite: boolean;
   shareToken?: string;
+  /** device-only board: IndexedDB is its only store and nothing reaches the server */
+  deviceOnly?: boolean;
 }) => {
   // read at event time so a role change does not tear down the scene subscription
   const canWriteNow = useEffectEvent(() => canWrite);
@@ -135,15 +142,6 @@ export const useBoardCollab = ({
 
   useEffect(() => {
     const doc = new Y.Doc();
-    // Signed-in only: a guest's share-link session must leave nothing on disk. Cached state paints the
-    // scene through the same observers as remote updates, while the status still waits for the server.
-    const cache =
-      userId && !shareToken
-        ? new IndexeddbPersistence(boardCacheName(userId, boardId), doc)
-        : null;
-    const provider = new WebsocketProvider(SYNC_URL, boardId, doc, {
-      params: shareToken ? { share: shareToken } : {},
-    });
     sentVersions.current.clear();
     const throttle = createThrottleLatest<PendingScene>(
       ({ page, scene }) =>
@@ -156,9 +154,43 @@ export const useBoardCollab = ({
         ),
       ELEMENT_SYNC_MS
     );
+
+    if (deviceOnly) {
+      const store = new IndexeddbPersistence(localBoardCacheName(boardId), doc);
+      // Presence still needs an awareness instance; without a provider it only ever holds this tab.
+      const awareness = new Awareness(doc);
+      // oxlint-disable-next-line react/set-state-in-effect
+      setSession({ doc, provider: null, awareness, writeElements: throttle });
+      // Pages seed their first page only after this, so a stored page list is never duplicated.
+      const onStored = () => setStatus("local");
+      store.on("synced", onStored);
+      return () => {
+        store.off("synced", onStored);
+        throttle.flush();
+        awareness.destroy();
+        store.destroy();
+        doc.destroy();
+        setSession(null);
+      };
+    }
+
+    // Signed-in only: a guest's share-link session must leave nothing on disk. Cached state paints the
+    // scene through the same observers as remote updates, while the status still waits for the server.
+    const cache =
+      userId && !shareToken
+        ? new IndexeddbPersistence(boardCacheName(userId, boardId), doc)
+        : null;
+    const provider = new WebsocketProvider(SYNC_URL, boardId, doc, {
+      params: shareToken ? { share: shareToken } : {},
+    });
     // The doc and socket are external resources owned by this effect; consumers need them as state.
     // oxlint-disable-next-line react/set-state-in-effect
-    setSession({ doc, provider, writeElements: throttle });
+    setSession({
+      doc,
+      provider,
+      awareness: provider.awareness,
+      writeElements: throttle,
+    });
 
     // The server refuses the upgrade with a plain HTTP 403/404, which a browser reports only as a
     // failed socket; ask the same URL over HTTP to tell "no access" from "server down".
@@ -262,13 +294,13 @@ export const useBoardCollab = ({
       doc.destroy();
       setSession(null);
     };
-  }, [boardId, shareToken, userId, queryClient]);
+  }, [boardId, shareToken, userId, queryClient, deviceOnly]);
 
   useEffect(() => {
     if (!session) {
       return;
     }
-    session.provider.awareness.setLocalStateField("user", {
+    session.awareness.setLocalStateField("user", {
       id: userId,
       name: userName,
       username,
@@ -281,7 +313,7 @@ export const useBoardCollab = ({
     if (!session) {
       return;
     }
-    const { awareness } = session.provider;
+    const { awareness } = session;
     const throttle = createThrottleLatest<PointerUpdate>((next) => {
       const local = awareness.getLocalState();
       if (local) {
@@ -302,7 +334,7 @@ export const useBoardCollab = ({
     if (!(session && api && sceneReady && pageId)) {
       return;
     }
-    const { doc, provider } = session;
+    const { doc, awareness } = session;
     const elements = doc.getMap<ExcalidrawElement>("elements");
 
     const pageElements = () => {
@@ -423,7 +455,6 @@ export const useBoardCollab = ({
     };
     meta.observe(onMeta);
 
-    const { awareness } = provider;
     const local = awareness.getLocalState();
     if (local && local.pageId !== pageId) {
       // the pointer belongs to the page being left; carried over, peers would draw it on this one
@@ -488,7 +519,7 @@ export const useBoardCollab = ({
       const selectionKey = selection.join(",");
       if (selectionKey !== lastSelection.current) {
         lastSelection.current = selectionKey;
-        session.provider.awareness.setLocalStateField("selection", selection);
+        session.awareness.setLocalStateField("selection", selection);
       }
       const page = activePage.current;
       if (!(page && canWrite)) {
@@ -507,7 +538,7 @@ export const useBoardCollab = ({
     api: sceneReady ? api : null,
     bindApi: setApi,
     doc: session?.doc ?? null,
-    awareness: session?.provider.awareness ?? null,
+    awareness: session?.awareness ?? null,
     status,
     onChange,
     onPointerUpdate,
