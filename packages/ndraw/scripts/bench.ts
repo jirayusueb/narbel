@@ -186,6 +186,9 @@ const context: BrowserContext = await chromium.launchPersistentContext(profile, 
   headless: !args.includes("--headed"),
   viewport: { width: 1280, height: 800 },
   deviceScaleFactor: 1,
+  // ctrl+wheel zoom tweens for 200ms and each wheel restarts the tween; the drivers step one wheel
+  // per frame and read the zoom back, so they need the reduced-motion path that applies at once
+  reducedMotion: "reduce",
   args: ["--disable-background-timer-throttling", "--disable-renderer-backgrounding", "--disable-backgrounding-occluded-windows", "--no-first-run"],
 });
 
