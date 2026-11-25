@@ -19,11 +19,31 @@ export const downloadAsDataUrl = async (
 ) => {
   const query = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
   const res = await fetch(
-    `${SERVER_URL}/api/boards/${boardId}/files/${fileId}${query}`,
+    `${SERVER_URL}/api/boards/${boardId}/files/${encodeURIComponent(fileId)}${query}`,
     { credentials: "include" }
   );
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
   return blobToDataUrl(await res.blob());
+};
+
+/** A stored board text file (artifact) with the content type the server stored it under. */
+export const downloadAsText = async (
+  boardId: string,
+  fileId: string,
+  shareToken?: string
+) => {
+  const query = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
+  const res = await fetch(
+    `${SERVER_URL}/api/boards/${boardId}/files/${encodeURIComponent(fileId)}${query}`,
+    { credentials: "include" }
+  );
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  return {
+    text: await res.text(),
+    contentType: res.headers.get("content-type") ?? "",
+  };
 };

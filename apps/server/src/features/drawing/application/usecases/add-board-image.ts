@@ -5,20 +5,22 @@ import type { Actor } from "../../../../shared/kernel/types/actor";
 import type { BoardId } from "../../../../shared/kernel/types/ids";
 import { err, ok } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
-import { Drawing } from "../../domain/entities/drawing";
-import type { Element, ElementId } from "../../domain/entities/element";
-import { Page } from "../../domain/entities/page";
+import type { ElementId } from "../../domain/entities/element";
 import type { PageId } from "../../domain/entities/page";
-import { Geometry } from "../../domain/rules/geometry";
 import { ImageHeaderReader } from "../../domain/rules/image-header";
-import { Layout } from "../../domain/rules/layout";
 import { UploadRules } from "../../domain/rules/upload-rules";
 import { ImageElement } from "../../domain/shapes/image-element";
 import { FileKey } from "../../domain/values/file-key";
-import { bumped, newIdentity } from "../connectors";
+import { newIdentity } from "../connectors";
+import {
+  MEDIA_FAILURES,
+  placeMedia,
+  resolveMediaTarget,
+} from "../media-target";
+import type { MediaRefusal } from "../media-target";
 import type { IBoardAccess } from "../ports/i-board-access";
 import type { IBoardFileRepository } from "../ports/i-board-file-repository";
-import type { IBoardScenes, SceneAccess } from "../ports/i-board-scenes";
+import type { IBoardScenes } from "../ports/i-board-scenes";
 
 export interface AddedImage {
   id: ElementId;
@@ -26,29 +28,6 @@ export interface AddedImage {
   width: number;
   height: number;
 }
-
-type Refusal = "no-page" | "id-taken" | "no-frame";
-
-const FAILURES: Record<Refusal, () => AppError> = {
-  "no-page": () => AppError.notFound("Page"),
-  "id-taken": () =>
-    AppError.validation("An element with that id already exists on the board"),
-  "no-frame": () =>
-    AppError.validation("frameId must reference a frame on the page"),
-};
-
-const insideFrame = (frame: Element, live: Element[]) => {
-  const right = live
-    .filter((e) => e.frameId === frame.id)
-    .map((e) => Geometry.elementBounds(e))
-    .map((b) => b.x + b.width);
-  return {
-    x:
-      (right.length === 0 ? Number(frame.x) : Math.max(...right)) +
-      Layout.FRAME_PADDING,
-    y: Number(frame.y) + Layout.FRAME_PADDING,
-  };
-};
 
 export class AddBoardImage {
   constructor(
@@ -58,29 +37,6 @@ export class AddBoardImage {
     private readonly storage: IFileStorage,
     private readonly ids: IIdGenerator
   ) {}
-
-  private target(
-    scene: SceneAccess,
-    input: { pageId?: PageId; id?: ElementId; frameId?: ElementId }
-  ) {
-    const page = Page.resolve(scene.pages(), input.pageId);
-    if (!page) {
-      return "no-page";
-    }
-    const id = input.id ?? this.ids.generate();
-    if (Drawing.isElementIdTaken(id, (key) => scene.locate(key))) {
-      return "id-taken";
-    }
-    const frame =
-      input.frameId === undefined ? null : scene.get(page.id, input.frameId);
-    if (
-      input.frameId !== undefined &&
-      (frame?.type !== "frame" || frame.isDeleted)
-    ) {
-      return "no-frame";
-    }
-    return { page, id, frame };
-  }
 
   async execute(input: {
     actor: Actor;
@@ -137,11 +93,11 @@ export class AddBoardImage {
       return err(valid.error);
     }
     const refused = await this.scenes.transact(input.boardId, (scene) => {
-      const resolved = this.target(scene, input);
+      const resolved = resolveMediaTarget(scene, this.ids, input);
       return typeof resolved === "string" ? resolved : undefined;
     });
     if (refused) {
-      return err(FAILURES[refused]());
+      return err(MEDIA_FAILURES[refused]());
     }
     // Reserve the row first: a file the cleanup job is deleting refuses here, before any byte is written.
     // The bytes are content-addressed, so rewriting them is idempotent and heals a row whose upload failed.
@@ -162,53 +118,27 @@ export class AddBoardImage {
     const now = Date.now();
     const outcome = await this.scenes.transact(
       input.boardId,
-      (scene): AddedImage | Refusal => {
-        const resolved = this.target(scene, input);
+      (scene): AddedImage | MediaRefusal => {
+        const resolved = resolveMediaTarget(scene, this.ids, input);
         if (typeof resolved === "string") {
           return resolved;
         }
-        const { page, id, frame } = resolved;
-        const live = scene.all(page.id).filter((e) => !e.isDeleted);
-        const beside = Layout.besideContent(
-          live.map(Geometry.elementBounds),
-          Layout.CLEARANCE
-        );
-        const spot = frame
-          ? insideFrame(frame, live)
-          : { x: beside.left, y: beside.top };
-        const autoPlaced = input.x === undefined || input.y === undefined;
-        const x = input.x ?? spot.x;
-        const y = input.y ?? spot.y;
-        const grows = autoPlaced && frame?.locked !== true;
-        const inFrame =
-          frame &&
-          (grows ||
-            Geometry.overlaps(
-              { ...size, x, y },
-              Geometry.elementBounds(frame)
-            ));
         scene.ensureFile({
           id: fileId,
           mimeType: header.mimeType,
           created: now,
         });
-        scene.put(
-          page.id,
+        placeMedia(scene, this.ids, resolved, { ...input, ...size }, (spot) =>
           ImageElement.buildImage(
-            { ...size, x, y, fileId, frameId: inFrame ? frame?.id : undefined },
-            { ...newIdentity(this.ids, now), id }
+            { ...size, ...spot, fileId },
+            { ...newIdentity(this.ids, now), id: resolved.id }
           )
         );
-        if (frame && grows) {
-          const fitted = Geometry.union([
-            Geometry.elementBounds(frame),
-            Layout.wrapFrame([{ ...size, x, y }]),
-          ]);
-          scene.put(page.id, bumped({ ...frame, ...fitted }, this.ids));
-        }
-        return { id, fileId, ...size };
+        return { id: resolved.id, ...size, fileId };
       }
     );
-    return typeof outcome === "string" ? err(FAILURES[outcome]()) : ok(outcome);
+    return typeof outcome === "string"
+      ? err(MEDIA_FAILURES[outcome]())
+      : ok(outcome);
   }
 }

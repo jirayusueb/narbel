@@ -53,6 +53,34 @@ export const registerMediaTools: ToolRegistrar = (server, uc, actor) => {
       reply(await uc.addBoardImage.execute({ actor, bytes: data, ...input }))
   );
   server.registerTool(
+    "add_artifact",
+    {
+      description:
+        "Place an HTML or Markdown file on a page as a live box that people can open on the board: HTML runs its scripts (in a sandbox, after a viewer clicks it), Markdown renders as formatted text. Content is the file's text, at most 1 MiB as UTF-8. Without width/height the box is 640x480. Without x/y it goes to the right of the existing content, or, with frameId, inside that frame after its children. Returns the element id and the file id (SHA-1 of the text, so the same file twice is stored once). get_board lists it as type iframe with its name and format; get_board_image draws it as a labelled box.",
+      inputSchema: {
+        boardId,
+        pageId,
+        name: z
+          .string()
+          .min(1)
+          .max(200)
+          .describe("File name shown on the box, e.g. report.html"),
+        format: z.enum(["html", "markdown"]),
+        content: z.string().min(1).describe("The file's full text"),
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional(),
+        width: length.optional(),
+        height: length.optional(),
+        id: elementId.optional(),
+        frameId: elementId
+          .optional()
+          .describe("Id of a frame on the page to place the artifact in"),
+      },
+    },
+    async (input) =>
+      reply(await uc.addBoardArtifact.execute({ actor, ...input }))
+  );
+  server.registerTool(
     "export_scene",
     {
       description:

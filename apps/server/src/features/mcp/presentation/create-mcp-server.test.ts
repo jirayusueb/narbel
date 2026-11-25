@@ -22,6 +22,7 @@ test("an MCP client sees every board tool and the drawing guide", async () => {
   const { tools } = await client.listTools();
   expect(tools.map((t) => t.name).toSorted()).toEqual(
     [
+      "add_artifact",
       "add_comment",
       "add_elements",
       "add_image",

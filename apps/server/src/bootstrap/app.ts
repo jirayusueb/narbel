@@ -31,8 +31,9 @@ import type { IPubSub } from "../shared/application/interfaces/i-pub-sub";
 import { errorPlugin } from "../shared/presentation/plugins/error-plugin";
 import { originGuard } from "../shared/presentation/plugins/origin-guard";
 
-// Image bytes go straight to S3, so API bodies are small JSON; reject anything bigger before Bun buffers it.
-const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
+// Image bytes go straight to S3, so API bodies are JSON; the largest is a 1 MiB artifact, which escaping can
+// grow past 1 MiB. Reject anything bigger before Bun buffers it.
+const MAX_REQUEST_BODY_BYTES = 3 * 1024 * 1024;
 
 export interface AppDeps {
   auth: Parameters<typeof createBetterAuthPlugin>[0];

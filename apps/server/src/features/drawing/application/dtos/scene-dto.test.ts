@@ -113,3 +113,30 @@ describe("toSceneElementDto style", () => {
     ).toMatchObject({ endArrowhead: null });
   });
 });
+
+describe("toSceneElementDto artifacts", () => {
+  it("names an artifact and its format, so agents can tell it from other iframes", () => {
+    const out = toSceneElementDto(
+      {
+        id: "art",
+        type: "iframe",
+        fileId: "f1",
+        version: 1,
+        versionNonce: 1,
+        x: 0,
+        y: 0,
+        width: 640,
+        height: 480,
+        rest: {
+          customData: { artifact: { format: "markdown", name: "notes.md" } },
+        },
+      },
+      () => {}
+    );
+    expect(out).toMatchObject({
+      type: "iframe",
+      name: "notes.md",
+      format: "markdown",
+    });
+  });
+});

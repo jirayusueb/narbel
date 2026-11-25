@@ -1,6 +1,7 @@
 import type { Element, ElementId } from "../entities/element";
 import { Geometry } from "../rules/geometry";
 import type { Bounds, Point } from "../rules/geometry";
+import { ArtifactElement } from "../shapes/artifact-element";
 import { ElementStyle } from "../shapes/element-style";
 
 export const FONT_FAMILY = "Sarabun";
@@ -230,6 +231,17 @@ const label = (e: Element, container: Element) => {
   });
 };
 
+/** Embedded pages run only in browsers; the render shows where one sits and what it is. */
+const iframeNode = (e: Element) => {
+  const b = Geometry.geometryBox(e);
+  const info = ArtifactElement.infoOf(e);
+  const caption = info ? `${info.name} · ${info.format}` : "Embedded page";
+  return (
+    `<rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" fill="#f8f9fa" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>` +
+    `<text x="${b.x + b.width / 2}" y="${b.y + b.height / 2}" font-family="${FONT_FAMILY}" font-size="16" fill="#495057" text-anchor="middle" dominant-baseline="middle">${escapeXml(caption)}</text>`
+  );
+};
+
 const imageNode = (e: Element, refs: Map<string, string>) => {
   const b = Geometry.geometryBox(e);
   const ref = typeof e.fileId === "string" ? refs.get(e.fileId) : undefined;
@@ -279,6 +291,10 @@ const shapeNode = (e: Element, refs: Map<string, string>) => {
     }
     case "image": {
       return imageNode(e, refs);
+    }
+    case "iframe":
+    case "embeddable": {
+      return iframeNode(e);
     }
     default: {
       return "";

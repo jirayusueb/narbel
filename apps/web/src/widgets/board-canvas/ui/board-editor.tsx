@@ -21,6 +21,10 @@ import type { Board } from "@/entities/board";
 import { useMe } from "@/entities/person";
 import type { UserRef } from "@/entities/person";
 import { useSession } from "@/entities/session";
+import {
+  AddArtifactMenuItem,
+  useBoardArtifacts,
+} from "@/features/board-artifacts";
 import { useBoardCollab } from "@/features/board-collab";
 import type { CollabStatus } from "@/features/board-collab";
 import {
@@ -127,12 +131,16 @@ const BoardMainMenu = ({
   isOwner,
   shareToken,
   preferences,
+  renderEmbeddable,
+  onAddArtifact,
 }: {
   board: Board;
   canWrite: boolean;
   isOwner: boolean;
   shareToken?: string;
   preferences: ComponentProps<typeof PreferencesMenuItems>;
+  renderEmbeddable: ComponentProps<typeof Excalidraw>["renderEmbeddable"];
+  onAddArtifact?: () => void;
 }) => {
   const navigate = useNavigate();
   const { theme = "system", setTheme } = useTheme();
@@ -167,11 +175,13 @@ const BoardMainMenu = ({
             boardId: board.id,
             canWrite,
             shareToken,
+            renderEmbeddable,
           })
         }
       >
         Version history
       </MainMenu.Item>
+      {onAddArtifact ? <AddArtifactMenuItem onSelect={onAddArtifact} /> : null}
       <MainMenu.Separator />
       <PreferencesMenuItems {...preferences} />
       <MainMenu.Separator />
@@ -272,6 +282,13 @@ export const BoardEditor = ({
     canWrite: writable,
     shareToken,
     pageId,
+  });
+  const { renderEmbeddable, onDropCapture, onAddArtifact } = useBoardArtifacts({
+    boardId: board.id,
+    shareToken,
+    api,
+    pageId,
+    canWrite: writable,
   });
   // Guests keep Excalidraw's in-memory library; only an account owns a persisted one.
   useHandleLibrary({
@@ -423,6 +440,7 @@ export const BoardEditor = ({
       data-board-canvas
       data-chrome={isCompact && !isPhone ? "compact" : undefined}
       className="bg-background relative h-svh w-full overflow-hidden"
+      onDropCapture={onDropCapture}
     >
       {topChrome}
       <Excalidraw
@@ -430,6 +448,7 @@ export const BoardEditor = ({
         name={board.title}
         viewModeEnabled={!writable}
         excalidrawAPI={bindApi}
+        renderEmbeddable={renderEmbeddable}
         UIOptions={{ canvasActions: { toggleTheme: true } }}
         {...preferences.excalidrawProps}
         onChange={(elements, appState, files) => {
@@ -465,6 +484,8 @@ export const BoardEditor = ({
             prefs: preferences.prefs,
             onChange: preferences.handleChange,
           }}
+          renderEmbeddable={renderEmbeddable}
+          onAddArtifact={onAddArtifact}
         />
         <Footer>{isPhone ? null : <PagesBar {...pagesProps} />}</Footer>
       </Excalidraw>

@@ -1,6 +1,8 @@
 import { Drawing } from "../../domain/entities/drawing";
 import type { Element, ElementId } from "../../domain/entities/element";
 import type { PageId } from "../../domain/entities/page";
+import type { ArtifactFormat } from "../../domain/rules/upload-rules";
+import { ArtifactElement } from "../../domain/shapes/artifact-element";
 import { ElementStyle } from "../../domain/shapes/element-style";
 import type { Style } from "../../domain/shapes/element-style";
 
@@ -17,7 +19,10 @@ export interface SceneElementDto extends Partial<Style> {
   endElementId?: ElementId | null;
   groupIds?: string[];
   frameId?: ElementId;
+  /** frames: their name; artifacts: the uploaded file's name */
   name?: string;
+  /** artifacts only: how the file renders */
+  format?: ArtifactFormat;
   locked?: true;
 }
 
@@ -69,6 +74,7 @@ export const toSceneElementDto = (
     ...(e.type === "frame" && typeof e.name === "string" && e.name !== ""
       ? { name: e.name }
       : {}),
+    ...ArtifactElement.infoOf(e),
     ...(e.locked === true ? { locked: true as const } : {}),
   };
 };

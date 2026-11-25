@@ -45,7 +45,7 @@ const inPool = async <T, R>(
   return results;
 };
 
-/** Drawing's half of duplicating a board: copies the pages, elements and images into a new board. */
+/** Drawing's half of duplicating a board: copies the pages, elements and their files into a new board. */
 export class CopyDrawing {
   constructor(
     private readonly scenes: IBoardScenes,
@@ -68,28 +68,37 @@ export class CopyDrawing {
       );
       return { pages, elements };
     });
-    const fileIds = new Set(
-      snapshot.elements.flatMap(([, e]) =>
-        e.type === "image" && typeof e.fileId === "string" ? [e.fileId] : []
-      )
-    );
+    // an image must arrive whole; an artifact whose file is gone (pasted from another board) stays unloadable
+    const required = new Map<string, boolean>();
+    for (const [, e] of snapshot.elements) {
+      if (typeof e.fileId === "string") {
+        required.set(
+          e.fileId,
+          required.get(e.fileId) === true || e.type === "image"
+        );
+      }
+    }
     // validate everything before the new board exists, so a bad source leaves nothing behind
-    const ids = [...fileIds];
+    const ids = [...required.keys()];
     const checks = await inPool(ids, (fileId) =>
       this.checkFile(sourceId, fileId)
     );
     const mimeTypes = new Map<string, string>();
     let totalBytes = 0;
     for (const [index, checked] of checks.entries()) {
+      const fileId = ids[index] as string;
       if (checked.isErr()) {
-        return err(checked.error);
+        if (required.get(fileId)) {
+          return err(checked.error);
+        }
+        continue;
       }
       totalBytes += checked.value.size;
-      mimeTypes.set(ids[index] as string, checked.value.mimeType);
+      mimeTypes.set(fileId, checked.value.mimeType);
     }
     if (totalBytes > COPY_MAX_TOTAL_BYTES) {
       return err(
-        AppError.payloadTooLarge("The board's images are too large to copy")
+        AppError.payloadTooLarge("The board's files are too large to copy")
       );
     }
     const targetId = await target.create();
@@ -109,7 +118,10 @@ export class CopyDrawing {
           s.put(pageId, element);
         }
         for (const [id, mimeType] of mimeTypes) {
-          s.ensureFile({ id, mimeType, created });
+          // the scene's files map is the image cache; artifacts are fetched on view
+          if (mimeType.startsWith("image/")) {
+            s.ensureFile({ id, mimeType, created });
+          }
         }
       });
       return okEmpty();
@@ -122,7 +134,7 @@ export class CopyDrawing {
     }
   }
 
-  /** Every referenced image must have a row and an object of usable size, or nothing is copied. */
+  /** Every referenced file must have a row and an object of usable size to be copied. */
   private async checkFile(
     sourceId: string,
     fileId: string
@@ -132,12 +144,12 @@ export class CopyDrawing {
       row && (await this.storage.stat(FileKey.of(sourceId, fileId)));
     if (!row || !stored || stored.size < 1) {
       return err(
-        AppError.conflict(`Image ${fileId} is missing from the board's storage`)
+        AppError.conflict(`File ${fileId} is missing from the board's storage`)
       );
     }
     if (stored.size > UploadRules.MAX_FILE_BYTES) {
       return err(
-        AppError.payloadTooLarge(`Image ${fileId} is too large to copy`, {
+        AppError.payloadTooLarge(`File ${fileId} is too large to copy`, {
           fileId,
         })
       );

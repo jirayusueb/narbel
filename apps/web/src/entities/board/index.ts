@@ -11,7 +11,7 @@ export {
   useTrashTransition,
   useTrashedBoards,
 } from "./api/queries";
-export { downloadAsDataUrl } from "./api/download-file";
+export { downloadAsDataUrl, downloadAsText } from "./api/download-file";
 export { uploadBoardFile } from "./api/upload-file";
 export type {
   Board,
