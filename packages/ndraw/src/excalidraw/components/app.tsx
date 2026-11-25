@@ -1273,9 +1273,7 @@ class App extends React.Component<AppProps, AppState> {
                     padding: `${el.strokeWidth}px`,
                   }}
                 >
-                  {(isEmbeddableElement(el)
-                    ? this.props.renderEmbeddable?.(el, this.state)
-                    : null) ?? (
+                  {this.props.renderEmbeddable?.(el, this.state) ?? (
                     <iframe
                       ref={(ref) => this.cacheEmbeddableRef(el, ref)}
                       className="excalidraw__embeddable"
@@ -6770,7 +6768,10 @@ class App extends React.Component<AppProps, AppState> {
     const clicklength =
       event.timeStamp - (this.lastPointerDownEvent?.timeStamp ?? 0);
 
-    if (this.device.editor.isMobile && clicklength < 300) {
+    if (
+      (this.device.editor.isMobile || this.state.viewModeEnabled) &&
+      clicklength < 300
+    ) {
       const hitElement = this.getElementAtPosition(
         scenePointer.x,
         scenePointer.y,

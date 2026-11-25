@@ -29,6 +29,7 @@
     "better-auth": "catalog:",
     "boring-avatars": "^2.0.4",
     "lucide-react": "^1.56.0",
+    "marked": "^18.3.0",
     "motion": "^14.7.1",
     "next-themes": "catalog:",
     "nitro": "3.0.260903-beta",

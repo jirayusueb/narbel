@@ -256,3 +256,19 @@ describe("buildSceneSvg", () => {
     expect(svg).toContain("stroke-dasharray");
   });
 });
+
+describe("artifacts", () => {
+  it("draws an artifact as a box captioned with its escaped name and format", () => {
+    const artifact = rect({
+      type: "iframe",
+      fileId: "f1",
+      rest: {
+        customData: { artifact: { format: "html", name: "<b>r</b>.html" } },
+      },
+    });
+    const { svg } = build([artifact]);
+    expect(svg).toContain("stroke-dasharray");
+    expect(svg).toContain("&#60;b&#62;r&#60;/b&#62;.html · html");
+    expect(svg).not.toContain("<b>");
+  });
+});

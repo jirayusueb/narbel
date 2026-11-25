@@ -14,6 +14,7 @@ const connect = async () => {
     return Promise.resolve({ isOk: () => true, value: {} });
   };
   const uc = {
+    addBoardArtifact: { execute },
     addBoardImage: { execute },
     exportBoardScene: { execute },
   } as unknown as McpUseCases;
@@ -26,13 +27,35 @@ const connect = async () => {
 };
 
 describe("registerMediaTools", () => {
-  it("lists add_image and export_scene", async () => {
+  it("lists add_artifact, add_image and export_scene", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).toSorted()).toEqual([
+      "add_artifact",
       "add_image",
       "export_scene",
     ]);
+  });
+
+  it("passes an artifact's text through and refuses an unknown format", async () => {
+    const { client, calls } = await connect();
+    const ok = await client.callTool({
+      name: "add_artifact",
+      arguments: {
+        boardId: "b",
+        name: "n.md",
+        format: "markdown",
+        content: "# hi",
+      },
+    });
+    expect(ok.isError).toBeFalsy();
+    expect(calls[0]).toMatchObject({ format: "markdown", content: "# hi" });
+    const bad = await client.callTool({
+      name: "add_artifact",
+      arguments: { boardId: "b", name: "n.pdf", format: "pdf", content: "x" },
+    });
+    expect(bad.isError).toBe(true);
+    expect(calls).toHaveLength(1);
   });
 
   it("decodes base64 and data URLs, and rejects anything else", async () => {

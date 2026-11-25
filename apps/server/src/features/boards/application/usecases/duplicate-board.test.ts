@@ -178,6 +178,45 @@ describe("DuplicateBoard", () => {
     expect(t.source.pageList).toHaveLength(2);
   });
 
+  it("copies an artifact's file without adding it to the image cache, and skips one whose file is gone", async () => {
+    const t = setup();
+    const artifact = { format: "html", name: "r.html" };
+    t.source.elements.set(
+      "page:main:art",
+      element("art", {
+        type: "iframe",
+        fileId: "doc1",
+        customData: { artifact },
+      })
+    );
+    t.source.elements.set(
+      "page:main:pasted",
+      element("pasted", {
+        type: "iframe",
+        fileId: "elsewhere",
+        customData: { artifact },
+      })
+    );
+    const text = new TextEncoder().encode("<p>hi</p>");
+    t.stored.set("boards/b1/doc1", { bytes: text, mimeType: "text/html" });
+    t.rows.set("b1/doc1", {
+      id: "doc1",
+      mimeType: "text/html",
+      size: text.length,
+    });
+    const result = await t.duplicate.execute({ actor: owner, boardId: "b1" });
+    expect(result.isOk()).toBe(true);
+    if (!result.isOk()) {
+      return;
+    }
+    const copyId = result.value.id;
+    expect(t.stored.get(`boards/${copyId}/doc1`)?.bytes).toEqual(text);
+    expect(t.rows.get(`${copyId}/doc1`)?.mimeType).toBe("text/html");
+    const copy = t.copies.get(copyId);
+    expect(copy?.elements.get("page:main:pasted")?.fileId).toBe("elsewhere");
+    expect([...(copy?.files.keys() ?? [])]).toEqual(["file1"]);
+  });
+
   it("refuses when a referenced image is missing and creates nothing", async () => {
     const t = setup();
     t.stored.delete("boards/b1/file1");

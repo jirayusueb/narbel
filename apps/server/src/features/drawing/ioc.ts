@@ -15,6 +15,7 @@ import type {
   IBoardRecords,
 } from "./application/ports/i-board-access";
 import type { ICommentActivity } from "./application/ports/i-comment-activity";
+import { AddBoardArtifact } from "./application/usecases/add-board-artifact";
 import { AddBoardElements } from "./application/usecases/add-board-elements";
 import { AddBoardImage } from "./application/usecases/add-board-image";
 import { AddPage } from "./application/usecases/add-page";
@@ -55,6 +56,7 @@ import { DrizzleDrawingRows } from "./infrastructure/repositories/drizzle-drawin
 import { DrizzleLibraryRepository } from "./infrastructure/repositories/drizzle-library-repository";
 import { RedisBoardPresence } from "./infrastructure/services/redis-board-presence";
 import { ResvgRasterizer } from "./infrastructure/services/resvg-rasterizer";
+import { createBoardArtifactController } from "./presentation/http/board-artifact-controller";
 import { createBoardFileController } from "./presentation/http/board-file-controller";
 import { createBoardPreviewController } from "./presentation/http/board-preview-controller";
 import { createBoardVersionController } from "./presentation/http/board-version-controller";
@@ -63,6 +65,7 @@ import { createBoardSyncController } from "./presentation/ws/board-sync-controll
 
 /** The use cases drawing's transports (HTTP, WebSocket, MCP) drive. */
 export interface DrawingUseCases {
+  addBoardArtifact: AddBoardArtifact;
   addBoardElements: AddBoardElements;
   addBoardImage: AddBoardImage;
   addPage: AddPage;
@@ -143,6 +146,7 @@ export const createDrawingUseCases = ({
   const presence = new RedisBoardPresence(redis);
   const library = new DrizzleLibraryRepository(db);
   return {
+    addBoardArtifact: new AddBoardArtifact(access, rooms, files, storage, ids),
     addBoardElements: new AddBoardElements(access, rooms, ids),
     addBoardImage: new AddBoardImage(access, rooms, files, storage, ids),
     addPage: new AddPage(access, rooms, ids),
@@ -187,6 +191,7 @@ export const createDrawingModule = (
   new Elysia({ name: "feature/drawing" })
     .use(createBoardSyncController(betterAuth, uc))
     .use(createBoardFileController(betterAuth, uc))
+    .use(createBoardArtifactController(betterAuth, uc))
     .use(createBoardVersionController(betterAuth, uc))
     .use(createBoardPreviewController(betterAuth, uc))
     .use(createLibraryController(betterAuth, uc));

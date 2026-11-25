@@ -24,6 +24,7 @@ Structure: a frame (type "frame" with a name) holds a section; its children carr
 with it. group_elements, align_elements and distribute_elements tidy, ungroup_elements undoes a group,
 locked: true protects an element from edits through this API. On a big page pass get_board within,
 types and limit.
-Files: add_image places a picture from base64 bytes (up to 700 KiB); export_scene returns the page as
-a .excalidraw file. Comments: list_comments, list_replies, add_comment (pageId from list_pages),
-reply_comment, resolve_comment.`;
+Files: add_image places a picture from base64 bytes (up to 700 KiB); add_artifact places an HTML or
+Markdown file (its text, up to 1 MiB) as a live box people open on the board; export_scene returns
+the page as a .excalidraw file. Comments: list_comments, list_replies, add_comment (pageId from
+list_pages), reply_comment, resolve_comment.`;

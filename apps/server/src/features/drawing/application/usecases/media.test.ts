@@ -5,6 +5,7 @@ import type { IFileStorage } from "../../../../shared/application/interfaces/i-f
 import { ids, setupAccess } from "../../../../testing";
 import { UploadRules } from "../../domain/rules/upload-rules";
 import type { IBoardFileRepository } from "../ports/i-board-file-repository";
+import { AddBoardArtifact } from "./add-board-artifact";
 import { AddBoardElements } from "./add-board-elements";
 import { AddBoardImage } from "./add-board-image";
 import { DeleteBoardElements } from "./delete-board-elements";
@@ -93,6 +94,13 @@ const setup = () => {
     rows,
     deleting,
     add: new AddBoardImage(base.policy, base.scenes, files, storage, ids),
+    artifact: new AddBoardArtifact(
+      base.policy,
+      base.scenes,
+      files,
+      storage,
+      ids
+    ),
     exportScene: new ExportBoardScene(base.policy, base.scenes, files, storage),
     rasterizations: () => rasterized,
     render: new RenderBoardImage(
@@ -705,5 +713,96 @@ describe("JPEGs whose size marker sits behind large segments", () => {
   it("drops one still unresolved at the 1 MiB cap", async () => {
     const { fileId, omitted } = await render(jpegAfter(20));
     expect(omitted).toEqual([fileId]);
+  });
+});
+
+describe("AddBoardArtifact", () => {
+  const html = "<h1>Report</h1><script>document.body.append('ok')</script>";
+  const add = (
+    t: ReturnType<typeof setup>,
+    input: Partial<Parameters<AddBoardArtifact["execute"]>[0]> = {}
+  ) =>
+    t.artifact.execute({
+      actor,
+      boardId: "b1",
+      name: "report.html",
+      format: "html",
+      content: html,
+      ...input,
+    });
+
+  it("stores the text under its SHA-1 and places an iframe that references it", async () => {
+    const t = setup();
+    const sha1 = createHash("sha1").update(html).digest("hex");
+    const result = await add(t, { id: "art", x: 10, y: 20 });
+    expect(result.isOk() && result.value).toEqual({
+      id: "art",
+      fileId: sha1,
+      width: 640,
+      height: 480,
+    });
+    expect(t.stored.get(`boards/b1/${sha1}`)?.mimeType).toBe("text/html");
+    expect(
+      new TextDecoder().decode(t.stored.get(`boards/b1/${sha1}`)?.bytes)
+    ).toBe(html);
+    expect(t.rows.get(`b1/${sha1}`)).toEqual({
+      id: sha1,
+      mimeType: "text/html",
+      size: new TextEncoder().encode(html).length,
+    });
+    expect(t.scenes.elements.get("page:main:art")).toMatchObject({
+      type: "iframe",
+      fileId: sha1,
+      x: 10,
+      y: 20,
+      width: 640,
+      height: 480,
+      customData: { artifact: { format: "html", name: "report.html" } },
+    });
+    // the scene's files map is the image cache; artifacts stay out of it
+    expect(t.scenes.files.size).toBe(0);
+  });
+
+  it("stores markdown as text/markdown and the same text once", async () => {
+    const t = setup();
+    await add(t, { format: "markdown", content: "# a", name: "a.md" });
+    await add(t, { format: "markdown", content: "# a", name: "b.md" });
+    expect(t.stored.size).toBe(1);
+    expect([...t.stored.values()][0]?.mimeType).toBe("text/markdown");
+    expect(t.scenes.elements.size).toBe(2);
+  });
+
+  it("refuses bad input, readers and bytes stored as another type, writing nothing", async () => {
+    const t = setup();
+    const codes = await Promise.all([
+      add(t, { format: "pdf" }),
+      add(t, { name: " " }),
+      add(t, { content: "" }),
+      add(t, { content: "a".repeat(UploadRules.MAX_ARTIFACT_BYTES + 1) }),
+      add(t, { actor: { userId: "stranger" } }),
+      add(t, { pageId: "nope" }),
+    ]);
+    expect(codes.map((r) => r.isErr() && r.error.code)).toEqual([
+      "ValidationFailed",
+      "ValidationFailed",
+      "ValidationFailed",
+      "PayloadTooLarge",
+      "NotFound",
+      "NotFound",
+    ]);
+    const sha1 = createHash("sha1").update(html).digest("hex");
+    t.rows.set(`b1/${sha1}`, { id: sha1, mimeType: "image/svg+xml", size: 1 });
+    const retyped = await add(t);
+    expect(retyped.isErr() && retyped.error.code).toBe("Conflict");
+    expect(t.stored.size).toBe(0);
+    expect(t.scenes.elements.size).toBe(0);
+  });
+
+  it("accepts exactly 1 MiB of text", async () => {
+    const t = setup();
+    const result = await add(t, {
+      content: "a".repeat(UploadRules.MAX_ARTIFACT_BYTES),
+    });
+    expect(result.isOk()).toBe(true);
   });
 });

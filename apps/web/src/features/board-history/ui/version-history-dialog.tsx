@@ -25,6 +25,7 @@ import { Spinner } from "@narbel/ui/components/spinner";
 import { useTheme } from "next-themes";
 import { overlay } from "overlay-kit";
 import { useEffect, useState } from "react";
+import type { ComponentProps } from "react";
 import { toast } from "sonner";
 
 import { downloadAsDataUrl } from "@/entities/board";
@@ -46,6 +47,7 @@ interface Target {
   boardId: string;
   canWrite: boolean;
   shareToken?: string;
+  renderEmbeddable?: ComponentProps<typeof Excalidraw>["renderEmbeddable"];
 }
 
 const KIND_LABEL = {
@@ -60,11 +62,13 @@ const VersionPreview = ({
   shareToken,
   version,
   pageId,
+  renderEmbeddable,
 }: {
   boardId: string;
   shareToken?: string;
   version: Preview;
   pageId: string;
+  renderEmbeddable?: Target["renderEmbeddable"];
 }) => {
   const { resolvedTheme } = useTheme();
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
@@ -95,6 +99,7 @@ const VersionPreview = ({
     <Excalidraw
       key={`${version.id}:${page?.id}`}
       viewModeEnabled
+      renderEmbeddable={renderEmbeddable}
       theme={resolvedTheme === "dark" ? "dark" : "light"}
       excalidrawAPI={setApi}
       initialData={{
@@ -259,6 +264,7 @@ const VersionHistoryDialog = ({
   boardId,
   canWrite,
   shareToken,
+  renderEmbeddable,
   isOpen,
   close,
   unmount,
@@ -318,6 +324,7 @@ const VersionHistoryDialog = ({
                 shareToken={shareToken}
                 version={preview.data}
                 pageId={activePageId}
+                renderEmbeddable={renderEmbeddable}
               />
             ) : null}
             {preview.isFetching && !preview.data ? (
